@@ -672,11 +672,7 @@
 
       // Validation
       if (!ad_set_name) return showStatus('error', '⚠️ Vui lòng nhập Ad Set Name.');
-      if (!url_zippy)   return showStatus('error', '⚠️ Vui lòng nhập URL Zippy.');
-      if (!url_pajama)  return showStatus('error', '⚠️ Vui lòng nhập URL Pajama.');
       if (!dropbox_print_image) return showStatus('error', '⚠️ Vui lòng chọn Print Image từ Dropbox.');
-      if (state.dropbox_zippy.length === 0) return showStatus('error', '⚠️ Vui lòng chọn ít nhất 1 ảnh Zippy.');
-      if (state.dropbox_pajama.length === 0) return showStatus('error', '⚠️ Vui lòng chọn ít nhất 1 ảnh Pajama.');
 
       const payload = {
         ad_set_name,

@@ -371,7 +371,7 @@
         });
 
         if (res.ok) {
-          showStatus('success', '✅ Đã gửi thành công! Workflow n8n đang chạy...');
+          showStatus('success', '✅ Đã gửi thành công! Workflow n8n đang chạy.');
           const preview = document.getElementById('payloadPreview');
           preview.style.display = 'block';
           preview.textContent = '📦 Payload đã gửi:\n' + JSON.stringify(payload, null, 2);

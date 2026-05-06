@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tạo Ad Set — TC Vid</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #181818;
+      --surface-hover: #282828;
+      --surface-elevated: #242424;
+      --accent: #1DB954;
+      --accent-hover: #1ed760;
+      --accent-soft: rgba(29,185,84,0.12);
+      --accent-glow: rgba(29,185,84,0.30);
+      --text: #FFFFFF;
+      --text-sub: #B3B3B3;
+      --text-muted: #6A6A6A;
+      --success: #1DB954;
+      --success-soft: rgba(29,185,84,0.10);
+      --error: #F15E6C;
+      --error-soft: rgba(241,94,108,0.10);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 56px 20px 80px;
+      overflow-x: hidden;
+    }
+
+    /* Subtle top gradient */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 340px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.08) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 580px;
+      position: relative;
+      z-index: 1;
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    .header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .header .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2.4s ease infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.75); }
+    }
+
+    .header h1 {
+      font-size: 40px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+
+    .header h1 span {
+      color: var(--accent);
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 36px 32px;
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 32px 0 14px;
+    }
+
+    .section-label:first-child {
+      margin-top: 0;
+    }
+
+    /* Field */
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 7px;
+      letter-spacing: 0.01em;
+    }
+
+    .field label em {
+      font-style: normal;
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .field input[type="text"] {
+      width: 100%;
+      background: var(--surface-elevated);
+      border: none;
+      border-radius: 8px;
+      padding: 13px 16px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .field input[type="text"]::placeholder {
+      color: var(--text-muted);
+    }
+
+    .field input[type="text"]:hover {
+      background: #2a2a2a;
+    }
+
+    .field input[type="text"]:focus {
+      background: #2a2a2a;
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .field .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .field .hint code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 10px;
+      background: var(--surface-elevated);
+      color: var(--text-sub);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Detected ID preview */
+    .detected-id {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--success-soft);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--success);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .detected-id.show {
+      display: flex;
+    }
+
+    .detected-id code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--success);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    /* Submit button */
+    .submit-wrap {
+      margin-top: 32px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 17px 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      transform: scale(1.02);
+      box-shadow: 0 6px 28px var(--accent-glow);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Status */
+    .status {
+      margin-top: 14px;
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .status.success {
+      display: block;
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .status.error {
+      display: block;
+      background: var(--error-soft);
+      color: var(--error);
+    }
+
+    .status.loading {
+      display: block;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Payload preview */
+    #payloadPreview {
+      font-family: 'SF Mono', 'Fira Code', monospace !important;
+      font-size: 11px !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge"><span class="badge-dot"></span>TC Vid</div>
+      <h1>Tạo <span>Ad Set</span></h1>
+      <p>Dán link folder Google Drive chứa video để tự động tạo ads.</p>
+    </div>
+
+    <div class="card">
+
+      <!-- SECTION: Folder info -->
+      <div class="section-label">Google Drive Folder</div>
+
+      <div class="field">
+        <label>Folder URL hoặc Folder ID</label>
+        <input type="text" id="folder_input" placeholder="https://drive.google.com/drive/folders/..." oninput="onFolderInput()" />
+        <div class="hint">
+          Dán nguyên link folder (vd: <code>https://drive.google.com/drive/folders/1AbC...</code>) hoặc chỉ folder ID.
+        </div>
+        <div class="detected-id" id="detected_id">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>Folder ID: <code id="detected_id_value"></code></span>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          Tạo Ad Set
+        </button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+      <!-- Payload preview -->
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:16px; background:#0d0d0d; border-radius:10px; font-size:11px; color:#6A6A6A; line-height:1.8; white-space:pre-wrap; word-break:break-all;"></div>
+
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // ⚙️  CẤU HÌNH
+    // ============================================================
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/01de568d-39af-4f07-a19b-085d1568150a";
+    // ============================================================
+
+    // ── Extract folder ID từ URL hoặc dùng nguyên input ─────────
+    function extractFolderId(input) {
+      if (!input) return '';
+      const trimmed = input.trim();
+      // Match Google Drive folder URL patterns
+      const patterns = [
+        /\/folders\/([a-zA-Z0-9_-]+)/,           // /folders/<id>
+        /[?&]id=([a-zA-Z0-9_-]+)/,               // ?id=<id>
+        /\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/  // /drive/u/0/folders/<id>
+      ];
+      for (const p of patterns) {
+        const m = trimmed.match(p);
+        if (m) return m[1];
+      }
+      // Plain ID — Google Drive IDs are typically 25-44 chars alphanumeric/_/-
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
+      return '';
+    }
+
+    function onFolderInput() {
+      const input = document.getElementById('folder_input').value;
+      const id = extractFolderId(input);
+      const detected = document.getElementById('detected_id');
+      const detectedValue = document.getElementById('detected_id_value');
+      if (id) {
+        detected.classList.add('show');
+        detectedValue.textContent = id;
+      } else {
+        detected.classList.remove('show');
+        detectedValue.textContent = '';
+      }
+    }
+
+    // ── Submit ─────────────────────────────────────────────────
+    async function submitForm() {
+      const rawInput = document.getElementById('folder_input').value;
+      const folder_id = extractFolderId(rawInput);
+
+      if (!folder_id) {
+        return showStatus('error', '⚠️ Vui lòng nhập link folder Google Drive hoặc folder ID hợp lệ.');
+      }
+
+      const payload = { folder_id };
+
+      showStatus('loading', '<span class="spinner"></span> Đang gửi đến n8n...');
+      document.getElementById('submitBtn').disabled = true;
+
+      try {
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showStatus('success', '✅ Đã gửi thành công! Workflow n8n đang chạy...');
+          const preview = document.getElementById('payloadPreview');
+          preview.style.display = 'block';
+          preview.textContent = '📦 Payload đã gửi:\n' + JSON.stringify(payload, null, 2);
+        } else {
+          const errText = await res.text();
+          showStatus('error', `❌ Lỗi từ n8n (${res.status}): ${errText.slice(0,120)}`);
+        }
+      } catch (err) {
+        showStatus('error', `❌ Không kết nối được n8n: ${err.message}`);
+      } finally {
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function showStatus(type, html) {
+      const el = document.getElementById('statusMsg');
+      el.className = `status ${type}`;
+      el.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

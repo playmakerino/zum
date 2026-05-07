@@ -461,8 +461,6 @@ app.get('/api/dashboard', async (req, res) => {
   const startTime = Date.now();
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
-  const tag = `[dashboard ${new Date().toISOString()}]`;
-  console.log(`${tag} START account=${accountId} days=${days} refresh=${forceRefresh}`);
   try {
     const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
     const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
@@ -492,19 +490,23 @@ app.get('/api/dashboard', async (req, res) => {
       cached_at: new Date().toISOString(),
     };
     progress(`Done [${elapsed()}]`);
+    const debug = {
+      account: accountId,
+      days,
+      refresh: forceRefresh,
+      insights:  { raw: rawRows.length, afterSpendFilter: currRows.length },
+      ads:       { active: allAdIds.length, cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
+      hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: fetchableHdIds.length - cachedHdBefore },
+      creatives: { total: grouped.length, video: videoCount },
+      elapsedMs: Date.now() - startTime,
+    };
+    res.write(`data: ${JSON.stringify({ debug })}\n\n`);
     res.write(`data: ${JSON.stringify({ result })}\n\n`);
     res.end();
-    console.log(
-      `${tag} DONE | insights ${rawRows.length} raw → ${currRows.length} spend>0 | ` +
-      `ads ${allAdIds.length} active, ${cachedAdsBefore} cached, ${allAdIds.length - cachedAdsBefore} fetched | ` +
-      `hd-thumbs ${fetchableHdIds.length} fetchable, ${cachedHdBefore} cached, ${fetchableHdIds.length - cachedHdBefore} fetched | ` +
-      `creatives ${grouped.length} (${videoCount} Video) | ${elapsed()}`
-    );
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);
-    res.write(`data: ${JSON.stringify({ error, detail })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error, detail, elapsedMs: Date.now() - startTime })}\n\n`);
     res.end();
-    console.error(`${tag} ERROR ${error}: ${typeof detail === 'string' ? detail : JSON.stringify(detail)} | ${elapsed()}`);
   }
 });
 

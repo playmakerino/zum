@@ -96,6 +96,14 @@ function showCacheTime(iso) {
   el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
 }
 
+function showDebug(d) {
+  console.log('[dashboard]', d);
+  const el = $('debugLine');
+  if (!el) return;
+  const sec = (d.elapsedMs / 1000).toFixed(1);
+  el.textContent = `insights ${d.insights.raw}→${d.insights.afterSpendFilter} · ads ${d.ads.active} (${d.ads.cached} cached, ${d.ads.fetched} fetched) · hd-thumbs ${d.hdThumbs.fetchable} (${d.hdThumbs.cached} cached, ${d.hdThumbs.fetched} fetched) · creatives ${d.creatives.total} (${d.creatives.video} Video) · ${sec}s`;
+}
+
 function fmtDateLabel(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -162,6 +170,7 @@ async function fetchAll(refresh = true) {
           if (j.progress) {
             $$('.load-text').forEach(el => el.textContent = j.progress);
           }
+          if (j.debug) showDebug(j.debug);
           if (j.result) data = j.result;
           if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
         } catch (e) { if (e.message) throw e; }

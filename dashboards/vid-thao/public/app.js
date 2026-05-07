@@ -17,37 +17,20 @@ const $$ = sel => document.querySelectorAll(sel);
 const PAGE_SIZE = 100;
 const state = {
   config: Object.fromEntries(['metaToken','accountId'].map(k => [k, localStorage.getItem(k) || ''])),
-  ads: { current: [], previous: [], period: null },
-  creatives: { current: [], previous: [], period: null },
-  sort: { ads: { key: 'spend', dir: 1 }, creatives: { key: 'spend', dir: 1 } },
-  filters: { ads: {}, creatives: {} },
-  pageLimit: { ads: PAGE_SIZE, creatives: PAGE_SIZE },
+  creatives: { current: [], period: null },
+  sort: { creatives: { key: 'spend', dir: 1 } },
+  filters: { creatives: {} },
+  pageLimit: { creatives: PAGE_SIZE },
 };
 
 // Table config
-const METRIC_COLS = ['spend','roas','cpr','aov','cpm','ctr','cpc'];
+const METRIC_COLS = ['spend','roas','cpr','aov','cpm','ctr','cpc','video_3sec_rate','thruplay_rate','video_avg_time'];
 const TABLES = {
-  ads: {
-    cols: 9, idKey: 'ad_name', searchCols: [1],
-    columns: [
-      null,
-      { key: 'ad_name', type: 'text' },
-      { key: 'spend', type: 'metric' },
-      { key: 'roas', type: 'metric' },
-      { key: 'cpr', type: 'metric' },
-      { key: 'aov', type: 'metric' },
-      { key: 'cpm', type: 'metric' },
-      { key: 'ctr', type: 'metric' },
-      { key: 'cpc', type: 'metric' },
-    ],
-    row: (r, p) => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r, p)}</tr>`
-  },
   creatives: {
-    cols: 11, idKey: 'creative_id', searchCols: [1, 2, 3],
+    cols: 13, idKey: 'creative_id', searchCols: [1, 2],
     columns: [
       null,
       { key: 'primary_text', type: 'text' },
-      { key: 'format', type: 'select' },
       { key: 'ad_name', type: 'text' },
       { key: 'spend', type: 'metric' },
       { key: 'roas', type: 'metric' },
@@ -56,13 +39,15 @@ const TABLES = {
       { key: 'cpm', type: 'metric' },
       { key: 'ctr', type: 'metric' },
       { key: 'cpc', type: 'metric' },
+      { key: 'video_3sec_rate', type: 'metric' },
+      { key: 'thruplay_rate', type: 'metric' },
+      { key: 'video_avg_time', type: 'metric' },
     ],
-    row: (r, p) => {
-      const f = r.format?.toLowerCase();
-      return `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.primary_text)}">${esc(r.primary_text)}</td><td>${f ? `<span class="fmt-badge ${f}">${esc(r.format)}</span>` : ''}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r, p)}</tr>`;
-    }
+    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.primary_text)}">${esc(r.primary_text)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
 };
+
+const isVideo = r => (r.format || '').toLowerCase() === 'video';
 
 // Cache
 const cacheKey = (t, d) => `meta_cache_${state.config.accountId}_${t}_${d}`;
@@ -79,12 +64,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   updatePeriodSelectLabels();
   if (state.config.accountId) {
     const days = $('periodSelect').value;
-    let hasLocal = false;
-    for (const type of ['ads', 'creatives']) {
-      const cached = loadCache(type, days);
-      if (cached) { state[type] = cached; renderTable(type); showCacheTime(cached.cached_at); hasLocal = true; }
+    const cached = loadCache('creatives', days);
+    if (cached) {
+      state.creatives = {
+        ...cached,
+        current: (cached.current || []).filter(isVideo),
+      };
+      renderTable('creatives');
+      showCacheTime(cached.cached_at);
+    } else {
+      fetchAll(false); // auto-load from server cache
     }
-    if (!hasLocal) fetchAll(false); // auto-load from server cache
   }
 });
 
@@ -124,16 +114,6 @@ function updatePeriodSelectLabels(period) {
   }
 }
 
-// Navigation
-function showPage(name) {
-  $$('.page').forEach(p => p.classList.remove('active'));
-  $$('.nav-item').forEach(n => n.classList.remove('active'));
-  $('page-' + name).classList.add('active');
-  const nav = [...$$('.nav-item')].find(n => n.getAttribute('onclick')?.includes(`'${name}'`));
-  if (nav) nav.classList.add('active');
-  hideThumbPreview();
-}
-
 // Fetch
 async function fetchAll(refresh = true) {
   if (!state.config.metaToken || !state.config.accountId)
@@ -144,14 +124,12 @@ async function fetchAll(refresh = true) {
   if (state.config.metaToken && state.config.metaToken !== '__SERVER__') headers['x-meta-token'] = state.config.metaToken;
   if (state.config.accountId && state.config.accountId !== '__SERVER__') headers['x-meta-account-id'] = state.config.accountId;
 
-  // Show loading overlay on each table
-  for (const t of ['ads', 'creatives']) {
-    const wrap = $(t + 'Table').closest('.table-wrap');
-    let ov = wrap.querySelector('.load-overlay');
-    if (!ov) { ov = document.createElement('div'); ov.className = 'load-overlay'; wrap.appendChild(ov); }
-    ov.innerHTML = `<div class="load-popup"><div class="loader"></div><div class="load-text" id="loadProgress-${t}">Connecting...</div></div>`;
-    ov.style.display = 'flex';
-  }
+  // Show loading overlay
+  const wrap = $('creativesTable').closest('.table-wrap');
+  let ov = wrap.querySelector('.load-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.className = 'load-overlay'; wrap.appendChild(ov); }
+  ov.innerHTML = `<div class="load-popup"><div class="loader"></div><div class="load-text" id="loadProgress-creatives">Connecting...</div></div>`;
+  ov.style.display = 'flex';
 
   const startTime = performance.now();
   try {
@@ -181,23 +159,24 @@ async function fetchAll(refresh = true) {
 
     if (!data) throw new Error('No data received');
 
-    state.ads = { current: data.ads.current, previous: data.ads.previous, period: data.period, cached_at: data.cached_at };
-    state.creatives = { current: data.creatives.current, previous: data.creatives.previous, period: data.period, cached_at: data.cached_at };
+    const fullCreatives = { current: data.creatives.current, period: data.period, cached_at: data.cached_at };
+    saveCache('creatives', days, fullCreatives);
+    state.creatives = {
+      ...fullCreatives,
+      current: fullCreatives.current.filter(isVideo),
+    };
 
-    saveCache('ads', days, state.ads);
-    saveCache('creatives', days, state.creatives);
-    renderTable('ads');
     renderTable('creatives');
     showCacheTime(data.cached_at);
     updatePeriodSelectLabels(data.period);
 
     $$('.load-overlay').forEach(el => el.style.display = 'none');
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-    toast(`Loaded ${data.ads.current.length} ads and ${data.creatives.current.length} creatives in ${elapsed}s`, 'success');
+    toast(`Loaded ${state.creatives.current.length} video creatives in ${elapsed}s`, 'success');
   } catch (err) {
     $$('.load-overlay').forEach(el => el.style.display = 'none');
     toast('Error: ' + err.message, 'error');
-    for (const t of ['ads', 'creatives']) $(t + 'Body').innerHTML = empty(TABLES[t].cols);
+    $('creativesBody').innerHTML = empty(TABLES.creatives.cols);
   }
 }
 
@@ -210,9 +189,6 @@ function enrichRow(row) {
 function renderTable(type) {
   const cfg = TABLES[type];
   const data = state[type];
-  const prevEnriched = data.previous.map(enrichRow);
-  const prevMap = {};
-  prevEnriched.forEach(r => prevMap[r[cfg.idKey]] = r);
   const { key, dir } = state.sort[type];
   const sorted = data.current.map(enrichRow).sort((a, b) => (parseFloat(b[key] || 0) - parseFloat(a[key] || 0)) * dir);
 
@@ -220,7 +196,7 @@ function renderTable(type) {
   const limit = state.pageLimit[type];
   const page = filtered.slice(0, limit);
 
-  let html = page.map(r => cfg.row(r, prevMap[r[cfg.idKey]] || {})).join('');
+  let html = page.map(r => cfg.row(r)).join('');
   if (filtered.length > limit) {
     html += `<tr class="show-more-row"><td colspan="${cfg.cols}"><button class="btn-show-more" onclick="showMore('${type}')">Show more (${filtered.length - limit} remaining)</button></td></tr>`;
   }
@@ -229,7 +205,7 @@ function renderTable(type) {
   $$(`#${type}Table thead th`).forEach(th => {
     th.classList.toggle('sorted', th.dataset.sort === key);
   });
-  buildTotalRow(type, filtered, prevEnriched);
+  buildTotalRow(type, filtered);
 }
 
 function showMore(type) {
@@ -290,6 +266,11 @@ function totals(rows) {
   const s = k => rows.reduce((a, r) => a + parseFloat(r[k] || 0), 0);
   const spend = s('spend'), impr = s('impressions'), clicks = s('clicks');
   const pc = s('purchase_count'), pv = s('purchase_value');
+  const v3sec = s('video_3sec_views');
+  const vthru = s('video_thruplays');
+  const vplays = s('video_plays');
+  // Weighted avg play time: Σ(avg × plays) / Σ(plays)
+  const weightedTime = rows.reduce((a, r) => a + parseFloat(r.video_avg_time || 0) * parseFloat(r.video_plays || 0), 0);
   return {
     spend,
     roas: spend ? pv / spend : 0,
@@ -298,16 +279,19 @@ function totals(rows) {
     cpm:  impr ? spend / impr * 1000 : 0,
     ctr:  impr ? clicks / impr * 100 : 0,
     cpc:  clicks ? spend / clicks : 0,
+    video_3sec_rate: impr   ? v3sec  / impr   * 100 : 0,
+    thruplay_rate:   vplays ? vthru  / vplays * 100 : 0,
+    video_avg_time:  vplays ? weightedTime / vplays : 0,
   };
 }
 
-function buildTotalRow(type, filtered, prevEnriched) {
+function buildTotalRow(type, filtered) {
   if (filtered.length === 0) return;
-  const labelCols = type === 'ads' ? 2 : 4;
+  const labelCols = 3;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
   const emptyTds = '<td></td>'.repeat(labelCols - 1);
-  tr.innerHTML = `<td><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered), totals(prevEnriched))}`;
+  tr.innerHTML = `<td><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered))}`;
   $(type + 'Body').appendChild(tr);
 }
 
@@ -443,21 +427,28 @@ function hideThumbPreview() {
 }
 document.addEventListener('click', hideThumbPreview);
 
-function deltaCell(curr, prev, fmt, invert) {
-  const cv = parseFloat(curr || 0), pv = parseFloat(prev || 0);
-  const pct = pv ? (cv - pv) / pv * 100 : 0;
-  const good = invert ? pct < 0 : pct > 0;
-  const cls = Math.abs(pct) < 1 ? 'flat' : good ? 'up' : 'down';
-  return `<div class="delta-cell"><span>${fmt(cv)}</span><span class="delta-pill ${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</span></div>`;
-}
+const fmtTime = n => {
+  const v = parseFloat(n || 0);
+  if (v <= 0) return '0s';
+  if (v < 60) return v.toFixed(1) + 's';
+  const m = Math.floor(v / 60);
+  const s = (v - m * 60).toFixed(0);
+  return `${m}m ${s}s`;
+};
 
-function metrics(row, prev) {
+function metrics(row) {
   return [
-    [row.spend, prev.spend, fmtMoney], [row.roas, prev.roas, v => fmtF(v) + 'x'],
-    [row.cpr, prev.cpr, fmtMoney, true], [row.aov, prev.aov, fmtMoney],
-    [row.cpm, prev.cpm, fmtMoney, true], [row.ctr, prev.ctr, v => fmtF(v) + '%'],
-    [row.cpc, prev.cpc, fmtMoney, true],
-  ].map(([c, p, f, inv]) => `<td>${deltaCell(c, p, f, inv)}</td>`).join('');
+    [row.spend, fmtMoney],
+    [row.roas, v => fmtF(v) + 'x'],
+    [row.cpr, fmtMoney],
+    [row.aov, fmtMoney],
+    [row.cpm, fmtMoney],
+    [row.ctr, v => fmtF(v) + '%'],
+    [row.cpc, fmtMoney],
+    [row.video_3sec_rate, v => fmtF(v) + '%'],
+    [row.thruplay_rate,   v => fmtF(v) + '%'],
+    [row.video_avg_time,  fmtTime],
+  ].map(([c, f]) => `<td>${f(c)}</td>`).join('');
 }
 
 // Toast

@@ -115,7 +115,16 @@ const AD_METRICS = [
   'actions', 'action_values',
   'frequency',
   'unique_clicks', 'unique_ctr',
+  'video_3_sec_watched_actions',
+  'video_thruplay_watched_actions',
+  'video_avg_time_watched_actions',
+  'video_play_actions',
 ].join(',');
+
+function sumActionValue(arr) {
+  if (!Array.isArray(arr)) return 0;
+  return arr.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -221,6 +230,20 @@ function aggregateMetrics(entry, rows) {
   entry.roas = entry.spend > 0 && entry.purchase_value > 0 ? entry.purchase_value / entry.spend : 0;
   entry.cpr  = entry.purchase_count > 0 ? entry.spend / entry.purchase_count : 0;
   entry.aov  = entry.purchase_count > 0 ? entry.purchase_value / entry.purchase_count : 0;
+
+  // Video metrics
+  entry.video_3sec_views = sum(r => sumActionValue(r.video_3_sec_watched_actions));
+  entry.video_thruplays  = sum(r => sumActionValue(r.video_thruplay_watched_actions));
+  entry.video_plays      = sum(r => sumActionValue(r.video_play_actions));
+  // Weighted avg play time = Σ(avg_time × plays) / Σ(plays)
+  const weightedTime = rows.reduce((s, r) => {
+    const avg   = sumActionValue(r.video_avg_time_watched_actions);
+    const plays = sumActionValue(r.video_play_actions);
+    return s + avg * plays;
+  }, 0);
+  entry.video_avg_time   = entry.video_plays > 0 ? weightedTime / entry.video_plays : 0;
+  entry.video_3sec_rate  = entry.impressions  > 0 ? entry.video_3sec_views / entry.impressions * 100 : 0;
+  entry.thruplay_rate    = entry.video_plays  > 0 ? entry.video_thruplays  / entry.video_plays  * 100 : 0;
   return entry;
 }
 
@@ -278,8 +301,7 @@ app.get('/api/dashboard', async (req, res) => {
 
   const days    = Math.min(Math.max(parseInt(req.query.days || '7', 10) || 7, 1), 90);
   const forceRefresh = req.query.refresh === '1';
-  const current = { since: dateStr(days),     until: dateStr(0) };
-  const prev    = { since: dateStr(days * 2), until: dateStr(days + 1) };
+  const current = { since: dateStr(days), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
 
@@ -295,30 +317,24 @@ app.get('/api/dashboard', async (req, res) => {
     // 1. Fetch insights
     const cacheKey = String(days);
     const ic = insightsCache[cacheKey];
-    let currRows, prevRows;
+    let currRows;
     if (!forceRefresh && ic) {
       currRows = ic.current;
-      prevRows = ic.previous;
-      progress(`Using cached insights (${currRows.length} + ${prevRows.length} rows) [${elapsed()}]`);
+      progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
     } else {
-      progress(`Creating async reports... [${elapsed()}]`);
-      const pollStatus = [0, 0];
-      const reportProgress = () => {
-        progress(`Polling reports: current ${pollStatus[0]}% | previous ${pollStatus[1]}% [${elapsed()}]`);
-      };
-      [currRows, prevRows] = await Promise.all([
-        fetchInsightsAsync(base, token, fields, current, (s, p) => { pollStatus[0] = p; reportProgress(); }),
-        fetchInsightsAsync(base, token, fields, prev, (s, p) => { pollStatus[1] = p; reportProgress(); }),
-      ]);
-      insightsCache = { [cacheKey]: { current: currRows, previous: prevRows } };
+      progress(`Creating async report... [${elapsed()}]`);
+      currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
+        progress(`Polling report: ${p}% [${elapsed()}]`);
+      });
+      insightsCache = { [cacheKey]: { current: currRows } };
       saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
-      progress(`Insights loaded: ${currRows.length} current + ${prevRows.length} previous rows [${elapsed()}]`);
+      progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
     }
 
     // 2. Collect unique ad_ids (spend > $10), fetch only missing creative info
     const adSpendMap = {};
     for (const r of currRows) { if (r.ad_id) adSpendMap[r.ad_id] = parseFloat(r.spend) || 0; }
-    const allAdIds = [...new Set([...currRows, ...prevRows].map(r => r.ad_id).filter(id => id && (adSpendMap[id] || 0) > 10))];
+    const allAdIds = [...new Set(currRows.map(r => r.ad_id).filter(id => id && (adSpendMap[id] || 0) > 10))];
 
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
@@ -415,12 +431,6 @@ app.get('/api/dashboard', async (req, res) => {
       };
     }
 
-    // Ads: attach thumbnail + is_catalog
-    const attachThumb = rows => rows.map(r => {
-      const cm = creativeMap[r.ad_id];
-      return { ...r, thumbnail_url: cm?.thumbnail_url || null, is_catalog: !!cm?.is_catalog };
-    });
-
     // Creatives: attach creative details
     const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
     const fmtMap = { VIDEO: 'Video', SHARE: 'Image', PHOTO: 'Carousel' };
@@ -447,15 +457,10 @@ app.get('/api/dashboard', async (req, res) => {
     progress(`Processing data... [${elapsed()}]`);
     const hasSpend = rows => rows.filter(r => parseFloat(r.spend || 0) > 0);
     const result = {
-      ads: {
-        current:  groupByAdName(attachThumb(hasSpend(currRows))),
-        previous: groupByAdName(attachThumb(hasSpend(prevRows))),
-      },
       creatives: {
-        current:  groupByCreative(attachCreative(hasSpend(currRows))),
-        previous: groupByCreative(attachCreative(hasSpend(prevRows))),
+        current: groupByCreative(attachCreative(hasSpend(currRows))),
       },
-      period:    { current, previous: prev },
+      period:    { current },
       cached_at: new Date().toISOString(),
     };
     progress(`Done [${elapsed()}]`);

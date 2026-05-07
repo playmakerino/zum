@@ -35,10 +35,9 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 
 .table-wrap{background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative}
 .table-scroll{overflow:auto;max-height:calc(100vh - 112px)}
-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-#creativesTable th:nth-child(1){width:56px}
-#creativesTable th:nth-child(2){width:180px}
-#creativesTable th:nth-child(n+3){width:110px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+#creativesTable th:nth-child(2){min-width:160px}
+#creativesTable th:nth-child(n+3){min-width:90px}
 thead th{background:var(--s2);color:var(--t2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--b)}
 thead th:first-child{position:sticky;left:0;z-index:3;background:var(--s2)}
 thead th:hover{color:var(--a)}

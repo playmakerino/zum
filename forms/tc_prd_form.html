@@ -65,44 +65,12 @@
       max-width: 580px;
       position: relative;
       z-index: 1;
-      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* Header */
     .header {
       margin-bottom: 36px;
       text-align: center;
-    }
-
-    .header .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-    }
-
-    .header .badge-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--accent);
-      border-radius: 50%;
-      animation: pulse 2.4s ease infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(0.75); }
     }
 
     .header h1 {
@@ -130,7 +98,6 @@
       background: var(--surface);
       border-radius: 16px;
       padding: 36px 32px;
-      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both;
     }
 
     /* Section label */
@@ -414,7 +381,6 @@
 <body>
   <div class="container">
     <div class="header">
-      <div class="badge"><span class="badge-dot"></span>TC Prd</div>
       <h1>Tạo <span>Ad Set</span></h1>
       <p>Điền thông tin campaign và chọn file từ Dropbox để tự động tạo ads.</p>
     </div>

@@ -16,7 +16,7 @@ const $$ = sel => document.querySelectorAll(sel);
 
 const PAGE_SIZE = 100;
 const state = {
-  config: Object.fromEntries(['metaToken','accountId'].map(k => [k, localStorage.getItem(k) || ''])),
+  ready: false,
   creatives: { current: [], period: null },
   sort: { creatives: { key: 'spend', dir: 1 } },
   filters: { creatives: {} },
@@ -39,7 +39,7 @@ const TABLES = {
 const isVideo = r => (r.format || '').toLowerCase() === 'video';
 
 // Cache
-const cacheKey = (t, d) => `meta_cache_${state.config.accountId}_${t}_${d}`;
+const cacheKey = (t, d) => `meta_cache_${t}_${d}`;
 const saveCache = (t, d, v) => { try { localStorage.setItem(cacheKey(t, d), JSON.stringify(v)); } catch {} };
 const loadCache = (t, d) => { try { return JSON.parse(localStorage.getItem(cacheKey(t, d))); } catch { return null; } };
 
@@ -47,11 +47,10 @@ const loadCache = (t, d) => { try { return JSON.parse(localStorage.getItem(cache
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
-    if (cfg.hasMetaToken) state.config.metaToken = '__SERVER__';
-    if (cfg.hasAdAccountId) state.config.accountId = '__SERVER__';
+    state.ready = !!(cfg.hasMetaToken && cfg.hasAdAccountId);
   } catch {}
   updatePeriodSelectLabels();
-  if (state.config.accountId) {
+  if (state.ready) {
     const days = $('periodSelect').value;
     const cached = loadCache('creatives', days);
     if (cached) {
@@ -165,13 +164,10 @@ function updatePeriodSelectLabels(period) {
 
 // Fetch
 async function fetchAll(refresh = true) {
-  if (!state.config.metaToken || !state.config.accountId)
-    return toast('Please enter Meta Token and Account ID first', 'error');
+  if (!state.ready)
+    return toast('Backend not configured (META_ACCESS_TOKEN / META_AD_ACCOUNT_ID missing)', 'error');
 
   const days = $('periodSelect').value;
-  const headers = {};
-  if (state.config.metaToken && state.config.metaToken !== '__SERVER__') headers['x-meta-token'] = state.config.metaToken;
-  if (state.config.accountId && state.config.accountId !== '__SERVER__') headers['x-meta-account-id'] = state.config.accountId;
 
   // Show loading overlay
   const wrap = $('creativesTable').closest('.table-wrap');
@@ -182,7 +178,7 @@ async function fetchAll(refresh = true) {
 
   const startTime = performance.now();
   try {
-    const res = await fetch(`/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`, { headers });
+    const res = await fetch(`/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = '', data = null;

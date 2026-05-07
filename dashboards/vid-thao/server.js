@@ -234,10 +234,6 @@ function buildCreativeMap(allAds, hdThumbMap) {
   return map;
 }
 
-function uniqueAdIds(rows) {
-  return [...new Set(rows.map(r => r.ad_id).filter(Boolean))];
-}
-
 function collectFetchableCreativeIds(allAds) {
   const ids = new Set();
   for (const ad of allAds) {
@@ -260,9 +256,9 @@ function collectAllCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-function getCredentials(req) {
-  const token = req.headers['x-meta-token'] || process.env.META_ACCESS_TOKEN || '';
-  const rawAccount = (req.headers['x-meta-account-id'] || process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
+function getCredentials() {
+  const token = process.env.META_ACCESS_TOKEN || '';
+  const rawAccount = (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
   return {
     token:     /^[A-Za-z0-9_\-]+$/.test(token) ? token : '',
     accountId: /^[0-9]+$/.test(rawAccount) ? rawAccount : '',
@@ -449,7 +445,7 @@ app.get('/api/config', (req, res) => {
 
 // GET /api/dashboard?days=7 — SSE with progress updates
 app.get('/api/dashboard', async (req, res) => {
-  const { token, accountId } = getCredentials(req);
+  const { token, accountId } = getCredentials();
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
@@ -470,7 +466,7 @@ app.get('/api/dashboard', async (req, res) => {
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
     const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
 
-    const allAdIds = uniqueAdIds(currRows);
+    const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
     pruneCreativeCache(allAdIds);
@@ -536,7 +532,6 @@ if (typeof module !== 'undefined' && module.exports) {
     groupByCreative,
     buildPrimaryTextMap,
     buildCreativeMap,
-    uniqueAdIds,
     collectFetchableCreativeIds,
     collectAllCreativeIds,
   };

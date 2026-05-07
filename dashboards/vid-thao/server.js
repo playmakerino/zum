@@ -269,12 +269,19 @@ function getCredentials(req) {
   };
 }
 
+// Push spend > 5 filter to Meta so the async report skips low-spend rows entirely.
+const SPEND_THRESHOLD = 5;
+const INSIGHTS_FILTERING = JSON.stringify([
+  { field: 'spend', operator: 'GREATER_THAN', value: SPEND_THRESHOLD },
+]);
+
 // Async report: create → poll → fetch all results
 async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
   const createRes = await axios.post(`${base}/insights`, null, {
     params: {
       access_token: token, level: 'ad', fields,
       time_range: JSON.stringify(timeRange),
+      filtering: INSIGHTS_FILTERING,
     },
   });
 
@@ -461,18 +468,21 @@ app.get('/api/dashboard', async (req, res) => {
   const startTime = Date.now();
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
+  const tag = `[dashboard ${new Date().toISOString()}]`;
+  console.log(`${tag} START account=${accountId} days=${days} refresh=${forceRefresh}`);
   try {
-    const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    // Drop spend=0 rows up-front so we don't waste Meta quota fetching
-    // creative info + HD thumbs for ads that won't appear in the table.
-    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
+    // Insights are filtered by spend > SPEND_THRESHOLD at the Meta API level.
+    const currRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
 
     const allAdIds = uniqueAdIds(currRows);
+    const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
     pruneCreativeCache(allAdIds);
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-    await ensureHdThumbnails({ creativeIds: collectFetchableCreativeIds(allAds), token, progress, elapsed });
+    const fetchableHdIds = collectFetchableCreativeIds(allAds);
+    const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid]).length;
+    await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
     pruneHdThumbCache(collectAllCreativeIds(allAds));
 
     const hdThumbMap = {};
@@ -481,18 +491,27 @@ app.get('/api/dashboard', async (req, res) => {
     const enriched = currRows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
     progress(`Processing data... [${elapsed()}]`);
+    const grouped = groupByCreative(enriched);
+    const videoCount = grouped.filter(c => c.format === 'Video').length;
     const result = {
-      creatives: { current: groupByCreative(enriched) },
+      creatives: { current: grouped },
       period:    { current },
       cached_at: new Date().toISOString(),
     };
     progress(`Done [${elapsed()}]`);
     res.write(`data: ${JSON.stringify({ result })}\n\n`);
     res.end();
+    console.log(
+      `${tag} DONE | insights ${currRows.length} rows (Meta filter spend>${SPEND_THRESHOLD}) | ` +
+      `ads ${allAdIds.length} active, ${cachedAdsBefore} cached, ${allAdIds.length - cachedAdsBefore} fetched | ` +
+      `hd-thumbs ${fetchableHdIds.length} fetchable, ${cachedHdBefore} cached, ${fetchableHdIds.length - cachedHdBefore} fetched | ` +
+      `creatives ${grouped.length} (${videoCount} Video) | ${elapsed()}`
+    );
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);
     res.write(`data: ${JSON.stringify({ error, detail })}\n\n`);
     res.end();
+    console.error(`${tag} ERROR ${error}: ${typeof detail === 'string' ? detail : JSON.stringify(detail)} | ${elapsed()}`);
   }
 });
 

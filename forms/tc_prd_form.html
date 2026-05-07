@@ -409,7 +409,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span class="chooser-path" id="path_print_image">Chưa chọn ảnh...</span>
+            <span class="chooser-path" id="path_print_image"></span>
             <button class="chooser-btn" onclick="choosePrintImage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -439,7 +439,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span class="chooser-path" id="path_zippy">Chưa chọn ảnh...</span>
+            <span class="chooser-path" id="path_zippy"></span>
             <button class="chooser-btn" onclick="chooseZippy()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -470,7 +470,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span class="chooser-path" id="path_pajama">Chưa chọn ảnh...</span>
+            <span class="chooser-path" id="path_pajama"></span>
             <button class="chooser-btn" onclick="choosePajama()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -589,7 +589,7 @@
         pathEl.textContent = `${arr.length} ảnh đã chọn`;
       } else {
         field.classList.remove('has-value');
-        pathEl.textContent = 'Chưa chọn ảnh...';
+        pathEl.textContent = '';
       }
 
       // Render file tags
@@ -627,7 +627,7 @@
         state[`dropbox_${key}`] = null;
         document.getElementById(`dropbox_${key}`).value = '';
         document.getElementById(`field_${key}`).classList.remove('has-value');
-        document.getElementById(`path_${key}`).textContent = 'Chưa chọn ảnh...';
+        document.getElementById(`path_${key}`).textContent = '';
       }
     }
 

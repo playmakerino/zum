@@ -5,7 +5,6 @@ const {
   sumActionByType,
   aggregateMetrics,
   groupByCreative,
-  buildCreativeMap,
   collectFetchableCreativeIds,
   collectAllCreativeIds,
 } = require('./server');
@@ -205,62 +204,49 @@ describe('aggregateMetrics', () => {
 // ── groupByCreative ──────────────────────────────────────────────────────────
 
 describe('groupByCreative', () => {
-  function row(creative_id, extra = {}) {
+  function row(ad_id, extra = {}) {
     return {
+      ad_id,
       ad_name: 'Ad A',
       impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0',
-      creative: creative_id ? { id: creative_id, object_type: 'VIDEO', thumbnail_url: 'u', is_catalog: false } : null,
       ...extra,
     };
   }
+  const cacheEntry = (creative_id, extra = {}) =>
+    creative_id ? { creative: { id: creative_id, object_type: 'VIDEO', is_catalog: false, ...extra } } : { creative: null };
 
-  test('groups rows by creative.id', () => {
-    const result = groupByCreative([
-      row('c1', { spend: '5' }),
-      row('c1', { spend: '10' }),
-      row('c2', { spend: '20' }),
-    ]);
+  test('groups rows by creative.id (looked up via ad_id)', () => {
+    const result = groupByCreative(
+      [row('a1', { spend: '5' }), row('a2', { spend: '10' }), row('a3', { spend: '20' })],
+      { a1: cacheEntry('c1'), a2: cacheEntry('c1'), a3: cacheEntry('c2') },
+      {},
+    );
     expect(result).toHaveLength(2);
     const c1 = result.find(r => r.creative_id === 'c1');
     expect(c1.spend).toBe(15);
   });
 
   test('maps object_type to format label', () => {
-    const v = groupByCreative([row('c1')]);
-    expect(v[0].format).toBe('Video');
-    const img = groupByCreative([{ ...row('c2'), creative: { id: 'c2', object_type: 'SHARE' } }]);
-    expect(img[0].format).toBe('Image');
-    const car = groupByCreative([{ ...row('c3'), creative: { id: 'c3', object_type: 'PHOTO' } }]);
-    expect(car[0].format).toBe('Carousel');
+    const grp = (oType) => groupByCreative([row('a1')], { a1: cacheEntry('c1', { object_type: oType }) }, {});
+    expect(grp('VIDEO')[0].format).toBe('Video');
+    expect(grp('SHARE')[0].format).toBe('Image');
+    expect(grp('PHOTO')[0].format).toBe('Carousel');
   });
 
-  test('uses "unknown" for rows without creative', () => {
-    const result = groupByCreative([row(null, { spend: '5' })]);
+  test('uses "unknown" for rows whose ad has no creative', () => {
+    const result = groupByCreative([row('a1', { spend: '5' })], { a1: cacheEntry(null) }, {});
     expect(result[0].creative_id).toBe('unknown');
     expect(result[0].format).toBeNull();
   });
-});
 
-// ── buildCreativeMap ─────────────────────────────────────────────────────────
-
-describe('buildCreativeMap', () => {
-  test('maps ad.id → creative info with HD thumb URL', () => {
-    const map = buildCreativeMap(
-      [{ id: 'a1', creative: { id: 'c1', name: 'n', object_type: 'VIDEO', is_catalog: false } }],
-      { c1: 'https://hd/c1.jpg' }
-    );
-    expect(map.a1.thumbnail_url).toBe('https://hd/c1.jpg');
-    expect(map.a1.id).toBe('c1');
-    expect(map.a1.object_type).toBe('VIDEO');
-  });
-
-  test('skips ads without creative', () => {
-    expect(buildCreativeMap([{ id: 'a1', creative: null }], {})).toEqual({});
+  test('thumbnail_url comes from hdThumbMap by creative id', () => {
+    const result = groupByCreative([row('a1')], { a1: cacheEntry('c1') }, { c1: 'https://hd/c1.jpg' });
+    expect(result[0].thumbnail_url).toBe('https://hd/c1.jpg');
   });
 
   test('thumbnail_url is null when no HD entry', () => {
-    const map = buildCreativeMap([{ id: 'a1', creative: { id: 'c1' } }], {});
-    expect(map.a1.thumbnail_url).toBeNull();
+    const result = groupByCreative([row('a1')], { a1: cacheEntry('c1') }, {});
+    expect(result[0].thumbnail_url).toBeNull();
   });
 });
 

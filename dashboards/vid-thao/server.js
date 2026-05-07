@@ -174,17 +174,19 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-// Group rows (with attached creative) by creative_id and aggregate metrics.
-function groupByCreative(rows) {
+// Group insights rows by creative_id (looked up via creativeCache by ad_id)
+// and aggregate metrics. Thumbnail comes from hdThumbMap[creative_id].
+function groupByCreative(rows, creativeCache, hdThumbMap) {
   const map = {};
   for (const row of rows) {
-    const id = row.creative?.id || 'unknown';
+    const c = creativeCache[row.ad_id]?.creative;
+    const id = c?.id || 'unknown';
     if (!map[id]) {
       map[id] = {
         creative_id:   id,
-        format:        row.creative ? (FORMAT_MAP[row.creative.object_type] || 'Image') : null,
-        thumbnail_url: row.creative?.thumbnail_url || null,
-        is_catalog:    !!row.creative?.is_catalog,
+        format:        c ? (FORMAT_MAP[c.object_type] || 'Image') : null,
+        thumbnail_url: c ? (hdThumbMap[c.id] || null) : null,
+        is_catalog:    !!c?.is_catalog,
         ad_name:       row.ad_name || '',
         _rows:         [],
       };
@@ -192,22 +194,6 @@ function groupByCreative(rows) {
     map[id]._rows.push(row);
   }
   return Object.values(map).map(({ _rows, ...entry }) => aggregateMetrics(entry, _rows));
-}
-
-function buildCreativeMap(allAds, hdThumbMap) {
-  const map = {};
-  for (const ad of allAds) {
-    const c = ad.creative;
-    if (!c) continue;
-    map[ad.id] = {
-      id:           c.id,
-      name:         c.name || '',
-      object_type:  c.object_type || '',
-      is_catalog:   !!c.is_catalog,
-      thumbnail_url: hdThumbMap[c.id] || null,
-    };
-  }
-  return map;
 }
 
 function collectFetchableCreativeIds(allAds) {
@@ -451,11 +437,9 @@ app.get('/api/dashboard', async (req, res) => {
 
     const hdThumbMap = {};
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
-    const creativeMap = buildCreativeMap(allAds, hdThumbMap);
-    const enriched = currRows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
     progress(`Processing data... [${elapsed()}]`);
-    const grouped = groupByCreative(enriched);
+    const grouped = groupByCreative(currRows, creativeCache, hdThumbMap);
     const videoCount    = grouped.filter(c => c.format === 'Video').length;
     const imageCount    = grouped.filter(c => c.format === 'Image').length;
     const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -502,7 +486,6 @@ if (typeof module !== 'undefined' && module.exports) {
     sumActionByType,
     aggregateMetrics,
     groupByCreative,
-    buildCreativeMap,
     collectFetchableCreativeIds,
     collectAllCreativeIds,
   };

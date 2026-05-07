@@ -105,11 +105,11 @@ function renderDebug(d) {
   if (!d) { el.textContent = ''; return; }
   const sec = (d.elapsedMs / 1000).toFixed(1);
   const parts = [
-    `Tải xong sau ${sec}s`,
-    `Insights: ${d.insights.raw} dòng → ${d.insights.afterSpendFilter} dòng có spend`,
-    `Ads: ${d.ads.active} active (cache ${d.ads.cached}, tải mới ${d.ads.fetched})`,
+    `Loaded in ${sec}s`,
+    `Insights: ${d.insights.raw} rows → ${d.insights.afterSpendFilter} with spend`,
+    `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Creatives: ${d.creatives.total} (${d.creatives.video} video)`,
-    `Thumbnail HD: ${d.hdThumbs.fetchable} creatives (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
+    `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${d.hdThumbs.cached} cached, ${d.hdThumbs.fetched} fetched)`,
   ];
   el.textContent = parts.join(' · ');
 }

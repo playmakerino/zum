@@ -61,11 +61,33 @@ window.addEventListener('DOMContentLoaded', async () => {
       };
       renderTable('creatives');
       showCacheTime(cached.cached_at);
+      updatePeriodSelectLabels(cached.period);
     } else {
       fetchAll(false); // auto-load from server cache
     }
   }
 });
+
+// Swap to cached data for the chosen period (or clear table if no cache).
+function onPeriodChange() {
+  const days = $('periodSelect').value;
+  const cached = loadCache('creatives', days);
+  if (cached) {
+    state.creatives = {
+      ...cached,
+      current: (cached.current || []).filter(isVideo),
+    };
+    renderTable('creatives');
+    showCacheTime(cached.cached_at);
+    updatePeriodSelectLabels(cached.period);
+  } else {
+    state.creatives = { current: [], period: null };
+    state.pageLimit.creatives = PAGE_SIZE;
+    $('creativesBody').innerHTML = `<tr><td colspan="${TABLES.creatives.cols}"><div class="state-box">Click "Load Data" to load this period</div></td></tr>`;
+    showCacheTime(null);
+    updatePeriodSelectLabels();
+  }
+}
 
 function showCacheTime(iso) {
   const el = $('cachedAt');

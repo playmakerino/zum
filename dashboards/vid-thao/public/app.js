@@ -423,11 +423,16 @@ function showThumbPreview(e) {
   const src = e.target.src;
   _thumbPreview.onload = function() { _thumbPreview.style.display = 'block'; };
   _thumbPreview.src = src;
+  // Shrink preview on narrow viewports so it never dominates the screen
+  const size = Math.min(240, window.innerWidth - 24, window.innerHeight - 24);
+  _thumbPreview.style.width = size + 'px';
+  _thumbPreview.style.height = size + 'px';
   const rect = e.target.getBoundingClientRect();
-  let top = rect.top + rect.height / 2 - 120;
+  let top  = rect.top + rect.height / 2 - size / 2;
   let left = rect.right + 10;
-  if (left + 240 > window.innerWidth) left = rect.left - 250;
-  if (top + 240 > window.innerHeight) top = window.innerHeight - 244;
+  if (left + size > window.innerWidth) left = rect.left - size - 10;
+  if (left < 4) left = 4;
+  if (top + size > window.innerHeight) top = window.innerHeight - size - 4;
   if (top < 4) top = 4;
   _thumbPreview.style.top = top + 'px';
   _thumbPreview.style.left = left + 'px';

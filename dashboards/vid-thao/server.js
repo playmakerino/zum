@@ -475,7 +475,9 @@ app.get('/api/dashboard', async (req, res) => {
     const hdThumbMap = {};
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
     const creativeMap = buildCreativeMap(allAds, hdThumbMap);
-    const enriched = currRows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
+    const enriched = currRows
+      .filter(r => parseFloat(r.spend || 0) > 0)
+      .map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
     progress(`Processing data... [${elapsed()}]`);
     const result = {

@@ -101,7 +101,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .tooltip-box::before{content:'';position:absolute;bottom:100%;right:16px;border:6px solid transparent;border-bottom-color:var(--a)}
 .tooltip-wrap:hover .tooltip-box{opacity:1;visibility:visible}
 
-/* Mobile responsive */
+/* Tablet & mobile (≤768px) — single-row topbar */
 @media(max-width:768px){
   .layout{grid-template-rows:56px 1fr}
   .top-nav{margin-left:4px;gap:0}
@@ -113,4 +113,19 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .topbar-actions{gap:6px}
   #cachedAt{display:none}
   .period-select{min-width:0}
+  /* Bigger touch targets for sort/filter on touch devices */
+  .col-filter-btn{padding:6px 4px}
+}
+
+/* Phone (≤480px) — stack period+button below logo/nav so the dropdown can breathe */
+@media(max-width:480px){
+  .layout{grid-template-rows:auto 1fr}
+  .topbar{flex-wrap:wrap;height:auto;padding:8px 12px;gap:6px}
+  .topbar-actions{flex-basis:100%;margin-left:0;gap:8px}
+  .period-select{flex:1;min-width:0;padding:6px 8px;font-size:12px}
+  .tooltip-wrap{flex-shrink:0}
+  .table-scroll{max-height:calc(100vh - 132px)}
+  .filter-popup{min-width:240px;max-width:calc(100vw - 16px)}
+  /* Smaller HD thumb preview to fit narrow screens */
+  .topbar .logo{font-size:14px}
 }

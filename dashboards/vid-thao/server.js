@@ -29,11 +29,10 @@ function slimCreative(ad) {
   return {
     id: ad.id,
     creative: {
-      id:           c.id,
-      name:         c.name || '',
-      object_type:  c.object_type || '',
-      primary_text: c.primary_text || '',
-      is_catalog:   !!c.object_story_spec?.template_data,
+      id:          c.id,
+      name:        c.name || '',
+      object_type: c.object_type || '',
+      is_catalog:  !!c.object_story_spec?.template_data,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
@@ -50,12 +49,7 @@ function loadCacheFromFile() {
         if (entry._cachedAt && (now - entry._cachedAt) > CACHE_TTL) continue;
         // Auto-migrate old bulky entries to slim format
         if (entry.creative?.object_story_spec || entry.creative?.asset_feed_spec) {
-          const primaryText = entry.creative?.asset_feed_spec?.bodies?.[0]?.text
-            || entry.creative?.object_story_spec?.link_data?.message
-            || entry.creative?.object_story_spec?.video_data?.message
-            || entry.creative?.object_story_spec?.photo_data?.message
-            || entry.creative?.name || '';
-          filtered[id] = slimCreative({ ...entry, creative: { ...entry.creative, primary_text: primaryText } });
+          filtered[id] = slimCreative(entry);
           migrated = true;
         } else {
           filtered[id] = entry;
@@ -180,22 +174,6 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-function buildPrimaryTextMap(allAds) {
-  const map = {};
-  for (const ad of allAds) {
-    const cid = ad.creative?.id;
-    if (!cid) continue;
-    const text = ad.creative?.asset_feed_spec?.bodies?.[0]?.text
-      || ad.creative?.object_story_spec?.link_data?.message
-      || ad.creative?.object_story_spec?.video_data?.message
-      || ad.creative?.object_story_spec?.photo_data?.message
-      || ad.creative?.name
-      || '';
-    if (text) map[cid] = text;
-  }
-  return map;
-}
-
 // Group rows (with attached creative) by creative_id and aggregate metrics.
 function groupByCreative(rows) {
   const map = {};
@@ -204,7 +182,6 @@ function groupByCreative(rows) {
     if (!map[id]) {
       map[id] = {
         creative_id:   id,
-        primary_text:  row.creative?.primary_text || '',
         format:        row.creative ? (FORMAT_MAP[row.creative.object_type] || 'Image') : null,
         thumbnail_url: row.creative?.thumbnail_url || null,
         is_catalog:    !!row.creative?.is_catalog,
@@ -226,7 +203,6 @@ function buildCreativeMap(allAds, hdThumbMap) {
       id:           c.id,
       name:         c.name || '',
       object_type:  c.object_type || '',
-      primary_text: c.primary_text || '',
       is_catalog:   !!c.is_catalog,
       thumbnail_url: hdThumbMap[c.id] || null,
     };
@@ -353,13 +329,9 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
     return;
   }
   progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
-  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,asset_feed_spec,object_story_spec}');
-  const ptMap = buildPrimaryTextMap(fetched);
+  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,object_story_spec{template_data}}');
   const now = Date.now();
   for (const ad of fetched) {
-    if (ad.creative?.id && ptMap[ad.creative.id]) {
-      ad.creative.primary_text = ptMap[ad.creative.id];
-    }
     creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
   }
   for (const id of missingIds) {
@@ -530,7 +502,6 @@ if (typeof module !== 'undefined' && module.exports) {
     sumActionByType,
     aggregateMetrics,
     groupByCreative,
-    buildPrimaryTextMap,
     buildCreativeMap,
     collectFetchableCreativeIds,
     collectAllCreativeIds,

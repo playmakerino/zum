@@ -27,10 +27,9 @@ const state = {
 const METRIC_COLS = ['spend','roas','cpr','aov','cpm','ctr','cpc','video_3sec_rate','thruplay_rate','video_avg_time'];
 const TABLES = {
   creatives: {
-    cols: 13, idKey: 'creative_id', searchCols: [1, 2],
+    cols: 12, idKey: 'creative_id', searchCols: [1],
     columns: [
       null,
-      { key: 'primary_text', type: 'text' },
       { key: 'ad_name', type: 'text' },
       { key: 'spend', type: 'metric' },
       { key: 'roas', type: 'metric' },
@@ -43,7 +42,7 @@ const TABLES = {
       { key: 'thruplay_rate', type: 'metric' },
       { key: 'video_avg_time', type: 'metric' },
     ],
-    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.primary_text)}">${esc(r.primary_text)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
+    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
 };
 
@@ -287,7 +286,7 @@ function totals(rows) {
 
 function buildTotalRow(type, filtered) {
   if (filtered.length === 0) return;
-  const labelCols = 3;
+  const labelCols = 2;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
   const emptyTds = '<td></td>'.repeat(labelCols - 1);

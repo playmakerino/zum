@@ -269,12 +269,18 @@ function getCredentials(req) {
   };
 }
 
+// Push spend > 0 to Meta so the async report skips zero-spend rows entirely.
+const INSIGHTS_FILTERING = JSON.stringify([
+  { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+]);
+
 // Async report: create → poll → fetch all results
 async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
   const createRes = await axios.post(`${base}/insights`, null, {
     params: {
       access_token: token, level: 'ad', fields,
       time_range: JSON.stringify(timeRange),
+      filtering: INSIGHTS_FILTERING,
     },
   });
 
@@ -462,10 +468,8 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
-    const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    // Drop spend=0 rows up-front so we don't waste Meta quota fetching
-    // creative info + HD thumbs for ads that won't appear in the table.
-    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
+    // Insights are filtered by spend > 0 at the Meta API level (see INSIGHTS_FILTERING).
+    const currRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
 
     const allAdIds = uniqueAdIds(currRows);
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });

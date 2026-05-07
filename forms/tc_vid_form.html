@@ -38,9 +38,8 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 56px 20px 80px;
+      padding: 45px 16px 64px;
       overflow-x: hidden;
-      zoom: 0.8;
     }
 
     /* Subtle top gradient */
@@ -56,24 +55,24 @@
 
     .container {
       width: 100%;
-      max-width: 580px;
+      max-width: 464px;
       position: relative;
       z-index: 1;
     }
 
     /* Header */
     .header {
-      margin-bottom: 36px;
+      margin-bottom: 29px;
       text-align: center;
     }
 
     .header h1 {
-      font-size: 40px;
+      font-size: 32px;
       font-weight: 900;
       color: var(--text);
       letter-spacing: -0.03em;
       line-height: 1.05;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .header h1 span {
@@ -81,7 +80,7 @@
     }
 
     .header p {
-      font-size: 14px;
+      font-size: 11px;
       color: var(--text-sub);
       line-height: 1.6;
       font-weight: 400;
@@ -90,18 +89,18 @@
     /* Card */
     .card {
       background: var(--surface);
-      border-radius: 16px;
-      padding: 36px 32px;
+      border-radius: 13px;
+      padding: 29px 26px;
     }
 
     /* Section label */
     .section-label {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       color: var(--text-muted);
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      margin: 32px 0 14px;
+      margin: 26px 0 11px;
     }
 
     .section-label:first-child {
@@ -110,15 +109,15 @@
 
     /* Field */
     .field {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .field label {
       display: block;
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--text-sub);
-      margin-bottom: 7px;
+      margin-bottom: 6px;
       letter-spacing: 0.01em;
     }
 
@@ -126,18 +125,18 @@
       font-style: normal;
       font-weight: 400;
       color: var(--text-muted);
-      font-size: 11px;
-      margin-left: 4px;
+      font-size: 9px;
+      margin-left: 3px;
     }
 
     .field input[type="text"] {
       width: 100%;
       background: var(--surface-elevated);
       border: none;
-      border-radius: 8px;
-      padding: 13px 16px;
+      border-radius: 6px;
+      padding: 10px 13px;
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 400;
       color: var(--text);
       outline: none;
@@ -158,24 +157,24 @@
     }
 
     .field .hint {
-      font-size: 11px;
+      font-size: 9px;
       color: var(--text-muted);
-      margin-top: 6px;
+      margin-top: 5px;
       line-height: 1.5;
     }
 
     .field .hint code {
       font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 10px;
+      font-size: 8px;
       background: var(--surface-elevated);
       color: var(--text-sub);
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 2px 5px;
+      border-radius: 3px;
     }
 
     /* Submit button */
     .submit-wrap {
-      margin-top: 32px;
+      margin-top: 26px;
     }
 
     .submit-btn {
@@ -184,10 +183,10 @@
       border: none;
       color: #000;
       font-family: var(--font);
-      font-size: 15px;
+      font-size: 12px;
       font-weight: 700;
-      padding: 17px 24px;
-      border-radius: 50px;
+      padding: 14px 19px;
+      border-radius: 40px;
       cursor: pointer;
       letter-spacing: 0.02em;
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
@@ -196,7 +195,7 @@
     .submit-btn:hover {
       background: var(--accent-hover);
       transform: scale(1.02);
-      box-shadow: 0 6px 28px var(--accent-glow);
+      box-shadow: 0 5px 22px var(--accent-glow);
     }
 
     .submit-btn:active {
@@ -212,10 +211,10 @@
 
     /* Status */
     .status {
-      margin-top: 14px;
-      padding: 13px 16px;
-      border-radius: 10px;
-      font-size: 13px;
+      margin-top: 11px;
+      padding: 10px 13px;
+      border-radius: 8px;
+      font-size: 10px;
       font-weight: 500;
       display: none;
       line-height: 1.5;
@@ -241,13 +240,13 @@
 
     .spinner {
       display: inline-block;
-      width: 13px;
-      height: 13px;
+      width: 10px;
+      height: 10px;
       border: 2px solid currentColor;
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.65s linear infinite;
-      margin-right: 8px;
+      margin-right: 6px;
       vertical-align: middle;
     }
 
@@ -258,7 +257,7 @@
     /* Payload preview */
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
-      font-size: 11px !important;
+      font-size: 9px !important;
     }
   </style>
 </head>
@@ -285,7 +284,7 @@
       </div>
 
       <!-- Payload preview -->
-      <div id="payloadPreview" style="display:none; margin-top:14px; padding:16px; background:#0d0d0d; border-radius:10px; font-size:11px; color:#6A6A6A; line-height:1.8; white-space:pre-wrap; word-break:break-all;"></div>
+      <div id="payloadPreview" style="display:none; margin-top:11px; padding:13px; background:#0d0d0d; border-radius:8px; font-size:9px; color:#6A6A6A; line-height:1.8; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>

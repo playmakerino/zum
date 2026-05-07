@@ -143,10 +143,11 @@
 
     .field input[type="text"] {
       width: 100%;
+      height: 48px;
       background: var(--surface-elevated);
       border: none;
       border-radius: 8px;
-      padding: 13px 16px;
+      padding: 0 16px;
       font-family: var(--font);
       font-size: 14px;
       font-weight: 400;
@@ -400,14 +401,14 @@
         </div>
 
         <div class="field">
-          <label>Dropbox Print Image <em>(1 file ảnh)</em></label>
+          <label>Dropbox Print Image <em>(chọn 1 ảnh)</em></label>
           <div class="chooser-field" id="field_print_image">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
-            <span class="chooser-path" id="path_print_image">Chưa chọn file...</span>
+            <span class="chooser-path" id="path_print_image">Chưa chọn ảnh...</span>
             <button class="chooser-btn" onclick="choosePrintImage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -627,7 +628,7 @@
         state[`dropbox_${key}`] = null;
         document.getElementById(`dropbox_${key}`).value = '';
         document.getElementById(`field_${key}`).classList.remove('has-value');
-        document.getElementById(`path_${key}`).textContent = 'Chưa chọn file...';
+        document.getElementById(`path_${key}`).textContent = 'Chưa chọn ảnh...';
       }
     }
 

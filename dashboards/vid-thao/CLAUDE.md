@@ -1,7 +1,7 @@
 # Meta Ads Dashboard
 
 ## Overview
-Dashboard phân tích quảng cáo Meta (Facebook/Instagram).
+Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển thị format Video.
 
 ## Tech Stack
 - **Backend:** Node.js + Express (server.js)
@@ -21,7 +21,8 @@ Dashboard phân tích quảng cáo Meta (Facebook/Instagram).
 - **GET /api/config** - trả về status config (có token chưa)
 - **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
   - Params: `days` (1-90, default 7), `refresh` (force reload)
-  - Pipeline: fetch insights → fetch creative info → fetch HD thumbnails → group & build response
+  - Pipeline: fetch insights (current period only) → fetch creative info → fetch HD thumbnails → group & build response
+  - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
   - Input validation: token regex `[A-Za-z0-9_-]`, accountId chỉ số, days clamp 1-90
 - **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng
 - **Async file writes:** `saveCacheAsync()` dùng `fs.writeFile` callback, không block event loop
@@ -36,17 +37,16 @@ Dashboard phân tích quảng cáo Meta (Facebook/Instagram).
 | Browser | localStorage | Until force refresh | Full result cho instant load |
 
 ### Frontend (app.js)
-- 2 pages: Ad Performance, Creative Performance
+- 1 page: Creative Performance (chỉ format Video, lọc client-side qua `isVideo`)
 - State management bằng plain object
 - SSE streaming cho dashboard load
-- **Tables:** sortable, text/select/metric range filters, search
+- **Tables:** sortable, text/metric range filters, search
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
   - Total row tính trên ALL filtered rows (không chỉ page hiện tại)
   - Sticky first column (thumb) với white background
 - **Thumbnail preview:** hover hiện ảnh HD 240×240 (position:fixed)
   - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480`
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)
-- Delta indicators (% thay đổi so với kỳ trước)
 - Mobile responsive (sidebar collapse ở 768px)
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Custom CSS tooltip cho nút Load Data
@@ -54,6 +54,7 @@ Dashboard phân tích quảng cáo Meta (Facebook/Instagram).
 ## Key Metrics
 - Standard: impressions, clicks, spend, reach, CTR, CPC, CPM
 - Derived: ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
+- Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays), Avg Time (weighted avg play time)
 
 ## Environment Variables (trong .env)
 - `META_ACCESS_TOKEN` - Meta API token

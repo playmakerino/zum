@@ -11,11 +11,7 @@
   <header class="topbar">
     <div class="logo">Meta<span>Ads</span></div>
     <nav class="top-nav">
-      <div class="nav-item active" onclick="showPage('ads')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-        By Ad Name
-      </div>
-      <div class="nav-item" onclick="showPage('creatives')">
+      <div class="nav-item active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><polyline points="14 2 14 8 20 8"/></svg>
         By Creative ID
       </div>
@@ -35,33 +31,12 @@
   </header>
 
   <main class="main">
-    <div id="page-ads" class="page active">
-      <div class="table-wrap">
-        <div class="table-scroll">
-          <table id="adsTable"><thead><tr>
-            <th>Thumb</th>
-            <th><div class="th-content"><input data-table="ads" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Ad Name" oninput="filterTable('ads')" onclick="event.stopPropagation()"></div></th>
-            <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="cpr" onclick="sortTable('ads','cpr')"><div class="th-content">CPR <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="cpr" onclick="event.stopPropagation();openFilterPopup('ads','cpr',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="aov" onclick="sortTable('ads','aov')"><div class="th-content">AOV <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="aov" onclick="event.stopPropagation();openFilterPopup('ads','aov',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="cpm" onclick="sortTable('ads','cpm')"><div class="th-content">CPM <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="cpm" onclick="event.stopPropagation();openFilterPopup('ads','cpm',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="ctr" onclick="sortTable('ads','ctr')"><div class="th-content">CTR <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="ctr" onclick="event.stopPropagation();openFilterPopup('ads','ctr',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="cpc" onclick="sortTable('ads','cpc')"><div class="th-content">CPC <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="cpc" onclick="event.stopPropagation();openFilterPopup('ads','cpc',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-          </tr></thead><tbody id="adsBody">
-            <tr><td colspan="9"><div class="state-box">Click "Load Data" to start</div></td></tr>
-          </tbody></table>
-        </div>
-      </div>
-    </div>
-
-    <div id="page-creatives" class="page">
+    <div id="page-creatives" class="page active">
       <div class="table-wrap">
         <div class="table-scroll">
           <table id="creativesTable"><thead><tr>
             <th>Thumb</th>
             <th><div class="th-content">Primary Text</div></th>
-            <th style="width:70px"><div class="th-content"><select data-table="creatives" data-col="format" data-type="select" class="th-filter-select" onchange="filterTable('creatives')" onclick="event.stopPropagation()"><option value="">Format</option><option value="Video">Video</option><option value="Image">Image</option><option value="Carousel">Carousel</option></select></div></th>
             <th><div class="th-content"><input data-table="creatives" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Ad Name" oninput="filterTable('creatives')" onclick="event.stopPropagation()"></div></th>
             <th data-sort="spend" onclick="sortTable('creatives','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="spend" onclick="event.stopPropagation();openFilterPopup('creatives','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="roas" onclick="sortTable('creatives','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="roas" onclick="event.stopPropagation();openFilterPopup('creatives','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
@@ -70,8 +45,11 @@
             <th data-sort="cpm" onclick="sortTable('creatives','cpm')"><div class="th-content">CPM <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="cpm" onclick="event.stopPropagation();openFilterPopup('creatives','cpm',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="ctr" onclick="sortTable('creatives','ctr')"><div class="th-content">CTR <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="ctr" onclick="event.stopPropagation();openFilterPopup('creatives','ctr',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="cpc" onclick="sortTable('creatives','cpc')"><div class="th-content">CPC <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="cpc" onclick="event.stopPropagation();openFilterPopup('creatives','cpc',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="video_3sec_rate" onclick="sortTable('creatives','video_3sec_rate')"><div class="th-content" title="3-second video plays / impressions">3s/Impr <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_3sec_rate" onclick="event.stopPropagation();openFilterPopup('creatives','video_3sec_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="thruplay_rate" onclick="sortTable('creatives','thruplay_rate')"><div class="th-content" title="ThruPlays / Video plays">ThruPlay% <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="thruplay_rate" onclick="event.stopPropagation();openFilterPopup('creatives','thruplay_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="video_avg_time" onclick="sortTable('creatives','video_avg_time')"><div class="th-content" title="Video average play time">Avg Time <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_avg_time" onclick="event.stopPropagation();openFilterPopup('creatives','video_avg_time',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="creativesBody">
-            <tr><td colspan="11"><div class="state-box">Click "Load Data" to start</div></td></tr>
+            <tr><td colspan="13"><div class="state-box">Click "Load Data" to start</div></td></tr>
           </tbody></table>
         </div>
       </div>

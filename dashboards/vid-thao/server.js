@@ -338,7 +338,7 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
   const ic = insightsCache[cacheKey];
   if (!forceRefresh && ic) {
     progress(`Using cached insights (${ic.current.length} rows) [${elapsed()}]`);
-    return ic.current;
+    return { rows: ic.current, source: 'cache' };
   }
   progress(`Creating async report... [${elapsed()}]`);
   const currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
@@ -347,7 +347,7 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
   insightsCache[cacheKey] = { current: currRows };
   saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
   progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
-  return currRows;
+  return { rows: currRows, source: 'api' };
 }
 
 async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
@@ -386,9 +386,10 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
   const missing = creativeIds.filter(cid => !hdThumbCache[cid]);
   if (missing.length === 0) {
     if (creativeIds.length > 0) progress(`All ${creativeIds.length} HD thumbnails cached [${elapsed()}]`);
-    return;
+    return { attempted: 0, succeeded: 0 };
   }
   progress(`Fetching HD thumbnails for ${missing.length} new creatives... [${elapsed()}]`);
+  let succeeded = 0;
   for (let i = 0; i < missing.length; i += BATCH_SIZE) {
     const batch = missing.slice(i, i + BATCH_SIZE);
     try {
@@ -396,14 +397,18 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
         params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
       });
       for (const [id, data] of Object.entries(res.data)) {
-        if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
+        if (data?.thumbnail_url) {
+          hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
+          succeeded++;
+        }
       }
     } catch (err) {
       console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
     }
   }
   saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
-  progress(`Fetched HD thumbnails for ${missing.length} creatives [${elapsed()}]`);
+  progress(`Fetched HD thumbnails for ${succeeded}/${missing.length} creatives [${elapsed()}]`);
+  return { attempted: missing.length, succeeded };
 }
 
 function pruneHdThumbCache(activeCreativeIds) {
@@ -462,7 +467,7 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
-    const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
+    const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
     const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
 
     const allAdIds = uniqueAdIds(currRows);
@@ -473,7 +478,7 @@ app.get('/api/dashboard', async (req, res) => {
 
     const fetchableHdIds = collectFetchableCreativeIds(allAds);
     const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid]).length;
-    await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
+    const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
     pruneHdThumbCache(collectAllCreativeIds(allAds));
 
     const hdThumbMap = {};
@@ -483,7 +488,10 @@ app.get('/api/dashboard', async (req, res) => {
 
     progress(`Processing data... [${elapsed()}]`);
     const grouped = groupByCreative(enriched);
-    const videoCount = grouped.filter(c => c.format === 'Video').length;
+    const videoCount    = grouped.filter(c => c.format === 'Video').length;
+    const imageCount    = grouped.filter(c => c.format === 'Image').length;
+    const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
+    const missingCount  = grouped.filter(c => !c.format).length;
     const result = {
       creatives: { current: grouped },
       period:    { current },
@@ -494,10 +502,10 @@ app.get('/api/dashboard', async (req, res) => {
       account: accountId,
       days,
       refresh: forceRefresh,
-      insights:  { raw: rawRows.length, afterSpendFilter: currRows.length },
+      insights:  { source: insightsSource, raw: rawRows.length, afterSpendFilter: currRows.length },
       ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
-      hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: fetchableHdIds.length - cachedHdBefore },
-      creatives: { total: grouped.length, video: videoCount },
+      hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
+      creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
       elapsedMs: Date.now() - startTime,
     };
     res.write(`data: ${JSON.stringify({ debug })}\n\n`);

@@ -664,10 +664,14 @@
     }
 
     // ── Submit ─────────────────────────────────────────────────
+    function cleanProductUrl(url) {
+      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
+    }
+
     async function submitForm() {
       const ad_set_name = document.getElementById('ad_set_name').value.trim();
-      const url_zippy   = document.getElementById('url_zippy').value.trim();
-      const url_pajama  = document.getElementById('url_pajama').value.trim();
+      const url_zippy   = cleanProductUrl(document.getElementById('url_zippy').value.trim());
+      const url_pajama  = cleanProductUrl(document.getElementById('url_pajama').value.trim());
       const dropbox_print_image = document.getElementById('dropbox_print_image').value;
 
       // Validation

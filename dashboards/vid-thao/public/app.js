@@ -108,8 +108,8 @@ function renderDebug(d) {
     `Tải xong sau ${sec}s`,
     `Insights: ${d.insights.raw} dòng → ${d.insights.afterSpendFilter} dòng có spend`,
     `Ads: ${d.ads.active} active (cache ${d.ads.cached}, tải mới ${d.ads.fetched})`,
-    `Thumbnail HD: ${d.hdThumbs.fetchable} creatives (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
     `Creatives: ${d.creatives.total} (${d.creatives.video} video)`,
+    `Thumbnail HD: ${d.hdThumbs.fetchable} creatives (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
   ];
   el.textContent = parts.join(' · ');
 }

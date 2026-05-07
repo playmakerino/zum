@@ -32,6 +32,8 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 .page{display:none}.page.active{display:block}
 
 .cache-time{font-size:11px;color:var(--t3)}
+.debug-line{font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--t3);margin-bottom:8px;word-break:break-all}
+.debug-line:empty{display:none}
 
 .table-wrap{background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative}
 .table-scroll{overflow:auto;max-height:calc(100vh - 112px)}

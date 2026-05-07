@@ -269,19 +269,12 @@ function getCredentials(req) {
   };
 }
 
-// Push spend > 5 filter to Meta so the async report skips low-spend rows entirely.
-const SPEND_THRESHOLD = 5;
-const INSIGHTS_FILTERING = JSON.stringify([
-  { field: 'spend', operator: 'GREATER_THAN', value: SPEND_THRESHOLD },
-]);
-
 // Async report: create → poll → fetch all results
 async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
   const createRes = await axios.post(`${base}/insights`, null, {
     params: {
       access_token: token, level: 'ad', fields,
       time_range: JSON.stringify(timeRange),
-      filtering: INSIGHTS_FILTERING,
     },
   });
 
@@ -471,8 +464,8 @@ app.get('/api/dashboard', async (req, res) => {
   const tag = `[dashboard ${new Date().toISOString()}]`;
   console.log(`${tag} START account=${accountId} days=${days} refresh=${forceRefresh}`);
   try {
-    // Insights are filtered by spend > SPEND_THRESHOLD at the Meta API level.
-    const currRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
+    const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
+    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
 
     const allAdIds = uniqueAdIds(currRows);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
@@ -502,7 +495,7 @@ app.get('/api/dashboard', async (req, res) => {
     res.write(`data: ${JSON.stringify({ result })}\n\n`);
     res.end();
     console.log(
-      `${tag} DONE | insights ${currRows.length} rows (Meta filter spend>${SPEND_THRESHOLD}) | ` +
+      `${tag} DONE | insights ${rawRows.length} raw → ${currRows.length} spend>0 | ` +
       `ads ${allAdIds.length} active, ${cachedAdsBefore} cached, ${allAdIds.length - cachedAdsBefore} fetched | ` +
       `hd-thumbs ${fetchableHdIds.length} fetchable, ${cachedHdBefore} cached, ${fetchableHdIds.length - cachedHdBefore} fetched | ` +
       `creatives ${grouped.length} (${videoCount} Video) | ${elapsed()}`

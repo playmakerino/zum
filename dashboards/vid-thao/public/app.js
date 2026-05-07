@@ -62,6 +62,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       renderTable('creatives');
       showCacheTime(cached.cached_at);
       updatePeriodSelectLabels(cached.period);
+      renderDebug(loadCache('debug', days));
     } else {
       fetchAll(false); // auto-load from server cache
     }
@@ -80,12 +81,14 @@ function onPeriodChange() {
     renderTable('creatives');
     showCacheTime(cached.cached_at);
     updatePeriodSelectLabels(cached.period);
+    renderDebug(loadCache('debug', days));
   } else {
     state.creatives = { current: [], period: null };
     state.pageLimit.creatives = PAGE_SIZE;
     $('creativesBody').innerHTML = `<tr><td colspan="${TABLES.creatives.cols}"><div class="state-box">Click "Load Data" to load this period</div></td></tr>`;
     showCacheTime(null);
     updatePeriodSelectLabels();
+    renderDebug(null);
   }
 }
 
@@ -96,19 +99,25 @@ function showCacheTime(iso) {
   el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
 }
 
-function showDebug(d) {
-  console.log('[dashboard]', d);
+function renderDebug(d) {
   const el = $('debugLine');
   if (!el) return;
+  if (!d) { el.textContent = ''; return; }
   const sec = (d.elapsedMs / 1000).toFixed(1);
   const parts = [
     `Tải xong sau ${sec}s`,
     `Insights: ${d.insights.raw} dòng → ${d.insights.afterSpendFilter} dòng có spend`,
     `Ads: ${d.ads.active} active (cache ${d.ads.cached}, tải mới ${d.ads.fetched})`,
-    `Thumbnail HD: ${d.hdThumbs.fetchable} ads (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
+    `Thumbnail HD: ${d.hdThumbs.fetchable} creatives (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
     `Creatives: ${d.creatives.total} (${d.creatives.video} video)`,
   ];
   el.textContent = parts.join(' · ');
+}
+
+function showDebug(d) {
+  console.log('[dashboard]', d);
+  renderDebug(d);
+  saveCache('debug', $('periodSelect').value, d);
 }
 
 function fmtDateLabel(d) {

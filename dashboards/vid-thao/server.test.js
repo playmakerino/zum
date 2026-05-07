@@ -7,7 +7,6 @@ const {
   groupByCreative,
   buildPrimaryTextMap,
   buildCreativeMap,
-  uniqueAdIds,
   collectFetchableCreativeIds,
   collectAllCreativeIds,
 } = require('./server');
@@ -295,14 +294,6 @@ describe('buildCreativeMap', () => {
 });
 
 // ── ID collectors ────────────────────────────────────────────────────────────
-
-describe('uniqueAdIds', () => {
-  test('returns unique non-empty ad_ids', () => {
-    expect(uniqueAdIds([
-      { ad_id: 'a1' }, { ad_id: 'a2' }, { ad_id: 'a1' }, { ad_id: '' }, {},
-    ])).toEqual(['a1', 'a2']);
-  });
-});
 
 describe('collectFetchableCreativeIds', () => {
   test('only video, non-catalog, with id', () => {

@@ -104,12 +104,26 @@ function renderDebug(d) {
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
   const sec = (d.elapsedMs / 1000).toFixed(1);
+  const insightsSrc = d.insights.source === 'cache' ? ' from cache'
+                    : d.insights.source === 'api'   ? ' from API'
+                    : '';
+  const formatBreakdown = [
+    `${d.creatives.video} video`,
+    d.creatives.image    && `${d.creatives.image} image`,
+    d.creatives.carousel && `${d.creatives.carousel} carousel`,
+    d.creatives.missing  && `${d.creatives.missing} missing`,
+  ].filter(Boolean).join(', ');
+  const hdBreakdown = [
+    `${d.hdThumbs.cached} cached`,
+    `${d.hdThumbs.fetched} fetched`,
+    d.hdThumbs.failed && `${d.hdThumbs.failed} failed`,
+  ].filter(Boolean).join(', ');
   const parts = [
     `Loaded in ${sec}s`,
-    `Insights: ${d.insights.raw} rows → ${d.insights.afterSpendFilter} with spend`,
+    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend`,
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
-    `Creatives: ${d.creatives.total} (${d.creatives.video} video)`,
-    `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${d.hdThumbs.cached} cached, ${d.hdThumbs.fetched} fetched)`,
+    `Creatives: ${d.creatives.total} (${formatBreakdown})`,
+    `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
   ];
   el.textContent = parts.join(' · ');
 }

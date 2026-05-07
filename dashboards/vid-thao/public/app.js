@@ -101,7 +101,14 @@ function showDebug(d) {
   const el = $('debugLine');
   if (!el) return;
   const sec = (d.elapsedMs / 1000).toFixed(1);
-  el.textContent = `insights ${d.insights.raw}→${d.insights.afterSpendFilter} · ads ${d.ads.active} (${d.ads.cached} cached, ${d.ads.fetched} fetched) · hd-thumbs ${d.hdThumbs.fetchable} (${d.hdThumbs.cached} cached, ${d.hdThumbs.fetched} fetched) · creatives ${d.creatives.total} (${d.creatives.video} Video) · ${sec}s`;
+  const parts = [
+    `Tải xong sau ${sec}s`,
+    `Insights: ${d.insights.raw} dòng → ${d.insights.afterSpendFilter} dòng có spend`,
+    `Ads: ${d.ads.active} active (cache ${d.ads.cached}, tải mới ${d.ads.fetched})`,
+    `Thumbnail HD: ${d.hdThumbs.fetchable} ads (cache ${d.hdThumbs.cached}, tải mới ${d.hdThumbs.fetched})`,
+    `Creatives: ${d.creatives.total} (${d.creatives.video} video)`,
+  ];
+  el.textContent = parts.join(' · ');
 }
 
 function fmtDateLabel(d) {

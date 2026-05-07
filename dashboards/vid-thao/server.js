@@ -462,7 +462,10 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
-    const currRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
+    const rawRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
+    // Drop spend=0 rows up-front so we don't waste Meta quota fetching
+    // creative info + HD thumbs for ads that won't appear in the table.
+    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
 
     const allAdIds = uniqueAdIds(currRows);
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
@@ -475,9 +478,7 @@ app.get('/api/dashboard', async (req, res) => {
     const hdThumbMap = {};
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
     const creativeMap = buildCreativeMap(allAds, hdThumbMap);
-    const enriched = currRows
-      .filter(r => parseFloat(r.spend || 0) > 0)
-      .map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
+    const enriched = currRows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
     progress(`Processing data... [${elapsed()}]`);
     const result = {

@@ -24,24 +24,14 @@ const state = {
 };
 
 // Table config
-const METRIC_COLS = ['spend','roas','cpr','aov','cpm','ctr','cpc','video_3sec_rate','thruplay_rate','video_avg_time'];
+const COL_LABELS = {
+  spend: 'Spend', roas: 'ROAS', cpr: 'CPR', aov: 'AOV',
+  cpm: 'CPM', ctr: 'CTR', cpc: 'CPC',
+  video_3sec_rate: '3s/Impr', thruplay_rate: 'ThruPlay%', video_avg_time: 'Avg Time',
+};
 const TABLES = {
   creatives: {
-    cols: 12, idKey: 'creative_id', searchCols: [1],
-    columns: [
-      null,
-      { key: 'ad_name', type: 'text' },
-      { key: 'spend', type: 'metric' },
-      { key: 'roas', type: 'metric' },
-      { key: 'cpr', type: 'metric' },
-      { key: 'aov', type: 'metric' },
-      { key: 'cpm', type: 'metric' },
-      { key: 'ctr', type: 'metric' },
-      { key: 'cpc', type: 'metric' },
-      { key: 'video_3sec_rate', type: 'metric' },
-      { key: 'thruplay_rate', type: 'metric' },
-      { key: 'video_avg_time', type: 'metric' },
-    ],
+    cols: 12, idKey: 'creative_id',
     row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
 };
@@ -78,7 +68,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function showCacheTime(iso) {
-  const el = $('adsCachedAt');
+  const el = $('cachedAt');
   if (!iso) { el.textContent = ''; return; }
   const d = new Date(iso);
   el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
@@ -306,7 +296,7 @@ function openFilterPopup(type, col, btn) {
   $('filterOp').value = existing?.op || 'gt';
   $('filterVal1').value = existing?.val1 ?? '';
   $('filterVal2').value = existing?.val2 ?? '';
-  $('filterPopupTitle').textContent = col.toUpperCase() + ' Filter';
+  $('filterPopupTitle').textContent = (COL_LABELS[col] || col) + ' Filter';
   onFilterOpChange();
 
   // Position popup near button, ensure it stays in viewport

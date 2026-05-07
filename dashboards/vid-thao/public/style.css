@@ -52,12 +52,6 @@ tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s)}
 tbody tr:hover td:first-child{background:#f8f9fa}
 .td-name{font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.delta-cell{display:flex;align-items:center;gap:5px}
-.delta-pill{font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px}
-.delta-pill.up{color:var(--g)}
-.delta-pill.down{color:var(--r)}
-.delta-pill.flat{color:var(--t3)}
-
 .thumb,.thumb-placeholder{width:28px;height:28px;border-radius:5px;background:var(--s2)}
 .thumb{object-fit:cover;cursor:pointer}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px}
@@ -65,8 +59,6 @@ tbody tr:hover td:first-child{background:#f8f9fa}
 thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .th-filter-input{background:var(--s);border:1px solid var(--b);border-radius:4px;padding:2px 5px;font:11px/1.2 inherit;color:var(--t);outline:none;width:120px}
 .th-filter-input:focus{border-color:var(--a);box-shadow:0 0 0 2px rgba(33,37,41,.08)}
-.th-filter-select{background:var(--s);border:1px solid var(--b);border-radius:4px;padding:2px 5px;font:11px/1.2 inherit;color:var(--t);outline:none;cursor:pointer;margin-left:auto}
-.th-filter-select:focus{border-color:var(--a)}
 .col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;padding:1px 3px;color:var(--t3);cursor:pointer;transition:.12s;margin-left:auto;flex-shrink:0}
 .col-filter-btn:hover{color:var(--t2)}
 .col-filter-btn.active{color:var(--a)}
@@ -83,11 +75,6 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .filter-popup-actions button{padding:5px 14px;border-radius:6px;font:500 11px/1 inherit;cursor:pointer;border:1px solid var(--b);background:var(--s);color:var(--t2);transition:.12s}
 .filter-popup-actions button:hover{border-color:var(--t3);color:var(--t)}
 .filter-popup-actions .btn-primary{border-color:var(--a)}
-
-.fmt-badge{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
-.fmt-badge.image{background:rgba(33,37,41,.08);color:var(--a)}
-.fmt-badge.video{background:rgba(121,80,242,.08);color:#7950f2}
-.fmt-badge.carousel{background:rgba(230,119,0,.08);color:#e67700}
 
 .state-box{padding:40px 16px;text-align:center;color:var(--t3);font-size:13px}
 .show-more-row td{text-align:center;padding:10px}
@@ -121,6 +108,6 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .table-scroll{max-height:calc(100vh - 88px)}
   .topbar{padding:0 12px;gap:8px}
   .topbar-actions{gap:6px}
-  #adsCachedAt{display:none}
+  #cachedAt{display:none}
   .period-select{min-width:0}
 }

@@ -495,7 +495,7 @@ app.get('/api/dashboard', async (req, res) => {
       days,
       refresh: forceRefresh,
       insights:  { raw: rawRows.length, afterSpendFilter: currRows.length },
-      ads:       { active: allAdIds.length, cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
+      ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
       hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: fetchableHdIds.length - cachedHdBefore },
       creatives: { total: grouped.length, video: videoCount },
       elapsedMs: Date.now() - startTime,

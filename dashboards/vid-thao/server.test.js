@@ -5,7 +5,6 @@ const {
   sumActionByType,
   aggregateMetrics,
   groupByCreative,
-  buildPrimaryTextMap,
   buildCreativeMap,
   collectFetchableCreativeIds,
   collectAllCreativeIds,
@@ -210,7 +209,7 @@ describe('groupByCreative', () => {
     return {
       ad_name: 'Ad A',
       impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0',
-      creative: creative_id ? { id: creative_id, object_type: 'VIDEO', primary_text: 't', thumbnail_url: 'u', is_catalog: false } : null,
+      creative: creative_id ? { id: creative_id, object_type: 'VIDEO', thumbnail_url: 'u', is_catalog: false } : null,
       ...extra,
     };
   }
@@ -242,40 +241,12 @@ describe('groupByCreative', () => {
   });
 });
 
-// ── buildPrimaryTextMap ──────────────────────────────────────────────────────
-
-describe('buildPrimaryTextMap', () => {
-  test('extracts primary text from asset_feed_spec', () => {
-    expect(buildPrimaryTextMap([
-      { creative: { id: 'c1', asset_feed_spec: { bodies: [{ text: 'Hello' }] } } },
-    ])).toEqual({ c1: 'Hello' });
-  });
-
-  test('falls back through object_story_spec link/video/photo and creative name', () => {
-    expect(buildPrimaryTextMap([
-      { creative: { id: 'c1', object_story_spec: { link_data:  { message: 'L' } } } },
-      { creative: { id: 'c2', object_story_spec: { video_data: { message: 'V' } } } },
-      { creative: { id: 'c3', object_story_spec: { photo_data: { message: 'P' } } } },
-      { creative: { id: 'c4', name: 'just-a-name' } },
-    ])).toEqual({ c1: 'L', c2: 'V', c3: 'P', c4: 'just-a-name' });
-  });
-
-  test('skips ads without creative or text', () => {
-    expect(buildPrimaryTextMap([
-      { creative: null },
-      { id: '123' },
-      { creative: { id: 'c1' } },
-      { creative: { id: 'c2', asset_feed_spec: { bodies: [] } } },
-    ])).toEqual({});
-  });
-});
-
 // ── buildCreativeMap ─────────────────────────────────────────────────────────
 
 describe('buildCreativeMap', () => {
   test('maps ad.id → creative info with HD thumb URL', () => {
     const map = buildCreativeMap(
-      [{ id: 'a1', creative: { id: 'c1', name: 'n', object_type: 'VIDEO', primary_text: 't', is_catalog: false } }],
+      [{ id: 'a1', creative: { id: 'c1', name: 'n', object_type: 'VIDEO', is_catalog: false } }],
       { c1: 'https://hd/c1.jpg' }
     );
     expect(map.a1.thumbnail_url).toBe('https://hd/c1.jpg');

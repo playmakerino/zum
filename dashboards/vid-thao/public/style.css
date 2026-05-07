@@ -34,7 +34,7 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 .cache-time{font-size:11px;color:var(--t3)}
 
 .table-wrap{background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative}
-.table-scroll{overflow:auto;max-height:calc(100vh - 200px)}
+.table-scroll{overflow:auto;max-height:calc(100vh - 120px)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{background:var(--s2);color:var(--t2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--b)}
 thead th:first-child{position:sticky;left:0;z-index:3;background:var(--s2)}
@@ -118,7 +118,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .nav-item{padding:6px 8px;font-size:12px}
   .nav-item svg{display:none}
   .main{padding:16px}
-  .table-scroll{max-height:calc(100vh - 200px)}
+  .table-scroll{max-height:calc(100vh - 120px)}
   .topbar{padding:0 12px;gap:8px}
   .topbar-actions{gap:6px}
   #adsCachedAt{display:none}

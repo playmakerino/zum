@@ -31,9 +31,9 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 ### Caching (4 layers)
 | Layer | File | TTL | Mục đích |
 |---|---|---|---|
-| Insights | `.cache-insights.json` | Until force refresh | Insights data (current + previous periods) |
+| Insights | `.cache-insights.json` | Until force refresh | Insights data (keyed by `days`) |
 | Creatives | `.cache-creatives.json` | 30 ngày | Creative info (name, type, primary_text, object_story_spec) |
-| HD Thumbs | `.cache-hd-thumbs.json` | 7 ngày | HD thumbnail URLs (480px, fetched by creative ID) |
+| HD Thumbs | `.cache-hd-thumbs.json` | 24 giờ | HD thumbnail URLs (480px, fetched by creative ID; Meta CDN URLs expire quickly) |
 | Browser | localStorage | Until force refresh | Full result cho instant load |
 
 ### Frontend (app.js)

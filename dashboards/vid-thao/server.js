@@ -120,18 +120,13 @@ const AD_METRICS = [
   'video_play_actions',
 ].join(',');
 
-function sumActionValue(arr) {
-  if (!Array.isArray(arr)) return 0;
-  return arr.reduce((s, a) => s + parseFloat(a.value || 0), 0);
-}
+const POLL_MAX_ATTEMPTS = 60;
+const POLL_INTERVAL_MS  = 2000;
+const BATCH_SIZE        = 50;
 
-// 3-second video views are exposed in Meta v22 as `actions[].action_type === 'video_view'`
-function sumActionByType(arr, type) {
-  if (!Array.isArray(arr)) return 0;
-  return arr.filter(a => a.action_type === type).reduce((s, a) => s + parseFloat(a.value || 0), 0);
-}
+const FORMAT_MAP = { VIDEO: 'Video', SHARE: 'Image', PHOTO: 'Carousel' };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Pure helpers (testable) ──────────────────────────────────────────────────
 
 function dateStr(daysAgo) {
   const d = new Date();
@@ -139,87 +134,20 @@ function dateStr(daysAgo) {
   return d.toISOString().split('T')[0];
 }
 
-function getCredentials(req) {
-  const token = req.headers['x-meta-token'] || process.env.META_ACCESS_TOKEN || '';
-  const rawAccount = (req.headers['x-meta-account-id'] || process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
-  return {
-    token:     /^[A-Za-z0-9_\-]+$/.test(token) ? token : '',
-    accountId: /^[0-9]+$/.test(rawAccount) ? rawAccount : '',
-  };
+function sumActionValue(arr) {
+  if (!Array.isArray(arr)) return 0;
+  return arr.reduce((s, a) => s + parseFloat(a.value || 0), 0);
 }
 
-// Async report: create → poll → fetch all results
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
-  // 1. Create async report via POST
-  const createRes = await axios.post(`${base}/insights`, null, {
-    params: {
-      access_token: token, level: 'ad', fields,
-      time_range: JSON.stringify(timeRange),
-    },
-  });
-
-  // Meta may return data directly for small datasets (GET-like response)
-  if (createRes.data.data) {
-    return createRes.data.data;
-  }
-
-  const reportId = createRes.data.report_run_id;
-  if (!reportId) {
-    throw new Error('No report_run_id returned from Meta');
-  }
-
-  // 2. Poll until complete (max 2 min)
-  for (let i = 0; i < 60; i++) {
-    const poll = await axios.get(`${META_BASE_URL}/${reportId}`, {
-      params: { access_token: token },
-    });
-    const status = poll.data.async_status;
-    const pct = poll.data.async_percent_completion || 0;
-    if (onProgress) onProgress(status, pct);
-    if (status === 'Job Completed') break;
-    if (status === 'Job Failed' || status === 'Job Skipped') {
-      throw new Error(`Async report ${status}`);
-    }
-    await new Promise(r => setTimeout(r, 2000));
-  }
-
-  // 3. Fetch all results with pagination
-  const results = [];
-  let url = `${META_BASE_URL}/${reportId}/insights`;
-  let params = { access_token: token, limit: 500 };
-  while (url) {
-    const res = await axios.get(url, { params });
-    results.push(...(res.data.data || []));
-    const next = res.data.paging?.next || null;
-    url = next;
-    params = next ? {} : null; // next URL has params embedded, just pass empty
-  }
-  return results;
+// Sum action values matching a specific action_type. 3-second video views in v22
+// are exposed as `actions[].action_type === 'video_view'`.
+function sumActionByType(arr, type) {
+  if (!Array.isArray(arr)) return 0;
+  return arr.filter(a => a.action_type === type).reduce((s, a) => s + parseFloat(a.value || 0), 0);
 }
 
 function findPurchaseAction(arr = []) {
   return arr.find(x => x.action_type === 'purchase' || x.action_type === 'omni_purchase');
-}
-
-// Fetch ads by IDs in batches (max 50 per request to avoid URL length limit)
-async function fetchAdsByIds(token, adIds, fields) {
-  if (!adIds.length) return [];
-  const results = [];
-  const BATCH = 50;
-  for (let i = 0; i < adIds.length; i += BATCH) {
-    const batch = adIds.slice(i, i + BATCH);
-    try {
-      const res = await axios.get(`${META_BASE_URL}/`, {
-        params: { ids: batch.join(','), fields, access_token: token }
-      });
-      for (const [id, data] of Object.entries(res.data)) {
-        if (data && !data.error) results.push(data);
-      }
-    } catch (err) {
-      console.error(`Batch fetch failed (${batch.length} ads):`, err.response?.data?.error?.message || err.message);
-    }
-  }
-  return results;
 }
 
 function aggregateMetrics(entry, rows) {
@@ -237,7 +165,6 @@ function aggregateMetrics(entry, rows) {
   entry.aov  = entry.purchase_count > 0 ? entry.purchase_value / entry.purchase_count : 0;
 
   // Video metrics
-  // 3-sec views: actions[action_type=video_view]; ThruPlays / plays / avg time: dedicated fields
   entry.video_3sec_views = sum(r => sumActionByType(r.actions, 'video_view'));
   entry.video_thruplays  = sum(r => sumActionValue(r.video_thruplay_watched_actions));
   entry.video_plays      = sum(r => sumActionValue(r.video_play_actions));
@@ -253,41 +180,257 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-function groupByAdName(rows) {
-  const map = {};
-  for (const row of rows) {
-    const name = row.ad_name || 'unknown';
-    if (!map[name]) map[name] = { ad_name: name, _rows: [] };
-    map[name]._rows.push(row);
-  }
-  return Object.values(map).map(({ _rows, ...entry }) => {
-    // Thumbnail of the ad with highest spend, fallback to any ad with a thumbnail
-    const topAd = _rows.reduce((best, r) => parseFloat(r.spend || 0) > parseFloat(best.spend || 0) ? r : best, _rows[0]);
-    entry.thumbnail_url = topAd?.thumbnail_url
-      || _rows.find(r => r.thumbnail_url)?.thumbnail_url
-      || null;
-    entry.is_catalog = !!topAd?.is_catalog;
-    return aggregateMetrics(entry, _rows);
-  });
-}
-
 function buildPrimaryTextMap(allAds) {
   const map = {};
   for (const ad of allAds) {
     const cid = ad.creative?.id;
     if (!cid) continue;
-    // Try asset_feed_spec first (carousel/dynamic ads)
     const text = ad.creative?.asset_feed_spec?.bodies?.[0]?.text
-      // Fallback: object_story_spec (single image/video ads)
       || ad.creative?.object_story_spec?.link_data?.message
       || ad.creative?.object_story_spec?.video_data?.message
       || ad.creative?.object_story_spec?.photo_data?.message
-      // Fallback: creative name
       || ad.creative?.name
       || '';
     if (text) map[cid] = text;
   }
   return map;
+}
+
+// Group rows (with attached creative) by creative_id and aggregate metrics.
+function groupByCreative(rows) {
+  const map = {};
+  for (const row of rows) {
+    const id = row.creative?.id || 'unknown';
+    if (!map[id]) {
+      map[id] = {
+        creative_id:   id,
+        primary_text:  row.creative?.primary_text || '',
+        format:        row.creative ? (FORMAT_MAP[row.creative.object_type] || 'Image') : null,
+        thumbnail_url: row.creative?.thumbnail_url || null,
+        is_catalog:    !!row.creative?.is_catalog,
+        ad_name:       row.ad_name || '',
+        _rows:         [],
+      };
+    }
+    map[id]._rows.push(row);
+  }
+  return Object.values(map).map(({ _rows, ...entry }) => aggregateMetrics(entry, _rows));
+}
+
+function buildCreativeMap(allAds, hdThumbMap) {
+  const map = {};
+  for (const ad of allAds) {
+    const c = ad.creative;
+    if (!c) continue;
+    map[ad.id] = {
+      id:           c.id,
+      name:         c.name || '',
+      object_type:  c.object_type || '',
+      primary_text: c.primary_text || '',
+      is_catalog:   !!c.is_catalog,
+      thumbnail_url: hdThumbMap[c.id] || null,
+    };
+  }
+  return map;
+}
+
+function uniqueAdIds(rows) {
+  return [...new Set(rows.map(r => r.ad_id).filter(Boolean))];
+}
+
+function collectFetchableCreativeIds(allAds) {
+  const ids = new Set();
+  for (const ad of allAds) {
+    const c = ad.creative;
+    if (!c?.id) continue;
+    if (c.is_catalog) continue;
+    if (!['SHARE', 'VIDEO'].includes(c.object_type)) continue;
+    ids.add(c.id);
+  }
+  return [...ids];
+}
+
+function collectAllCreativeIds(allAds) {
+  const ids = new Set();
+  for (const ad of allAds) {
+    if (ad.creative?.id) ids.add(ad.creative.id);
+  }
+  return [...ids];
+}
+
+// ── HTTP helpers ─────────────────────────────────────────────────────────────
+
+function getCredentials(req) {
+  const token = req.headers['x-meta-token'] || process.env.META_ACCESS_TOKEN || '';
+  const rawAccount = (req.headers['x-meta-account-id'] || process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
+  return {
+    token:     /^[A-Za-z0-9_\-]+$/.test(token) ? token : '',
+    accountId: /^[0-9]+$/.test(rawAccount) ? rawAccount : '',
+  };
+}
+
+// Async report: create → poll → fetch all results
+async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
+  const createRes = await axios.post(`${base}/insights`, null, {
+    params: {
+      access_token: token, level: 'ad', fields,
+      time_range: JSON.stringify(timeRange),
+    },
+  });
+
+  // Meta may return data directly for small datasets
+  if (createRes.data.data) return createRes.data.data;
+
+  const reportId = createRes.data.report_run_id;
+  if (!reportId) throw new Error('No report_run_id returned from Meta');
+
+  let completed = false;
+  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
+    const poll = await axios.get(`${META_BASE_URL}/${reportId}`, { params: { access_token: token } });
+    const status = poll.data.async_status;
+    const pct = poll.data.async_percent_completion || 0;
+    if (onProgress) onProgress(status, pct);
+    if (status === 'Job Completed') { completed = true; break; }
+    if (status === 'Job Failed' || status === 'Job Skipped') {
+      throw new Error(`Async report ${status}`);
+    }
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+  }
+  if (!completed) throw new Error(`Async report timed out after ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
+
+  // Fetch all results with pagination
+  const results = [];
+  let url = `${META_BASE_URL}/${reportId}/insights`;
+  let params = { access_token: token, limit: 500 };
+  while (url) {
+    const res = await axios.get(url, { params });
+    results.push(...(res.data.data || []));
+    const next = res.data.paging?.next || null;
+    url = next;
+    params = next ? {} : null;
+  }
+  return results;
+}
+
+async function fetchAdsByIds(token, adIds, fields) {
+  if (!adIds.length) return [];
+  const results = [];
+  for (let i = 0; i < adIds.length; i += BATCH_SIZE) {
+    const batch = adIds.slice(i, i + BATCH_SIZE);
+    try {
+      const res = await axios.get(`${META_BASE_URL}/`, {
+        params: { ids: batch.join(','), fields, access_token: token }
+      });
+      for (const [id, data] of Object.entries(res.data)) {
+        if (data && !data.error) results.push(data);
+      }
+    } catch (err) {
+      console.error(`Batch fetch failed (${batch.length} ads):`, err.response?.data?.error?.message || err.message);
+    }
+  }
+  return results;
+}
+
+// ── Pipeline stages ──────────────────────────────────────────────────────────
+
+async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed }) {
+  const cacheKey = String(days);
+  const ic = insightsCache[cacheKey];
+  if (!forceRefresh && ic) {
+    progress(`Using cached insights (${ic.current.length} rows) [${elapsed()}]`);
+    return ic.current;
+  }
+  progress(`Creating async report... [${elapsed()}]`);
+  const currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
+    progress(`Polling report: ${p}% [${elapsed()}]`);
+  });
+  insightsCache[cacheKey] = { current: currRows };
+  saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
+  progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
+  return currRows;
+}
+
+async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
+  const missingIds = adIds.filter(id => !creativeCache[id]);
+  if (missingIds.length === 0) {
+    progress(`All ${adIds.length} ads already cached [${elapsed()}]`);
+    return;
+  }
+  progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
+  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,asset_feed_spec,object_story_spec}');
+  const ptMap = buildPrimaryTextMap(fetched);
+  const now = Date.now();
+  for (const ad of fetched) {
+    if (ad.creative?.id && ptMap[ad.creative.id]) {
+      ad.creative.primary_text = ptMap[ad.creative.id];
+    }
+    creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
+  }
+  for (const id of missingIds) {
+    if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
+  }
+  saveCacheAsync(CACHE_FILE, creativeCache);
+  progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
+}
+
+function pruneCreativeCache(activeAdIds) {
+  const set = new Set(activeAdIds);
+  let pruned = false;
+  for (const id of Object.keys(creativeCache)) {
+    if (!set.has(id)) { delete creativeCache[id]; pruned = true; }
+  }
+  if (pruned) saveCacheAsync(CACHE_FILE, creativeCache);
+}
+
+async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
+  const missing = creativeIds.filter(cid => !hdThumbCache[cid]);
+  if (missing.length === 0) {
+    if (creativeIds.length > 0) progress(`All ${creativeIds.length} HD thumbnails cached [${elapsed()}]`);
+    return;
+  }
+  progress(`Fetching HD thumbnails for ${missing.length} new creatives... [${elapsed()}]`);
+  for (let i = 0; i < missing.length; i += BATCH_SIZE) {
+    const batch = missing.slice(i, i + BATCH_SIZE);
+    try {
+      const res = await axios.get(`${META_BASE_URL}/`, {
+        params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
+      });
+      for (const [id, data] of Object.entries(res.data)) {
+        if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
+      }
+    } catch (err) {
+      console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
+    }
+  }
+  saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
+  progress(`Fetched HD thumbnails for ${missing.length} creatives [${elapsed()}]`);
+}
+
+function pruneHdThumbCache(activeCreativeIds) {
+  const set = new Set(activeCreativeIds);
+  let pruned = false;
+  for (const id of Object.keys(hdThumbCache)) {
+    if (!set.has(id)) { delete hdThumbCache[id]; pruned = true; }
+  }
+  if (pruned) saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
+}
+
+function metaErrorMessage(err) {
+  const metaError = err.response?.data?.error;
+  if (!metaError) return { error: 'Meta API error', detail: err.response?.data || err.message };
+  const { code, error_subcode: subcode, message } = metaError;
+  if (code === 190) {
+    const detail = subcode === 463
+      ? 'Token has expired. Please generate a new access token from Meta Business Suite and update META_ACCESS_TOKEN in .env.'
+      : subcode === 467
+        ? 'Token is no longer valid. The user may have changed their password or revoked access.'
+        : `Token error (subcode ${subcode}): ${message}`;
+    return { error: 'Meta API token expired or invalid', detail };
+  }
+  if (code === 4 || code === 17) {
+    return { error: 'Meta API rate limit reached', detail: 'Too many requests. Please wait a few minutes before trying again.' };
+  }
+  return { error: 'Meta API error', detail: err.response?.data || err.message };
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -305,13 +448,12 @@ app.get('/api/dashboard', async (req, res) => {
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
-  const days    = Math.min(Math.max(parseInt(req.query.days || '7', 10) || 7, 1), 90);
+  const days = Math.min(Math.max(parseInt(req.query.days || '7', 10) || 7, 1), 90);
   const forceRefresh = req.query.refresh === '1';
   const current = { since: dateStr(days), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
 
-  // SSE setup
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -320,149 +462,24 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
-    // 1. Fetch insights
-    const cacheKey = String(days);
-    const ic = insightsCache[cacheKey];
-    let currRows;
-    if (!forceRefresh && ic) {
-      currRows = ic.current;
-      progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
-    } else {
-      progress(`Creating async report... [${elapsed()}]`);
-      currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
-        progress(`Polling report: ${p}% [${elapsed()}]`);
-      });
-      insightsCache = { [cacheKey]: { current: currRows } };
-      saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
-      progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
-    }
+    const currRows = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
 
-    // 2. Collect unique ad_ids, fetch only missing creative info
-    const allAdIds = [...new Set(currRows.map(r => r.ad_id).filter(Boolean))];
-
-    const missingIds = allAdIds.filter(id => !creativeCache[id]);
-    if (missingIds.length > 0) {
-      progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,asset_feed_spec,object_story_spec}');
-      // Extract primary_text before slimming
-      const ptMap = buildPrimaryTextMap(fetched);
-      const now = Date.now();
-      for (const ad of fetched) {
-        if (ad.creative?.id && ptMap[ad.creative.id]) {
-          ad.creative.primary_text = ptMap[ad.creative.id];
-        }
-        creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
-      }
-      for (const id of missingIds) {
-        if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
-      }
-      saveCacheAsync(CACHE_FILE, creativeCache);
-      progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
-    } else {
-      progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
-    }
+    const allAdIds = uniqueAdIds(currRows);
+    await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
+    pruneCreativeCache(allAdIds);
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-    // Prune: remove entries not in active ads
-    const activeAdIdSet = new Set(allAdIds);
-    let pruned = false;
-    for (const id of Object.keys(creativeCache)) {
-      if (!activeAdIdSet.has(id)) { delete creativeCache[id]; pruned = true; }
-    }
-    if (pruned) saveCacheAsync(CACHE_FILE, creativeCache);
+    await ensureHdThumbnails({ creativeIds: collectFetchableCreativeIds(allAds), token, progress, elapsed });
+    pruneHdThumbCache(collectAllCreativeIds(allAds));
 
-    // Fetch HD thumbnails by creative ID directly (thumbnail_width only works at creative level)
-    // Skip catalog/DPA ads - they only have placeholder images
-    const creativeInfoMap = {};
-    for (const ad of allAds) {
-      if (ad.creative?.id) creativeInfoMap[ad.creative.id] = {
-        type: ad.creative.object_type,
-        isCatalog: !!ad.creative.is_catalog,
-      };
-    }
-    const nonCatalogCreativeIds = Object.keys(creativeInfoMap).filter(cid => {
-      const info = creativeInfoMap[cid];
-      return info.type && ['SHARE', 'VIDEO'].includes(info.type) && !info.isCatalog;
-    });
-    // Use cached HD thumbs, only fetch missing ones
-    const missingHdIds = nonCatalogCreativeIds.filter(cid => !hdThumbCache[cid]);
-    if (missingHdIds.length > 0) {
-      progress(`Fetching HD thumbnails for ${missingHdIds.length} new creatives... [${elapsed()}]`);
-      const BATCH = 50;
-      for (let i = 0; i < missingHdIds.length; i += BATCH) {
-        const batch = missingHdIds.slice(i, i + BATCH);
-        try {
-          const res = await axios.get(`${META_BASE_URL}/`, {
-            params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
-          });
-          for (const [id, data] of Object.entries(res.data)) {
-            if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
-          }
-        } catch (err) {
-          console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
-        }
-      }
-      saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
-      progress(`Fetched HD thumbnails for ${missingHdIds.length} creatives [${elapsed()}]`);
-    } else if (nonCatalogCreativeIds.length > 0) {
-      progress(`All ${nonCatalogCreativeIds.length} HD thumbnails cached [${elapsed()}]`);
-    }
-    // Prune HD thumb entries not in active creatives
-    const activeCreativeIds = new Set(Object.keys(creativeInfoMap));
-    let hdPruned = false;
-    for (const id of Object.keys(hdThumbCache)) {
-      if (!activeCreativeIds.has(id)) { delete hdThumbCache[id]; hdPruned = true; }
-    }
-    if (hdPruned) saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
-    // Extract URLs from cache entries
     const hdThumbMap = {};
-    for (const [id, entry] of Object.entries(hdThumbCache)) {
-      hdThumbMap[id] = entry.url;
-    }
-
-    // Build creative map from allAds — HD thumb is single source for all image URLs
-    const creativeMap = {};
-    for (const ad of allAds) {
-      const c = ad.creative;
-      if (!c) continue;
-      creativeMap[ad.id] = {
-        id:           c.id,
-        name:         c.name || '',
-        object_type:  c.object_type || '',
-        primary_text: c.primary_text || '',
-        is_catalog:   !!c.is_catalog,
-        thumbnail_url: hdThumbMap[c.id] || null,
-      };
-    }
-
-    // Creatives: attach creative details
-    const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
-    const fmtMap = { VIDEO: 'Video', SHARE: 'Image', PHOTO: 'Carousel' };
-    const groupByCreative = rows => {
-      const map = {};
-      for (const row of rows) {
-        const id = row.creative?.id || 'unknown';
-        if (!map[id]) {
-          map[id] = {
-            creative_id:   id,
-            primary_text:  row.creative?.primary_text || '',
-            format:        row.creative ? (fmtMap[row.creative.object_type] || 'Image') : null,
-            thumbnail_url: row.creative?.thumbnail_url || null,
-            is_catalog:    !!row.creative?.is_catalog,
-            ad_name:       row.ad_name || '',
-            _rows:         [],
-          };
-        }
-        map[id]._rows.push(row);
-      }
-      return Object.values(map).map(({ _rows, ...entry }) => aggregateMetrics(entry, _rows));
-    };
+    for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
+    const creativeMap = buildCreativeMap(allAds, hdThumbMap);
+    const enriched = currRows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
     progress(`Processing data... [${elapsed()}]`);
     const result = {
-      creatives: {
-        current: groupByCreative(attachCreative(currRows)),
-      },
+      creatives: { current: groupByCreative(enriched) },
       period:    { current },
       cached_at: new Date().toISOString(),
     };
@@ -470,27 +487,7 @@ app.get('/api/dashboard', async (req, res) => {
     res.write(`data: ${JSON.stringify({ result })}\n\n`);
     res.end();
   } catch (err) {
-    const metaError = err.response?.data?.error;
-    let error = 'Meta API error';
-    let detail = err.response?.data || err.message;
-
-    // Detect token expiry / invalid token
-    if (metaError) {
-      const code = metaError.code;
-      const subcode = metaError.error_subcode;
-      if (code === 190) {
-        error = 'Meta API token expired or invalid';
-        detail = subcode === 463
-          ? 'Token has expired. Please generate a new access token from Meta Business Suite and update META_ACCESS_TOKEN in .env.'
-          : subcode === 467
-            ? 'Token is no longer valid. The user may have changed their password or revoked access.'
-            : `Token error (subcode ${subcode}): ${metaError.message}`;
-      } else if (code === 4 || code === 17) {
-        error = 'Meta API rate limit reached';
-        detail = 'Too many requests. Please wait a few minutes before trying again.';
-      }
-    }
-
+    const { error, detail } = metaErrorMessage(err);
     res.write(`data: ${JSON.stringify({ error, detail })}\n\n`);
     res.end();
   }
@@ -505,5 +502,17 @@ if (require.main === module) {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { dateStr, findPurchaseAction, groupByAdName, buildPrimaryTextMap };
+  module.exports = {
+    dateStr,
+    findPurchaseAction,
+    sumActionValue,
+    sumActionByType,
+    aggregateMetrics,
+    groupByCreative,
+    buildPrimaryTextMap,
+    buildCreativeMap,
+    uniqueAdIds,
+    collectFetchableCreativeIds,
+    collectAllCreativeIds,
+  };
 }

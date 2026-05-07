@@ -6,7 +6,6 @@ const {
   aggregateMetrics,
   groupByCreative,
   collectFetchableCreativeIds,
-  collectAllCreativeIds,
 } = require('./server');
 
 // ── dateStr ──────────────────────────────────────────────────────────────────
@@ -263,16 +262,5 @@ describe('collectFetchableCreativeIds', () => {
       { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },  // dup
     ];
     expect(collectFetchableCreativeIds(ads).sort()).toEqual(['c1']);
-  });
-});
-
-describe('collectAllCreativeIds', () => {
-  test('collects every creative.id including catalog', () => {
-    expect(collectAllCreativeIds([
-      { creative: { id: 'c1', is_catalog: true } },
-      { creative: { id: 'c2', object_type: 'OTHER' } },
-      { creative: null },
-      { creative: { id: 'c1' } },
-    ]).sort()).toEqual(['c1', 'c2']);
   });
 });

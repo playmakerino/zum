@@ -208,14 +208,6 @@ function collectFetchableCreativeIds(allAds) {
   return [...ids];
 }
 
-function collectAllCreativeIds(allAds) {
-  const ids = new Set();
-  for (const ad of allAds) {
-    if (ad.creative?.id) ids.add(ad.creative.id);
-  }
-  return [...ids];
-}
-
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 function getCredentials() {
@@ -327,15 +319,6 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
   progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
 }
 
-function pruneCreativeCache(activeAdIds) {
-  const set = new Set(activeAdIds);
-  let pruned = false;
-  for (const id of Object.keys(creativeCache)) {
-    if (!set.has(id)) { delete creativeCache[id]; pruned = true; }
-  }
-  if (pruned) saveCacheAsync(CACHE_FILE, creativeCache);
-}
-
 async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
   const missing = creativeIds.filter(cid => !hdThumbCache[cid]);
   if (missing.length === 0) {
@@ -363,15 +346,6 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
   saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
   progress(`Fetched HD thumbnails for ${succeeded}/${missing.length} creatives [${elapsed()}]`);
   return { attempted: missing.length, succeeded };
-}
-
-function pruneHdThumbCache(activeCreativeIds) {
-  const set = new Set(activeCreativeIds);
-  let pruned = false;
-  for (const id of Object.keys(hdThumbCache)) {
-    if (!set.has(id)) { delete hdThumbCache[id]; pruned = true; }
-  }
-  if (pruned) saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
 }
 
 function metaErrorMessage(err) {
@@ -427,13 +401,11 @@ app.get('/api/dashboard', async (req, res) => {
     const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
-    pruneCreativeCache(allAdIds);
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
     const fetchableHdIds = collectFetchableCreativeIds(allAds);
     const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid]).length;
     const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
-    pruneHdThumbCache(collectAllCreativeIds(allAds));
 
     const hdThumbMap = {};
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
@@ -487,6 +459,5 @@ if (typeof module !== 'undefined' && module.exports) {
     aggregateMetrics,
     groupByCreative,
     collectFetchableCreativeIds,
-    collectAllCreativeIds,
   };
 }

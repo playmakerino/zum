@@ -115,7 +115,6 @@ const AD_METRICS = [
   'actions', 'action_values',
   'frequency',
   'unique_clicks', 'unique_ctr',
-  'video_3_sec_watched_actions',
   'video_thruplay_watched_actions',
   'video_avg_time_watched_actions',
   'video_play_actions',
@@ -124,6 +123,12 @@ const AD_METRICS = [
 function sumActionValue(arr) {
   if (!Array.isArray(arr)) return 0;
   return arr.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+}
+
+// 3-second video views are exposed in Meta v22 as `actions[].action_type === 'video_view'`
+function sumActionByType(arr, type) {
+  if (!Array.isArray(arr)) return 0;
+  return arr.filter(a => a.action_type === type).reduce((s, a) => s + parseFloat(a.value || 0), 0);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -232,7 +237,8 @@ function aggregateMetrics(entry, rows) {
   entry.aov  = entry.purchase_count > 0 ? entry.purchase_value / entry.purchase_count : 0;
 
   // Video metrics
-  entry.video_3sec_views = sum(r => sumActionValue(r.video_3_sec_watched_actions));
+  // 3-sec views: actions[action_type=video_view]; ThruPlays / plays / avg time: dedicated fields
+  entry.video_3sec_views = sum(r => sumActionByType(r.actions, 'video_view'));
   entry.video_thruplays  = sum(r => sumActionValue(r.video_thruplay_watched_actions));
   entry.video_plays      = sum(r => sumActionValue(r.video_play_actions));
   // Weighted avg play time = Σ(avg_time × plays) / Σ(plays)

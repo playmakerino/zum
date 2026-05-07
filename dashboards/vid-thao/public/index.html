@@ -36,7 +36,6 @@
         <div class="table-scroll">
           <table id="creativesTable"><thead><tr>
             <th>Thumb</th>
-            <th><div class="th-content">Primary Text</div></th>
             <th><div class="th-content"><input data-table="creatives" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Ad Name" oninput="filterTable('creatives')" onclick="event.stopPropagation()"></div></th>
             <th data-sort="spend" onclick="sortTable('creatives','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="spend" onclick="event.stopPropagation();openFilterPopup('creatives','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="roas" onclick="sortTable('creatives','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="roas" onclick="event.stopPropagation();openFilterPopup('creatives','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
@@ -49,7 +48,7 @@
             <th data-sort="thruplay_rate" onclick="sortTable('creatives','thruplay_rate')"><div class="th-content" title="ThruPlays / Video plays">ThruPlay% <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="thruplay_rate" onclick="event.stopPropagation();openFilterPopup('creatives','thruplay_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="video_avg_time" onclick="sortTable('creatives','video_avg_time')"><div class="th-content" title="Video average play time">Avg Time <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_avg_time" onclick="event.stopPropagation();openFilterPopup('creatives','video_avg_time',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="creativesBody">
-            <tr><td colspan="13"><div class="state-box">Click "Load Data" to start</div></td></tr>
+            <tr><td colspan="12"><div class="state-box">Click "Load Data" to start</div></td></tr>
           </tbody></table>
         </div>
       </div>

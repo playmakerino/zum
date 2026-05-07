@@ -18,12 +18,13 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
-- **GET /api/config** - trả về status config (có token chưa)
+- **Credentials:** chỉ đọc từ `.env` (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`). Validate regex token + accountId số.
+- **GET /api/config** - trả về `{hasMetaToken, hasAdAccountId}` để frontend biết backend đã configured chưa
 - **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
   - Params: `days` (1-90, default 7), `refresh` (force reload)
-  - Pipeline: fetch insights (current period only) → fetch creative info → fetch HD thumbnails → group & build response
+  - Pipeline: fetch insights → filter spend>0 → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByCreative` lookup creativeCache trực tiếp + aggregate metrics
+  - SSE events: `progress` (text per stage), `debug` (telemetry), `result` (final), `error`
   - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
-  - Input validation: token regex `[A-Za-z0-9_-]`, accountId chỉ số, days clamp 1-90
 - **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng
 - **Async file writes:** `saveCacheAsync()` dùng `fs.writeFile` callback, không block event loop
 - Exports utility functions cho testing (`require.main === module` guard)
@@ -32,7 +33,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 | Layer | File | TTL | Mục đích |
 |---|---|---|---|
 | Insights | `.cache-insights.json` | Until force refresh | Insights data (keyed by `days`) |
-| Creatives | `.cache-creatives.json` | 30 ngày | Creative info (name, type, primary_text, object_story_spec) |
+| Creatives | `.cache-creatives.json` | 30 ngày | Creative info slim (id, name, object_type, is_catalog) |
 | HD Thumbs | `.cache-hd-thumbs.json` | 24 giờ | HD thumbnail URLs (480px, fetched by creative ID; Meta CDN URLs expire quickly) |
 | Browser | localStorage | Until force refresh | Full result cho instant load |
 
@@ -50,6 +51,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 - Mobile responsive (sidebar collapse ở 768px)
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Custom CSS tooltip cho nút Load Data
+- **Debug line:** dưới table, hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics
 - Standard: impressions, clicks, spend, reach, CTR, CPC, CPM
@@ -67,6 +69,6 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 - `npm test` - chạy Jest tests cho utility functions
 
 ## Conventions
-- Ngôn ngữ giao diện: Tiếng Việt
+- Ngôn ngữ giao diện: Tiếng Việt (debug line là English vì là dev telemetry)
 - File cache: `.cache-creatives.json`, `.cache-insights.json`, `.cache-hd-thumbs.json` (gitignored)
 - Không có TypeScript, ESLint, hay formatter config

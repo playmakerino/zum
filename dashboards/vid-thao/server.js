@@ -244,7 +244,7 @@ function collectFetchableCreativeIds(allAds) {
     const c = ad.creative;
     if (!c?.id) continue;
     if (c.is_catalog) continue;
-    if (!['SHARE', 'VIDEO'].includes(c.object_type)) continue;
+    if (c.object_type !== 'VIDEO') continue;
     ids.add(c.id);
   }
   return [...ids];

@@ -305,16 +305,16 @@ describe('uniqueAdIds', () => {
 });
 
 describe('collectFetchableCreativeIds', () => {
-  test('only video / image, non-catalog, with id', () => {
+  test('only video, non-catalog, with id', () => {
     const ads = [
       { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },
-      { creative: { id: 'c2', object_type: 'SHARE', is_catalog: false } },
+      { creative: { id: 'c2', object_type: 'SHARE', is_catalog: false } },  // image skipped
       { creative: { id: 'c3', object_type: 'VIDEO', is_catalog: true  } },  // catalog skipped
       { creative: { id: 'c4', object_type: 'OTHER', is_catalog: false } },  // type skipped
       { creative: null },                                                    // null skipped
       { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },  // dup
     ];
-    expect(collectFetchableCreativeIds(ads).sort()).toEqual(['c1', 'c2']);
+    expect(collectFetchableCreativeIds(ads).sort()).toEqual(['c1']);
   });
 });
 

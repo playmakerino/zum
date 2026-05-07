@@ -337,14 +337,12 @@ app.get('/api/dashboard', async (req, res) => {
       progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
     }
 
-    // 2. Collect unique ad_ids (spend > $10), fetch only missing creative info
-    const adSpendMap = {};
-    for (const r of currRows) { if (r.ad_id) adSpendMap[r.ad_id] = parseFloat(r.spend) || 0; }
-    const allAdIds = [...new Set(currRows.map(r => r.ad_id).filter(id => id && (adSpendMap[id] || 0) > 10))];
+    // 2. Collect unique ad_ids, fetch only missing creative info
+    const allAdIds = [...new Set(currRows.map(r => r.ad_id).filter(Boolean))];
 
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
-      progress(`Fetching creative info for ${missingIds.length} new ads (spend > $10)... [${elapsed()}]`);
+      progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
       const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,asset_feed_spec,object_story_spec}');
       // Extract primary_text before slimming
       const ptMap = buildPrimaryTextMap(fetched);
@@ -361,7 +359,7 @@ app.get('/api/dashboard', async (req, res) => {
       saveCacheAsync(CACHE_FILE, creativeCache);
       progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
     } else {
-      progress(`All ${allAdIds.length} ads already cached (spend > $10) [${elapsed()}]`);
+      progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
     }
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
@@ -461,10 +459,9 @@ app.get('/api/dashboard', async (req, res) => {
     };
 
     progress(`Processing data... [${elapsed()}]`);
-    const hasSpend = rows => rows.filter(r => parseFloat(r.spend || 0) > 0);
     const result = {
       creatives: {
-        current: groupByCreative(attachCreative(hasSpend(currRows))),
+        current: groupByCreative(attachCreative(currRows)),
       },
       period:    { current },
       cached_at: new Date().toISOString(),

@@ -58,12 +58,6 @@
       max-width: 580px;
       position: relative;
       z-index: 1;
-      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* Header */
@@ -89,13 +83,7 @@
       height: 8px;
       background: var(--accent);
       border-radius: 50%;
-      animation: pulse 2.4s ease infinite;
       flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(0.75); }
     }
 
     .header h1 {
@@ -123,7 +111,6 @@
       background: var(--surface);
       border-radius: 16px;
       padding: 36px 32px;
-      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both;
     }
 
     /* Section label */

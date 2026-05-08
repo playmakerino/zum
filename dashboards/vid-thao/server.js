@@ -464,7 +464,6 @@ app.get('/api/dashboard', async (req, res) => {
     res.end();
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);
-    if (err.asyncReport) console.error('Async report failure:', err.asyncReport);
     res.write(`data: ${JSON.stringify({ error, detail, elapsedMs: Date.now() - startTime })}\n\n`);
     res.end();
   }

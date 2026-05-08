@@ -104,11 +104,8 @@ function loadHdThumbCache() {
 let hdThumbCache = loadHdThumbCache();
 
 const AD_METRICS = [
-  'impressions', 'clicks', 'spend', 'reach',
-  'ctr', 'cpc', 'cpm',
+  'impressions', 'clicks', 'spend',
   'actions', 'action_values',
-  'frequency',
-  'unique_clicks', 'unique_ctr',
   'video_thruplay_watched_actions',
   'video_avg_time_watched_actions',
   'video_play_actions',
@@ -146,7 +143,7 @@ function findPurchaseAction(arr = []) {
 
 function aggregateMetrics(entry, rows) {
   const sum = fn => rows.reduce((s, r) => s + fn(r), 0);
-  for (const f of ['impressions', 'clicks', 'spend', 'reach', 'unique_clicks', 'frequency']) {
+  for (const f of ['impressions', 'clicks', 'spend']) {
     entry[f] = sum(r => parseFloat(r[f] || 0));
   }
   entry.ctr = entry.impressions ? (entry.clicks / entry.impressions * 100).toFixed(2) : '0';

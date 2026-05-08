@@ -227,6 +227,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
       time_range: JSON.stringify(timeRange),
     },
   });
+  let lastThrottle = createRes.headers['x-fb-ads-insights-throttle'] || null;
 
   // Meta may return data directly for small datasets
   if (createRes.data.data) return createRes.data.data;
@@ -235,18 +236,38 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
   if (!reportId) throw new Error('No report_run_id returned from Meta');
 
   let completed = false;
+  let lastPct = 0;
   for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
     const poll = await axios.get(`${META_BASE_URL}/${reportId}`, { params: { access_token: token } });
+    if (poll.headers['x-fb-ads-insights-throttle']) lastThrottle = poll.headers['x-fb-ads-insights-throttle'];
     const status = poll.data.async_status;
     const pct = poll.data.async_percent_completion || 0;
+    lastPct = pct;
     if (onProgress) onProgress(status, pct);
     if (status === 'Job Completed') { completed = true; break; }
     if (status === 'Job Failed' || status === 'Job Skipped') {
-      throw new Error(`Async report ${status}`);
+      const err = new Error(`Async report ${status}`);
+      err.asyncReport = {
+        status, report_run_id: reportId, percent_complete: pct, poll_attempt: i + 1,
+        error_code:       poll.data.error_code,
+        error_subcode:    poll.data.error_subcode,
+        error_message:    poll.data.error_message,
+        error_user_title: poll.data.error_user_title,
+        error_user_msg:   poll.data.error_user_msg,
+        throttle: lastThrottle,
+      };
+      throw err;
     }
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
   }
-  if (!completed) throw new Error(`Async report timed out after ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
+  if (!completed) {
+    const err = new Error(`Async report timed out after ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
+    err.asyncReport = {
+      status: 'Timed out', report_run_id: reportId, percent_complete: lastPct,
+      poll_attempt: POLL_MAX_ATTEMPTS, throttle: lastThrottle,
+    };
+    throw err;
+  }
 
   // Fetch all results with pagination
   const results = [];
@@ -349,6 +370,15 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
 }
 
 function metaErrorMessage(err) {
+  if (err.asyncReport) {
+    const ar = err.asyncReport;
+    const codeBits = [];
+    if (ar.error_code != null)    codeBits.push(`code ${ar.error_code}`);
+    if (ar.error_subcode != null) codeBits.push(`subcode ${ar.error_subcode}`);
+    const reason = ar.error_message || ar.error_user_msg || `${ar.status} at ${ar.percent_complete}% (poll #${ar.poll_attempt})`;
+    const summary = codeBits.length ? `${codeBits.join(' / ')} — ${reason}` : reason;
+    return { error: `Meta async report ${ar.status}`, detail: { message: summary, ...ar } };
+  }
   const metaError = err.response?.data?.error;
   if (!metaError) return { error: 'Meta API error', detail: err.response?.data || err.message };
   const { code, error_subcode: subcode, message } = metaError;
@@ -437,6 +467,7 @@ app.get('/api/dashboard', async (req, res) => {
     res.end();
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);
+    if (err.asyncReport) console.error('Async report failure:', err.asyncReport);
     res.write(`data: ${JSON.stringify({ error, detail, elapsedMs: Date.now() - startTime })}\n\n`);
     res.end();
   }

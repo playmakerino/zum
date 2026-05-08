@@ -150,7 +150,7 @@ function renderDebug(d) {
   ].filter(Boolean).join(', ');
   const parts = [
     `Loaded in ${sec}s`,
-    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend`,
+    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend > 1`,
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Creatives: ${d.creatives.total} (${formatBreakdown})`,
     `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,

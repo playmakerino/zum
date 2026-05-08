@@ -22,7 +22,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 - **GET /api/config** - trả về `{hasMetaToken, hasAdAccountId}` để frontend biết backend đã configured chưa
 - **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
   - Params: `days` (1-90, default 7), `refresh` (force reload)
-  - Pipeline: fetch insights → filter spend>0 → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByCreative` lookup creativeCache trực tiếp + aggregate metrics
+  - Pipeline: fetch insights → filter spend>1 → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByCreative` lookup creativeCache trực tiếp + aggregate metrics
   - SSE events: `progress` (text per stage), `debug` (telemetry), `result` (final), `error`
   - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
 - **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng

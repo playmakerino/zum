@@ -208,11 +208,9 @@ function collectFetchableCreativeIds(allAds) {
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 function getCredentials() {
-  const token = process.env.META_ACCESS_TOKEN || '';
-  const rawAccount = (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
   return {
-    token:     /^[A-Za-z0-9_\-]+$/.test(token) ? token : '',
-    accountId: /^[0-9]+$/.test(rawAccount) ? rawAccount : '',
+    token:     process.env.META_ACCESS_TOKEN || '',
+    accountId: (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, ''),
   };
 }
 
@@ -408,7 +406,7 @@ app.get('/api/dashboard', async (req, res) => {
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
-  const days = Math.min(Math.max(parseInt(req.query.days || '7', 10) || 7, 1), 90);
+  const days = parseInt(req.query.days || '7', 10) || 7;
   const forceRefresh = req.query.refresh === '1';
   const current = { since: dateStr(days), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;

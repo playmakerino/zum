@@ -432,7 +432,7 @@ app.get('/api/dashboard', async (req, res) => {
 
   try {
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
+    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 1);
 
     const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;

@@ -406,7 +406,7 @@ app.get('/api/dashboard', async (req, res) => {
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
-  const days = parseInt(req.query.days || '7', 10) || 7;
+  const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
   const current = { since: dateStr(days), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;

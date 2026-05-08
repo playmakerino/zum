@@ -402,9 +402,6 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Request counter for tracing cache sharing across requests
-let reqCounter = 0;
-
 // GET /api/dashboard?days=7 — SSE with progress updates
 app.get('/api/dashboard', async (req, res) => {
   const { token, accountId } = getCredentials();
@@ -424,27 +421,17 @@ app.get('/api/dashboard', async (req, res) => {
   const startTime = Date.now();
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
-  const reqId = ++reqCounter;
-  const tag = `[CACHE req#${reqId} days=${days}${forceRefresh ? ' refresh' : ''}]`;
-  const creativeSizeBefore = Object.keys(creativeCache).length;
-  const hdSizeBefore       = Object.keys(hdThumbCache).length;
-  console.log(`${tag} START | global cache → creativeCache=${creativeSizeBefore} hdThumbCache=${hdSizeBefore}`);
-
   try {
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
     const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 0);
 
     const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
-    const adsHitRate = allAdIds.length ? ((cachedAdsBefore / allAdIds.length) * 100).toFixed(1) : '0.0';
-    console.log(`${tag} creative cache → ${cachedAdsBefore}/${allAdIds.length} hit (${adsHitRate}%), need to fetch ${allAdIds.length - cachedAdsBefore}`);
     await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
     const fetchableHdIds = collectFetchableCreativeIds(allAds);
     const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid]).length;
-    const hdHitRate = fetchableHdIds.length ? ((cachedHdBefore / fetchableHdIds.length) * 100).toFixed(1) : '0.0';
-    console.log(`${tag} HD thumb cache → ${cachedHdBefore}/${fetchableHdIds.length} hit (${hdHitRate}%), need to fetch ${fetchableHdIds.length - cachedHdBefore}`);
     const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
 
     const hdThumbMap = {};
@@ -475,14 +462,10 @@ app.get('/api/dashboard', async (req, res) => {
     res.write(`data: ${JSON.stringify({ debug })}\n\n`);
     res.write(`data: ${JSON.stringify({ result })}\n\n`);
     res.end();
-    const creativeSizeAfter = Object.keys(creativeCache).length;
-    const hdSizeAfter       = Object.keys(hdThumbCache).length;
-    console.log(`${tag} END   | global cache → creativeCache=${creativeSizeAfter} (+${creativeSizeAfter - creativeSizeBefore}) hdThumbCache=${hdSizeAfter} (+${hdSizeAfter - hdSizeBefore}) | insights=${insightsSource} elapsed=${elapsed()}`);
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);
     res.write(`data: ${JSON.stringify({ error, detail, elapsedMs: Date.now() - startTime })}\n\n`);
     res.end();
-    console.log(`${tag} ERROR | ${error}: ${typeof detail === 'string' ? detail : (detail?.message || '')} | elapsed=${elapsed()}`);
   }
 });
 

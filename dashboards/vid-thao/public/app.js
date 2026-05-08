@@ -14,6 +14,29 @@ window.onunhandledrejection = function(e) {
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
 
+// API error logging
+function logApiError(context, err, extra = {}) {
+  console.group(`[API Error] ${context}`);
+  console.error('Message:', err?.message || err);
+  if (extra.url !== undefined)        console.error('URL:', extra.url);
+  if (extra.status !== undefined)     console.error('Status:', extra.status, extra.statusText || '');
+  if (extra.body !== undefined)       console.error('Response body:', extra.body);
+  if (extra.detail !== undefined)     console.error('Detail:', extra.detail);
+  if (extra.elapsedMs !== undefined)  console.error('Elapsed:', extra.elapsedMs + 'ms');
+  if (err?.stack)                     console.error('Stack:', err.stack);
+  console.groupEnd();
+}
+
+function formatErrorDetail(detail) {
+  if (detail == null || detail === '') return '';
+  if (typeof detail === 'string') return detail;
+  if (typeof detail === 'object') {
+    if (detail.message) return detail.message;
+    try { return JSON.stringify(detail); } catch { return String(detail); }
+  }
+  return String(detail);
+}
+
 const PAGE_SIZE = 100;
 const state = {
   ready: false,
@@ -46,9 +69,17 @@ const loadCache = (t, d) => { try { return JSON.parse(localStorage.getItem(cache
 // Init
 window.addEventListener('DOMContentLoaded', async () => {
   try {
-    const cfg = await fetch('/api/config').then(r => r.json());
-    state.ready = !!(cfg.hasMetaToken && cfg.hasAdAccountId);
-  } catch {}
+    const res = await fetch('/api/config');
+    if (!res.ok) {
+      const body = await res.text().catch(() => null);
+      logApiError('GET /api/config', new Error(`HTTP ${res.status}`), { url: '/api/config', status: res.status, statusText: res.statusText, body });
+    } else {
+      const cfg = await res.json();
+      state.ready = !!(cfg.hasMetaToken && cfg.hasAdAccountId);
+    }
+  } catch (err) {
+    logApiError('GET /api/config', err, { url: '/api/config' });
+  }
   updatePeriodSelectLabels();
   if (state.ready) {
     const days = $('periodSelect').value;
@@ -177,8 +208,20 @@ async function fetchAll(refresh = true) {
   ov.style.display = 'flex';
 
   const startTime = performance.now();
+  const url = `/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`;
   try {
-    const res = await fetch(`/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`);
+    const res = await fetch(url);
+    if (!res.ok) {
+      let body;
+      try { body = await res.json(); } catch { body = await res.text().catch(() => null); }
+      const err = new Error(body?.error || `HTTP ${res.status} ${res.statusText}`);
+      err.status = res.status;
+      err.statusText = res.statusText;
+      err.body = body;
+      err.detail = body?.detail;
+      throw err;
+    }
+
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = '', data = null;
@@ -191,15 +234,25 @@ async function fetchAll(refresh = true) {
       buf = lines.pop();
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
+        let j;
         try {
-          const j = JSON.parse(line.slice(6));
-          if (j.progress) {
-            $$('.load-text').forEach(el => el.textContent = j.progress);
-          }
-          if (j.debug) showDebug(j.debug);
-          if (j.result) data = j.result;
-          if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
-        } catch (e) { if (e.message) throw e; }
+          j = JSON.parse(line.slice(6));
+        } catch (e) {
+          console.warn('[SSE parse error]', e.message, 'on line:', line);
+          continue;
+        }
+        if (j.progress) {
+          $$('.load-text').forEach(el => el.textContent = j.progress);
+        }
+        if (j.debug) showDebug(j.debug);
+        if (j.result) data = j.result;
+        if (j.error) {
+          const err = new Error(j.error);
+          err.detail = j.detail;
+          err.elapsedMs = j.elapsedMs;
+          err.fromSSE = true;
+          throw err;
+        }
       }
     }
 
@@ -221,7 +274,17 @@ async function fetchAll(refresh = true) {
     toast(`Loaded ${state.creatives.current.length} video creatives in ${elapsed}s`, 'success');
   } catch (err) {
     $$('.load-overlay').forEach(el => el.style.display = 'none');
-    toast('Error: ' + err.message, 'error');
+    logApiError('GET /api/dashboard', err, {
+      url,
+      status: err.status,
+      statusText: err.statusText,
+      body: err.body,
+      detail: err.detail,
+      elapsedMs: err.elapsedMs,
+    });
+    const detailStr = formatErrorDetail(err.detail);
+    const statusStr = err.status ? ` (HTTP ${err.status})` : '';
+    toast(`Error${statusStr}: ${err.message}${detailStr ? ' — ' + detailStr : ''}`, 'error');
     $('creativesBody').innerHTML = empty(TABLES.creatives.cols);
   }
 }

@@ -102,19 +102,17 @@ describe('sumActionByType', () => {
 
 describe('aggregateMetrics', () => {
   function bareRow(extra) {
-    return { impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0', ...extra };
+    return { impressions: '0', clicks: '0', spend: '0', ...extra };
   }
 
   test('aggregates standard numeric metrics', () => {
     const result = aggregateMetrics({}, [
-      bareRow({ impressions: '100', clicks: '10', spend: '5', reach: '80', unique_clicks: '9' }),
-      bareRow({ impressions: '200', clicks: '20', spend: '10', reach: '150', unique_clicks: '18' }),
+      bareRow({ impressions: '100', clicks: '10', spend: '5' }),
+      bareRow({ impressions: '200', clicks: '20', spend: '10' }),
     ]);
     expect(result.impressions).toBe(300);
     expect(result.clicks).toBe(30);
     expect(result.spend).toBe(15);
-    expect(result.reach).toBe(230);
-    expect(result.unique_clicks).toBe(27);
   });
 
   test('computes ctr / cpc / cpm', () => {
@@ -179,10 +177,10 @@ describe('aggregateMetrics', () => {
     // Total time = 1000 + 6000 = 7000; total plays = 400
     // Weighted avg = 17.5s
     const r = aggregateMetrics({}, [
-      { impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0',
+      { impressions: '0', clicks: '0', spend: '0',
         video_avg_time_watched_actions: [{ value: '10' }],
         video_play_actions:             [{ value: '100' }] },
-      { impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0',
+      { impressions: '0', clicks: '0', spend: '0',
         video_avg_time_watched_actions: [{ value: '20' }],
         video_play_actions:             [{ value: '300' }] },
     ]);
@@ -190,7 +188,7 @@ describe('aggregateMetrics', () => {
   });
 
   test('video metrics are 0 when fields absent', () => {
-    const r = aggregateMetrics({}, [{ impressions: '100', clicks: '5', spend: '10', reach: '0', unique_clicks: '0', frequency: '0' }]);
+    const r = aggregateMetrics({}, [{ impressions: '100', clicks: '5', spend: '10' }]);
     expect(r.video_3sec_views).toBe(0);
     expect(r.video_thruplays).toBe(0);
     expect(r.video_plays).toBe(0);
@@ -207,7 +205,7 @@ describe('groupByCreative', () => {
     return {
       ad_id,
       ad_name: 'Ad A',
-      impressions: '0', clicks: '0', spend: '0', reach: '0', unique_clicks: '0', frequency: '0',
+      impressions: '0', clicks: '0', spend: '0',
       ...extra,
     };
   }

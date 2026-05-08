@@ -54,8 +54,8 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 - **Debug line:** dưới table, hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics
-- Standard: impressions, clicks, spend, reach, CTR, CPC, CPM
-- Derived: ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
+- Raw (fetched): impressions, clicks, spend
+- Derived (server-computed): CTR, CPC, CPM, ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
 - Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays), Avg Time (weighted avg play time)
 
 ## Environment Variables (trong .env)

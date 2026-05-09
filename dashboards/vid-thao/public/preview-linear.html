@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview · Linear Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fbfbfc;
+  --panel:#fff;
+  --rail:#f4f4f5;
+  --border:#e8e8eb;
+  --border-soft:#efeff2;
+  --ink:#0f0f10;
+  --ink-2:#3f3f46;
+  --ink-3:#71717a;
+  --ink-4:#a1a1aa;
+  --primary:#5e6ad2;
+  --primary-soft:#eceefb;
+  --green:#0d8b58;
+  --red:#cb3554;
+  --orange:#c5780f;
+  --kbd-bg:#f4f4f5;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:13px/1.45 'Inter',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+
+.preview-banner{position:fixed;top:12px;right:12px;background:var(--ink);color:#fff;font:600 10.5px/1 'Inter';letter-spacing:.6px;text-transform:uppercase;padding:7px 12px;border-radius:5px;z-index:100}
+
+.layout{display:grid;grid-template-columns:56px 224px 1fr;min-height:100vh}
+
+/* ==== ICON RAIL ==== */
+.rail{background:var(--rail);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px}
+.rail .logo{width:30px;height:30px;border-radius:7px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;margin-bottom:14px}
+.rail-btn{width:32px;height:32px;display:grid;place-items:center;border-radius:6px;color:var(--ink-3);cursor:pointer;transition:.1s}
+.rail-btn:hover{background:#e8e8eb;color:var(--ink)}
+.rail-btn.active{background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--border)}
+.rail-btn svg{width:15px;height:15px}
+.rail-spacer{flex:1}
+.rail-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffb86b,#ff7eb0);color:#fff;display:grid;place-items:center;font-weight:600;font-size:10.5px;cursor:pointer}
+
+/* ==== INNER NAV ==== */
+.innernav{background:#fafafb;border-right:1px solid var(--border);padding:14px 8px;display:flex;flex-direction:column;gap:1px}
+.workspace{padding:4px 8px 12px;display:flex;align-items:center;gap:8px}
+.workspace b{font-size:13.5px;font-weight:600;letter-spacing:-.2px}
+.workspace svg{width:13px;height:13px;color:var(--ink-3);margin-left:auto}
+.nav-section{font:500 11px/1 'Inter';color:var(--ink-3);padding:12px 8px 4px;display:flex;align-items:center;gap:6px}
+.nav-section svg{width:11px;height:11px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;color:var(--ink-2);font-size:13px;font-weight:450;cursor:pointer;transition:.08s}
+.nav-item:hover{background:#f0f0f3}
+.nav-item.active{background:#ebebef;color:var(--ink);font-weight:500}
+.nav-item svg{width:13px;height:13px;color:var(--ink-3);flex-shrink:0}
+.nav-item.active svg{color:var(--ink-2)}
+.nav-count{margin-left:auto;font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums}
+
+/* ==== MAIN ==== */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg);height:48px}
+.crumb{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+.crumb svg{width:13px;height:13px;color:var(--ink-4)}
+.crumb b{font-weight:500;color:var(--ink)}
+.kbd{display:inline-flex;align-items:center;gap:2px;padding:2px 5px;background:var(--kbd-bg);border:1px solid var(--border);border-bottom-width:1.5px;border-radius:4px;font:500 11px/1 'Inter';color:var(--ink-3)}
+.spacer{flex:1}
+.topbar-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:none;border:1px solid transparent;border-radius:5px;color:var(--ink-2);font:500 12.5px/1 inherit;cursor:pointer;transition:.1s}
+.topbar-btn:hover{background:#f0f0f3;border-color:var(--border)}
+.topbar-btn svg{width:13px;height:13px}
+.topbar-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.topbar-btn.primary:hover{background:#27272a;border-color:#27272a}
+
+/* ==== FILTER BAR ==== */
+.filterbar{display:flex;align-items:center;gap:6px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px 4px 8px;background:#fff;border:1px solid var(--border);border-radius:5px;font:500 12px/1 inherit;color:var(--ink-2);cursor:pointer;transition:.08s}
+.pill:hover{border-color:var(--ink-4)}
+.pill.active{background:var(--primary-soft);border-color:#c8ccef;color:var(--primary)}
+.pill svg{width:12px;height:12px}
+.pill .x{color:var(--ink-4);margin-left:2px;font-size:13px;line-height:1}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.dot.amber{background:var(--orange)}
+.dot.red{background:var(--red)}
+.search{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--ink-3);font-size:12px}
+
+/* ==== TABLE ==== */
+.table-host{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{font:500 11px/1 'Inter';color:var(--ink-3);padding:8px 12px;text-align:left;background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+thead th:not(:nth-child(2)):not(:nth-child(3)){text-align:right}
+thead th:hover{color:var(--ink)}
+thead th .sort{opacity:0;margin-left:3px;color:var(--ink-4)}
+thead th:hover .sort{opacity:1}
+tbody td{padding:7px 12px;border-bottom:1px solid var(--border-soft);vertical-align:middle;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-2)}
+tbody td:not(:nth-child(2)):not(:nth-child(3)){text-align:right}
+tbody tr{transition:.08s;cursor:pointer}
+tbody tr:hover{background:#f4f4f5}
+.row-thumb{width:24px;height:24px;border-radius:4px;display:block}
+.cell-name{font-weight:500;color:var(--ink);max-width:280px;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.cell-name .badge{font:500 10px/1 'Inter';padding:2px 5px;background:var(--kbd-bg);border-radius:3px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.status{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-2)}
+.num-good{color:var(--green);font-weight:500}
+.num-bad{color:var(--red);font-weight:500}
+
+/* status footer */
+.statusbar{height:28px;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 16px;font:500 11.5px/1 'Inter';color:var(--ink-3);background:var(--rail)}
+.statusbar .right{margin-left:auto;display:flex;gap:14px;align-items:center}
+.statusbar svg{width:12px;height:12px}
+</style>
+</head>
+<body>
+<div class="preview-banner">Linear Style</div>
+
+<div class="layout">
+  <!-- icon rail -->
+  <aside class="rail">
+    <div class="logo">M</div>
+    <div class="rail-btn active" title="Workspace">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M2.5 6.5h11M6.5 2.5v11"/></svg>
+    </div>
+    <div class="rail-btn" title="Search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3 3"/></svg></div>
+    <div class="rail-btn" title="Inbox"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h3l1 2h4l1-2h3M2 9V4a1 1 0 011-1h10a1 1 0 011 1v5M2 9v3a1 1 0 001 1h10a1 1 0 001-1V9"/></svg></div>
+    <div class="rail-spacer"></div>
+    <div class="rail-btn" title="Help"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6.5 6.5a1.5 1.5 0 113 0c0 1-1.5 1-1.5 2M8 11.5h.01"/></svg></div>
+    <div class="rail-avatar">VT</div>
+  </aside>
+
+  <!-- inner navigation -->
+  <aside class="innernav">
+    <div class="workspace">
+      <div style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#5e6ad2,#9b6dd2);"></div>
+      <b>Vid Thao</b>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+    </div>
+    <div class="nav-section">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 6l3 3 3-3"/></svg>
+      Workspace
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l4-5 3 3 5-7"/></svg>
+      Overview
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12M5 3v10"/></svg>
+      Creatives
+      <span class="nav-count">47</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l2.5 2.5"/></svg>
+      Schedules
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7l5-4 5 4v6H3z"/></svg>
+      Reports
+    </div>
+    <div class="nav-section">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 6l3 3 3-3"/></svg>
+      Saved views
+    </div>
+    <div class="nav-item">
+      <span class="dot"></span> High ROAS (>3.5x)
+    </div>
+    <div class="nav-item">
+      <span class="dot amber"></span> Need review
+    </div>
+    <div class="nav-item">
+      <span class="dot red"></span> Underperforming
+    </div>
+  </aside>
+
+  <!-- main column -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <span>Creatives</span>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/></svg>
+        <b>Video performance</b>
+      </div>
+      <div class="spacer"></div>
+      <span style="font-size:11.5px;color:var(--ink-4)">2m ago</span>
+      <button class="topbar-btn">7d <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></button>
+      <button class="topbar-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0L4 6m4 4l4-4M2 14h12"/></svg>
+        Load <span class="kbd">L</span>
+      </button>
+      <button class="topbar-btn primary">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M8 3v10"/></svg>
+        New view
+      </button>
+    </header>
+
+    <div class="filterbar">
+      <button class="pill active">
+        <span class="dot"></span> Format: Video
+        <span class="x">×</span>
+      </button>
+      <button class="pill">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="8" r="2"/><circle cx="11" cy="8" r="2"/><path d="M2 8h1m4 0h2m4 0h1"/></svg>
+        ROAS
+      </button>
+      <button class="pill">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M5 8h6M7 11h2"/></svg>
+        Spend
+      </button>
+      <button class="pill">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 6h12M6 1v3M10 1v3"/></svg>
+        Date
+      </button>
+      <button class="pill">+ Filter</button>
+      <div class="search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3 3"/></svg>
+        Filter <span class="kbd">F</span>
+        <span style="margin-left:8px"></span>
+        Group by <span class="kbd">G</span>
+      </div>
+    </div>
+
+    <div class="table-host">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Creative <span class="sort">↕</span></th>
+            <th>Status</th>
+            <th>Spend <span class="sort">↕</span></th>
+            <th>ROAS <span class="sort">↕</span></th>
+            <th>CPR</th>
+            <th>AOV</th>
+            <th>CPM</th>
+            <th>CTR</th>
+            <th>3s/Impr</th>
+            <th>ThruPlay%</th>
+            <th>Avg Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#f5b8a0,#e87c5a)"></div></td><td><div class="cell-name"><span class="badge">Reel</span>Trang trí Tết — phiên bản A</div></td><td><span class="status"><span class="dot"></span>Active</span></td><td>24.31M ₫</td><td class="num-good">4.12x</td><td>32,450 ₫</td><td>580k</td><td>78,200</td><td class="num-good">2.84%</td><td>21.4%</td><td>28.1%</td><td>13.2s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#a0c8f5,#5a8de8)"></div></td><td><div class="cell-name"><span class="badge">Story</span>Bộ sưu tập Spring 2026</div></td><td><span class="status"><span class="dot"></span>Active</span></td><td>18.64M ₫</td><td class="num-good">3.89x</td><td>38,120 ₫</td><td>512k</td><td>71,400</td><td>2.41%</td><td>19.2%</td><td>25.6%</td><td>11.8s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#c5a0f5,#7a5ae8)"></div></td><td><div class="cell-name"><span class="badge">Feed</span>UGC testimonial @ngocan</div></td><td><span class="status"><span class="dot"></span>Active</span></td><td>15.47M ₫</td><td class="num-good">3.65x</td><td>41,800 ₫</td><td>495k</td><td>82,100</td><td>2.18%</td><td>17.9%</td><td>23.4%</td><td>10.5s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#f5e0a0,#e8c25a)"></div></td><td><div class="cell-name"><span class="badge">Reel</span>Demo product unboxing</div></td><td><span class="status"><span class="dot amber"></span>Review</span></td><td>12.45M ₫</td><td>3.21x</td><td>44,950 ₫</td><td>460k</td><td>76,800</td><td>2.05%</td><td>18.6%</td><td>24.1%</td><td>12.0s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#a0f5b8,#5ae87c)"></div></td><td><div class="cell-name"><span class="badge">Story</span>Flash sale 50% off</div></td><td><span class="status"><span class="dot"></span>Active</span></td><td>11.03M ₫</td><td>3.04x</td><td>47,200 ₫</td><td>438k</td><td>69,500</td><td class="num-good">2.92%</td><td>22.1%</td><td>26.8%</td><td>11.4s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#f5a0c8,#e85a8d)"></div></td><td><div class="cell-name"><span class="badge">Feed</span>Catalog DPA — Áo thun</div></td><td><span class="status"><span class="dot amber"></span>Review</span></td><td>9.82M ₫</td><td>2.87x</td><td>51,300 ₫</td><td>412k</td><td>83,200</td><td>1.92%</td><td>15.4%</td><td>20.8%</td><td>9.2s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#a0e8f5,#5ac8e8)"></div></td><td><div class="cell-name"><span class="badge">Reel</span>Behind the scenes Studio</div></td><td><span class="status"><span class="dot"></span>Active</span></td><td>8.72M ₫</td><td>2.74x</td><td>54,100 ₫</td><td>398k</td><td>74,600</td><td>1.85%</td><td>16.8%</td><td>22.3%</td><td>10.1s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#e0f5a0,#c2e85a)"></div></td><td><div class="cell-name"><span class="badge">Story</span>Lifestyle outdoor — bộ A</div></td><td><span class="status"><span class="dot red"></span>Low</span></td><td>7.29M ₫</td><td class="num-bad">2.31x</td><td>61,400 ₫</td><td>375k</td><td>88,900</td><td class="num-bad">1.42%</td><td>13.2%</td><td>17.9%</td><td>8.4s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#b8a0f5,#8d5ae8)"></div></td><td><div class="cell-name"><span class="badge">Feed</span>New arrival May launch</div></td><td><span class="status"><span class="dot amber"></span>Review</span></td><td>5.89M ₫</td><td>2.18x</td><td>66,800 ₫</td><td>362k</td><td>91,200</td><td>1.61%</td><td>14.5%</td><td>19.2%</td><td>9.0s</td></tr>
+          <tr><td><div class="row-thumb" style="background:linear-gradient(135deg,#f5c8a0,#e88d5a)"></div></td><td><div class="cell-name"><span class="badge">Reel</span>Tutorial Mix &amp; Match</div></td><td><span class="status"><span class="dot red"></span>Low</span></td><td>3.15M ₫</td><td class="num-bad">1.94x</td><td>72,500 ₫</td><td>340k</td><td>95,400</td><td>1.38%</td><td>12.8%</td><td>16.4%</td><td>7.8s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="statusbar">
+      <span>10 of 47</span>
+      <span>·</span>
+      <span>Σ Spend 116.8M ₫</span>
+      <span>·</span>
+      <span>Avg ROAS 3.42x</span>
+      <div class="right">
+        <span><span class="kbd">↑↓</span> Navigate</span>
+        <span><span class="kbd">⏎</span> Open</span>
+        <span><span class="kbd">⌘K</span> Command</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

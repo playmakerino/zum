@@ -494,9 +494,10 @@ function updateFilterBtns(type) {
 // Helpers
 const empty = cols => `<tr><td colspan="${cols}"><div class="state-box">No data</div></td></tr>`;
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const fmtF = n => parseFloat(n || 0).toFixed(2);
-const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtF = n => parseFloat(parseFloat(n || 0).toFixed(2)).toString();
+const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
+const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 
 function thumb(url, isCatalog) {
   const placeholder = `<div class="thumb-placeholder"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
@@ -545,7 +546,7 @@ document.addEventListener('click', hideThumbPreview);
 const fmtTime = n => {
   const v = parseFloat(n || 0);
   if (v <= 0) return '0s';
-  if (v < 60) return v.toFixed(1) + 's';
+  if (v < 60) return parseFloat(v.toFixed(1)).toString() + 's';
   const m = Math.floor(v / 60);
   const s = (v - m * 60).toFixed(0);
   return `${m}m ${s}s`;
@@ -560,8 +561,8 @@ function metrics(row) {
     [row.cpm, fmtMoneyInt],
     [row.ctr, v => fmtF(v) + '%'],
     [row.cpc, fmtMoney],
-    [row.video_3sec_rate, v => fmtF(v) + '%'],
-    [row.thruplay_rate,   v => fmtF(v) + '%'],
+    [row.video_3sec_rate, fmtPctInt],
+    [row.thruplay_rate,   fmtPctInt],
     [row.video_avg_time,  fmtTime],
   ].map(([c, f]) => `<td>${f(c)}</td>`).join('');
 }

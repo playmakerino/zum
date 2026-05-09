@@ -28,7 +28,7 @@ body{background:var(--bg);color:var(--t);font:13px/1.45 'Inter',-apple-system,sy
 
 .layout{display:grid;grid-template-rows:48px 1fr;height:100vh;overflow:hidden}
 .topbar{background:var(--bg);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:10}
-.main{overflow-y:auto;padding:20px}
+.main{overflow:hidden;padding:20px;display:flex;flex-direction:column;min-height:0}
 
 .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
 .period-select{background:var(--s);border:1px solid var(--b);color:var(--t2);border-radius:5px;padding:5px 10px;font:500 12.5px/1 inherit;cursor:pointer;outline:none;min-width:240px;transition:.1s}
@@ -39,14 +39,15 @@ body{background:var(--bg);color:var(--t);font:13px/1.45 'Inter',-apple-system,sy
 .btn-primary{background:var(--a);color:#fff;border-color:var(--a)}
 .btn-primary:hover{background:var(--a2);border-color:var(--a2)}
 
-.page{display:none}.page.active{display:block}
+.page{display:none}
+.page.active{display:flex;flex-direction:column;flex:1;min-height:0}
 
 .cache-time{font-size:11.5px;color:var(--t4);font-weight:450}
 .debug-line{font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--t3);margin-top:10px;word-break:break-all;letter-spacing:0}
 .debug-line:empty{display:none}
 
-.table-wrap{background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative}
-.table-scroll{overflow:auto;max-height:calc(100vh - 96px)}
+.table-wrap{background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.table-scroll{flex:1;min-height:0;overflow:auto}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 #creativesTable th:nth-child(2){min-width:200px}
 #creativesTable th:nth-child(n+3){min-width:90px}
@@ -123,7 +124,6 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 @media(max-width:768px){
   .layout{grid-template-rows:48px 1fr}
   .main{padding:14px}
-  .table-scroll{max-height:calc(100vh - 80px)}
   .topbar{padding:0 12px;gap:8px}
   .topbar-actions{gap:6px}
   #cachedAt{display:none}
@@ -138,6 +138,5 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .topbar-actions{flex-basis:100%;margin-left:0;gap:8px}
   .period-select{flex:1;min-width:0;padding:6px 8px;font-size:12px}
   .tooltip-wrap{flex-shrink:0}
-  .table-scroll{max-height:calc(100vh - 124px)}
   .filter-popup{min-width:240px;max-width:calc(100vw - 16px)}
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tạo Ad Set — TC Vid</title>
+  <title>Tạo Ad Set</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -25,6 +25,7 @@
       --success-soft: rgba(29,185,84,0.10);
       --error: #F15E6C;
       --error-soft: rgba(241,94,108,0.10);
+      --divider: rgba(255,255,255,0.06);
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
@@ -38,41 +39,39 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 45px 16px 64px;
+      padding: 56px 16px 80px;
       overflow-x: hidden;
     }
 
-    /* Subtle top gradient */
     body::before {
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 340px;
-      background: linear-gradient(180deg, rgba(29,185,84,0.08) 0%, transparent 100%);
+      height: 380px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
       pointer-events: none;
       z-index: 0;
     }
 
     .container {
       width: 100%;
-      max-width: 464px;
+      max-width: 480px;
       position: relative;
       z-index: 1;
     }
 
-    /* Header */
     .header {
-      margin-bottom: 29px;
+      margin-bottom: 32px;
       text-align: center;
     }
 
     .header h1 {
-      font-size: 32px;
+      font-size: 48px;
       font-weight: 900;
       color: var(--text);
-      letter-spacing: -0.03em;
+      letter-spacing: -0.04em;
       line-height: 1.05;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .header h1 span {
@@ -80,44 +79,28 @@
     }
 
     .header p {
-      font-size: 11px;
+      font-size: 14px;
       color: var(--text-sub);
-      line-height: 1.6;
+      line-height: 1.5;
       font-weight: 400;
     }
 
-    /* Card */
     .card {
       background: var(--surface);
       border-radius: 13px;
-      padding: 29px 26px;
+      padding: 32px 28px;
     }
 
-    /* Section label */
-    .section-label {
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin: 26px 0 11px;
-    }
-
-    .section-label:first-child {
-      margin-top: 0;
-    }
-
-    /* Field */
     .field {
-      margin-bottom: 10px;
+      margin-bottom: 14px;
     }
 
     .field label {
       display: block;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-sub);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       letter-spacing: 0.01em;
     }
 
@@ -125,18 +108,19 @@
       font-style: normal;
       font-weight: 400;
       color: var(--text-muted);
-      font-size: 9px;
-      margin-left: 3px;
+      font-size: 11px;
+      margin-left: 4px;
     }
 
     .field input[type="text"] {
       width: 100%;
+      height: 48px;
       background: var(--surface-elevated);
       border: none;
       border-radius: 6px;
-      padding: 10px 13px;
+      padding: 0 16px;
       font-family: var(--font);
-      font-size: 11px;
+      font-size: 14px;
       font-weight: 400;
       color: var(--text);
       outline: none;
@@ -153,52 +137,43 @@
 
     .field input[type="text"]:focus {
       background: #2a2a2a;
-      box-shadow: 0 0 0 2px var(--accent);
+      box-shadow: 0 0 0 2px var(--text);
     }
 
-    .field .hint {
-      font-size: 9px;
-      color: var(--text-muted);
-      margin-top: 5px;
-      line-height: 1.5;
-    }
-
-    .field .hint code {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 8px;
-      background: var(--surface-elevated);
-      color: var(--text-sub);
-      padding: 2px 5px;
-      border-radius: 3px;
-    }
-
-    /* Submit button */
     .submit-wrap {
-      margin-top: 26px;
+      margin-top: 32px;
     }
 
     .submit-btn {
       width: 100%;
-      max-width: 240px;
-      display: block;
+      max-width: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       margin: 0 auto;
       background: var(--accent);
       border: none;
       color: #000;
       font-family: var(--font);
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 700;
-      padding: 14px 19px;
-      border-radius: 40px;
+      padding: 16px 24px;
+      border-radius: 999px;
       cursor: pointer;
       letter-spacing: 0.02em;
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
+    .submit-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
     .submit-btn:hover {
       background: var(--accent-hover);
-      transform: scale(1.02);
-      box-shadow: 0 5px 22px var(--accent-glow);
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
     }
 
     .submit-btn:active {
@@ -212,12 +187,11 @@
       box-shadow: none;
     }
 
-    /* Status */
     .status {
-      margin-top: 11px;
-      padding: 10px 13px;
+      margin-top: 14px;
+      padding: 12px 16px;
       border-radius: 8px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 500;
       display: none;
       line-height: 1.5;
@@ -243,8 +217,8 @@
 
     .spinner {
       display: inline-block;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border: 2px solid currentColor;
       border-top-color: transparent;
       border-radius: 50%;
@@ -257,17 +231,16 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Payload preview */
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
-      font-size: 9px !important;
+      font-size: 11px !important;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Tạo <span>Ad Set</span></h1>
+      <h1>Tạo Ad Set</h1>
       <p>Dán link folder Google Drive chứa video để tự động tạo ads.</p>
     </div>
 
@@ -278,16 +251,17 @@
         <input type="text" id="folder_input" placeholder="https://drive.google.com/drive/folders/..." />
       </div>
 
-      <!-- Submit -->
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
           Tạo Ad Set
         </button>
         <div class="status" id="statusMsg"></div>
       </div>
 
-      <!-- Payload preview -->
-      <div id="payloadPreview" style="display:none; margin-top:11px; padding:13px; background:#0d0d0d; border-radius:8px; font-size:9px; color:#6A6A6A; line-height:1.8; white-space:pre-wrap; word-break:break-all;"></div>
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:11px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>
@@ -299,26 +273,22 @@
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/01de568d-39af-4f07-a19b-085d1568150a";
     // ============================================================
 
-    // ── Extract folder ID từ URL hoặc dùng nguyên input ─────────
     function extractFolderId(input) {
       if (!input) return '';
       const trimmed = input.trim();
-      // Match Google Drive folder URL patterns
       const patterns = [
-        /\/folders\/([a-zA-Z0-9_-]+)/,           // /folders/<id>
-        /[?&]id=([a-zA-Z0-9_-]+)/,               // ?id=<id>
-        /\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/  // /drive/u/0/folders/<id>
+        /\/folders\/([a-zA-Z0-9_-]+)/,
+        /[?&]id=([a-zA-Z0-9_-]+)/,
+        /\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/
       ];
       for (const p of patterns) {
         const m = trimmed.match(p);
         if (m) return m[1];
       }
-      // Plain ID — Google Drive IDs are typically 25-44 chars alphanumeric/_/-
       if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
       return '';
     }
 
-    // ── Submit ─────────────────────────────────────────────────
     async function submitForm() {
       const rawInput = document.getElementById('folder_input').value;
       const folder_id = extractFolderId(rawInput);

@@ -14,6 +14,23 @@ window.onunhandledrejection = function(e) {
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
 
+// Strip server-sent "[1.2s]" suffix; the popup runs its own timer.
+const STRIP_TIMER_RE = /\s*\[[\d.]+s\]\s*$/;
+
+let _loadTimer = null;
+function startLoadTimer() {
+  stopLoadTimer();
+  const start = performance.now();
+  $$('.load-timer').forEach(el => el.textContent = '0s');
+  _loadTimer = setInterval(() => {
+    const s = Math.floor((performance.now() - start) / 1000);
+    $$('.load-timer').forEach(el => el.textContent = s + 's');
+  }, 1000);
+}
+function stopLoadTimer() {
+  if (_loadTimer) { clearInterval(_loadTimer); _loadTimer = null; }
+}
+
 // API error logging
 function logApiError(context, err, extra = {}) {
   console.group(`[API Error] ${context}`);
@@ -189,7 +206,7 @@ function updatePeriodSelectLabels(period) {
       since = fmtDateLabel(start);
       until = fmtDateLabel(today);
     }
-    opt.textContent = `Last ${days} days: ${since} \u2013 ${until}`;
+    opt.textContent = `Last ${days} days: ${since} – ${until}`;
   }
 }
 
@@ -204,8 +221,9 @@ async function fetchAll(refresh = true) {
   const wrap = $('creativesTable').closest('.table-wrap');
   let ov = wrap.querySelector('.load-overlay');
   if (!ov) { ov = document.createElement('div'); ov.className = 'load-overlay'; wrap.appendChild(ov); }
-  ov.innerHTML = `<div class="load-popup"><div class="loader"></div><div class="load-text" id="loadProgress-creatives">Connecting...</div></div>`;
+  ov.innerHTML = `<div class="load-popup"><div class="load-status">Connecting...</div><div class="load-timer">0s</div></div>`;
   ov.style.display = 'flex';
+  startLoadTimer();
 
   const startTime = performance.now();
   const url = `/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`;
@@ -242,7 +260,8 @@ async function fetchAll(refresh = true) {
           continue;
         }
         if (j.progress) {
-          $$('.load-text').forEach(el => el.textContent = j.progress);
+          const msg = j.progress.replace(STRIP_TIMER_RE, '');
+          $$('.load-status').forEach(el => el.textContent = msg);
         }
         if (j.debug) showDebug(j.debug);
         if (j.result) data = j.result;
@@ -269,10 +288,12 @@ async function fetchAll(refresh = true) {
     showCacheTime(data.cached_at);
     updatePeriodSelectLabels(data.period);
 
+    stopLoadTimer();
     $$('.load-overlay').forEach(el => el.style.display = 'none');
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
     toast(`Loaded ${state.creatives.current.length} video creatives in ${elapsed}s`, 'success');
   } catch (err) {
+    stopLoadTimer();
     $$('.load-overlay').forEach(el => el.style.display = 'none');
     logApiError('GET /api/dashboard', err, {
       url,

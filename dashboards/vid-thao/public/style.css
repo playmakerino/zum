@@ -103,10 +103,10 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .btn-show-more:hover{border-color:var(--t4);color:var(--t)}
 .loader{display:inline-block;width:18px;height:18px;border:2px solid var(--b);border-top-color:var(--indigo);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(251,251,252,.85);backdrop-filter:blur(2px)}
-.load-popup{background:var(--s);border:1px solid var(--b);border-radius:7px;padding:20px 28px;text-align:center;box-shadow:0 6px 18px rgba(15,15,16,.06);min-width:220px}
-.load-popup .loader{margin-bottom:10px}
-.load-popup .load-text{font-size:12px;color:var(--t2);line-height:1.6;font-weight:450}
+.load-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(251,251,252,.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.load-popup{background:var(--s);border:1px solid var(--b);border-radius:7px;padding:12px 18px;display:flex;align-items:center;gap:16px;min-width:320px;max-width:min(480px,calc(100% - 32px));box-shadow:0 6px 18px rgba(15,15,16,.06)}
+.load-popup .load-status{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:450;text-align:left}
+.load-popup .load-timer{flex-shrink:0;font:500 12.5px/1 inherit;color:var(--t3);font-variant-numeric:tabular-nums}
 
 #toast{position:fixed;bottom:18px;right:18px;background:var(--s);border:1px solid var(--b);color:var(--t);padding:8px 14px;border-radius:6px;font:500 12.5px/1 inherit;z-index:9999;opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none;box-shadow:0 6px 16px rgba(15,15,16,.06)}
 #toast.show{opacity:1;transform:translateY(0)}
@@ -129,6 +129,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   #cachedAt{display:none}
   .period-select{min-width:0}
   .col-filter-btn{padding:5px 4px}
+  .load-popup{min-width:0;width:calc(100% - 32px)}
 }
 
 /* Phone (≤480px) — stack period+button below logo so the dropdown can breathe */

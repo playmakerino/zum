@@ -511,7 +511,7 @@ function thumbError(img) {
 
 const _thumbPreview = (() => {
   const el = document.createElement('img');
-  el.style.cssText = 'display:none;position:fixed;width:240px;height:240px;object-fit:cover;border-radius:8px;border:1px solid #ced4da;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:9998;background:#fff;pointer-events:none';
+  el.style.cssText = 'display:none;position:fixed;width:240px;height:240px;object-fit:cover;border-radius:7px;border:1px solid #e8e8eb;box-shadow:0 8px 24px rgba(15,15,16,.12);z-index:9998;background:#fff;pointer-events:none';
   el.onerror = () => { el.style.display = 'none'; };
   document.body.appendChild(el);
   return el;

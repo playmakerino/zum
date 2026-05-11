@@ -320,11 +320,15 @@
       updateCount();
     }
 
+    function cleanProductUrl(url) {
+      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
+    }
+
     function collectRows() {
       const rows = [];
       document.querySelectorAll('#rowsContainer .row').forEach(r => {
         const print_id = r.querySelector('.row-print').value.trim();
-        const product_url = r.querySelector('.row-url').value.trim();
+        const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
         if (print_id && product_url) {
           rows.push({ Print_ID: print_id, Product_url: product_url });
         }

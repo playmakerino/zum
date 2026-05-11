@@ -68,6 +68,24 @@
       z-index: 1;
     }
 
+    /* 2-column layout on desktop */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .section { min-width: 0; }
+
+    @media (min-width: 768px) {
+      .container { max-width: 960px; }
+
+      .section-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 32px;
+      }
+    }
+
     /* Header — heading trắng, chỉ accent 1 từ */
     .header {
       margin-bottom: 32px;
@@ -113,7 +131,7 @@
       border-top: 1px solid var(--divider);
     }
 
-    .section-label:first-child {
+    .section:first-child .section-label {
       margin-top: 0;
       padding-top: 0;
       border-top: none;
@@ -407,104 +425,120 @@
 
     <div class="card">
 
-      <!-- ── PRINT ─────────────────── -->
-      <div class="section-label">Print</div>
+      <div class="form-grid">
 
-      <div class="field">
-        <label>Print ID</label>
-        <input type="text" id="ad_set_name" />
-      </div>
+        <!-- ── PRINT (full width on desktop, 2 fields side-by-side) ─────────────────── -->
+        <div class="section section--full">
+          <div class="section-label">Print</div>
+          <div class="section-fields">
 
-      <div class="field">
-        <label>Print image <em>(select 1 image)</em></label>
-        <div class="chooser-field" id="field_print_image">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-          </svg>
-          <span class="chooser-path" id="path_print_image"></span>
-          <button class="chooser-btn" onclick="choosePrintImage()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-            </svg>
-            Select image
-          </button>
-          <button class="clear-btn" onclick="clearField('print_image')" title="Clear">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+            <div class="field">
+              <label>Print ID</label>
+              <input type="text" id="ad_set_name" />
+            </div>
+
+            <div class="field">
+              <label>Print image <em>(select 1 image)</em></label>
+              <div class="chooser-field" id="field_print_image">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span class="chooser-path" id="path_print_image"></span>
+                <button class="chooser-btn" onclick="choosePrintImage()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  Select image
+                </button>
+                <button class="clear-btn" onclick="clearField('print_image')" title="Clear">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <input type="hidden" id="dropbox_print_image" />
+            </div>
+
+          </div>
         </div>
-        <input type="hidden" id="dropbox_print_image" />
-      </div>
 
-      <!-- ── ZIPPY ─────────────────── -->
-      <div class="section-label">Zippy</div>
+        <!-- ── ZIPPY ─────────────────── -->
+        <div class="section">
+          <div class="section-label">Zippy</div>
+          <div class="section-fields">
 
-      <div class="field">
-        <label>Zippy product url</label>
-        <input type="text" id="url_zippy" />
-      </div>
+            <div class="field">
+              <label>Zippy product url</label>
+              <input type="text" id="url_zippy" />
+            </div>
 
-      <div class="field">
-        <label>Zippy ad images <em>(select multiple images)</em></label>
-        <div class="chooser-field" id="field_zippy">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-          </svg>
-          <span class="chooser-path" id="path_zippy"></span>
-          <button class="chooser-btn" onclick="chooseZippy()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-            </svg>
-            Select image
-          </button>
-          <button class="clear-btn" onclick="clearField('zippy')" title="Clear">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+            <div class="field">
+              <label>Zippy ad images <em>(select multiple images)</em></label>
+            <div class="chooser-field" id="field_zippy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span class="chooser-path" id="path_zippy"></span>
+              <button class="chooser-btn" onclick="chooseZippy()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                Select image
+              </button>
+              <button class="clear-btn" onclick="clearField('zippy')" title="Clear">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div id="tags_zippy" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            <input type="hidden" id="dropbox_zippy" />
+            </div>
+
+          </div>
         </div>
-        <div id="tags_zippy" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-        <input type="hidden" id="dropbox_zippy" />
-      </div>
 
-      <!-- ── PAJAMA ─────────────────── -->
-      <div class="section-label">Pajama</div>
+        <!-- ── PAJAMA ─────────────────── -->
+        <div class="section">
+          <div class="section-label">Pajama</div>
+          <div class="section-fields">
 
-      <div class="field">
-        <label>Pajama product url</label>
-        <input type="text" id="url_pajama" />
-      </div>
+            <div class="field">
+              <label>Pajama product url</label>
+              <input type="text" id="url_pajama" />
+            </div>
 
-      <div class="field">
-        <label>Pajama ad images <em>(select multiple images)</em></label>
-        <div class="chooser-field" id="field_pajama">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-          </svg>
-          <span class="chooser-path" id="path_pajama"></span>
-          <button class="chooser-btn" onclick="choosePajama()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-            </svg>
-            Select image
-          </button>
-          <button class="clear-btn" onclick="clearField('pajama')" title="Clear">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+            <div class="field">
+              <label>Pajama ad images <em>(select multiple images)</em></label>
+              <div class="chooser-field" id="field_pajama">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span class="chooser-path" id="path_pajama"></span>
+                <button class="chooser-btn" onclick="choosePajama()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  Select image
+                </button>
+                <button class="clear-btn" onclick="clearField('pajama')" title="Clear">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="tags_pajama" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+              <input type="hidden" id="dropbox_pajama" />
+            </div>
+
+          </div>
         </div>
-        <div id="tags_pajama" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-        <input type="hidden" id="dropbox_pajama" />
+
       </div>
 
       <!-- Submit — Play icon dẫn đầu giống nút Play của Spotify -->
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
           Create ad set
         </button>
         <div class="status" id="statusMsg"></div>

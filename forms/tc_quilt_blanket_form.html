@@ -352,7 +352,7 @@
         });
 
         if (res.ok) {
-          showStatus('success', `✅ Successfully sent! n8n workflow is running for ${rows.length} variants.`);
+          showStatus('success', '✅ Successfully sent! n8n workflow is running.');
           const preview = document.getElementById('payloadPreview');
           preview.style.display = 'block';
           preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);

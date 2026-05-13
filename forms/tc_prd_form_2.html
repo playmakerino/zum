@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test new print</title>
 
-  <!-- Dropbox Chooser SDK -->
   <script type="text/javascript"
     src="https://www.dropbox.com/static/api/2/dropins.js"
     id="dropboxjs"
@@ -50,7 +49,6 @@
       overflow-x: hidden;
     }
 
-    /* Subtle top gradient */
     body::before {
       content: '';
       position: fixed;
@@ -68,7 +66,6 @@
       z-index: 1;
     }
 
-    /* 2-column layout on desktop */
     .form-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -78,7 +75,6 @@
 
     @media (min-width: 768px) {
       .container { max-width: 960px; }
-
       .section-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -86,7 +82,7 @@
       }
     }
 
-    /* Header — heading trắng, chỉ accent 1 từ */
+    /* Header */
     .header {
       margin-bottom: 32px;
       text-align: center;
@@ -101,9 +97,7 @@
       margin-bottom: 12px;
     }
 
-    .header h1 span {
-      color: var(--accent);
-    }
+    .header h1 span { color: var(--accent); }
 
     .header p {
       font-size: 14px;
@@ -119,7 +113,7 @@
       padding: 32px 28px;
     }
 
-    /* Section label uppercase + divider */
+    /* Section label */
     .section-label {
       font-size: 11px;
       font-weight: 700;
@@ -137,7 +131,7 @@
       border-top: none;
     }
 
-    /* Field — vertical list, full-width */
+    /* Field */
     .field {
       margin-bottom: 14px;
     }
@@ -149,14 +143,6 @@
       color: var(--text-sub);
       margin-bottom: 8px;
       letter-spacing: 0.01em;
-    }
-
-    .field label em {
-      font-style: normal;
-      font-weight: 400;
-      color: var(--text-muted);
-      font-size: 11px;
-      margin-left: 4px;
     }
 
     .field input[type="text"] {
@@ -174,15 +160,9 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
 
-    .field input[type="text"]::placeholder {
-      color: var(--text-muted);
-    }
+    .field input[type="text"]::placeholder { color: var(--text-muted); }
+    .field input[type="text"]:hover { background: #2a2a2a; }
 
-    .field input[type="text"]:hover {
-      background: #2a2a2a;
-    }
-
-    /* Focus ring TRẮNG (Spotify reserve green cho CTA) */
     .field input[type="text"]:focus {
       background: #2a2a2a;
       box-shadow: 0 0 0 2px var(--text);
@@ -200,14 +180,8 @@
       height: 48px;
     }
 
-    .chooser-field:hover {
-      background: #2a2a2a;
-    }
-
-    /* has-value: chỉ đổi nền, KHÔNG outline tinted */
-    .chooser-field.has-value {
-      background: rgba(29,185,84,0.10);
-    }
+    .chooser-field:hover { background: #2a2a2a; }
+    .chooser-field.has-value { background: rgba(29,185,84,0.10); }
 
     .chooser-field .chooser-path {
       flex: 1;
@@ -224,7 +198,7 @@
       font-weight: 500;
     }
 
-    /* Outline pill button kiểu "Follow" của Spotify */
+    /* Chooser button */
     .chooser-btn {
       flex-shrink: 0;
       display: inline-flex;
@@ -250,10 +224,7 @@
       transform: scale(1.04);
     }
 
-    .chooser-btn svg {
-      width: 12px;
-      height: 12px;
-    }
+    .chooser-btn svg { width: 12px; height: 12px; }
 
     /* Clear button */
     .clear-btn {
@@ -268,19 +239,15 @@
       transition: color 0.15s, background 0.15s;
     }
 
-    .chooser-field.has-value .clear-btn {
-      display: flex;
-    }
+    .chooser-field.has-value .clear-btn { display: flex; }
 
     .clear-btn:hover {
       color: var(--text);
       background: rgba(255,255,255,0.1);
     }
 
-    /* Submit button — pill xanh + icon Play dẫn đầu */
-    .submit-wrap {
-      margin-top: 32px;
-    }
+    /* Submit button */
+    .submit-wrap { margin-top: 32px; }
 
     .submit-btn {
       width: 100%;
@@ -303,10 +270,7 @@
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
-    .submit-btn svg {
-      width: 14px;
-      height: 14px;
-    }
+    .submit-btn svg { width: 14px; height: 14px; }
 
     .submit-btn:hover {
       background: var(--accent-hover);
@@ -314,9 +278,7 @@
       box-shadow: 0 6px 24px var(--accent-glow);
     }
 
-    .submit-btn:active {
-      transform: scale(0.99);
-    }
+    .submit-btn:active { transform: scale(0.99); }
 
     .submit-btn:disabled {
       opacity: 0.45;
@@ -336,23 +298,9 @@
       line-height: 1.5;
     }
 
-    .status.success {
-      display: block;
-      background: var(--success-soft);
-      color: var(--success);
-    }
-
-    .status.error {
-      display: block;
-      background: var(--error-soft);
-      color: var(--error);
-    }
-
-    .status.loading {
-      display: block;
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
+    .status.success { display: block; background: var(--success-soft); color: var(--success); }
+    .status.error   { display: block; background: var(--error-soft);   color: var(--error); }
+    .status.loading { display: block; background: var(--accent-soft);  color: var(--accent); }
 
     /* File tag chips */
     .file-tag {
@@ -369,9 +317,7 @@
       transition: background 0.15s;
     }
 
-    .file-tag:hover {
-      background: #333;
-    }
+    .file-tag:hover { background: #333; }
 
     .file-tag span {
       white-space: nowrap;
@@ -405,9 +351,7 @@
       vertical-align: middle;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Add product dropdown */
     .add-product-wrap {
@@ -460,7 +404,8 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     }
 
-    .add-product-wrap:hover .add-product-dropdown {
+    .add-product-btn:hover + .add-product-dropdown,
+    .add-product-dropdown:hover {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
@@ -487,7 +432,7 @@
       color: var(--text);
     }
 
-    /* Section header (dynamic sections) — divider spans full width */
+    /* Section header (dynamic sections) */
     .section-header {
       display: flex;
       align-items: center;
@@ -525,8 +470,6 @@
       transform: scale(1.04);
     }
 
-
-    /* Payload preview */
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
       font-size: 11px !important;
@@ -541,19 +484,16 @@
     </div>
 
     <div class="card">
-
       <div class="form-grid">
 
-        <!-- ── PRINT (full width on desktop, 2 fields side-by-side) ─────────────────── -->
-        <div class="section section--full">
+        <!-- Print -->
+        <div class="section">
           <div class="section-label">Print</div>
           <div class="section-fields">
-
             <div class="field">
               <label>Print ID</label>
               <input type="text" id="ad_set_name" placeholder="Abc1234" />
             </div>
-
             <div class="field">
               <label>Print image</label>
               <div class="chooser-field" id="field_print_image">
@@ -575,56 +515,50 @@
               </div>
               <input type="hidden" id="dropbox_print_image" />
             </div>
-
           </div>
         </div>
 
-        <!-- ── ZIPPY ─────────────────── -->
+        <!-- Long zippy -->
         <div class="section">
           <div class="section-label">Long zippy</div>
           <div class="section-fields">
-
             <div class="field">
               <label>Long zippy product url</label>
               <input type="text" id="url_czr" placeholder="https://zumbamboo.com/products/convertible-zippered-romper" />
             </div>
-
             <div class="field">
               <label>Long zippy ad images</label>
-            <div class="chooser-field" id="field_czr">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-              </svg>
-              <span class="chooser-path" id="path_czr"></span>
-              <button class="chooser-btn" onclick="chooseCZR()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <div class="chooser-field" id="field_czr">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
-                Select images
-              </button>
-              <button class="clear-btn" onclick="clearField('czr')" title="Clear">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+                <span class="chooser-path" id="path_czr"></span>
+                <button class="chooser-btn" onclick="chooseCZR()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  Select images
+                </button>
+                <button class="clear-btn" onclick="clearField('czr')" title="Clear">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="tags_czr" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+              <input type="hidden" id="dropbox_czr" />
             </div>
-            <div id="tags_czr" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-            <input type="hidden" id="dropbox_czr" />
-            </div>
-
           </div>
         </div>
 
-        <!-- ── PAJAMA ─────────────────── -->
+        <!-- Long pajama -->
         <div class="section">
           <div class="section-label">Long pajama</div>
           <div class="section-fields">
-
             <div class="field">
               <label>Long pajama product url</label>
               <input type="text" id="url_tpj" placeholder="https://zumbamboo.com/products/two-piece-pajama-set" />
             </div>
-
             <div class="field">
               <label>Long pajama ad images</label>
               <div class="chooser-field" id="field_tpj">
@@ -647,14 +581,11 @@
               <div id="tags_tpj" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
               <input type="hidden" id="dropbox_tpj" />
             </div>
-
           </div>
         </div>
 
-        <!-- ── DYNAMIC PRODUCTS ─────────────────── -->
         <div id="dynamicSections"></div>
 
-        <!-- ── ADD PRODUCT ─────────────────── -->
         <div class="add-product-wrap" id="addProductWrap">
           <button class="add-product-btn" type="button">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -670,26 +601,17 @@
 
       </div>
 
-      <!-- Submit — Play icon dẫn đầu giống nút Play của Spotify -->
       <div class="submit-wrap">
-        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-          Create ad set
-        </button>
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">Create ad set</button>
         <div class="status" id="statusMsg"></div>
       </div>
 
-      <!-- Payload preview -->
       <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:11px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
-
     </div>
   </div>
 
   <script>
-    // ============================================================
-    // ⚙️  CONFIG — giữ nguyên webhook gốc
-    // ============================================================
-    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/9fea3dac-0c81-4725-a280-d62ed2635f1a";
-    // ============================================================
+    const N8N_WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/9fea3dac-0c81-4725-a280-d62ed2635f1a';
 
     const DYNAMIC_TYPES = {
       szr: { label: 'Short zippy', code: 'SZR', placeholder: 'https://zumbamboo.com/products/shorty-zippered-romper' },
@@ -705,14 +627,14 @@
 
     function choosePrintImage() {
       Dropbox.choose({
-        success: function(files) {
+        success(files) {
           const file = files[0];
           state.dropbox_print_image = file.link;
           document.getElementById('dropbox_print_image').value = file.link;
-          setFieldValue('print_image', file.name, file.link);
+          setFieldValue('print_image', file.name);
         },
-        cancel: function() {},
-        linkType: "direct",
+        cancel() {},
+        linkType: 'direct',
         multiselect: false,
         extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
         folderselect: false
@@ -721,16 +643,15 @@
 
     function chooseCZR() {
       Dropbox.choose({
-        success: function(files) {
+        success(files) {
           files.forEach(f => {
-            if (!state.dropbox_czr.find(x => x.link === f.link)) {
+            if (!state.dropbox_czr.find(x => x.link === f.link))
               state.dropbox_czr.push({ name: f.name, link: f.link });
-            }
           });
           syncMultiField('czr');
         },
-        cancel: function() {},
-        linkType: "direct",
+        cancel() {},
+        linkType: 'direct',
         multiselect: true,
         extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
         folderselect: false
@@ -739,16 +660,32 @@
 
     function chooseTPJ() {
       Dropbox.choose({
-        success: function(files) {
+        success(files) {
           files.forEach(f => {
-            if (!state.dropbox_tpj.find(x => x.link === f.link)) {
+            if (!state.dropbox_tpj.find(x => x.link === f.link))
               state.dropbox_tpj.push({ name: f.name, link: f.link });
-            }
           });
           syncMultiField('tpj');
         },
-        cancel: function() {},
-        linkType: "direct",
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+        folderselect: false
+      });
+    }
+
+    function chooseDynamic(key) {
+      Dropbox.choose({
+        success(files) {
+          files.forEach(f => {
+            if (!state[`dropbox_${key}`].find(x => x.link === f.link))
+              state[`dropbox_${key}`].push({ name: f.name, link: f.link });
+          });
+          syncMultiField(key);
+        },
+        cancel() {},
+        linkType: 'direct',
         multiselect: true,
         extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
         folderselect: false
@@ -789,11 +726,9 @@
       syncMultiField(key);
     }
 
-    function setFieldValue(key, displayText, value) {
-      const field = document.getElementById(`field_${key}`);
-      const path  = document.getElementById(`path_${key}`);
-      field.classList.add('has-value');
-      path.textContent = displayText;
+    function setFieldValue(key, displayText) {
+      document.getElementById(`field_${key}`).classList.add('has-value');
+      document.getElementById(`path_${key}`).textContent = displayText;
     }
 
     function clearField(key) {
@@ -810,62 +745,6 @@
 
     function cleanProductUrl(url) {
       return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
-    }
-
-    async function submitForm() {
-      const ad_set_name = document.getElementById('ad_set_name').value.trim();
-      const dropbox_print_image = document.getElementById('dropbox_print_image').value;
-
-      if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print ID.');
-      if (!dropbox_print_image) return showStatus('error', '⚠️ Please select Print image from Dropbox.');
-
-      const products = [];
-      const url_czr = cleanProductUrl(document.getElementById('url_czr').value.trim());
-      if (url_czr && state.dropbox_czr.length > 0) {
-        products.push({ code: 'CZR', url: url_czr, images: state.dropbox_czr.map(f => f.link) });
-      }
-      const url_tpj = cleanProductUrl(document.getElementById('url_tpj').value.trim());
-      if (url_tpj && state.dropbox_tpj.length > 0) {
-        products.push({ code: 'TPJ', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
-      }
-
-      state.dynamicProducts.forEach(key => {
-        const url = cleanProductUrl(document.getElementById(`url_${key}`).value.trim());
-        if (url && state[`dropbox_${key}`].length > 0) {
-          products.push({ code: DYNAMIC_TYPES[key].code, url, images: state[`dropbox_${key}`].map(f => f.link) });
-        }
-      });
-
-      const payload = {
-        ad_set_name,
-        dropbox_print_image,
-        products
-      };
-
-      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
-      document.getElementById('submitBtn').disabled = true;
-
-      try {
-        const res = await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          showStatus('success', '✅ Successfully sent! n8n workflow is running.');
-          const preview = document.getElementById('payloadPreview');
-          preview.style.display = 'block';
-          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
-        } else {
-          const errText = await res.text();
-          showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);
-        }
-      } catch (err) {
-        showStatus('error', `❌ Cannot connect to n8n: ${err.message}`);
-      } finally {
-        document.getElementById('submitBtn').disabled = false;
-      }
     }
 
     function addProduct(key) {
@@ -931,22 +810,53 @@
       document.getElementById('addProductWrap').style.display = allAdded ? 'none' : '';
     }
 
-    function chooseDynamic(key) {
-      Dropbox.choose({
-        success: function(files) {
-          files.forEach(f => {
-            if (!state[`dropbox_${key}`].find(x => x.link === f.link)) {
-              state[`dropbox_${key}`].push({ name: f.name, link: f.link });
-            }
-          });
-          syncMultiField(key);
-        },
-        cancel: function() {},
-        linkType: "direct",
-        multiselect: true,
-        extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
-        folderselect: false
+    async function submitForm() {
+      const ad_set_name = document.getElementById('ad_set_name').value.trim();
+      const dropbox_print_image = document.getElementById('dropbox_print_image').value;
+
+      if (!ad_set_name) return showStatus('error', 'Please enter Print ID.');
+      if (!dropbox_print_image) return showStatus('error', 'Please select Print image from Dropbox.');
+
+      const products = [];
+      const url_czr = cleanProductUrl(document.getElementById('url_czr').value.trim());
+      if (url_czr && state.dropbox_czr.length > 0)
+        products.push({ code: 'CZR', url: url_czr, images: state.dropbox_czr.map(f => f.link) });
+
+      const url_tpj = cleanProductUrl(document.getElementById('url_tpj').value.trim());
+      if (url_tpj && state.dropbox_tpj.length > 0)
+        products.push({ code: 'TPJ', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
+
+      state.dynamicProducts.forEach(key => {
+        const url = cleanProductUrl(document.getElementById(`url_${key}`).value.trim());
+        if (url && state[`dropbox_${key}`].length > 0)
+          products.push({ code: DYNAMIC_TYPES[key].code, url, images: state[`dropbox_${key}`].map(f => f.link) });
       });
+
+      const payload = { ad_set_name, dropbox_print_image, products };
+
+      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
+      document.getElementById('submitBtn').disabled = true;
+
+      try {
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showStatus('success', 'Sent! n8n workflow is running.');
+          const preview = document.getElementById('payloadPreview');
+          preview.style.display = 'block';
+          preview.textContent = JSON.stringify(payload, null, 2);
+        } else {
+          const errText = await res.text();
+          showStatus('error', `Error from n8n (${res.status}): ${errText.slice(0, 120)}`);
+        }
+      } catch (err) {
+        showStatus('error', `Cannot connect to n8n: ${err.message}`);
+      } finally {
+        document.getElementById('submitBtn').disabled = false;
+      }
     }
 
     function showStatus(type, html) {

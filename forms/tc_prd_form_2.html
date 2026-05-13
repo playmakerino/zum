@@ -469,30 +469,30 @@
 
             <div class="field">
               <label>Zippy product url</label>
-              <input type="text" id="url_zippy" />
+              <input type="text" id="url_czr" />
             </div>
 
             <div class="field">
               <label>Zippy ad images <em>(select multiple images)</em></label>
-            <div class="chooser-field" id="field_zippy">
+            <div class="chooser-field" id="field_czr">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
-              <span class="chooser-path" id="path_zippy"></span>
-              <button class="chooser-btn" onclick="chooseZippy()">
+              <span class="chooser-path" id="path_czr"></span>
+              <button class="chooser-btn" onclick="chooseCZR()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
                 Select image
               </button>
-              <button class="clear-btn" onclick="clearField('zippy')" title="Clear">
+              <button class="clear-btn" onclick="clearField('czr')" title="Clear">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
-            <div id="tags_zippy" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-            <input type="hidden" id="dropbox_zippy" />
+            <div id="tags_czr" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            <input type="hidden" id="dropbox_czr" />
             </div>
 
           </div>
@@ -505,30 +505,30 @@
 
             <div class="field">
               <label>Pajama product url</label>
-              <input type="text" id="url_pajama" />
+              <input type="text" id="url_tpj" />
             </div>
 
             <div class="field">
               <label>Pajama ad images <em>(select multiple images)</em></label>
-              <div class="chooser-field" id="field_pajama">
+              <div class="chooser-field" id="field_tpj">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
-                <span class="chooser-path" id="path_pajama"></span>
-                <button class="chooser-btn" onclick="choosePajama()">
+                <span class="chooser-path" id="path_tpj"></span>
+                <button class="chooser-btn" onclick="chooseTPJ()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                   </svg>
                   Select image
                 </button>
-                <button class="clear-btn" onclick="clearField('pajama')" title="Clear">
+                <button class="clear-btn" onclick="clearField('tpj')" title="Clear">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               </div>
-              <div id="tags_pajama" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-              <input type="hidden" id="dropbox_pajama" />
+              <div id="tags_tpj" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+              <input type="hidden" id="dropbox_tpj" />
             </div>
 
           </div>
@@ -559,8 +559,8 @@
 
     const state = {
       dropbox_print_image: null,
-      dropbox_zippy: [],
-      dropbox_pajama: []
+      dropbox_czr: [],
+      dropbox_tpj: []
     };
 
     function choosePrintImage() {
@@ -579,15 +579,15 @@
       });
     }
 
-    function chooseZippy() {
+    function chooseCZR() {
       Dropbox.choose({
         success: function(files) {
           files.forEach(f => {
-            if (!state.dropbox_zippy.find(x => x.link === f.link)) {
-              state.dropbox_zippy.push({ name: f.name, link: f.link });
+            if (!state.dropbox_czr.find(x => x.link === f.link)) {
+              state.dropbox_czr.push({ name: f.name, link: f.link });
             }
           });
-          syncMultiField('zippy');
+          syncMultiField('czr');
         },
         cancel: function() {},
         linkType: "direct",
@@ -597,15 +597,15 @@
       });
     }
 
-    function choosePajama() {
+    function chooseTPJ() {
       Dropbox.choose({
         success: function(files) {
           files.forEach(f => {
-            if (!state.dropbox_pajama.find(x => x.link === f.link)) {
-              state.dropbox_pajama.push({ name: f.name, link: f.link });
+            if (!state.dropbox_tpj.find(x => x.link === f.link)) {
+              state.dropbox_tpj.push({ name: f.name, link: f.link });
             }
           });
-          syncMultiField('pajama');
+          syncMultiField('tpj');
         },
         cancel: function() {},
         linkType: "direct",
@@ -657,7 +657,7 @@
     }
 
     function clearField(key) {
-      if (key === 'zippy' || key === 'pajama') {
+      if (key === 'czr' || key === 'tpj') {
         state[`dropbox_${key}`] = [];
         syncMultiField(key);
       } else {
@@ -674,20 +674,25 @@
 
     async function submitForm() {
       const ad_set_name = document.getElementById('ad_set_name').value.trim();
-      const url_zippy   = cleanProductUrl(document.getElementById('url_zippy').value.trim());
-      const url_pajama  = cleanProductUrl(document.getElementById('url_pajama').value.trim());
       const dropbox_print_image = document.getElementById('dropbox_print_image').value;
 
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print ID.');
       if (!dropbox_print_image) return showStatus('error', '⚠️ Please select Print image from Dropbox.');
 
+      const products = [];
+      const url_czr = cleanProductUrl(document.getElementById('url_czr').value.trim());
+      if (url_czr && state.dropbox_czr.length > 0) {
+        products.push({ code: 'CZR', url: url_czr, images: state.dropbox_czr.map(f => f.link) });
+      }
+      const url_tpj = cleanProductUrl(document.getElementById('url_tpj').value.trim());
+      if (url_tpj && state.dropbox_tpj.length > 0) {
+        products.push({ code: 'TPJ', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
+      }
+
       const payload = {
         ad_set_name,
-        url_zippy,
-        url_pajama,
         dropbox_print_image,
-        dropbox_zippy: state.dropbox_zippy.map(f => f.link),
-        dropbox_pajama: state.dropbox_pajama.map(f => f.link)
+        products
       };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');

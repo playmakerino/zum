@@ -409,6 +409,123 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Add product dropdown */
+    .add-product-wrap {
+      position: relative;
+      display: inline-block;
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid var(--divider);
+    }
+
+    .add-product-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-sub);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+    }
+
+    .add-product-btn:hover {
+      border-color: var(--text);
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      transform: scale(1.04);
+    }
+
+    .add-product-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 6px;
+      background: var(--surface-elevated);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      min-width: 200px;
+      padding: 4px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .add-product-wrap:hover .add-product-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .add-product-dropdown button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .add-product-dropdown button:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    /* Section header (dynamic sections) — divider spans full width */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--divider);
+      margin-top: 28px;
+      padding-top: 22px;
+    }
+
+    .section-header .section-label {
+      flex: 1;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .remove-section-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-sub);
+      cursor: pointer;
+      padding: 5px 14px;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+    }
+
+    .remove-section-btn:hover {
+      color: var(--error);
+      border-color: var(--error);
+      background: var(--error-soft);
+      transform: scale(1.04);
+    }
+
+
     /* Payload preview */
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
@@ -434,11 +551,11 @@
 
             <div class="field">
               <label>Print ID</label>
-              <input type="text" id="ad_set_name" />
+              <input type="text" id="ad_set_name" placeholder="Abc1234" />
             </div>
 
             <div class="field">
-              <label>Print image <em>(select 1 image)</em></label>
+              <label>Print image</label>
               <div class="chooser-field" id="field_print_image">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -464,16 +581,16 @@
 
         <!-- ── ZIPPY ─────────────────── -->
         <div class="section">
-          <div class="section-label">Zippy</div>
+          <div class="section-label">Long zippy</div>
           <div class="section-fields">
 
             <div class="field">
-              <label>Zippy product url</label>
-              <input type="text" id="url_czr" />
+              <label>Long zippy product url</label>
+              <input type="text" id="url_czr" placeholder="https://zumbamboo.com/products/convertible-zippered-romper" />
             </div>
 
             <div class="field">
-              <label>Zippy ad images <em>(select multiple images)</em></label>
+              <label>Long zippy ad images</label>
             <div class="chooser-field" id="field_czr">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -483,7 +600,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
-                Select image
+                Select images
               </button>
               <button class="clear-btn" onclick="clearField('czr')" title="Clear">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -500,16 +617,16 @@
 
         <!-- ── PAJAMA ─────────────────── -->
         <div class="section">
-          <div class="section-label">Pajama</div>
+          <div class="section-label">Long pajama</div>
           <div class="section-fields">
 
             <div class="field">
-              <label>Pajama product url</label>
-              <input type="text" id="url_tpj" />
+              <label>Long pajama product url</label>
+              <input type="text" id="url_tpj" placeholder="https://zumbamboo.com/products/two-piece-pajama-set" />
             </div>
 
             <div class="field">
-              <label>Pajama ad images <em>(select multiple images)</em></label>
+              <label>Long pajama ad images</label>
               <div class="chooser-field" id="field_tpj">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -519,7 +636,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                   </svg>
-                  Select image
+                  Select images
                 </button>
                 <button class="clear-btn" onclick="clearField('tpj')" title="Clear">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -531,6 +648,23 @@
               <input type="hidden" id="dropbox_tpj" />
             </div>
 
+          </div>
+        </div>
+
+        <!-- ── DYNAMIC PRODUCTS ─────────────────── -->
+        <div id="dynamicSections"></div>
+
+        <!-- ── ADD PRODUCT ─────────────────── -->
+        <div class="add-product-wrap" id="addProductWrap">
+          <button class="add-product-btn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add product
+          </button>
+          <div class="add-product-dropdown">
+            <button type="button" id="addBtn_szr" onclick="addProduct('szr')">Short zippy</button>
+            <button type="button" id="addBtn_spj" onclick="addProduct('spj')">Short pajama</button>
           </div>
         </div>
 
@@ -557,10 +691,16 @@
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/9fea3dac-0c81-4725-a280-d62ed2635f1a";
     // ============================================================
 
+    const DYNAMIC_TYPES = {
+      szr: { label: 'Short zippy', code: 'SZR', placeholder: 'https://zumbamboo.com/products/shorty-zippered-romper' },
+      spj: { label: 'Short pajama', code: 'SPJ', placeholder: 'https://zumbamboo.com/products/two-piece-short-sleeve-pajama-set' }
+    };
+
     const state = {
       dropbox_print_image: null,
       dropbox_czr: [],
-      dropbox_tpj: []
+      dropbox_tpj: [],
+      dynamicProducts: []
     };
 
     function choosePrintImage() {
@@ -657,7 +797,7 @@
     }
 
     function clearField(key) {
-      if (key === 'czr' || key === 'tpj') {
+      if (key === 'czr' || key === 'tpj' || state.dynamicProducts.includes(key)) {
         state[`dropbox_${key}`] = [];
         syncMultiField(key);
       } else {
@@ -689,6 +829,13 @@
         products.push({ code: 'TPJ', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
       }
 
+      state.dynamicProducts.forEach(key => {
+        const url = cleanProductUrl(document.getElementById(`url_${key}`).value.trim());
+        if (url && state[`dropbox_${key}`].length > 0) {
+          products.push({ code: DYNAMIC_TYPES[key].code, url, images: state[`dropbox_${key}`].map(f => f.link) });
+        }
+      });
+
       const payload = {
         ad_set_name,
         dropbox_print_image,
@@ -719,6 +866,87 @@
       } finally {
         document.getElementById('submitBtn').disabled = false;
       }
+    }
+
+    function addProduct(key) {
+      if (state.dynamicProducts.includes(key)) return;
+      state.dynamicProducts.push(key);
+      state[`dropbox_${key}`] = [];
+
+      const t = DYNAMIC_TYPES[key];
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.id = `section_${key}`;
+      section.innerHTML = `
+        <div class="section-header">
+          <div class="section-label">${t.label}</div>
+          <button class="remove-section-btn" type="button" onclick="removeProduct('${key}')">Remove</button>
+        </div>
+        <div class="section-fields">
+          <div class="field">
+            <label>${t.label} product url</label>
+            <input type="text" id="url_${key}" placeholder="${t.placeholder}" />
+          </div>
+          <div class="field">
+            <label>${t.label} ad images</label>
+            <div class="chooser-field" id="field_${key}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span class="chooser-path" id="path_${key}"></span>
+              <button class="chooser-btn" type="button" onclick="chooseDynamic('${key}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                Select images
+              </button>
+              <button class="clear-btn" type="button" onclick="clearField('${key}')" title="Clear">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div id="tags_${key}" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            <input type="hidden" id="dropbox_${key}" />
+          </div>
+        </div>
+      `;
+
+      document.getElementById('dynamicSections').appendChild(section);
+      document.getElementById(`addBtn_${key}`).style.display = 'none';
+      updateAddProductVisibility();
+    }
+
+    function removeProduct(key) {
+      const section = document.getElementById(`section_${key}`);
+      if (section) section.remove();
+      delete state[`dropbox_${key}`];
+      state.dynamicProducts = state.dynamicProducts.filter(k => k !== key);
+      document.getElementById(`addBtn_${key}`).style.display = '';
+      updateAddProductVisibility();
+    }
+
+    function updateAddProductVisibility() {
+      const allAdded = state.dynamicProducts.length >= Object.keys(DYNAMIC_TYPES).length;
+      document.getElementById('addProductWrap').style.display = allAdded ? 'none' : '';
+    }
+
+    function chooseDynamic(key) {
+      Dropbox.choose({
+        success: function(files) {
+          files.forEach(f => {
+            if (!state[`dropbox_${key}`].find(x => x.link === f.link)) {
+              state[`dropbox_${key}`].push({ name: f.name, link: f.link });
+            }
+          });
+          syncMultiField(key);
+        },
+        cancel: function() {},
+        linkType: "direct",
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+        folderselect: false
+      });
     }
 
     function showStatus(type, html) {

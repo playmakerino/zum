@@ -820,16 +820,16 @@
       const products = [];
       const url_czr = cleanProductUrl(document.getElementById('url_czr').value.trim());
       if (url_czr && state.dropbox_czr.length > 0)
-        products.push({ code: 'CZR', url: url_czr, images: state.dropbox_czr.map(f => f.link) });
+        products.push({ code: 'CZR', label: 'long zippy', url: url_czr, images: state.dropbox_czr.map(f => f.link) });
 
       const url_tpj = cleanProductUrl(document.getElementById('url_tpj').value.trim());
       if (url_tpj && state.dropbox_tpj.length > 0)
-        products.push({ code: 'TPJ', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
+        products.push({ code: 'TPJ', label: 'long pajama', url: url_tpj, images: state.dropbox_tpj.map(f => f.link) });
 
       state.dynamicProducts.forEach(key => {
         const url = cleanProductUrl(document.getElementById(`url_${key}`).value.trim());
         if (url && state[`dropbox_${key}`].length > 0)
-          products.push({ code: DYNAMIC_TYPES[key].code, url, images: state[`dropbox_${key}`].map(f => f.link) });
+          products.push({ code: DYNAMIC_TYPES[key].code, label: DYNAMIC_TYPES[key].label.toLowerCase(), url, images: state[`dropbox_${key}`].map(f => f.link) });
       });
 
       const payload = { ad_set_name, dropbox_print_image, products };

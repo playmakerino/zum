@@ -114,6 +114,7 @@ async function fetchAll(mode = 'all') {
     if (el) el.textContent = s + 's';
   }, 1000);
 
+  clearLog();
   try {
     const res = await fetch(`/api/dashboard?mode=${mode}`, { headers });
     const reader = res.body.getReader();
@@ -133,6 +134,7 @@ async function fetchAll(mode = 'all') {
           if (j.progress) {
             const el = wrap.querySelector('.load-status');
             if (el) el.textContent = j.progress.replace(/\s*\[[\d.]+s\]\s*$/, '');
+            addLog(j.progress, 'success');
           }
           if (j.result) data = j.result;
           if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
@@ -149,14 +151,12 @@ async function fetchAll(mode = 'all') {
     showCacheTime(data.cached_at);
     ov.style.display = 'none';
 
-    clearLog();
     const label = data.incremental ? 'Incremental update' : 'Full load';
     addLog(`${label}: ${data.ads.length} image ads, ${data.totalRows} total insight rows`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     const ov2 = wrap.querySelector('.load-overlay');
     if (ov2) ov2.style.display = 'none';
-    clearLog();
     addLog(err.message, 'error');
     toast('Error: ' + err.message, 'error');
     $('adsBody').innerHTML = empty();

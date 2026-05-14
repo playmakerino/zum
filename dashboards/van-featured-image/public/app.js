@@ -150,8 +150,9 @@ async function fetchAll(mode = 'all') {
     showCacheTime(data.cached_at);
     ov.style.display = 'none';
 
-    const label = data.incremental ? 'Incremental' : 'Full load';
-    addLog(`${label}: ${data.totalRows} rows → ${data.topAdsCount} top → ${data.imageAdsCount} image ads | img ${data.adsWithImage}/${data.ads.length} · link ${data.adsWithLink}/${data.ads.length}`, 'success');
+    const modeLabel = mode === 'active' ? 'Active' : 'All';
+    const fetchLabel = data.incremental ? 'incremental' : 'full';
+    addLog(`${modeLabel} (${fetchLabel}): ${data.totalRows} rows → ${data.topAdsCount} top → ${data.imageAdsCount} image ads | img ${data.adsWithImage}/${data.ads.length} · link ${data.adsWithLink}/${data.ads.length}`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     const ov2 = wrap.querySelector('.load-overlay');

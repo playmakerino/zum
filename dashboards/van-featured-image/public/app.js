@@ -97,16 +97,6 @@ async function fetchAll() {
   if (!state.config.metaToken || !state.config.accountId)
     return toast('Please enter Meta Token and Account ID first', 'error');
 
-  if (state.ads.cached_at) {
-    const hoursAgo = (Date.now() - new Date(state.ads.cached_at).getTime()) / 3600000;
-    if (hoursAgo < 24) {
-      const remaining = 24 - hoursAgo;
-      const h = Math.floor(remaining);
-      const m = Math.floor((remaining - h) * 60);
-      return toast(`Data was loaded ${hoursAgo.toFixed(1)}h ago. Try again in ${h}h${m}m.`, 'error');
-    }
-  }
-
   const headers = {};
   if (state.config.metaToken && state.config.metaToken !== '__SERVER__') headers['x-meta-token'] = state.config.metaToken;
   if (state.config.accountId && state.config.accountId !== '__SERVER__') headers['x-meta-account-id'] = state.config.accountId;

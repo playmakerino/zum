@@ -44,7 +44,12 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 
 .table-wrap{flex:1;min-height:0;background:var(--s);border:1px solid var(--b);border-radius:var(--rad);overflow:hidden;position:relative;box-shadow:var(--shadow-sm)}
 .table-scroll{overflow:auto;height:100%}
-table{width:100%;border-collapse:collapse;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+col.col-img{width:44px}
+col.col-pid{width:70px}
+col.col-link{width:20%}
+col.col-spend{width:90px}
+col.col-roas{width:80px}
 thead th{background:var(--s);color:var(--t3);font-weight:590;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--b)}
 thead th:hover{color:var(--t2)}
 thead th .sort-icon{opacity:0;margin-left:2px;font-size:10px}
@@ -112,7 +117,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .tooltip-box::before{content:'';position:absolute;bottom:100%;right:16px;border:6px solid transparent;border-bottom-color:var(--t)}
 .tooltip-wrap:hover .tooltip-box{opacity:1;visibility:visible}
 
-.link-cell{color:var(--blue,#2563eb);text-decoration:none;font-size:12px;word-break:break-all}
+.link-cell{color:var(--blue,#2563eb);text-decoration:none;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .link-cell:hover{text-decoration:underline}
 
 @media(max-width:768px){

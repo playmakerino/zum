@@ -101,6 +101,8 @@ async function fetchAll() {
   if (state.config.metaToken && state.config.metaToken !== '__SERVER__') headers['x-meta-token'] = state.config.metaToken;
   if (state.config.accountId && state.config.accountId !== '__SERVER__') headers['x-meta-account-id'] = state.config.accountId;
 
+  try { localStorage.removeItem(cacheKey()); } catch {}
+
   const startTime = performance.now();
   const wrap = $('adsTable').closest('.table-wrap');
   let ov = wrap.querySelector('.load-overlay');

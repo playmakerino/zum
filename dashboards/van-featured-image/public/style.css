@@ -123,7 +123,23 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .link-cell{color:var(--blue,#2563eb);text-decoration:none;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .link-cell:hover{text-decoration:underline}
 
+/* Image modal (tap on mobile, click on desktop) */
+.img-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.img-modal.show{display:flex}
+.img-modal img{max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+
 @media(max-width:768px){
-  .topbar{padding:0 12px;gap:8px}
-  .main{padding:12px}
+  .layout{grid-template-rows:auto 1fr}
+  .topbar{padding:10px 12px;gap:6px 12px;flex-wrap:wrap}
+  .logo{width:100%;font-size:13px}
+  .topbar-actions{margin-left:0;gap:6px;flex-wrap:wrap}
+  .btn{padding:5px 10px;font-size:11px}
+  .main{padding:8px}
+
+  table{min-width:600px}
+  thead th{padding:8px 6px;font-size:10px;letter-spacing:.3px}
+  tbody td{padding:5px 6px;font-size:12px}
+  .th-filter-input{width:100px}
+  .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:4px}
+  .load-log{font-size:11px;max-height:80px;line-height:1.6}
 }

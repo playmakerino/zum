@@ -328,7 +328,7 @@ function linkCell(url) {
 function thumb(url) {
   const placeholder = `<div class="thumb-placeholder"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
   if (!url) return placeholder;
-  return `<img class="thumb" src="${esc(url)}" onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()" alt="" loading="lazy" onerror="thumbError(this)">`;
+  return `<img class="thumb" src="${esc(url)}" onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()" onclick="showImageModal(this.src)" alt="" loading="lazy" onerror="thumbError(this)">`;
 }
 function thumbError(img) {
   const div = document.createElement('div');
@@ -363,6 +363,21 @@ function hideThumbPreview() {
   _thumbPreview.style.display = 'none';
 }
 document.addEventListener('click', hideThumbPreview);
+
+const _imgModal = (() => {
+  const el = document.createElement('div');
+  el.className = 'img-modal';
+  el.innerHTML = '<img>';
+  el.addEventListener('click', () => el.classList.remove('show'));
+  document.body.appendChild(el);
+  return el;
+})();
+
+function showImageModal(src) {
+  _imgModal.querySelector('img').src = src;
+  _imgModal.classList.add('show');
+  hideThumbPreview();
+}
 
 let toastTimer;
 function toast(msg, type = '') {

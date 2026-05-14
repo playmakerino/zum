@@ -152,7 +152,7 @@ async function fetchAll(mode = 'all') {
 
     const modeLabel = mode === 'active' ? 'Active' : 'All';
     const fetchLabel = data.incremental ? 'incremental' : 'full';
-    addLog(`${modeLabel} (${fetchLabel}): ${data.totalRows} insight rows (impressions>5k) → ${data.topAdsCount} top spend per name → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');
+    addLog(`${modeLabel} (${fetchLabel}): ${data.totalRows} insight rows → ${data.topAdsCount} spend>$100 → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     const ov2 = wrap.querySelector('.load-overlay');

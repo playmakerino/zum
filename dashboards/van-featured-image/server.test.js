@@ -73,13 +73,14 @@ describe('pickTopSpendAds', () => {
     expect(result[0].spend).toBe(110);
   });
 
-  test('includes all ads regardless of spend amount', () => {
+  test('filters out ads with spend <= 100', () => {
     const rows = [
       { ad_id: '1', ad_name: 'Low', spend: '50', action_values: [] },
       { ad_id: '2', ad_name: 'High', spend: '200', action_values: [] },
     ];
     const result = pickTopSpendAds(rows);
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(1);
+    expect(result[0].ad_name).toBe('High');
   });
 
   test('keeps only highest-spend ad per ad_name', () => {

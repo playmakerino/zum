@@ -151,8 +151,7 @@ async function fetchAll(mode = 'all') {
     ov.style.display = 'none';
 
     const label = data.incremental ? 'Incremental' : 'Full load';
-    addLog(`${label}: ${data.totalRows} insight rows → ${data.topAdsCount} top ads → ${data.imageAdsCount} image ads`, 'success');
-    addLog(`Images: ${data.adsWithImage}/${data.ads.length} · Links: ${data.adsWithLink}/${data.ads.length}`, 'success');
+    addLog(`${label}: ${data.totalRows} rows → ${data.topAdsCount} top → ${data.imageAdsCount} image ads | img ${data.adsWithImage}/${data.ads.length} · link ${data.adsWithLink}/${data.ads.length}`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     const ov2 = wrap.querySelector('.load-overlay');

@@ -119,21 +119,19 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
   const reportId = createRes.data.report_run_id;
   if (!reportId) throw new Error('No report_run_id returned from Meta');
 
-  let jobDone = false;
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     const poll = await axios.get(`${META_BASE_URL}/${reportId}`, {
       params: { access_token: token },
     });
     const status = poll.data.async_status;
     const pct = poll.data.async_percent_completion || 0;
     if (onProgress) onProgress(status, pct);
-    if (status === 'Job Completed') { jobDone = true; break; }
+    if (status === 'Job Completed') break;
     if (status === 'Job Failed' || status === 'Job Skipped') {
       throw new Error(`Async report ${status}`);
     }
     await new Promise(r => setTimeout(r, 2000));
   }
-  if (!jobDone) throw new Error('Async report timed out after 60s');
 
   const results = [];
   let url = `${META_BASE_URL}/${reportId}/insights`;
@@ -185,7 +183,6 @@ function pickTopSpendAds(rows) {
   }
   const byName = {};
   for (const ad of Object.values(byAdId)) {
-    if (ad.spend <= 0) continue;
     if (!byName[ad.ad_name] || ad.spend > byName[ad.ad_name].spend) {
       byName[ad.ad_name] = ad;
     }
@@ -221,7 +218,8 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   const mode = req.query.mode || 'all';
-  const activeFilter = [{ field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
+  const baseFilter = [{ field: 'ad.impressions', operator: 'GREATER_THAN', value: 5000 }];
+  const activeFilter = [...baseFilter, { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
 
   try {
     // ── Step 1: Fetch insights (spend + action_values) ──────────────────────
@@ -232,7 +230,7 @@ app.get('/api/dashboard', async (req, res) => {
     if (mode === 'active') {
       // Active mode: always fetch fresh with status filter, no incremental cache
       const since = allTimeStart();
-      progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
+      progress(`Step 1: Fetching active ads, impressions>5k (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
         progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
       }, activeFilter);
@@ -247,19 +245,19 @@ app.get('/api/dashboard', async (req, res) => {
         } else {
           isIncremental = true;
           const since = addDays(cache.lastUntil, 1);
-          progress(`Step 1: Incremental fetch (${since} → ${today})... [${elapsed()}]`);
+          progress(`Step 1: Incremental fetch, impressions>5k (${since} → ${today})... [${elapsed()}]`);
           const newRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
             progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-          });
+          }, baseFilter);
           allRows = [...cache.rows, ...newRows];
           progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
         }
       } else {
         const since = allTimeStart();
-        progress(`Step 1: Fetching all-time data (${since} → ${today})... [${elapsed()}]`);
+        progress(`Step 1: Fetching all-time data, impressions>5k (${since} → ${today})... [${elapsed()}]`);
         allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
           progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-        });
+        }, baseFilter);
         progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
       }
 

@@ -47,6 +47,7 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 col.col-img{width:44px}
 col.col-pid{width:70px}
+col.col-name{width:30%}
 col.col-link{width:20%}
 col.col-spend{width:90px}
 col.col-roas{width:80px}
@@ -59,7 +60,7 @@ tbody tr{border-bottom:1px solid var(--b);transition:background .08s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--s2)}
 tbody td{padding:6px 10px;vertical-align:middle;color:var(--t)}
-.td-name{font-weight:500;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .thumb,.thumb-placeholder{width:28px;height:28px;border-radius:5px;background:var(--s2)}
 .thumb{object-fit:cover;cursor:pointer}

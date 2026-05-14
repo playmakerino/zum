@@ -106,11 +106,10 @@ function getCredentials(req) {
   return { token, accountId };
 }
 
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering, maxRows) {
+async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering) {
   const params = {
     access_token: token, level: 'ad', fields,
     time_range: JSON.stringify(timeRange),
-    sort: 'spend_descending',
   };
   if (filtering) params.filtering = JSON.stringify(filtering);
   const createRes = await axios.post(`${base}/insights`, null, { params });
@@ -140,7 +139,6 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
   while (url) {
     const res = await axios.get(url, { params: pageParams });
     results.push(...(res.data.data || []));
-    if (maxRows && results.length >= maxRows) return results.slice(0, maxRows);
     const next = res.data.paging?.next || null;
     url = next;
     pageParams = next ? {} : null;
@@ -232,10 +230,10 @@ app.get('/api/dashboard', async (req, res) => {
     if (mode === 'active') {
       // Active mode: always fetch fresh with status filter, no incremental cache
       const since = allTimeStart();
-      progress(`Step 1: Fetching active ads, impressions>5k, top 500 by spend (${since} → ${today})... [${elapsed()}]`);
+      progress(`Step 1: Fetching active ads, impressions>5k (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
         progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-      }, activeFilter, 500);
+      }, activeFilter);
       progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
     } else {
       // All mode: incremental cache
@@ -256,10 +254,10 @@ app.get('/api/dashboard', async (req, res) => {
         }
       } else {
         const since = allTimeStart();
-        progress(`Step 1: Fetching all-time data, impressions>5k, top 500 by spend (${since} → ${today})... [${elapsed()}]`);
+        progress(`Step 1: Fetching all-time data, impressions>5k (${since} → ${today})... [${elapsed()}]`);
         allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
           progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-        }, baseFilter, 500);
+        }, baseFilter);
         progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
       }
 

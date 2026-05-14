@@ -347,12 +347,12 @@ app.get('/api/dashboard', async (req, res) => {
         .filter(ad => ad.creative_id && !imageCache[ad.creative_id])
         .map(ad => ad.creative_id);
       if (stillMissing.length > 0) {
-        progress(`Step 3b: ${stillMissing.length} images not in adimages, fetching thumbnails... [${elapsed()}]`);
+        progress(`Step 3: ${stillMissing.length} images not in adimages, fetching thumbnails... [${elapsed()}]`);
         for (let i = 0; i < stillMissing.length; i += BATCH) {
           const batch = stillMissing.slice(i, i + BATCH);
           try {
             const res = await axios.get(`${META_BASE_URL}/`, {
-              params: { ids: batch.join(','), fields: 'id,thumbnail_url', access_token: token }
+              params: { ids: batch.join(','), fields: 'id,thumbnail_url', thumbnail_width: 1080, thumbnail_height: 1080, access_token: token }
             });
             const now = Date.now();
             for (const [id, data] of Object.entries(res.data)) {
@@ -364,6 +364,8 @@ app.get('/api/dashboard', async (req, res) => {
             console.error('Thumbnail fallback error:', err.response?.data?.error?.message || err.message);
           }
         }
+      } else {
+        progress(`Step 3: 0 need thumbnail fallback [${elapsed()}]`);
       }
 
       saveCacheAsync(IMAGE_CACHE_FILE, imageCache);

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;590&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#fafbfc;
@@ -8,8 +8,6 @@
   --b:#e6e8ec;
   --b2:#d4d6db;
   --a:#5e6ad2;
-  --a2:#4f5ab8;
-  --a-tint:rgba(94,106,210,.1);
   --a-shadow:rgba(94,106,210,.2);
   --g:#26a653;
   --r:#eb5757;
@@ -22,7 +20,7 @@
   --shadow-lg:0 12px 24px rgba(15,17,21,.1),0 4px 8px rgba(15,17,21,.06);
 }
 html,body{height:100%}
-body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter','Inter Display',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11','ss01','ss03'}
+body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11','ss01','ss03'}
 ::selection{background:var(--a-shadow)}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}

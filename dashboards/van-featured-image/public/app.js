@@ -235,7 +235,6 @@ function filterTable(type) {
   renderTable(type);
 }
 
-
 // ── Filter Popup ──────────────────────────────────────────────────────────────
 let _fpState = { type: null, col: null, btn: null };
 

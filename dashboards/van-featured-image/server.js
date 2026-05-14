@@ -175,7 +175,7 @@ async function fetchAdsByIds(token, adIds, fields) {
 function pickTopSpendAds(rows) {
   const byAdId = {};
   for (const row of rows) {
-    if (!row.ad_id || parseFloat(row.spend || 0) <= 0) continue;
+    if (!row.ad_id) continue;
     if (!byAdId[row.ad_id]) {
       byAdId[row.ad_id] = { ad_id: row.ad_id, ad_name: row.ad_name || 'unknown', spend: 0, purchase_value: 0 };
     }
@@ -184,6 +184,7 @@ function pickTopSpendAds(rows) {
   }
   const byName = {};
   for (const ad of Object.values(byAdId)) {
+    if (ad.spend <= 100) continue;
     if (!byName[ad.ad_name] || ad.spend > byName[ad.ad_name].spend) {
       byName[ad.ad_name] = ad;
     }

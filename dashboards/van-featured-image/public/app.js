@@ -52,8 +52,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       state.ads = cached;
       renderTable('ads');
       showCacheTime(cached.cached_at);
-    } else {
-      fetchAll();
     }
   }
 });

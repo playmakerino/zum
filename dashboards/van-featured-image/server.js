@@ -106,10 +106,11 @@ function getCredentials(req) {
   return { token, accountId };
 }
 
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering) {
+async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering, maxRows) {
   const params = {
     access_token: token, level: 'ad', fields,
     time_range: JSON.stringify(timeRange),
+    sort: 'spend_descending',
   };
   if (filtering) params.filtering = JSON.stringify(filtering);
   const createRes = await axios.post(`${base}/insights`, null, { params });
@@ -135,10 +136,11 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
 
   const results = [];
   let url = `${META_BASE_URL}/${reportId}/insights`;
-  let pageParams = { access_token: token, limit: 500 };
+  let pageParams = { access_token: token, limit: 500, sort: 'spend_descending' };
   while (url) {
     const res = await axios.get(url, { params: pageParams });
     results.push(...(res.data.data || []));
+    if (maxRows && results.length >= maxRows) return results.slice(0, maxRows);
     const next = res.data.paging?.next || null;
     url = next;
     pageParams = next ? {} : null;
@@ -183,7 +185,6 @@ function pickTopSpendAds(rows) {
   }
   const byName = {};
   for (const ad of Object.values(byAdId)) {
-    if (ad.spend <= 100) continue;
     if (!byName[ad.ad_name] || ad.spend > byName[ad.ad_name].spend) {
       byName[ad.ad_name] = ad;
     }
@@ -219,7 +220,8 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   const mode = req.query.mode || 'all';
-  const activeFilter = [{ field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
+  const baseFilter = [{ field: 'ad.impressions', operator: 'GREATER_THAN', value: 5000 }];
+  const activeFilter = [...baseFilter, { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
 
   try {
     // ── Step 1: Fetch insights (spend + action_values) ──────────────────────
@@ -230,10 +232,10 @@ app.get('/api/dashboard', async (req, res) => {
     if (mode === 'active') {
       // Active mode: always fetch fresh with status filter, no incremental cache
       const since = allTimeStart();
-      progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
+      progress(`Step 1: Fetching active ads, impressions>5k, top 500 by spend (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
         progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-      }, activeFilter);
+      }, activeFilter, 500);
       progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
     } else {
       // All mode: incremental cache
@@ -245,19 +247,19 @@ app.get('/api/dashboard', async (req, res) => {
         } else {
           isIncremental = true;
           const since = addDays(cache.lastUntil, 1);
-          progress(`Step 1: Incremental fetch (${since} → ${today})... [${elapsed()}]`);
+          progress(`Step 1: Incremental fetch, impressions>5k (${since} → ${today})... [${elapsed()}]`);
           const newRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
             progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-          });
+          }, baseFilter);
           allRows = [...cache.rows, ...newRows];
           progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
         }
       } else {
         const since = allTimeStart();
-        progress(`Step 1: Fetching all-time data (${since} → ${today})... [${elapsed()}]`);
+        progress(`Step 1: Fetching all-time data, impressions>5k, top 500 by spend (${since} → ${today})... [${elapsed()}]`);
         allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
           progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-        });
+        }, baseFilter, 500);
         progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
       }
 

@@ -386,12 +386,19 @@ app.get('/api/dashboard', async (req, res) => {
       };
     });
 
+    const adsWithImage = ads.filter(a => a.image_url).length;
+    const adsWithLink = ads.filter(a => a.link).length;
+
     const result = {
       ads,
       period: { since: allTimeStart(), until: today },
       cached_at: insightsCache?.cached_at || new Date().toISOString(),
       incremental: isIncremental,
       totalRows: allRows.length,
+      topAdsCount: topAds.length,
+      imageAdsCount: imageAds.length,
+      adsWithImage,
+      adsWithLink,
     };
     progress(`Done [${elapsed()}]`);
     res.write(`data: ${JSON.stringify({ result })}\n\n`);

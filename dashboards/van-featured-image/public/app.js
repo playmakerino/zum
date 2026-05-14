@@ -134,7 +134,6 @@ async function fetchAll(mode = 'all') {
           if (j.progress) {
             const el = wrap.querySelector('.load-status');
             if (el) el.textContent = j.progress.replace(/\s*\[[\d.]+s\]\s*$/, '');
-            addLog(j.progress, 'success');
           }
           if (j.result) data = j.result;
           if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
@@ -151,8 +150,9 @@ async function fetchAll(mode = 'all') {
     showCacheTime(data.cached_at);
     ov.style.display = 'none';
 
-    const label = data.incremental ? 'Incremental update' : 'Full load';
-    addLog(`${label}: ${data.ads.length} image ads, ${data.totalRows} total insight rows`, 'success');
+    const label = data.incremental ? 'Incremental' : 'Full load';
+    addLog(`${label}: ${data.totalRows} insight rows → ${data.topAdsCount} top ads → ${data.imageAdsCount} image ads`, 'success');
+    addLog(`Images: ${data.adsWithImage}/${data.ads.length} · Links: ${data.adsWithLink}/${data.ads.length}`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     const ov2 = wrap.querySelector('.load-overlay');

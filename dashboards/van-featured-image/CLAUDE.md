@@ -75,8 +75,10 @@ Meta API: GET /?ids={batch}&fields=id,creative{id,object_type,object_story_spec,
 ```
 Meta API: GET /act_{id}/adimages?hashes=[...]&fields=hash,url
 ```
-- Dùng `image_hash` từ creativeCache để lấy ảnh gốc full-res
+- `hashToCreativeIds`: map hash → **array** of creative_ids (nhiều ads có thể dùng chung 1 image hash)
+- Khi adimages trả URL, gán cho **tất cả** creative_ids cùng hash đó
 - Batch 50 hashes/request
+- **Fallback (Step 3b):** Nếu adimages không trả URL cho 1 số hashes → fetch `thumbnail_url` từ creative endpoint: `GET /?ids={creative_ids}&fields=id,thumbnail_url`
 - Cache: `imageCache[creative_id] = { url, _cachedAt }`
 
 ### Step 4: Build Response

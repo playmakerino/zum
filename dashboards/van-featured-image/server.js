@@ -309,16 +309,18 @@ app.get('/api/dashboard', async (req, res) => {
     progress(`${imageAds.length} image ads after filter [${elapsed()}]`);
 
     // ── Step 3: Fetch full-res images via adimages (only missing) ─────────────
-    const hashToCreativeId = {};
+    // hash → [creative_id, ...] to handle multiple ads sharing the same image
+    const hashToCreativeIds = {};
     for (const ad of imageAds) {
       const cc = creativeCache[ad.ad_id];
       if (cc?.image_hash && ad.creative_id && !imageCache[ad.creative_id]) {
-        hashToCreativeId[cc.image_hash] = ad.creative_id;
+        if (!hashToCreativeIds[cc.image_hash]) hashToCreativeIds[cc.image_hash] = [];
+        hashToCreativeIds[cc.image_hash].push(ad.creative_id);
       }
     }
-    const missingHashes = Object.keys(hashToCreativeId);
+    const missingHashes = Object.keys(hashToCreativeIds);
     if (missingHashes.length > 0) {
-      progress(`Step 3: Fetching ${missingHashes.length} full-res images... [${elapsed()}]`);
+      progress(`Step 3: Fetching ${missingHashes.length} unique hashes for images... [${elapsed()}]`);
       const BATCH = 50;
       for (let i = 0; i < missingHashes.length; i += BATCH) {
         const batch = missingHashes.slice(i, i + BATCH);
@@ -327,15 +329,45 @@ app.get('/api/dashboard', async (req, res) => {
             params: { hashes: JSON.stringify(batch), fields: 'hash,url', access_token: token }
           });
           for (const img of (res.data.data || [])) {
-            const cid = hashToCreativeId[img.hash];
-            if (cid && img.url) imageCache[cid] = { url: img.url, _cachedAt: Date.now() };
+            const cids = hashToCreativeIds[img.hash];
+            if (cids && img.url) {
+              const now = Date.now();
+              for (const cid of cids) {
+                imageCache[cid] = { url: img.url, _cachedAt: now };
+              }
+            }
           }
         } catch (err) {
           console.error('Adimages fetch error:', err.response?.data?.error?.message || err.message);
         }
       }
+
+      // Fallback: fetch thumbnail_url for creatives still missing after adimages
+      const stillMissing = imageAds
+        .filter(ad => ad.creative_id && !imageCache[ad.creative_id])
+        .map(ad => ad.creative_id);
+      if (stillMissing.length > 0) {
+        progress(`Step 3b: ${stillMissing.length} images not in adimages, fetching thumbnails... [${elapsed()}]`);
+        for (let i = 0; i < stillMissing.length; i += BATCH) {
+          const batch = stillMissing.slice(i, i + BATCH);
+          try {
+            const res = await axios.get(`${META_BASE_URL}/`, {
+              params: { ids: batch.join(','), fields: 'id,thumbnail_url', access_token: token }
+            });
+            const now = Date.now();
+            for (const [id, data] of Object.entries(res.data)) {
+              if (data?.thumbnail_url) {
+                imageCache[id] = { url: data.thumbnail_url, _cachedAt: now };
+              }
+            }
+          } catch (err) {
+            console.error('Thumbnail fallback error:', err.response?.data?.error?.message || err.message);
+          }
+        }
+      }
+
       saveCacheAsync(IMAGE_CACHE_FILE, imageCache);
-      progress(`Step 3: Full-res images fetched [${elapsed()}]`);
+      progress(`Step 3: Images done [${elapsed()}]`);
     } else if (imageAds.length > 0) {
       progress(`Step 3: All images cached [${elapsed()}]`);
     }

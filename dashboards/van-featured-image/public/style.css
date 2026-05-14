@@ -47,8 +47,8 @@ body{background:var(--bg);color:var(--t);font:13px/1.5 'Inter',-apple-system,sys
 table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 col.col-img{width:44px}
 col.col-pid{width:70px}
-col.col-name{width:30%}
-col.col-link{width:20%}
+col.col-name{width:20%}
+col.col-link{width:30%}
 col.col-spend{width:90px}
 col.col-roas{width:80px}
 thead th{background:var(--s);color:var(--t3);font-weight:590;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--b)}

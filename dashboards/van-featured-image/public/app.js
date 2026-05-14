@@ -320,7 +320,7 @@ const fmtF = n => parseFloat(n || 0).toFixed(2);
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
 function linkCell(url) {
   if (!url) return '';
-  let display = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  let display = url.replace(/^https?:\/\//, '').replace(/^(www\.)?zumbamboo\.com/, '').replace(/\/$/, '');
   if (display.length > 30) display = display.slice(0, 30) + '…';
   return `<a href="${esc(url)}" target="_blank" rel="noopener" class="link-cell" title="${esc(url)}">${esc(display)}</a>`;
 }

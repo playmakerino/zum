@@ -219,6 +219,7 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   const mode = req.query.mode || 'all';
+  const fromStep = parseInt(req.query.from) || 1;
   const activeFilter = [{ field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
 
   try {
@@ -227,8 +228,14 @@ app.get('/api/dashboard', async (req, res) => {
     let allRows;
     let isIncremental = false;
 
-    if (mode === 'active') {
-      // Active mode: always fetch fresh with status filter, no incremental cache
+    if (fromStep >= 2) {
+      if (!insightsCache) {
+        res.write(`data: ${JSON.stringify({ error: 'No insights cache', detail: 'Cannot skip Step 1: no cached insights found. Run full pipeline first.' })}\n\n`);
+        return res.end();
+      }
+      allRows = insightsCache.rows;
+      progress(`Step 1: Skipped — using cached insights (${allRows.length} rows) [${elapsed()}]`);
+    } else if (mode === 'active') {
       const since = allTimeStart();
       progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {

@@ -258,17 +258,19 @@ app.get('/api/dashboard', async (req, res) => {
 
     // ── Step 2: Fetch creative info for top ads (only missing) ───────────────
     const topAdIds = topAds.map(a => a.ad_id);
-    const missingCreativeIds = topAdIds.filter(id => !creativeCache[id] || !('link' in creativeCache[id]));
+    const missingCreativeIds = topAdIds.filter(id => !creativeCache[id] || !creativeCache[id].link);
     if (missingCreativeIds.length > 0) {
       progress(`Step 2: Fetching creative info for ${missingCreativeIds.length} ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingCreativeIds, 'id,creative{id,object_type,object_story_spec}');
+      const fetched = await fetchAdsByIds(token, missingCreativeIds, 'id,creative{id,object_type,object_story_spec,asset_feed_spec}');
       const now = Date.now();
       for (const ad of fetched) {
+        const oss = ad.creative?.object_story_spec;
+        const afs = ad.creative?.asset_feed_spec;
         creativeCache[ad.id] = {
           creative_id: ad.creative?.id || null,
           object_type: ad.creative?.object_type || '',
-          is_catalog: !!ad.creative?.object_story_spec?.template_data,
-          link: ad.creative?.object_story_spec?.link_data?.link || '',
+          is_catalog: !!oss?.template_data,
+          link: oss?.link_data?.link || afs?.link_urls?.[0]?.website_url || '',
           _cachedAt: now,
         };
       }

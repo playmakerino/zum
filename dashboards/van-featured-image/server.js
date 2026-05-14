@@ -136,7 +136,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
 
   const results = [];
   let url = `${META_BASE_URL}/${reportId}/insights`;
-  let pageParams = { access_token: token, limit: 500 };
+  let pageParams = { access_token: token, limit: 500, sort: 'spend_descending' };
   while (url) {
     const res = await axios.get(url, { params: pageParams });
     results.push(...(res.data.data || []));

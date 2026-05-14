@@ -14,7 +14,7 @@ window.onunhandledrejection = function(e) {
 const $ = id => document.getElementById(id);
 
 const PAGE_SIZE = 100;
-const COLS = 5;
+const COLS = 6;
 const state = {
   config: Object.fromEntries(['metaToken','accountId'].map(k => [k, localStorage.getItem(k) || ''])),
   ads: { data: [], period: null, cached_at: null },
@@ -26,7 +26,7 @@ const state = {
 const TABLES = {
   ads: {
     idKey: 'ad_name',
-    row: r => `<tr><td>${thumb(r.thumbnail_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${fmtMoneyInt(r.spend)}</td><td>${fmtF(r.roas)}x</td></tr>`
+    row: r => `<tr><td>${thumb(r.thumbnail_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td>${fmtMoneyInt(r.spend)}</td><td>${fmtF(r.roas)}x</td></tr>`
   },
 };
 
@@ -96,6 +96,16 @@ function clearLog() {
 async function fetchAll() {
   if (!state.config.metaToken || !state.config.accountId)
     return toast('Please enter Meta Token and Account ID first', 'error');
+
+  if (state.ads.cached_at) {
+    const hoursAgo = (Date.now() - new Date(state.ads.cached_at).getTime()) / 3600000;
+    if (hoursAgo < 24) {
+      const remaining = 24 - hoursAgo;
+      const h = Math.floor(remaining);
+      const m = Math.floor((remaining - h) * 60);
+      return toast(`Data was loaded ${hoursAgo.toFixed(1)}h ago. Try again in ${h}h${m}m.`, 'error');
+    }
+  }
 
   const headers = {};
   if (state.config.metaToken && state.config.metaToken !== '__SERVER__') headers['x-meta-token'] = state.config.metaToken;
@@ -318,6 +328,12 @@ const empty = () => `<tr><td colspan="${COLS}"><div class="state-box">No data</d
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtF = n => parseFloat(n || 0).toFixed(2);
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
+function linkCell(url) {
+  if (!url) return '';
+  let display = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  if (display.length > 30) display = display.slice(0, 30) + '…';
+  return `<a href="${esc(url)}" target="_blank" rel="noopener" class="link-cell" title="${esc(url)}">${esc(display)}</a>`;
+}
 
 function thumb(url) {
   const placeholder = `<div class="thumb-placeholder"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;

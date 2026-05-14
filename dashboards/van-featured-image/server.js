@@ -62,17 +62,13 @@ let creativeCache = loadCreativeCacheFromFile();
 
 // ── HD Thumbnail Cache (creative_id → { url }, 24h TTL) ─────────────────────
 const HD_THUMB_CACHE_FILE = path.join(__dirname, '.cache-hd-thumbs.json');
-const HD_THUMB_TTL = 24 * 60 * 60 * 1000;
-
 function loadHdThumbCache() {
   try {
     if (fs.existsSync(HD_THUMB_CACHE_FILE)) {
       const raw = JSON.parse(fs.readFileSync(HD_THUMB_CACHE_FILE, 'utf8'));
-      const now = Date.now();
       const filtered = {};
       for (const [id, entry] of Object.entries(raw)) {
         if (typeof entry === 'string') continue;
-        if (entry._cachedAt && (now - entry._cachedAt) > HD_THUMB_TTL) continue;
         filtered[id] = entry;
       }
       return filtered;
@@ -268,11 +264,12 @@ app.get('/api/dashboard', async (req, res) => {
           creative_id: ad.creative?.id || null,
           object_type: ad.creative?.object_type || '',
           is_catalog: !!ad.creative?.object_story_spec?.template_data,
+          link: ad.creative?.object_story_spec?.link_data?.link || '',
           _cachedAt: now,
         };
       }
       for (const id of missingCreativeIds) {
-        if (!creativeCache[id]) creativeCache[id] = { creative_id: null, object_type: '', _cachedAt: now };
+        if (!creativeCache[id]) creativeCache[id] = { creative_id: null, object_type: '', link: '', _cachedAt: now };
       }
       saveCacheAsync(CREATIVE_CACHE_FILE, creativeCache);
       progress(`Step 2: Creative info cached (${fetched.length} ads) [${elapsed()}]`);
@@ -287,6 +284,7 @@ app.get('/api/dashboard', async (req, res) => {
     }).map(ad => ({
       ...ad,
       creative_id: creativeCache[ad.ad_id]?.creative_id,
+      link: creativeCache[ad.ad_id]?.link || '',
     }));
     progress(`${imageAds.length} image ads after filter [${elapsed()}]`);
 
@@ -300,10 +298,10 @@ app.get('/api/dashboard', async (req, res) => {
         const batch = missingThumbIds.slice(i, i + BATCH);
         try {
           const thumbRes = await axios.get(`${META_BASE_URL}/`, {
-            params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
+            params: { ids: batch.join(','), fields: 'image_url', access_token: token }
           });
           for (const [id, data] of Object.entries(thumbRes.data)) {
-            if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
+            if (data?.image_url) hdThumbCache[id] = { url: data.image_url, _cachedAt: Date.now() };
           }
         } catch (err) {
           console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
@@ -325,6 +323,7 @@ app.get('/api/dashboard', async (req, res) => {
         purchase_value: ad.purchase_value,
         roas: ad.roas,
         thumbnail_url: ad.creative_id ? (hdThumbCache[ad.creative_id]?.url || null) : null,
+        link: ad.link || '',
       };
     });
 

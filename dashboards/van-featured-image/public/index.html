@@ -27,10 +27,11 @@
             <th>Image</th>
             <th data-sort="print_id" onclick="sortTable('ads','print_id')"><div class="th-content">Print ID <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
             <th><div class="th-content"><input data-table="ads" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Ad Name" oninput="filterTable('ads')" onclick="event.stopPropagation()"></div></th>
+            <th>Link</th>
             <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="adsBody">
-            <tr><td colspan="5"><div class="state-box">Click "Load Data" to start</div></td></tr>
+            <tr><td colspan="6"><div class="state-box">Click "Load Data" to start</div></td></tr>
           </tbody></table>
         </div>
       </div>

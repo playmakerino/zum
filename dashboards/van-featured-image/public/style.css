@@ -112,6 +112,9 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .tooltip-box::before{content:'';position:absolute;bottom:100%;right:16px;border:6px solid transparent;border-bottom-color:var(--t)}
 .tooltip-wrap:hover .tooltip-box{opacity:1;visibility:visible}
 
+.link-cell{color:var(--blue,#2563eb);text-decoration:none;font-size:12px;word-break:break-all}
+.link-cell:hover{text-decoration:underline}
+
 @media(max-width:768px){
   .topbar{padding:0 12px;gap:8px}
   .main{padding:12px}

@@ -62,13 +62,17 @@ let creativeCache = loadCreativeCacheFromFile();
 
 // ── HD Thumbnail Cache (creative_id → { url }, 24h TTL) ─────────────────────
 const HD_THUMB_CACHE_FILE = path.join(__dirname, '.cache-hd-thumbs.json');
+const HD_THUMB_TTL = 24 * 60 * 60 * 1000;
+
 function loadHdThumbCache() {
   try {
     if (fs.existsSync(HD_THUMB_CACHE_FILE)) {
       const raw = JSON.parse(fs.readFileSync(HD_THUMB_CACHE_FILE, 'utf8'));
+      const now = Date.now();
       const filtered = {};
       for (const [id, entry] of Object.entries(raw)) {
         if (typeof entry === 'string') continue;
+        if (entry._cachedAt && (now - entry._cachedAt) > HD_THUMB_TTL) continue;
         filtered[id] = entry;
       }
       return filtered;
@@ -298,10 +302,11 @@ app.get('/api/dashboard', async (req, res) => {
         const batch = missingThumbIds.slice(i, i + BATCH);
         try {
           const thumbRes = await axios.get(`${META_BASE_URL}/`, {
-            params: { ids: batch.join(','), fields: 'image_url', access_token: token }
+            params: { ids: batch.join(','), fields: 'image_url,thumbnail_url', thumbnail_width: 1080, thumbnail_height: 1080, access_token: token }
           });
           for (const [id, data] of Object.entries(thumbRes.data)) {
-            if (data?.image_url) hdThumbCache[id] = { url: data.image_url, _cachedAt: Date.now() };
+            const url = data?.image_url || data?.thumbnail_url;
+            if (url) hdThumbCache[id] = { url, _cachedAt: Date.now() };
           }
         } catch (err) {
           console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);

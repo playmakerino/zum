@@ -26,7 +26,7 @@ const state = {
 const TABLES = {
   ads: {
     idKey: 'ad_name',
-    row: r => `<tr><td>${thumb(r.thumbnail_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td>${fmtMoneyInt(r.spend)}</td><td>${fmtF(r.roas)}x</td></tr>`
+    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td>${fmtMoneyInt(r.spend)}</td><td>${fmtF(r.roas)}x</td></tr>`
   },
 };
 
@@ -320,8 +320,7 @@ const fmtF = n => parseFloat(n || 0).toFixed(2);
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
 function linkCell(url) {
   if (!url) return '';
-  let display = url.replace(/^https?:\/\//, '').replace(/^(www\.)?zumbamboo\.com/, '').replace(/\/$/, '');
-  if (display.length > 30) display = display.slice(0, 30) + '…';
+  const display = url.replace(/^https?:\/\//, '').replace(/^(www\.)?zumbamboo\.com/, '').replace(/\/$/, '');
   return `<a href="${esc(url)}" target="_blank" rel="noopener" class="link-cell" title="${esc(url)}">${esc(display)}</a>`;
 }
 

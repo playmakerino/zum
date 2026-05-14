@@ -38,7 +38,7 @@ function loadInsightsCacheFromFile() {
 
 let insightsCache = loadInsightsCacheFromFile();
 
-// ── Creative Cache (ad_id → { creative_id, object_type }, 30-day TTL) ────────
+// ── Creative Cache (ad_id → { creative_id, object_type, link, image_hash }, 30-day TTL)
 const CREATIVE_CACHE_FILE = path.join(__dirname, '.cache-creatives.json');
 const CREATIVE_TTL = 30 * 24 * 60 * 60 * 1000;
 
@@ -60,19 +60,19 @@ function loadCreativeCacheFromFile() {
 
 let creativeCache = loadCreativeCacheFromFile();
 
-// ── HD Thumbnail Cache (creative_id → { url }, 24h TTL) ─────────────────────
-const HD_THUMB_CACHE_FILE = path.join(__dirname, '.cache-hd-thumbs.json');
-const HD_THUMB_TTL = 24 * 60 * 60 * 1000;
+// ── Image Cache (creative_id → { url }, 24h TTL) ────────────────────────────
+const IMAGE_CACHE_FILE = path.join(__dirname, '.cache-images.json');
+const IMAGE_TTL = 24 * 60 * 60 * 1000;
 
-function loadHdThumbCache() {
+function loadImageCache() {
   try {
-    if (fs.existsSync(HD_THUMB_CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(HD_THUMB_CACHE_FILE, 'utf8'));
+    if (fs.existsSync(IMAGE_CACHE_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(IMAGE_CACHE_FILE, 'utf8'));
       const now = Date.now();
       const filtered = {};
       for (const [id, entry] of Object.entries(raw)) {
         if (typeof entry === 'string') continue;
-        if (entry._cachedAt && (now - entry._cachedAt) > HD_THUMB_TTL) continue;
+        if (entry._cachedAt && (now - entry._cachedAt) > IMAGE_TTL) continue;
         filtered[id] = entry;
       }
       return filtered;
@@ -81,7 +81,7 @@ function loadHdThumbCache() {
   return {};
 }
 
-let hdThumbCache = loadHdThumbCache();
+let imageCache = loadImageCache();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -96,9 +96,8 @@ function allTimeStart() {
 }
 
 function addDays(dateString, days) {
-  const d = new Date(dateString + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  const [y, m, d] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().split('T')[0];
 }
 
 function getCredentials(req) {
@@ -271,6 +270,7 @@ app.get('/api/dashboard', async (req, res) => {
           object_type: ad.creative?.object_type || '',
           is_catalog: !!oss?.template_data,
           link: oss?.link_data?.link || afs?.link_urls?.[0]?.website_url || '',
+          image_hash: oss?.link_data?.image_hash || afs?.images?.[0]?.hash || '',
           _cachedAt: now,
         };
       }
@@ -294,33 +294,39 @@ app.get('/api/dashboard', async (req, res) => {
     }));
     progress(`${imageAds.length} image ads after filter [${elapsed()}]`);
 
-    // ── Step 3: Fetch HD thumbnails (only missing image creatives) ───────────
-    const creativeIds = imageAds.map(a => a.creative_id).filter(Boolean);
-    const missingThumbIds = creativeIds.filter(id => !hdThumbCache[id]);
-    if (missingThumbIds.length > 0) {
-      progress(`Step 3: Fetching HD thumbnails for ${missingThumbIds.length} creatives... [${elapsed()}]`);
+    // ── Step 3: Fetch full-res images via adimages (only missing) ─────────────
+    const hashToCreativeId = {};
+    for (const ad of imageAds) {
+      const cc = creativeCache[ad.ad_id];
+      if (cc?.image_hash && ad.creative_id && !imageCache[ad.creative_id]) {
+        hashToCreativeId[cc.image_hash] = ad.creative_id;
+      }
+    }
+    const missingHashes = Object.keys(hashToCreativeId);
+    if (missingHashes.length > 0) {
+      progress(`Step 3: Fetching ${missingHashes.length} full-res images... [${elapsed()}]`);
       const BATCH = 50;
-      for (let i = 0; i < missingThumbIds.length; i += BATCH) {
-        const batch = missingThumbIds.slice(i, i + BATCH);
+      for (let i = 0; i < missingHashes.length; i += BATCH) {
+        const batch = missingHashes.slice(i, i + BATCH);
         try {
-          const thumbRes = await axios.get(`${META_BASE_URL}/`, {
-            params: { ids: batch.join(','), fields: 'image_url,thumbnail_url', thumbnail_width: 1080, thumbnail_height: 1080, access_token: token }
+          const res = await axios.get(`${META_BASE_URL}/act_${accountId}/adimages`, {
+            params: { hashes: JSON.stringify(batch), fields: 'hash,url', access_token: token }
           });
-          for (const [id, data] of Object.entries(thumbRes.data)) {
-            const url = data?.image_url || data?.thumbnail_url;
-            if (url) hdThumbCache[id] = { url, _cachedAt: Date.now() };
+          for (const img of (res.data.data || [])) {
+            const cid = hashToCreativeId[img.hash];
+            if (cid && img.url) imageCache[cid] = { url: img.url, _cachedAt: Date.now() };
           }
         } catch (err) {
-          console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
+          console.error('Adimages fetch error:', err.response?.data?.error?.message || err.message);
         }
       }
-      saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
-      progress(`Step 3: HD thumbnails fetched [${elapsed()}]`);
-    } else if (creativeIds.length > 0) {
-      progress(`Step 3: All HD thumbnails cached [${elapsed()}]`);
+      saveCacheAsync(IMAGE_CACHE_FILE, imageCache);
+      progress(`Step 3: Full-res images fetched [${elapsed()}]`);
+    } else if (imageAds.length > 0) {
+      progress(`Step 3: All images cached [${elapsed()}]`);
     }
 
-    // Build final ads with thumbnails
+    // Build final ads
     const ads = imageAds.map(ad => {
       const m = ad.ad_name.match(/\[[A-Za-z]+(\d+)/);
       return {
@@ -329,7 +335,7 @@ app.get('/api/dashboard', async (req, res) => {
         spend: ad.spend,
         purchase_value: ad.purchase_value,
         roas: ad.roas,
-        thumbnail_url: ad.creative_id ? (hdThumbCache[ad.creative_id]?.url || null) : null,
+        image_url: ad.creative_id ? (imageCache[ad.creative_id]?.url || null) : null,
         link: ad.link || '',
       };
     });

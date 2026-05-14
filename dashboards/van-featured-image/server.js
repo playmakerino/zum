@@ -252,8 +252,19 @@ app.get('/api/dashboard', async (req, res) => {
     saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
 
     // Pick top-spend ad per ad_name
-    const topAds = pickTopSpendAds(allRows);
+    let topAds = pickTopSpendAds(allRows);
     progress(`${topAds.length} unique ad names (top spend per name) [${elapsed()}]`);
+
+    // ── Step 1.5: Filter active ads only (if mode=active) ───────────────────
+    const mode = req.query.mode || 'all';
+    if (mode === 'active') {
+      const allIds = topAds.map(a => a.ad_id);
+      progress(`Filtering active ads... [${elapsed()}]`);
+      const statusData = await fetchAdsByIds(token, allIds, 'id,effective_status');
+      const activeIds = new Set(statusData.filter(ad => ad.effective_status === 'ACTIVE').map(ad => ad.id));
+      topAds = topAds.filter(ad => activeIds.has(ad.ad_id));
+      progress(`${topAds.length} active ads (filtered from ${allIds.length}) [${elapsed()}]`);
+    }
 
     // ── Step 2: Fetch creative info for top ads (only missing) ───────────────
     const topAdIds = topAds.map(a => a.ad_id);

@@ -93,7 +93,7 @@ function clearLog() {
 }
 
 // Fetch
-async function fetchAll() {
+async function fetchAll(mode = 'all') {
   if (!state.config.metaToken || !state.config.accountId)
     return toast('Please enter Meta Token and Account ID first', 'error');
 
@@ -117,7 +117,7 @@ async function fetchAll() {
   }, 1000);
 
   try {
-    const res = await fetch('/api/dashboard', { headers });
+    const res = await fetch(`/api/dashboard?mode=${mode}`, { headers });
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = '', data = null;

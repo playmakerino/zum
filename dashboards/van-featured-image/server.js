@@ -258,7 +258,7 @@ app.get('/api/dashboard', async (req, res) => {
 
     // ── Step 2: Fetch creative info for top ads (only missing) ───────────────
     const topAdIds = topAds.map(a => a.ad_id);
-    const missingCreativeIds = topAdIds.filter(id => !creativeCache[id]);
+    const missingCreativeIds = topAdIds.filter(id => !creativeCache[id] || !('link' in creativeCache[id]));
     if (missingCreativeIds.length > 0) {
       progress(`Step 2: Fetching creative info for ${missingCreativeIds.length} ads... [${elapsed()}]`);
       const fetched = await fetchAdsByIds(token, missingCreativeIds, 'id,creative{id,object_type,object_story_spec}');

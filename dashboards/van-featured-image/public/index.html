@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <header class="topbar">
+    <span class="logo">Most Spent Image Ad by Ad Name</span>
+    <div class="topbar-actions">
+      <span class="cache-time" id="headerCachedAt"></span>
+      <div class="tooltip-wrap">
+        <button class="btn btn-primary" onclick="fetchAll()">Load Data</button>
+        <div class="tooltip-box">First load fetches all-time data. Subsequent loads fetch only new data since last update.</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="page-ads" class="page active">
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table id="adsTable"><thead><tr>
+            <th>Image</th>
+            <th data-sort="print_id" onclick="sortTable('ads','print_id')"><div class="th-content">Print ID <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
+            <th><div class="th-content"><input data-table="ads" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Ad Name" oninput="filterTable('ads')" onclick="event.stopPropagation()"></div></th>
+            <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+          </tr></thead><tbody id="adsBody">
+            <tr><td colspan="5"><div class="state-box">Click "Load Data" to start</div></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="load-log" id="adsLoadLog"></div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<div id="filterPopup" class="filter-popup">
+  <div class="filter-popup-title" id="filterPopupTitle"></div>
+  <div class="filter-popup-body">
+    <select id="filterOp" onchange="onFilterOpChange()">
+      <option value="gt">is greater than</option>
+      <option value="lt">is less than</option>
+      <option value="between">is between</option>
+      <option value="notBetween">isn't between</option>
+    </select>
+    <div class="filter-inputs">
+      <input type="number" id="filterVal1" step="any" placeholder="Value">
+      <span id="filterAnd" style="display:none;font-size:11px;color:var(--t3)">and</span>
+      <input type="number" id="filterVal2" step="any" placeholder="Value" style="display:none">
+    </div>
+  </div>
+  <div class="filter-popup-actions">
+    <button onclick="clearCurrentFilter()">Clear</button>
+    <button onclick="cancelFilter()">Cancel</button>
+    <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

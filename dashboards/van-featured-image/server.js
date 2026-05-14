@@ -389,7 +389,7 @@ app.get('/api/dashboard', async (req, res) => {
     const result = {
       ads,
       period: { since: allTimeStart(), until: today },
-      cached_at: insightsCache.cached_at,
+      cached_at: insightsCache?.cached_at || new Date().toISOString(),
       incremental: isIncremental,
       totalRows: allRows.length,
     };

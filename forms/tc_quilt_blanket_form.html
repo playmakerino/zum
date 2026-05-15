@@ -98,7 +98,8 @@
       color: var(--text-sub); margin-bottom: 8px; letter-spacing: 0.01em;
     }
 
-    .field input[type="text"] {
+    .field input[type="text"],
+    .field select {
       width: 100%; height: 48px;
       background: var(--surface-elevated);
       border: none; border-radius: 6px;
@@ -108,11 +109,27 @@
       color: var(--text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
+      appearance: none;
+    }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+      cursor: pointer;
     }
     .field input[type="text"]::placeholder { color: var(--text-muted); }
-    .field input[type="text"]:hover { background: #2a2a2a; }
-    .field input[type="text"]:focus {
-      background: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
+    .field input[type="text"]:hover,
+    .field select:hover { background-color: #2a2a2a; }
+    .field input[type="text"]:focus,
+    .field select:focus {
+      background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
     }
 
     .row {
@@ -157,6 +174,14 @@
       color: var(--error); border-color: var(--error); background: var(--error-soft);
     }
 
+    .add-row-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 6px; flex-wrap: wrap;
+    }
+    .paste-tip {
+      font-size: 11px; color: var(--text-muted); line-height: 1.4;
+    }
+
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
@@ -169,7 +194,7 @@
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
       letter-spacing: 0.01em;
-      margin-top: 6px;
+      flex-shrink: 0;
     }
     .add-btn:hover {
       border-color: var(--text);
@@ -228,6 +253,7 @@
     }
 
     @media (max-width: 640px) {
+      .field-row { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr 36px; }
       .row .row-print { grid-column: 1; }
       .row .remove-btn { grid-column: 2; grid-row: 1; }
@@ -238,16 +264,25 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Quilt blanket</h1>
+      <h1>Test print theme</h1>
       <p>Fill in print information to automatically create ads.</p>
     </div>
 
     <div class="card">
 
       <div class="section">
-        <div class="field">
-          <label>Print theme</label>
-          <input type="text" id="ad_set_name" placeholder="Sea turtle" />
+        <div class="field-row">
+          <div class="field">
+            <label>Print theme</label>
+            <input type="text" id="ad_set_name" placeholder="Sea turtle" />
+          </div>
+          <div class="field">
+            <label>Product type</label>
+            <select id="product_type">
+              <option value="quilt_blanket">Quilt blanket</option>
+              <option value="quilt_bedding_set">Quilt bedding set</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -262,12 +297,15 @@
           <span></span>
         </div>
         <div id="rowsContainer"></div>
-        <button class="add-btn" onclick="addRow()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Add product
-        </button>
+        <div class="add-row-wrap">
+          <button class="add-btn" onclick="addRow()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add product
+          </button>
+          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID.</span>
+        </div>
       </div>
 
       <div class="submit-wrap">
@@ -286,7 +324,14 @@
     // ============================================================
     //   CONFIG
     // ============================================================
-    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54";
+    const WEBHOOK_URLS = {
+      quilt_blanket: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54",
+      quilt_bedding_set: "https://playmakerino.app.n8n.cloud/webhook/c1a0d163-6422-4487-b657-5db4f7e5fa9b"
+    };
+
+    function getWebhookUrl() {
+      return WEBHOOK_URLS[document.getElementById('product_type').value];
+    }
     // ============================================================
 
     function escapeHtml(s) {
@@ -349,7 +394,7 @@
       document.getElementById('submitBtn').disabled = true;
 
       try {
-        const res = await fetch(N8N_WEBHOOK_URL, {
+        const res = await fetch(getWebhookUrl(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -376,6 +421,53 @@
       el.className = `status ${type}`;
       el.innerHTML = html;
     }
+
+    document.getElementById('rowsContainer').addEventListener('paste', function(e) {
+      const target = e.target;
+      const isPrint = target.classList.contains('row-print');
+      const isUrl = target.classList.contains('row-url');
+      if (!isPrint && !isUrl) return;
+
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2 && !lines.some(l => l.includes('\t'))) return;
+
+      const parsed = lines.map(line => line.split('\t'));
+      const isMultiCol = parsed.some(cols => cols.length >= 2);
+
+      if (lines.length < 2 && !isMultiCol) return;
+
+      e.preventDefault();
+
+      if (isMultiCol) {
+        const currentRow = target.closest('.row');
+        currentRow.remove();
+        parsed.forEach(cols => {
+          const printId = (cols[0] || '').trim();
+          const productUrl = (cols[1] || '').trim();
+          if (printId || productUrl) addRow(printId, productUrl);
+        });
+      } else {
+        const container = document.getElementById('rowsContainer');
+        const allRows = Array.from(container.querySelectorAll('.row'));
+        const startIndex = allRows.indexOf(target.closest('.row'));
+        const fieldClass = isPrint ? '.row-print' : '.row-url';
+
+        parsed.forEach((cols, i) => {
+          const val = (cols[0] || '').trim();
+          if (!val) return;
+          const rowIndex = startIndex + i;
+          if (rowIndex < allRows.length) {
+            allRows[rowIndex].querySelector(fieldClass).value = val;
+          } else {
+            if (isPrint) addRow(val, '');
+            else addRow('', val);
+          }
+        });
+      }
+
+      updateCount();
+    });
 
     addRow();
   </script>

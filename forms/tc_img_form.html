@@ -147,15 +147,15 @@
 
     .file-item {
       position: relative;
-      background: var(--surface-elevated);
-      border-radius: 6px;
-      padding: 8px;
+      background: transparent;
+      border-radius: 8px;
+      padding: 12px;
       cursor: default;
-      transition: background 0.2s;
+      transition: background 0.3s;
     }
 
     .file-item:hover {
-      background: var(--surface-hover);
+      background: #282828;
     }
 
     .file-item.invalid .file-thumb {
@@ -169,25 +169,26 @@
       display: block;
       border-radius: 4px;
       background: var(--bg);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
 
     .file-info {
-      padding-top: 6px;
+      padding-top: 8px;
     }
 
     .file-name {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.3;
+      line-height: 1.4;
     }
 
     .file-meta {
-      font-size: 10px;
-      color: var(--text-sub);
+      font-size: 11px;
+      color: #a7a7a7;
       margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
@@ -195,7 +196,7 @@
     }
 
     .file-meta .tag {
-      color: var(--text-sub);
+      color: #a7a7a7;
       font-weight: 400;
     }
 
@@ -205,8 +206,8 @@
 
     .file-remove {
       position: absolute;
-      top: 4px;
-      right: 4px;
+      top: 16px;
+      right: 16px;
       width: 24px;
       height: 24px;
       border: none;
@@ -218,8 +219,8 @@
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 0.2s, transform 0.15s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transition: opacity 0.3s, transform 0.15s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
 
     .file-item:hover .file-remove { opacity: 1; }
@@ -302,6 +303,23 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .file-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .file-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .file-list::-webkit-scrollbar-thumb {
+      background: hsla(0,0%,100%,0.3);
+      border-radius: 4px;
+    }
+
+    .file-list::-webkit-scrollbar-thumb:hover {
+      background: hsla(0,0%,100%,0.5);
+    }
   </style>
 </head>
 <body>

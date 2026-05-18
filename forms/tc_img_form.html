@@ -424,7 +424,7 @@
           if (item.parsed.mockup_id) parts.push(item.parsed.mockup_id);
           meta.innerHTML = `<span class="tag">${parts.join(' · ')}</span>`;
         } else {
-          meta.innerHTML = '<span class="tag err">Invalid format</span>';
+          meta.innerHTML = '<span class="tag err">Invalid file name</span>';
         }
 
         info.appendChild(nameEl);

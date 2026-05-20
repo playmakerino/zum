@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -230,8 +230,8 @@
   <div class="container">
     <div class="header">
       <h1>TC Image</h1>
-      <p>Dán link folder Google Drive chứa ảnh để tự động tạo ads.</p>
-      <p>Tên file ảnh theo format [PrintID-TypeID_MockupID].jpg</p>
+      <p>Paste a Google Drive folder link to auto create ads.</p>
+      <p>Image filenames must follow [PrintID-TypeID_MockupID].jpg</p>
     </div>
 
     <div class="card">
@@ -243,10 +243,7 @@
 
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-          Tạo Ads
+          Create Ads
         </button>
         <div class="status" id="statusMsg"></div>
       </div>
@@ -280,12 +277,12 @@
       const folder_id = extractFolderId(rawInput);
 
       if (!folder_id) {
-        return showStatus('error', '&#9888; Vui lòng nhập link folder Google Drive hoặc folder ID hợp lệ.');
+        return showStatus('error', '&#9888; Please enter a valid Google Drive folder link or folder ID.');
       }
 
       const payload = { folder_id };
 
-      showStatus('loading', '<span class="spinner"></span> Đang gửi đến n8n...');
+      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
 
       try {
@@ -296,16 +293,16 @@
         });
 
         if (res.ok) {
-          showStatus('success', '&#10003; Đã gửi thành công! Workflow đang chạy.');
+          showStatus('success', '&#10003; Sent successfully! Workflow is running.');
           const preview = document.getElementById('payloadPreview');
           preview.style.display = 'block';
           preview.textContent = JSON.stringify(payload, null, 2);
         } else {
           const errText = await res.text();
-          showStatus('error', '&#10007; Lỗi từ n8n (' + res.status + '): ' + errText.slice(0, 120));
+          showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 120));
         }
       } catch (err) {
-        showStatus('error', '&#10007; Không kết nối được n8n: ' + err.message);
+        showStatus('error', '&#10007; Cannot connect to n8n: ' + err.message);
       } finally {
         document.getElementById('submitBtn').disabled = false;
       }

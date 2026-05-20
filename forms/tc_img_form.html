@@ -337,7 +337,7 @@
           <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
         </svg>
         <p>Drop images here or click to browse</p>
-        <p class="hint">[PrintID-TypeID] mockupID.jpg</p>
+        <p class="hint">[PrintID-TypeID_MockupID].jpg</p>
         <input type="file" id="fileInput" multiple accept="image/*" style="display:none" />
       </div>
 
@@ -366,10 +366,9 @@
     const submitBtn = document.getElementById('submitBtn');
 
     function parseFilename(name) {
-      const m = name.match(/^\[([^\]\-]+)-([^\]]+)\](?:\s+(\S+?))?(?:\.\w+)?$/i);
+      const m = name.match(/^\[([^\-\]]+)-([^_\]]+)(?:_([^\]]+))?\](?:\s*\(\d+\))?(?:\.\w+)?$/i);
       if (!m) return null;
-      const mid = m[3] && !/^\(\d+\)$/.test(m[3]) ? m[3] : null;
-      return { print_id: m[1], type_id: m[2], mockup_id: mid };
+      return { print_id: m[1], type_id: m[2], mockup_id: m[3] || null };
     }
 
     dropZone.addEventListener('click', () => fileInput.click());

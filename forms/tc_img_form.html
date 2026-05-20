@@ -457,7 +457,16 @@
       showStatus('loading', '<span class="spinner"></span> Uploading ' + valid.length + ' images...');
       submitBtn.disabled = true;
 
+      const totalMB = valid.reduce((s, f) => s + f.file.size, 0) / (1024 * 1024);
+
       try {
+        // Probe: tiny POST to test connectivity & CORS before sending files
+        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData() }).catch(() => null);
+        if (!probe) {
+          showStatus('error', '&#10007; Cannot reach webhook — check network connection or CORS (file:// origin is blocked).');
+          return;
+        }
+
         const formData = new FormData();
         for (const item of valid) {
           formData.append('images', item.file, item.file.name);
@@ -478,7 +487,7 @@
           showStatus('error', '&#10007; Error (' + res.status + '): ' + errText.slice(0, 150));
         }
       } catch (err) {
-        showStatus('error', '&#10007; Connection failed: ' + err.message);
+        showStatus('error', '&#10007; Upload failed (' + totalMB.toFixed(1) + ' MB, ' + valid.length + ' files): ' + err.message + '. Likely too large — try fewer files.');
       } finally {
         submitBtn.disabled = selectedFiles.filter(s => s.parsed).length === 0;
       }

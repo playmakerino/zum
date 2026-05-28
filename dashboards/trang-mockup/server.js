@@ -315,12 +315,16 @@ app.get('/api/dashboard', async (req, res) => {
       adSpendMap[r.ad_id] = parseFloat(r.spend) || 0;
       adNameMap[r.ad_id] = r.ad_name || '';
     }
+    const uniqueAdIds = [...new Set(Object.keys(adSpendMap))];
     const isQualified = id => hasValidFormat(adNameMap[id]) || (adSpendMap[id] || 0) > 100;
-    const allAdIds = [...new Set(currRows.map(r => r.ad_id).filter(id => id && isQualified(id)))];
+    const allAdIds = uniqueAdIds.filter(id => isQualified(id));
+    const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
+    const highSpendCount = allAdIds.length - validFmtCount;
+    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format + ${highSpendCount} spend>$100) [${elapsed()}]`);
 
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
-      progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
+      progress(`Fetching creative info for ${missingIds.length}/${allAdIds.length} ads... [${elapsed()}]`);
       const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,object_story_spec}');
       const now = Date.now();
       for (const ad of fetched) {

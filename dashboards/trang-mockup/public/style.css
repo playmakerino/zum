@@ -84,7 +84,7 @@ tbody tr:hover td:first-child{background:var(--s2)}
 
 .td-metric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:6px;padding-right:6px}
 .total-row{position:sticky;bottom:0;z-index:2}
-.total-row td{background:var(--s);box-shadow:0 -2px 0 var(--b2);font-weight:500;color:var(--t)}
+.total-row td{background:linear-gradient(var(--b2),var(--b2)) top/100% 2px no-repeat,var(--s);font-weight:500;color:var(--t)}
 
 .thumb,.thumb-placeholder{width:28px;height:28px;border-radius:5px;background:var(--s2)}
 .thumb{object-fit:cover;cursor:pointer}

@@ -396,14 +396,15 @@ app.get('/api/dashboard', async (req, res) => {
 
     // 5. Group and build response
     progress(`Processing data... [${elapsed()}]`);
-    const hasSpend = rows => rows.filter(r => parseFloat(r.spend || 0) > 0);
-    const qualifiedRows = hasSpend(currRows).filter(r => r.ad_id && isQualified(r.ad_id));
+    const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
+    const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
+    const creativesGrouped = groupByCreative(attachCreative(qualifiedRows));
     const result = {
       mockups: {
-        current:  groupByMockup(attachThumb(hasSpend(currRows))),
+        current:  groupByMockup(attachThumb(spendRows)),
       },
       creatives: {
-        current:  groupByCreative(attachCreative(qualifiedRows)),
+        current:  creativesGrouped,
       },
       period:    { current },
       cached_at: new Date().toISOString(),
@@ -411,6 +412,7 @@ app.get('/api/dashboard', async (req, res) => {
         insights:   { rows: currRows.length, qualified: allAdIds.length, cached: !forceRefresh && !!ic },
         creatives:  { total: allAdIds.length, cached: allAdIds.length - missingIds.length, fetched: missingIds.length },
         thumbnails: { total: nonCatalogCreativeIds.length, cached: nonCatalogCreativeIds.length - missingHdIds.length, fetched: missingHdIds.length },
+        _v: 2, qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
       },
     };
     progress(`Done [${elapsed()}]`);

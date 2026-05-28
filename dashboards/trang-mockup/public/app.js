@@ -89,7 +89,7 @@ function splitCreatives() {
     period: c.period, cached_at: c.cached_at,
   };
   state.creativesSpend = {
-    current: c.current.filter(r => !hasValidFormat(r.ad_name)),
+    current: c.current.filter(r => !hasValidFormat(r.ad_name) && parseFloat(r.spend || 0) > 100),
     period: c.period, cached_at: c.cached_at,
   };
 }
@@ -271,7 +271,7 @@ async function fetchAll(refresh = true) {
 
     const st = data.stats;
     const result = st
-      ? `Insights: ${st.insights.rows} rows ${st.insights.cached ? 'from cache' : 'from API'} → ${st.insights.qualified} qualified · Mockups: ${data.mockups.current.length} · Full Format: ${state.creativesValid.current.length} · High Spend: ${state.creativesSpend.current.length} · HD thumbs: ${st.thumbnails.cached} cached, ${st.thumbnails.fetched} fetched`
+      ? `v${st._v || 1} · ${st.insights.rows} rows ${st.insights.cached ? 'cached' : 'from API'} → ${st.qualifiedRows ?? '?'} qualified rows → ${st.creativesOut ?? '?'} creatives · Full Format: ${state.creativesValid.current.length} · High Spend: ${state.creativesSpend.current.length} · HD: ${st.thumbnails.cached}c ${st.thumbnails.fetched}f`
       : `Loaded ${data.mockups.current.length} mockups, ${state.creativesValid.current.length} full format, ${state.creativesSpend.current.length} high spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');

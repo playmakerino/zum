@@ -123,6 +123,11 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
       params: {
         access_token: token, level: 'ad', fields,
         time_range: JSON.stringify(timeRange),
+        filtering: JSON.stringify([
+          { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
+          { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+        ]),
+        sort: 'spend_descending',
       },
     });
     if (createRes.data.data) return createRes.data.data;
@@ -392,12 +397,13 @@ app.get('/api/dashboard', async (req, res) => {
     // 5. Group and build response
     progress(`Processing data... [${elapsed()}]`);
     const hasSpend = rows => rows.filter(r => parseFloat(r.spend || 0) > 0);
+    const qualifiedRows = hasSpend(currRows).filter(r => r.ad_id && isQualified(r.ad_id));
     const result = {
       mockups: {
         current:  groupByMockup(attachThumb(hasSpend(currRows))),
       },
       creatives: {
-        current:  groupByCreative(attachCreative(hasSpend(currRows))),
+        current:  groupByCreative(attachCreative(qualifiedRows)),
       },
       period:    { current },
       cached_at: new Date().toISOString(),

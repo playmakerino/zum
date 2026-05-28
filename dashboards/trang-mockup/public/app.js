@@ -89,7 +89,7 @@ function splitCreatives() {
     period: c.period, cached_at: c.cached_at,
   };
   state.creativesSpend = {
-    current: c.current.filter(r => !hasValidFormat(r.ad_name) && parseFloat(r.spend || 0) > 100),
+    current: c.current.filter(r => !hasValidFormat(r.ad_name)),
     period: c.period, cached_at: c.cached_at,
   };
 }
@@ -270,12 +270,16 @@ async function fetchAll(refresh = true) {
     $$('.load-overlay').forEach(el => el.style.display = 'none');
 
     const st = data.stats;
+    const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
     const result = st
       ? `v${st._v || 1} · ${st.insights.rows} rows ${st.insights.cached ? 'cached' : 'from API'} → ${st.qualifiedRows ?? '?'} qualified rows → ${st.creativesOut ?? '?'} creatives · Full Format: ${state.creativesValid.current.length} · High Spend: ${state.creativesSpend.current.length} · HD: ${st.thumbnails.cached}c ${st.thumbnails.fetched}f`
       : `Loaded ${data.mockups.current.length} mockups, ${state.creativesValid.current.length} full format, ${state.creativesSpend.current.length} high spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
     logTo('creativesLoadLog', result, 'success');
+    if (st?.creativesOut && totalCreatives > st.creativesOut * 1.1) {
+      logTo('creativesLoadLog', `WARNING: received ${totalCreatives} creatives but server reports ${st.creativesOut} — backend filter may be broken`, 'error');
+    }
   } catch (err) {
     clearInterval(timerInterval);
     $$('.load-overlay').forEach(el => el.style.display = 'none');

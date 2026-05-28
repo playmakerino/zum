@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const express   = require('express');
 const cors      = require('cors');
 const axios     = require('axios');
@@ -220,6 +220,11 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
     params: {
       access_token: token, level: 'ad', fields,
       time_range: JSON.stringify(timeRange),
+      filtering: JSON.stringify([
+        { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
+        { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+      ]),
+      sort: 'spend_descending',
     },
   });
   let lastThrottle = createRes.headers['x-fb-ads-insights-throttle'] || null;

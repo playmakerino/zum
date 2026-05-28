@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const express   = require('express');
 const cors      = require('cors');
 const axios     = require('axios');
@@ -106,12 +106,13 @@ function getCredentials(req) {
   return { token, accountId };
 }
 
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering) {
+async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering, sort) {
   const params = {
     access_token: token, level: 'ad', fields,
     time_range: JSON.stringify(timeRange),
   };
   if (filtering) params.filtering = JSON.stringify(filtering);
+  if (sort) params.sort = sort;
   const createRes = await axios.post(`${base}/insights`, null, { params });
 
   if (createRes.data.data) return createRes.data.data;
@@ -220,7 +221,14 @@ app.get('/api/dashboard', async (req, res) => {
 
   const mode = req.query.mode || 'all';
   const fromStep = parseInt(req.query.from) || 1;
-  const activeFilter = [{ field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] }];
+  const defaultFilter = [
+    { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
+    { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+  ];
+  const activeFilter = [
+    { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] },
+    { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+  ];
 
   try {
     // ── Step 1: Fetch insights (spend + action_values) ──────────────────────
@@ -240,7 +248,7 @@ app.get('/api/dashboard', async (req, res) => {
       progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
         progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-      }, activeFilter);
+      }, activeFilter, 'spend_descending');
       progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
     } else {
       // All mode: incremental cache
@@ -255,7 +263,7 @@ app.get('/api/dashboard', async (req, res) => {
           progress(`Step 1: Incremental fetch (${since} → ${today})... [${elapsed()}]`);
           const newRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
             progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-          });
+          }, defaultFilter, 'spend_descending');
           allRows = [...cache.rows, ...newRows];
           progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
         }
@@ -264,7 +272,7 @@ app.get('/api/dashboard', async (req, res) => {
         progress(`Step 1: Fetching all-time data (${since} → ${today})... [${elapsed()}]`);
         allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
           progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-        });
+        }, defaultFilter, 'spend_descending');
         progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
       }
 

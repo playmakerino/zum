@@ -1,0 +1,6 @@
+node_modules/
+*.log
+.claude/
+.cache-creatives.json
+.cache-insights.json
+.cache-hd-thumbs.json

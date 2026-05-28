@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <header class="topbar">
+    <nav class="topbar-tabs">
+      <button class="tab-btn active" data-page="mockups" onclick="showPage('mockups')">By Mockup</button>
+      <button class="tab-btn" data-page="creatives" onclick="showPage('creatives')">By Creative ID</button>
+      <span class="tab-sep" id="subTabSep" style="display:none"></span>
+      <button class="sub-tab active" data-sub="creativesValid" onclick="showCreativeSub('creativesValid')" style="display:none">Full Format</button>
+      <button class="sub-tab" data-sub="creativesSpend" onclick="showCreativeSub('creativesSpend')" style="display:none">High Spend</button>
+    </nav>
+    <div class="topbar-actions">
+      <span class="cache-time" id="headerCachedAt"></span>
+      <span class="period-label" id="periodLabel"></span>
+      <div class="tooltip-wrap">
+        <button class="btn btn-primary" onclick="fetchAll()">Load Data</button>
+        <div class="tooltip-box">Fetches fresh data from Meta API. Frequent use may trigger rate limits — wait a few minutes between loads.</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="page-mockups" class="page active">
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table id="mockupsTable"><thead><tr></tr></thead><tbody id="mockupsBody">
+            <tr><td colspan="10"><div class="state-box">Click "Load Data" to start</div></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="load-log" id="mockupsLoadLog"></div>
+    </div>
+
+    <div id="page-creatives" class="page">
+      <div id="sub-creativesValid" class="sub-page active">
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="creativesValidTable"><thead><tr></tr></thead><tbody id="creativesValidBody">
+              <tr><td colspan="9"><div class="state-box">Click "Load Data" to start</div></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+      <div id="sub-creativesSpend" class="sub-page">
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="creativesSpendTable"><thead><tr></tr></thead><tbody id="creativesSpendBody">
+              <tr><td colspan="9"><div class="state-box">Click "Load Data" to start</div></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="load-log" id="creativesLoadLog"></div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<div id="filterPopup" class="filter-popup">
+  <div class="filter-popup-title" id="filterPopupTitle"></div>
+  <div class="filter-popup-body">
+    <select id="filterOp" onchange="onFilterOpChange()">
+      <option value="gt">is greater than</option>
+      <option value="lt">is less than</option>
+      <option value="between">is between</option>
+      <option value="notBetween">isn't between</option>
+    </select>
+    <div class="filter-inputs">
+      <input type="number" id="filterVal1" step="any" placeholder="Value">
+      <span id="filterAnd" style="display:none;font-size:11px;color:var(--t3)">and</span>
+      <input type="number" id="filterVal2" step="any" placeholder="Value" style="display:none">
+    </div>
+  </div>
+  <div class="filter-popup-actions">
+    <button onclick="clearCurrentFilter()">Clear</button>
+    <button onclick="cancelFilter()">Cancel</button>
+    <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

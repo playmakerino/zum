@@ -271,14 +271,15 @@ async function fetchAll(refresh = true) {
 
     const st = data.stats;
     const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
+    const fmt = state.creativesValid.current.length, hs = state.creativesSpend.current.length;
     const result = st
-      ? `v${st._v || 1} · ${st.insights.rows} rows ${st.insights.cached ? 'cached' : 'from API'} → ${st.qualifiedRows ?? '?'} qualified rows → ${st.creativesOut ?? '?'} creatives · Full Format: ${state.creativesValid.current.length} · High Spend: ${state.creativesSpend.current.length} · HD: ${st.thumbnails.cached}c ${st.thumbnails.fetched}f`
-      : `Loaded ${data.mockups.current.length} mockups, ${state.creativesValid.current.length} full format, ${state.creativesSpend.current.length} high spend`;
+      ? `${st.insights.rows} ads · ${totalCreatives} qualified (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups · ${st.thumbnails.fetched + st.thumbnails.cached} thumbs`
+      : `${data.mockups.current.length} mockups · ${fmt} full format · ${hs} high spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
     logTo('creativesLoadLog', result, 'success');
     if (st?.creativesOut && totalCreatives > st.creativesOut * 1.1) {
-      logTo('creativesLoadLog', `WARNING: received ${totalCreatives} creatives but server reports ${st.creativesOut} — backend filter may be broken`, 'error');
+      logTo('creativesLoadLog', `Backend filter error: expected ${st.creativesOut} creatives, got ${totalCreatives}`, 'error');
     }
   } catch (err) {
     clearInterval(timerInterval);

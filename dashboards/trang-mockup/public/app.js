@@ -273,7 +273,7 @@ async function fetchAll(refresh = true) {
     const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
     const fmt = state.creativesValid.current.length, hs = state.creativesSpend.current.length;
     const result = st
-      ? `${st.insights.rows} ads · ${totalCreatives} qualified (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups · ${st.thumbnails.fetched + st.thumbnails.cached} thumbs`
+      ? `${st.insights.rows} ads · ${st.qualifiedRows ?? '?'} qualified · ${totalCreatives} creatives (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups · ${st.thumbnails.fetched + st.thumbnails.cached} thumbs`
       : `${data.mockups.current.length} mockups · ${fmt} full format · ${hs} high spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');

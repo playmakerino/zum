@@ -171,7 +171,14 @@ async function fetchAdsByIds(token, adIds, fields) {
   return results;
 }
 
-// Aggregate by ad_id, then pick top-spend ad per ad_name
+// Extract print_id-type_id from ad name, ignoring mockup_id
+// e.g. [Dub4936-CZR] → "Dub4936-CZR", [Dub4936-TPJ_PM-MWA-07] → "Dub4936-TPJ"
+function extractGroupKey(adName) {
+  const m = adName.match(/\[([A-Za-z]+\d+)-([A-Za-z]+)/);
+  return m ? `${m[1]}-${m[2]}` : adName;
+}
+
+// Aggregate by ad_id, then pick top-spend ad per print_id-type_id
 function pickTopSpendAds(rows) {
   const byAdId = {};
   for (const row of rows) {
@@ -182,14 +189,15 @@ function pickTopSpendAds(rows) {
     byAdId[row.ad_id].spend += parseFloat(row.spend || 0);
     byAdId[row.ad_id].purchase_value += parseFloat(findPurchaseAction(row.action_values)?.value || 0);
   }
-  const byName = {};
+  const byGroup = {};
   for (const ad of Object.values(byAdId)) {
     if (ad.spend <= 100) continue;
-    if (!byName[ad.ad_name] || ad.spend > byName[ad.ad_name].spend) {
-      byName[ad.ad_name] = ad;
+    const key = extractGroupKey(ad.ad_name);
+    if (!byGroup[key] || ad.spend > byGroup[key].spend) {
+      byGroup[key] = ad;
     }
   }
-  return Object.values(byName).map(ad => ({
+  return Object.values(byGroup).map(ad => ({
     ...ad,
     roas: ad.spend > 0 && ad.purchase_value > 0 ? ad.purchase_value / ad.spend : 0,
   }));
@@ -282,7 +290,7 @@ app.get('/api/dashboard', async (req, res) => {
 
     // Pick top-spend ad per ad_name
     const topAds = pickTopSpendAds(allRows);
-    progress(`${topAds.length} unique ad names (top spend per name) [${elapsed()}]`);
+    progress(`${topAds.length} unique designs (top spend per print-type) [${elapsed()}]`);
 
     // ── Step 2: Fetch creative info for top ads (only missing) ───────────────
     const topAdIds = topAds.map(a => a.ad_id);
@@ -454,5 +462,5 @@ if (require.main === module) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { todayStr, addDays, findPurchaseAction, pickTopSpendAds };
+  module.exports = { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey };
 }

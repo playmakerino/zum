@@ -1,4 +1,4 @@
-const { todayStr, addDays, findPurchaseAction, pickTopSpendAds } = require('./server');
+const { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey } = require('./server');
 
 // ── todayStr ────────────────────────────────────────────────────────────────
 
@@ -60,13 +60,29 @@ describe('findPurchaseAction', () => {
   });
 });
 
+// ── extractGroupKey ─────────────────────────────────────────────────────────
+
+describe('extractGroupKey', () => {
+  test('extracts print_id-type_id without mockup', () => {
+    expect(extractGroupKey('[Dub4936-CZR]')).toBe('Dub4936-CZR');
+  });
+
+  test('extracts print_id-type_id ignoring mockup_id', () => {
+    expect(extractGroupKey('[Dub4936-TPJ_PM-MWA-07]')).toBe('Dub4936-TPJ');
+  });
+
+  test('falls back to full ad_name when no match', () => {
+    expect(extractGroupKey('Random Ad Name')).toBe('Random Ad Name');
+  });
+});
+
 // ── pickTopSpendAds ─────────────────────────────────────────────────────────
 
 describe('pickTopSpendAds', () => {
   test('aggregates spend by ad_id', () => {
     const rows = [
-      { ad_id: '1', ad_name: 'Ad A', spend: '60', action_values: [] },
-      { ad_id: '1', ad_name: 'Ad A', spend: '50', action_values: [] },
+      { ad_id: '1', ad_name: '[Dub1000-CZR]', spend: '60', action_values: [] },
+      { ad_id: '1', ad_name: '[Dub1000-CZR]', spend: '50', action_values: [] },
     ];
     const result = pickTopSpendAds(rows);
     expect(result).toHaveLength(1);
@@ -75,18 +91,18 @@ describe('pickTopSpendAds', () => {
 
   test('filters out ads with spend <= 100', () => {
     const rows = [
-      { ad_id: '1', ad_name: 'Low', spend: '50', action_values: [] },
-      { ad_id: '2', ad_name: 'High', spend: '200', action_values: [] },
+      { ad_id: '1', ad_name: '[Dub1000-CZR]', spend: '50', action_values: [] },
+      { ad_id: '2', ad_name: '[Dub2000-TPJ]', spend: '200', action_values: [] },
     ];
     const result = pickTopSpendAds(rows);
     expect(result).toHaveLength(1);
-    expect(result[0].ad_name).toBe('High');
+    expect(result[0].ad_name).toBe('[Dub2000-TPJ]');
   });
 
-  test('keeps only highest-spend ad per ad_name', () => {
+  test('keeps only highest-spend ad per print_id-type_id', () => {
     const rows = [
-      { ad_id: '1', ad_name: 'Same Name', spend: '150', action_values: [] },
-      { ad_id: '2', ad_name: 'Same Name', spend: '300', action_values: [] },
+      { ad_id: '1', ad_name: '[Dub4936-CZR]', spend: '150', action_values: [] },
+      { ad_id: '2', ad_name: '[Dub4936-CZR_PM-MWA-07]', spend: '300', action_values: [] },
     ];
     const result = pickTopSpendAds(rows);
     expect(result).toHaveLength(1);
@@ -94,10 +110,19 @@ describe('pickTopSpendAds', () => {
     expect(result[0].spend).toBe(300);
   });
 
+  test('separates different type_ids for same print_id', () => {
+    const rows = [
+      { ad_id: '1', ad_name: '[Dub4936-CZR]', spend: '200', action_values: [] },
+      { ad_id: '2', ad_name: '[Dub4936-TPJ]', spend: '200', action_values: [] },
+    ];
+    const result = pickTopSpendAds(rows);
+    expect(result).toHaveLength(2);
+  });
+
   test('computes roas from purchase action_values', () => {
     const rows = [
       {
-        ad_id: '1', ad_name: 'Ad', spend: '200',
+        ad_id: '1', ad_name: '[Dub1000-CZR]', spend: '200',
         action_values: [{ action_type: 'purchase', value: '600' }],
       },
     ];
@@ -106,13 +131,13 @@ describe('pickTopSpendAds', () => {
   });
 
   test('sets roas to 0 when no purchases', () => {
-    const rows = [{ ad_id: '1', ad_name: 'Ad', spend: '200', action_values: [] }];
+    const rows = [{ ad_id: '1', ad_name: '[Dub1000-CZR]', spend: '200', action_values: [] }];
     const result = pickTopSpendAds(rows);
     expect(result[0].roas).toBe(0);
   });
 
   test('skips rows without ad_id', () => {
-    const rows = [{ ad_name: 'No ID', spend: '200', action_values: [] }];
+    const rows = [{ ad_name: '[Dub1000-CZR]', spend: '200', action_values: [] }];
     expect(pickTopSpendAds(rows)).toHaveLength(0);
   });
 });

@@ -18,7 +18,7 @@ const COLS = 6;
 const state = {
   config: Object.fromEntries(['metaToken','accountId'].map(k => [k, localStorage.getItem(k) || ''])),
   ads: { data: [], period: null, cached_at: null },
-  sort: { ads: { key: 'print_id', dir: 1 } },
+  sort: { ads: { key: 'print_id', dir: -1 } },
   filters: { ads: {} },
   pageLimit: { ads: PAGE_SIZE },
 };

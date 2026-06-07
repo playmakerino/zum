@@ -212,7 +212,7 @@
     pointer-events:none;
   }
   .spoken.show{opacity:1;}
-  /* Giờ theo màu giờ, phút (rưỡi/kém) theo màu phút, buổi theo màu mới */
+  /* Giờ -> màu giờ; phần phút (đúng/rưỡi/kém/Y phút) -> màu phút; buổi -> màu mới */
   .spoken .sp-h{color:var(--c-hour);}
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
@@ -243,40 +243,40 @@
   </div>
 
   <div class="digital-col">
-  <div class="digital">
-    <div class="unit u-hour">
-      <span class="hg-slot">
-        <svg class="hourglass" id="hgH" viewBox="0 0 24 32" aria-hidden="true">
-          <use href="#hg-frame"></use>
-          <clipPath id="hgH-top"><rect id="hgH-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
-          <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
-          <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
-          <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-          <rect class="hg-stream" id="hgH-stream" x="11.4" y="15" width="1.2" height="3"></rect>
-        </svg>
-      </span>
-      <span class="num" id="h">00</span><span class="lbl">giờ</span>
+    <div class="digital">
+      <div class="unit u-hour">
+        <span class="hg-slot">
+          <svg class="hourglass" id="hgH" viewBox="0 0 24 32" aria-hidden="true">
+            <use href="#hg-frame"></use>
+            <clipPath id="hgH-top"><rect id="hgH-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
+            <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
+            <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
+            <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+            <rect class="hg-stream" id="hgH-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+          </svg>
+        </span>
+        <span class="num" id="h">00</span><span class="lbl">giờ</span>
+      </div>
+      <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
+      <div class="unit u-min">
+        <span class="hg-slot">
+          <svg class="hourglass" id="hgM" viewBox="0 0 24 32" aria-hidden="true">
+            <use href="#hg-frame"></use>
+            <clipPath id="hgM-top"><rect id="hgM-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
+            <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
+            <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
+            <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+            <rect class="hg-stream" id="hgM-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+          </svg>
+        </span>
+        <span class="num" id="m">00</span><span class="lbl">phút</span>
+      </div>
+      <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
+      <div class="unit u-sec">
+        <span class="hg-slot"></span>
+        <span class="num" id="s">00</span><span class="lbl">giây</span>
+      </div>
     </div>
-    <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
-    <div class="unit u-min">
-      <span class="hg-slot">
-        <svg class="hourglass" id="hgM" viewBox="0 0 24 32" aria-hidden="true">
-          <use href="#hg-frame"></use>
-          <clipPath id="hgM-top"><rect id="hgM-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
-          <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
-          <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
-          <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-          <rect class="hg-stream" id="hgM-stream" x="11.4" y="15" width="1.2" height="3"></rect>
-        </svg>
-      </span>
-      <span class="num" id="m">00</span><span class="lbl">phút</span>
-    </div>
-    <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
-    <div class="unit u-sec">
-      <span class="hg-slot"></span>
-      <span class="num" id="s">00</span><span class="lbl">giây</span>
-    </div>
-  </div>
     <div class="spoken" id="spoken"></div>
   </div>
 
@@ -360,7 +360,7 @@
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
-  let FACE, badgeM_r, badgeH_r;
+  let FACE;
 
   function layout(){
     const ARC_GAP = 8;
@@ -412,8 +412,8 @@
     ARC_R_H = FACE + ARC_GAP*2;    // cung giờ (ngoài)
 
     // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
-    badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;       // nhãn phút
-    badgeH_r = badgeM_r + BADGE_H + SAFE;          // nhãn giờ (xa hơn, không đè)
+    const badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;  // nhãn phút
+    const badgeH_r = badgeM_r + BADGE_H + SAFE;     // nhãn giờ (xa hơn, không đè)
 
     // Nét nối: ĐI TỪ CUNG tới mép trong THẬT của nhãn (chạm hai đầu, không thừa)
     //   Dùng chiều cao thật của nhãn đo được, không dùng BADGE_H ước lượng,
@@ -483,10 +483,6 @@
     });
 
     // Đặt BÁN KÍNH RIÊNG cho từng số: mép ngoài mỗi số cách đuôi vạch đúng G_NUM
-    const rect = analog.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
-
     numerals.forEach(el=>{
       el.style.width='auto';
       el.style.height='auto';
@@ -510,7 +506,6 @@
     minEl.style.height=mh+'px';  minEl.style.marginTop=(-mh)+'px';
     secEl.style.height=sh+'px';  secEl.style.marginTop=(-sh)+'px';
   }
-
 
   function updateBadge(id, txt){
     const el=document.getElementById(id);

@@ -479,21 +479,25 @@
   let lastSec=-1;
   let lastSecHg=-1;
   // Đồng hồ cát: p = tiến trình 0..1. Cát trên vơi (lùi xuống), cát dưới đầy (dâng lên).
-  //   Cát trên: vùng y ∈ [4 + p*TOP_RANGE, 15]  (đỉnh đống lùi xuống khi vơi)
-  //   Cát dưới: vùng y ∈ [28 - p*BOT_RANGE, 28]  (dâng lên khi đầy)
+  //   Hai buồng cát là TAM GIÁC (đỉnh ở cổ) nên THỂ TÍCH (~ diện tích) tỉ lệ với
+  //   chiều cao BÌNH PHƯƠNG. Muốn cát chảy đều theo thời gian (thể tích tuyến tính
+  //   theo p) thì chiều cao phải đi theo CĂN BẬC HAI, không tuyến tính.
+  //   Cát trên còn lại = (1-p) thể tích  -> chiều cao còn lại ~ sqrt(1-p)
+  //   Cát dưới phần TRỐNG phía trên = (1-p) thể tích -> chiều cao trống ~ sqrt(1-p)
   function updateHourglass(prefix, p){
     const el=document.getElementById(prefix);
     // Đang lật: giữ cát ở trạng thái CẠN cho khớp lúc xoay, chưa refill vội
     if(el.classList.contains('flip')) p=1;
-    const TOP_Y=4, TOP_RANGE=11;     // đống cát trên
-    const BOT_Y=28, BOT_RANGE=11;    // đống cát dưới
+    const TOP_Y=4,  TOP_NECK=15;     // tam giác trên: đáy y=4, đỉnh ở cổ y=15
+    const BOT_Y=28, BOT_NECK=17;     // tam giác dưới: đáy y=28, đỉnh ở cổ y=17
     const topR=document.getElementById(prefix+'-top-r');
     const botR=document.getElementById(prefix+'-bot-r');
     const stream=document.getElementById(prefix+'-stream');
-    const topStart=TOP_Y + p*TOP_RANGE;
+    const rem=Math.sqrt(Math.max(0, 1-p));   // tỉ lệ CHIỀU CAO ứng với (1-p) thể tích
+    const topStart=TOP_NECK - (TOP_NECK-TOP_Y)*rem;
     topR.setAttribute('y', topStart);
-    topR.setAttribute('height', Math.max(0, 15 - topStart));
-    const botStart=BOT_Y - p*BOT_RANGE;
+    topR.setAttribute('height', Math.max(0, TOP_NECK - topStart));
+    const botStart=BOT_NECK + (BOT_Y-BOT_NECK)*rem;
     botR.setAttribute('y', botStart);
     botR.setAttribute('height', Math.max(0, BOT_Y - botStart));
     // Dòng cát chảy: ẩn khi gần đầy/đã cạn

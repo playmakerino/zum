@@ -192,6 +192,25 @@
   .sep-mark{
     font-size:clamp(1.3rem,5.5vw,1.9rem);font-weight:300;line-height:1;color:var(--line);
   }
+
+  /* Cột digital: bọc đồng hồ số + dòng "văn nói" ngay dưới nó.
+     Dòng văn nói đặt position:absolute -> không ảnh hưởng phép tính bố cục analog. */
+  .digital-col{position:relative;display:flex;flex-direction:column;align-items:center;}
+  .spoken{
+    position:absolute;
+    top:100%;left:50%;
+    transform:translateX(-50%);
+    margin-top:.7rem;
+    white-space:nowrap;
+    font-size:clamp(.85rem,3.6vw,1.05rem);
+    font-weight:400;
+    color:var(--accent);
+    text-align:center;
+    opacity:0;
+    transition:opacity .4s ease;
+    pointer-events:none;
+  }
+  .spoken.show{opacity:1;}
 </style>
 </head>
 <body>
@@ -218,6 +237,7 @@
     <div class="center"></div>
   </div>
 
+  <div class="digital-col">
   <div class="digital">
     <div class="unit u-hour">
       <span class="hg-slot">
@@ -251,6 +271,8 @@
       <span class="hg-slot"></span>
       <span class="num" id="s">00</span><span class="lbl">giây</span>
     </div>
+  </div>
+    <div class="spoken" id="spoken"></div>
   </div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -289,6 +311,22 @@
 
   // Số giờ kiểu 12h (1..12)
   function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
+
+  // Buổi trong ngày theo giờ 24h (dùng cho cách nói giờ văn nói)
+  function buoi(h){
+    if(h>=4  && h<=10) return 'sáng';
+    if(h>=11 && h<=12) return 'trưa';
+    if(h>=13 && h<=17) return 'chiều';
+    if(h>=18 && h<=21) return 'tối';
+    return 'đêm';            // 22,23,0,1,2,3
+  }
+  // Cách nói giờ trong văn nói cho phút 30..59:
+  //   30      -> "X giờ rưỡi <buổi>"          (vd: 10 giờ rưỡi sáng)
+  //   31..59  -> "(X+1) giờ kém (60-m) phút <buổi>"  (vd: 9 giờ kém 20 phút tối)
+  function noiGio(h,m){
+    if(m===30) return gio12(h)+' giờ rưỡi '+buoi(h);
+    return gio12(h+1)+' giờ kém '+(60-m)+' phút '+buoi(h);
+  }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====
      px tính từ tâm. Quan hệ then chốt:
@@ -549,6 +587,15 @@
       document.getElementById('h').textContent=pad(h);
       document.getElementById('m').textContent=pad(m);
       document.getElementById('s').textContent=pad(s);
+
+      // Văn nói: hiện ở GIÂY 0-5 của các PHÚT 30-59, ẩn lúc khác
+      const spokenEl=document.getElementById('spoken');
+      if(m>=30 && s<=5){
+        spokenEl.textContent=noiGio(h,m);
+        spokenEl.classList.add('show');
+      }else{
+        spokenEl.classList.remove('show');
+      }
 
       // Tô đỏ số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)
       const hourNum = (h%12)===0 ? 12 : (h%12);

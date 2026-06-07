@@ -195,13 +195,13 @@
   }
 
   /* Cột digital: bọc đồng hồ số + dòng "văn nói" ngay dưới nó.
-     Dòng văn nói đặt position:absolute -> không ảnh hưởng phép tính bố cục analog. */
-  .digital-col{position:relative;display:flex;flex-direction:column;align-items:center;}
+     Dòng văn nói nằm trong luồng, chiều cao cố định luôn được dành sẵn
+     (chỉ đổi opacity khi hiện/ẩn -> không giật), và layout() đo cả cột này
+     nên analog co vừa đủ để luôn còn chỗ cho dòng văn nói. */
+  .digital-col{display:flex;flex-direction:column;align-items:center;}
   .spoken{
-    position:absolute;
-    top:100%;left:50%;
-    transform:translateX(-50%);
-    margin-top:.7rem;
+    height:1.4em;
+    margin-top:.6rem;
     white-space:nowrap;
     font-size:clamp(.85rem,3.6vw,1.05rem);
     font-weight:400;
@@ -367,7 +367,10 @@
     // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ
     const vh = window.innerHeight;
     const digital = document.querySelector('.digital');
-    const digitalH = digital?.offsetHeight || 110;
+    // Chiều cao đo CẢ cột (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
+    // Chiều rộng chỉ lấy hàng số (dòng văn nói canh giữa, không nới rộng cột).
+    const digitalCol = document.querySelector('.digital-col');
+    const digitalH = digitalCol?.offsetHeight || 140;
     const digitalW = digital?.offsetWidth  || 200;
     const bodyPad = 16;                       // padding .5rem hai đầu
     const marginTop = maxReach;

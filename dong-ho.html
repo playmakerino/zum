@@ -327,6 +327,7 @@
   }
   // Cách nói giờ trong văn nói:
   //   0       -> "X giờ đúng <buổi>"          (vd: 10 giờ đúng sáng)
+  //   1..29   -> "X giờ m phút <buổi>"        (vd: 10 giờ 15 phút sáng)
   //   30      -> "X giờ rưỡi <buổi>"          (vd: 10 giờ rưỡi sáng)
   //   31..59  -> "(X+1) giờ kém (60-m) phút <buổi>"  (vd: 9 giờ kém 20 phút tối)
   //   Tô màu: giờ -> màu giờ, phút (đúng/rưỡi/kém) -> màu phút, buổi -> màu mới
@@ -335,6 +336,10 @@
     if(m===0){
       return '<span class="sp-h">'+gio12(h)+' giờ</span> '
            + '<span class="sp-m">đúng</span> '+b;
+    }
+    if(m<30){
+      return '<span class="sp-h">'+gio12(h)+' giờ</span> '
+           + '<span class="sp-m">'+m+' phút</span> '+b;
     }
     if(m===30){
       return '<span class="sp-h">'+gio12(h)+' giờ</span> '
@@ -607,9 +612,9 @@
       document.getElementById('m').textContent=pad(m);
       document.getElementById('s').textContent=pad(s);
 
-      // Văn nói: hiện ở GIÂY 0-5 của PHÚT 0 (giờ đúng) và PHÚT 30-59, ẩn lúc khác
+      // Văn nói: hiện ở GIÂY 0-5 của MỌI phút, ẩn các giây còn lại
       const spokenEl=document.getElementById('spoken');
-      if((m===0 || m>=30) && s<=5){
+      if(s<=5){
         spokenEl.innerHTML=noiGio(h,m);
         spokenEl.classList.add('show');
       }else{

@@ -15,6 +15,7 @@
     --c-hour:#5a63d8;
     --c-min:#f5921b;
     --c-sec:#ff5d97;
+    --c-buoi:#1fab95;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{
@@ -204,13 +205,17 @@
     white-space:nowrap;
     font-size:clamp(.85rem,3.6vw,1.05rem);
     font-weight:400;
-    color:var(--accent);
+    color:var(--muted);
     text-align:center;
     opacity:0;
     transition:opacity .4s ease;
     pointer-events:none;
   }
   .spoken.show{opacity:1;}
+  /* Giờ theo màu giờ, phút (rưỡi/kém) theo màu phút, buổi theo màu mới */
+  .spoken .sp-h{color:var(--c-hour);}
+  .spoken .sp-m{color:var(--c-min);}
+  .spoken .sp-b{color:var(--c-buoi);}
 </style>
 </head>
 <body>
@@ -323,9 +328,15 @@
   // Cách nói giờ trong văn nói cho phút 30..59:
   //   30      -> "X giờ rưỡi <buổi>"          (vd: 10 giờ rưỡi sáng)
   //   31..59  -> "(X+1) giờ kém (60-m) phút <buổi>"  (vd: 9 giờ kém 20 phút tối)
+  //   Tô màu: giờ -> màu giờ, phút (rưỡi/kém) -> màu phút, buổi -> màu mới
   function noiGio(h,m){
-    if(m===30) return gio12(h)+' giờ rưỡi '+buoi(h);
-    return gio12(h+1)+' giờ kém '+(60-m)+' phút '+buoi(h);
+    const b='<span class="sp-b">'+buoi(h)+'</span>';
+    if(m===30){
+      return '<span class="sp-h">'+gio12(h)+' giờ</span> '
+           + '<span class="sp-m">rưỡi</span> '+b;
+    }
+    return '<span class="sp-h">'+gio12(h+1)+' giờ</span> '
+         + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====
@@ -591,7 +602,7 @@
       // Văn nói: hiện ở GIÂY 0-5 của các PHÚT 30-59, ẩn lúc khác
       const spokenEl=document.getElementById('spoken');
       if(m>=30 && s<=5){
-        spokenEl.textContent=noiGio(h,m);
+        spokenEl.innerHTML=noiGio(h,m);
         spokenEl.classList.add('show');
       }else{
         spokenEl.classList.remove('show');

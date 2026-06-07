@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đồng Hồ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+  :root{
+    --bg:#fdf6f0;
+    --ink:#3f3a5c;
+    --muted:#a99fb8;
+    --line:#e9cdb6;
+    --accent:#ff5d97;
+    --c-hour:#5a63d8;
+    --c-min:#f5921b;
+    --c-sec:#ff5d97;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+    background:var(--bg);
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+    padding:.5rem;
+    font-family:'Space Grotesk',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ANALOG */
+  .analog{
+    width:300px;height:300px;border-radius:50%;
+    background:#fff;
+    border:1px solid var(--line);
+    position:relative;
+    margin:58px;
+    box-shadow:0 24px 60px -28px rgba(0,0,0,.25);
+  }
+  .tick{position:absolute;left:50%;top:50%;transform-origin:0 0;}
+  .tick span{
+    position:absolute;
+    width:1px;height:6px;
+    background:var(--c-min);
+    left:-0.5px;top:-118px;
+  }
+  .tick.major span{height:12px;width:2px;left:-1px;background:var(--c-hour);}
+  .numeral{
+    position:absolute;
+    font-size:.95rem;font-weight:400;line-height:1;
+    color:var(--c-hour);
+    display:flex;align-items:center;justify-content:center;
+    transform:translate(-50%,-50%);
+  }
+  .numeral.active{font-weight:700;}
+  .hand{
+    position:absolute;left:50%;top:50%;
+    transform-origin:50% 100%;
+    border-radius:99px;
+    background:var(--ink);
+  }
+  .hour{width:5px;height:72px;margin-left:-2.5px;margin-top:-72px;background:var(--c-hour);}
+  .minute{width:3px;height:104px;margin-left:-1.5px;margin-top:-104px;background:var(--c-min);}
+  .second{width:1.5px;height:118px;margin-left:-.75px;margin-top:-118px;
+    background:var(--c-sec);}
+  .center{
+    position:absolute;left:50%;top:50%;
+    width:9px;height:9px;border-radius:50%;
+    background:var(--accent);transform:translate(-50%,-50%);
+    z-index:10;
+    box-shadow:0 0 0 4px #fff;
+  }
+  .orbit{
+    position:absolute;left:50%;top:50%;
+    width:0;height:0;
+    z-index:11;
+  }
+  .connector{
+    position:absolute;left:50%;
+    width:1.5px;margin-left:-.75px;
+    background:var(--ink);
+    transform-origin:center;
+  }
+  #connH{background:var(--c-hour);}
+  #connM{background:var(--c-min);}
+  .badge{
+    position:absolute;left:50%;top:0;
+    transform:translate(-50%,-50%);
+    min-width:30px;
+    padding:.18rem .35rem;
+    border-radius:99px;
+    font-size:.78rem;font-weight:500;
+    font-variant-numeric:tabular-nums;
+    text-align:center;
+    line-height:1;
+    background:var(--badge-bg);color:#fff;
+  }
+  #badgeH{--badge-bg:var(--c-hour);}
+  #badgeM{--badge-bg:var(--c-min);}
+  .badge span{display:inline-block;}
+
+  /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền đỏ một nhịp.
+     Animate badge cha cho nền + span cho scale. Cùng thời lượng .8s -> đều nhịp.
+     Nhịp CUỐI (giây 59->60) dùng biến thể 'final': đỏ đậm, nảy mạnh hơn,
+     nhưng vẫn cùng nhịp .8s nên không phá mạch đều. */
+  .badge.beat{animation:beatBg .8s ease-out;}
+  .badge.beat-final{animation:beatBgFinal .8s ease-out;}
+  @keyframes beatBg{
+    0%  {background:var(--badge-bg);}
+    25% {background:var(--accent);}
+    100%{background:var(--badge-bg);}
+  }
+  @keyframes beatBgFinal{
+    0%  {background:var(--badge-bg);}
+    20% {background:#ff3d83;box-shadow:0 0 0 8px rgba(255,93,151,.32);}
+    100%{background:var(--badge-bg);box-shadow:0 0 0 0 rgba(255,93,151,0);}
+  }
+  .badge span.beat{animation:beat .8s ease-out;}
+  .badge span.beat-final{animation:beatFinal .8s ease-out;}
+  @keyframes beat{
+    0%  {transform:scale(1);}
+    25% {transform:scale(1.12);}
+    100%{transform:scale(1);}
+  }
+  @keyframes beatFinal{
+    0%  {transform:scale(1);}
+    20% {transform:scale(1.3);}
+    100%{transform:scale(1);}
+  }
+
+  /* DIGITAL */
+  .digital{
+    display:flex;
+    align-items:flex-start;
+    gap:clamp(.6rem,3vw,1.1rem);
+  }
+  .unit{display:flex;flex-direction:column;align-items:center;gap:.45rem;}
+  /* Ô chứa icon: chiều cao cố định -> mọi số (và dấu :) bắt đầu cùng một mốc => thẳng hàng */
+  .hg-slot{
+    height:clamp(36px,9.5vw,50px);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hourglass{
+    width:clamp(32px,8.5vw,48px);
+    height:100%;
+    display:block;
+    overflow:visible;
+    transform-origin:50% 50%;
+  }
+  .hourglass.flip{animation:hgFlip .7s ease-in-out;}
+  @keyframes hgFlip{
+    0%  {transform:rotate(0deg);}
+    100%{transform:rotate(180deg);}
+  }
+  .hg-glass{fill:none;stroke:var(--line);stroke-width:1.2;}
+  .hg-cap{stroke-width:1.6;stroke-linecap:round;}
+  .u-hour .hg-cap{stroke:var(--c-hour);}
+  .u-min  .hg-cap{stroke:var(--c-min);}
+  .u-hour .hg-sand,.u-hour .hg-stream{fill:var(--c-hour);}
+  .u-min  .hg-sand,.u-min  .hg-stream{fill:var(--c-min);}
+  .num{
+    font-size:clamp(1.3rem,5.5vw,1.9rem);font-weight:300;line-height:1;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.02em;
+  }
+  .lbl{
+    font-size:.7rem;font-weight:400;
+    text-transform:uppercase;
+    letter-spacing:.28em;
+    color:var(--muted);
+  }
+  #h{color:var(--c-hour);}
+  #m{color:var(--c-min);}
+  #s{color:var(--c-sec);}
+  .unit.u-hour .lbl{color:var(--c-hour);}
+  .unit.u-min .lbl{color:var(--c-min);}
+  .unit.u-sec .lbl{color:var(--c-sec);}
+  .sep{
+    display:flex;flex-direction:column;align-items:center;gap:.45rem;
+  }
+  .sep-mark{
+    font-size:clamp(1.3rem,5.5vw,1.9rem);font-weight:300;line-height:1;color:var(--line);
+  }
+</style>
+</head>
+<body>
+  <div class="analog" id="analog">
+    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
+      <path id="hourTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.5"></path>
+      <path id="hourArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="minTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="minArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="minActiveTrack" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="minActive" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt"></path>
+    </svg>
+    <div class="hand hour" id="hour"></div>
+    <div class="hand minute" id="minute"></div>
+    <div class="hand second" id="second"></div>
+    <div class="orbit" id="orbitH">
+      <div class="connector" id="connH"></div>
+      <div class="badge" id="badgeH"><span id="textH">00 giờ</span></div>
+    </div>
+    <div class="orbit" id="orbitM">
+      <div class="connector" id="connM"></div>
+      <div class="badge" id="badgeM"><span id="textM">00 phút</span></div>
+    </div>
+    <div class="center"></div>
+  </div>
+
+  <div class="digital">
+    <div class="unit u-hour">
+      <span class="hg-slot">
+        <svg class="hourglass" id="hgH" viewBox="0 0 24 32" aria-hidden="true">
+          <use href="#hg-frame"></use>
+          <clipPath id="hgH-top"><rect id="hgH-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
+          <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
+          <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
+          <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+          <rect class="hg-stream" id="hgH-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+        </svg>
+      </span>
+      <span class="num" id="h">00</span><span class="lbl">giờ</span>
+    </div>
+    <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
+    <div class="unit u-min">
+      <span class="hg-slot">
+        <svg class="hourglass" id="hgM" viewBox="0 0 24 32" aria-hidden="true">
+          <use href="#hg-frame"></use>
+          <clipPath id="hgM-top"><rect id="hgM-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
+          <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
+          <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
+          <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+          <rect class="hg-stream" id="hgM-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+        </svg>
+      </span>
+      <span class="num" id="m">00</span><span class="lbl">phút</span>
+    </div>
+    <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
+    <div class="unit u-sec">
+      <span class="hg-slot"></span>
+      <span class="num" id="s">00</span><span class="lbl">giây</span>
+    </div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="hg-frame">
+        <path class="hg-glass" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
+        <line class="hg-cap" x1="4" y1="4" x2="20" y2="4"></line>
+        <line class="hg-cap" x1="4" y1="28" x2="20" y2="28"></line>
+      </g>
+    </defs>
+  </svg>
+
+<script>
+  const analog=document.getElementById('analog');
+  const tickSpans=[];
+  for(let i=0;i<60;i++){
+    const t=document.createElement('div');
+    t.className='tick'+(i%5===0?' major':'');
+    t.style.transform=`rotate(${i*6}deg)`;
+    const sp=document.createElement('span');
+    t.appendChild(sp);
+    tickSpans.push(sp);
+    analog.appendChild(t);
+  }
+  const numerals=[];
+  for(let n=1;n<=12;n++){
+    const el=document.createElement('div');
+    el.className='numeral';
+    el.dataset.n=n;
+    el.textContent=n;
+    numerals.push(el);
+    analog.appendChild(el);
+  }
+
+  const pad=n=>String(n).padStart(2,'0');
+
+  // Số giờ kiểu 12h (1..12)
+  function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
+
+  /* ===== Bố cục nhãn — tự co theo màn hình =====
+     px tính từ tâm. Quan hệ then chốt:
+       tâm nhãn = đầu xa của nét nối + nửa chiều cao nhãn
+       (nếu không, nhãn sẽ phủ lên chính nét nối và che mất nó)
+     Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
+  const LEN_M      = 16;   // độ dài nét nối phút
+  const BADGE_H    = 40;   // chiều cao một nhãn
+  const BADGE_HALF = 28;   // nửa bề rộng nhãn (chừa lề khỏi cắt)
+  const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
+  const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
+
+  let FACE, badgeM_r, badgeH_r;
+
+  function layout(){
+    const ARC_GAP = 8;
+    // Điểm xa tâm nhất = mép ngoài nhãn giờ:
+    //   badgeH_r = (FACE+2*ARC_GAP) + LEN_M + BADGE_H/2 + (BADGE_H+SAFE)
+    //   maxReach = phần vượt ra ngoài FACE + nửa bề rộng nhãn
+    const maxReach = 2*ARC_GAP + LEN_M + BADGE_H/2 + (BADGE_H + SAFE) + BADGE_HALF;
+
+    // Không gian theo chiều rộng
+    const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
+    const faceByW = halfW - maxReach;
+
+    // Không gian theo chiều cao: giải FACE từ tổng chiều cao THỰC của cả cột.
+    //   vh >= padTop + marginTop + 2*FACE + marginBottom + digitalH + padBottom
+    //   marginTop = maxReach (đủ cho nhãn trên), marginBottom = max(8, maxReach-40)
+    const vh = window.innerHeight;
+    const digitalH = (document.querySelector('.digital')?.offsetHeight) || 110;
+    const bodyPad = 16;                       // padding .5rem trên + dưới
+    const marginTop = maxReach;
+    const marginBottom = Math.max(8, maxReach - 40);
+    const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 4) / 2;
+
+    FACE = Math.min(faceByW, faceByH);
+    FACE = Math.max(70, FACE);
+
+    const D = FACE*2;
+    analog.style.width  = D+'px';
+    analog.style.height = D+'px';
+    // Lề: trên đủ cho nhãn, dưới sát digital (khớp với tính toán chiều cao ở trên)
+    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
+
+    // Hai cung: khoảng cách đều mép -> cung phút -> cung giờ
+    ARC_R_M = FACE + ARC_GAP;      // cung phút (trong)
+    ARC_R_H = FACE + ARC_GAP*2;    // cung giờ (ngoài)
+
+    // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
+    badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;       // nhãn phút
+    badgeH_r = badgeM_r + BADGE_H + SAFE;          // nhãn giờ (xa hơn, không đè)
+
+    // Nét nối: ĐI TỪ CUNG tới mép trong THẬT của nhãn (chạm hai đầu, không thừa)
+    //   Dùng chiều cao thật của nhãn đo được, không dùng BADGE_H ước lượng,
+    //   để nét nối kết thúc đúng tại mép nhãn (không hở, không lố).
+    const realHalfM = document.getElementById('badgeM').offsetHeight/2 || BADGE_H/2;
+    const realHalfH = document.getElementById('badgeH').offsetHeight/2 || BADGE_H/2;
+    const lenM = (badgeM_r - realHalfM) - ARC_R_M;
+    const lenH = (badgeH_r - realHalfH) - ARC_R_H;
+
+    place('connM','badgeM', ARC_R_M, lenM, badgeM_r);
+    place('connH','badgeH', ARC_R_H, lenH, badgeH_r);
+
+    layoutFace();
+  }
+
+  let ARC_R_M = 0, ARC_R_H = 0;
+  function polar(r, deg){
+    const a=(deg-90)*Math.PI/180;
+    return [r*Math.cos(a), r*Math.sin(a)];
+  }
+  function arcPath(r, startDeg, endDeg){
+    const sweep=endDeg-startDeg;
+    if(sweep<=0.001) return '';
+    const [x1,y1]=polar(r, startDeg);
+    const [x2,y2]=polar(r, endDeg);
+    const largeArc = sweep>180 ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+  }
+  function updateHourArc(startDeg, endDeg){
+    document.getElementById('hourTrack').setAttribute('d', arcPath(ARC_R_H, startDeg, startDeg+30));
+    document.getElementById('hourArc').setAttribute('d', arcPath(ARC_R_H, startDeg, endDeg));
+  }
+  function updateMinArc(startDeg, endDeg){
+    // Track: full circle (0 -> 60 phút = 0° -> 360°)
+    document.getElementById('minTrack').setAttribute('d', arcPath(ARC_R_M, 0, 359.999));
+    // Progress đậm: từ 0 phút tới đầu phút hiện tại
+    document.getElementById('minArc').setAttribute('d', arcPath(ARC_R_M, 0, startDeg));
+    // Đoạn 6° hiện tại: track mảnh màu phút làm nền + đường đậm chạy theo giây
+    document.getElementById('minActiveTrack').setAttribute('d', arcPath(ARC_R_M, startDeg, startDeg+6));
+    document.getElementById('minActive').setAttribute('d', arcPath(ARC_R_M, startDeg, endDeg));
+  }
+
+  function place(connId, badgeId, connStart, len, badgeR){
+    const c=document.getElementById(connId);
+    c.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
+    c.style.height = len+'px';
+    document.getElementById(badgeId).style.marginTop = (-badgeR)+'px';
+  }
+
+  // Đặt lại vạch chia và số theo FACE hiện tại
+  function layoutFace(){
+    // Hai khoảng riêng:
+    //   G_RIM: mép -> đầu vạch
+    //   G_NUM: đuôi vạch -> chữ số  (để nhỏ cho số sát vạch)
+    const G_RIM = 5;
+    const G_NUM = 2;
+    const majorLen = 8;
+    const minorLen = 4;
+    const tickOuter = FACE - G_RIM;
+    const tickInner = tickOuter - majorLen;
+
+    tickSpans.forEach((sp,i)=>{
+      const major=(i%5===0);
+      const len=major?majorLen:minorLen;
+      sp.style.top=(-tickOuter)+'px';
+      sp.style.height=len+'px';
+    });
+
+    // Đặt BÁN KÍNH RIÊNG cho từng số: mép ngoài mỗi số cách đuôi vạch đúng G_NUM
+    const rect = analog.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+
+    numerals.forEach(el=>{
+      el.style.width='auto';
+      el.style.height='auto';
+    });
+    numerals.forEach(el=>{
+      const n=+el.dataset.n;
+      const ang=(n*30-90)*Math.PI/180;
+      const rg=document.createRange(); rg.selectNodeContents(el);
+      const r=rg.getBoundingClientRect();
+      const halfReach=Math.abs(Math.cos(ang))*r.width/2 + Math.abs(Math.sin(ang))*r.height/2;
+      const radius=(tickInner - G_NUM) - halfReach;
+      el.style.left=`calc(50% + ${Math.cos(ang)*radius}px)`;
+      el.style.top=`calc(50% + ${Math.sin(ang)*radius}px)`;
+    });
+    // Kim ngắn hơn vòng số để không đè lên số
+    const hourEl=document.getElementById('hour');
+    const minEl=document.getElementById('minute');
+    const secEl=document.getElementById('second');
+    const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
+    hourEl.style.height=hh+'px'; hourEl.style.marginTop=(-hh)+'px';
+    minEl.style.height=mh+'px';  minEl.style.marginTop=(-mh)+'px';
+    secEl.style.height=sh+'px';  secEl.style.marginTop=(-sh)+'px';
+  }
+
+
+  function updateBadge(id, txt){
+    const el=document.getElementById(id);
+    if(el.textContent!==txt) el.textContent=txt;
+  }
+
+  // Bắn một nhịp lên nhãn: gỡ class cũ rồi thêm lại để animation chạy lại từ đầu.
+  // cls = 'beat' (thường) hoặc 'beat-final' (nhịp cuối).
+  function pulse(badgeId, spanId, cls){
+    const badge=document.getElementById(badgeId);
+    const span=document.getElementById(spanId);
+    badge.classList.remove('beat','beat-final');
+    span.classList.remove('beat','beat-final');
+    void badge.offsetWidth;
+    badge.classList.add(cls);
+    span.classList.add(cls);
+  }
+
+  // Lật đồng hồ cát (one-shot): gỡ class rồi thêm lại để animation chạy lại từ đầu
+  function flipHourglass(id){
+    const el=document.getElementById(id);
+    el.classList.remove('flip');
+    void el.offsetWidth;
+    el.classList.add('flip');
+    el.addEventListener('animationend', ()=>el.classList.remove('flip'), {once:true});
+  }
+
+  let lastSec=-1;
+  let lastSecHg=-1;
+  // Đồng hồ cát: p = tiến trình 0..1. Cát trên vơi (lùi xuống), cát dưới đầy (dâng lên).
+  //   Cát trên: vùng y ∈ [4 + p*TOP_RANGE, 15]  (đỉnh đống lùi xuống khi vơi)
+  //   Cát dưới: vùng y ∈ [28 - p*BOT_RANGE, 28]  (dâng lên khi đầy)
+  function updateHourglass(prefix, p){
+    const el=document.getElementById(prefix);
+    // Đang lật: giữ cát ở trạng thái CẠN cho khớp lúc xoay, chưa refill vội
+    if(el.classList.contains('flip')) p=1;
+    const TOP_Y=4, TOP_RANGE=11;     // đống cát trên
+    const BOT_Y=28, BOT_RANGE=11;    // đống cát dưới
+    const topR=document.getElementById(prefix+'-top-r');
+    const botR=document.getElementById(prefix+'-bot-r');
+    const stream=document.getElementById(prefix+'-stream');
+    const topStart=TOP_Y + p*TOP_RANGE;
+    topR.setAttribute('y', topStart);
+    topR.setAttribute('height', Math.max(0, 15 - topStart));
+    const botStart=BOT_Y - p*BOT_RANGE;
+    botR.setAttribute('y', botStart);
+    botR.setAttribute('height', Math.max(0, BOT_Y - botStart));
+    // Dòng cát chảy: ẩn khi gần đầy/đã cạn
+    stream.style.opacity = (p>0.004 && p<0.996) ? 1 : 0;
+  }
+
+  function tick(){
+    const now=new Date();
+    const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
+
+    // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
+    const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
+    const secDeg  = totalSec*6;
+    const minDeg  = (totalSec/60)*6;
+    const hourDeg = (totalSec/3600)*30;
+    document.getElementById('second').style.transform=`rotate(${secDeg}deg)`;
+    document.getElementById('minute').style.transform=`rotate(${minDeg}deg)`;
+    document.getElementById('hour').style.transform=`rotate(${hourDeg}deg)`;
+    document.getElementById('orbitH').style.transform=`rotate(${hourDeg}deg)`;
+    document.getElementById('orbitM').style.transform=`rotate(${minDeg}deg)`;
+    document.getElementById('badgeH').style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg)`;
+    document.getElementById('badgeM').style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
+
+    // Cung: cập nhật mỗi frame để chạy theo kim phút mượt
+    const hourDegN = ((h%12) + m/60 + s/3600)*30;
+    const minDegN  = (m + s/60)*6;
+    updateHourArc((h%12)*30, hourDegN);
+    updateMinArc(m*6, minDegN);
+
+    // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
+    const ms = now.getMilliseconds();
+    // Lật NGAY khi sang chu kỳ mới (kiểm tra trước khi vẽ cát để cát không "đầy" lố 1 frame)
+    if(s!==lastSecHg){
+      if(lastSecHg===59 && s===0){
+        flipHourglass('hgM');
+        if(m===0) flipHourglass('hgH');
+      }
+      lastSecHg=s;
+    }
+    updateHourglass('hgH', (m + (s + ms/1000)/60) / 60);
+    updateHourglass('hgM', (s + ms/1000) / 60);
+
+    // Text + nhãn: chỉ cập nhật khi giây đổi (đỡ tải, không gây giật)
+    if(s!==lastSec){
+      const justSwitched = (lastSec===59 && s===0); // vừa qua mốc 59->00
+      lastSec=s;
+      updateBadge('textH', gio12(h)+' giờ');
+      updateBadge('textM', pad(m)+' phút');
+      document.getElementById('h').textContent=pad(h);
+      document.getElementById('m').textContent=pad(m);
+      document.getElementById('s').textContent=pad(s);
+
+      // Tô đỏ số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)
+      const hourNum = (h%12)===0 ? 12 : (h%12);
+      numerals.forEach(el=>{
+        el.classList.toggle('active', +el.dataset.n===hourNum);
+      });
+
+      // Đếm ngược 6 nhịp: giây 55,56,57,58,59 (nhịp thường) rồi 00 (nhịp CUỐI).
+      // Nhãn phút đập mỗi phút; nhãn giờ chỉ khi đang chạm mốc sang giờ mới.
+      if(s>=55){
+        pulse('badgeM','textM','beat');             // phút: 55-59
+        if(m===59) pulse('badgeH','textH','beat');  // giờ : 55-59 của phút 59
+      }else if(justSwitched){
+        pulse('badgeM','textM','beat-final');       // phút: nhịp cuối tại 00
+        if(m===0) pulse('badgeH','textH','beat-final'); // giờ: nhịp cuối tại 00
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+  layout();
+  window.addEventListener('resize', layout);
+  // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(layout);
+  }
+  // và căn lại vài lần đầu cho chắc (font có thể về trễ)
+  setTimeout(layout, 300);
+  setTimeout(layout, 1200);
+  tick();
+</script>
+</body>
+</html>

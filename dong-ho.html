@@ -33,6 +33,12 @@
     -webkit-font-smoothing:antialiased;
   }
 
+  /* Desktop (>=760px): analog bên TRÁI, digital + đồng hồ cát bên PHẢI.
+     Bỏ phần chiều dọc dành cho digital -> analog cao gần cả màn -> to hơn. */
+  @media (min-width:760px){
+    body{ flex-direction:row; gap:24px; }
+  }
+
   /* ANALOG */
   .analog{
     width:300px;height:300px;border-radius:50%;
@@ -304,19 +310,31 @@
     //   maxReach = phần vượt ra ngoài FACE + nửa bề rộng nhãn
     const maxReach = 2*ARC_GAP + LEN_M + BADGE_H/2 + (BADGE_H + SAFE) + BADGE_HALF;
 
-    // Không gian theo chiều rộng
-    const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
-    const faceByW = halfW - maxReach;
-
-    // Không gian theo chiều cao: giải FACE từ tổng chiều cao THỰC của cả cột.
-    //   vh >= padTop + marginTop + 2*FACE + marginBottom + digitalH + padBottom
-    //   marginTop = maxReach (đủ cho nhãn trên), marginBottom = max(8, maxReach-40)
+    // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ
     const vh = window.innerHeight;
-    const digitalH = (document.querySelector('.digital')?.offsetHeight) || 110;
-    const bodyPad = 16;                       // padding .5rem trên + dưới
+    const digital = document.querySelector('.digital');
+    const digitalH = digital?.offsetHeight || 110;
+    const digitalW = digital?.offsetWidth  || 200;
+    const bodyPad = 16;                       // padding .5rem hai đầu
     const marginTop = maxReach;
     const marginBottom = Math.max(8, maxReach - 40);
-    const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 4) / 2;
+
+    // >=760px = desktop: analog TRÁI, digital + đồng hồ cát PHẢI.
+    //   Chiều cao analog không bị digital ăn bớt nữa -> cao gần cả màn -> to hơn.
+    //   Chiều rộng: cả màn trừ cột digital và lề nhãn hai bên.
+    const sideBySide = window.innerWidth >= 760;
+    let faceByW, faceByH;
+    if(sideBySide){
+      const GAP = 24;  // khoảng cách analog <-> digital (khớp body gap)
+      faceByH = (vh - bodyPad - marginTop - marginBottom) / 2;
+      const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
+      faceByW = (availW - 2*maxReach - digitalW - GAP) / 2;
+    } else {
+      // Mobile/dọc: như cũ — chiều cao phải chứa cả analog lẫn digital.
+      const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
+      faceByW = halfW - maxReach;
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 4) / 2;
+    }
 
     FACE = Math.min(faceByW, faceByH);
     FACE = Math.max(70, FACE);

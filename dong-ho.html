@@ -38,6 +38,15 @@
      Bỏ phần chiều dọc dành cho digital -> analog cao gần cả màn -> to hơn. */
   @media (min-width:760px){
     body{ flex-direction:row; gap:24px; }
+    /* Cân đối dọc cột digital: chừa phía TRÊN hàng số một khoảng đúng bằng
+       dòng văn nói phía DƯỚI -> hàng số nằm chính giữa cột -> căn giữa khớp
+       với tâm mặt analog (lề trên = dưới) khi body căn giữa theo chiều dọc. */
+    .digital-col::before{
+      content:"";
+      height:1.4em;
+      margin-bottom:.6rem;
+      font-size:clamp(.85rem,3.6vw,1.05rem);
+    }
   }
 
   /* ANALOG */
@@ -369,13 +378,18 @@
     const digitalH = digitalCol?.offsetHeight || 140;
     const digitalW = digital?.offsetWidth  || 200;
     const bodyPad = 16;                       // padding .5rem hai đầu
-    const marginTop = maxReach;
-    const marginBottom = Math.max(8, maxReach - 40);
 
     // >=760px = desktop: analog TRÁI, digital + đồng hồ cát PHẢI.
     //   Chiều cao analog không bị digital ăn bớt nữa -> cao gần cả màn -> to hơn.
     //   Chiều rộng: cả màn trừ cột digital và lề nhãn hai bên.
     const sideBySide = window.innerWidth >= 760;
+
+    // Lề dọc của mặt analog:
+    //   Desktop hàng ngang -> lề trên = lề dưới => TÂM mặt nằm giữa hộp,
+    //     khớp đúng tâm dọc với cột digital (đã cân giữa bằng ::before) khi căn giữa.
+    //   Mobile dọc -> digital nằm DƯỚI nên lề dưới mỏng hơn để analog sát digital.
+    const marginTop = maxReach;
+    const marginBottom = sideBySide ? maxReach : Math.max(8, maxReach - 40);
     let faceByW, faceByH;
     if(sideBySide){
       const GAP = 24;  // khoảng cách analog <-> digital (khớp body gap)
@@ -395,7 +409,7 @@
     const D = FACE*2;
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
-    // Lề: trên đủ cho nhãn, dưới sát digital (khớp với tính toán chiều cao ở trên)
+    // Lề: desktop trên=dưới (căn giữa khớp digital); mobile dưới mỏng để sát digital
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
     // Hai cung: khoảng cách đều mép -> cung phút -> cung giờ

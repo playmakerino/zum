@@ -34,25 +34,15 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Khối "đồng hồ" = analog + digital. Mobile dọc: analog trên, digital dưới.
-     Hàng ngang: analog trái, digital phải. (Lịch là khối riêng cạnh khối này.) */
+  /* Khối "đồng hồ" = analog TRÊN, digital + đồng hồ cát DƯỚI. LUÔN xếp dọc
+     (cả desktop lẫn mobile). Lịch là khối riêng đặt cạnh/khối này. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang):
-     ĐỒNG HỒ dồn sang TRÁI, LỊCH sang PHẢI; bên trong đồng hồ thì analog trái,
-     digital phải. Landscape thiếu chiều cao nên xếp ngang hợp lý hơn. */
+  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang): ĐỒNG HỒ sang TRÁI,
+     LỊCH sang PHẢI. Bên trong đồng hồ vẫn dọc (digital nằm dưới analog).
+     Landscape thiếu chiều cao nhưng vẫn xếp đồng hồ | lịch cho gọn. */
   @media (min-width:760px), (orientation:landscape){
     body{ flex-direction:row; gap:24px; }
-    .clock{ flex-direction:row; gap:24px; }
-    /* Cân đối dọc cột digital: chừa phía TRÊN hàng số một khoảng đúng bằng
-       dòng văn nói phía DƯỚI -> hàng số nằm chính giữa cột -> căn giữa khớp
-       với tâm mặt analog (lề trên = dưới) khi body căn giữa theo chiều dọc. */
-    .digital-col::before{
-      content:"";
-      height:1.4em;
-      margin-bottom:.6rem;
-      font-size:clamp(.85rem,3.6vw,1.05rem);
-    }
     /* Desktop: lịch không cần lề trên (đã căn giữa theo chiều dọc). */
     .calendar{ margin-top:0; }
   }
@@ -442,40 +432,32 @@
 
     // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ
     const vh = window.innerHeight;
-    const digital = document.querySelector('.digital');
-    // Chiều cao đo CẢ cột (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
-    // Chiều rộng chỉ lấy hàng số (dòng văn nói canh giữa, không nới rộng cột).
+    // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
-    const digitalW = digital?.offsetWidth  || 200;
     // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
     const calendar = document.querySelector('.calendar');
     const calW = calendar?.offsetWidth  || 0;
     const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
-    // Hàng ngang khi desktop (>=760px) HOẶC mobile xoay ngang (landscape).
+    // sideBySide = LỊCH nằm bên PHẢI (desktop >=760px / landscape); ngược lại lịch nằm DƯỚI.
     //   Khớp đúng media query CSS ở trên để bố cục JS và CSS luôn đồng bộ.
-    //   Chiều cao analog không bị digital ăn bớt -> to hơn; rộng = màn trừ cột digital + lề.
+    //   Đồng hồ LUÔN xếp dọc: analog trên, digital dưới (cả hai chế độ).
     const sideBySide = window.matchMedia('(min-width:760px), (orientation:landscape)').matches;
 
-    // Lề dọc của mặt analog:
-    //   Desktop hàng ngang -> lề trên = lề dưới => TÂM mặt nằm giữa hộp,
-    //     khớp đúng tâm dọc với cột digital (đã cân giữa bằng ::before) khi căn giữa.
-    //   Mobile dọc -> digital nằm DƯỚI nên lề dưới mỏng hơn để analog sát digital.
+    // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
+    // (thò thẳng xuống = badgeOut + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
-    // Mobile dọc: digital nằm DƯỚI. Lề dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
-    // (thò THẲNG XUỐNG = badgeOut + nửa CHIỀU CAO nhãn) không chạm đồng hồ cát/digital.
-    // (Trước đây dùng maxReach-40 tùy tiện -> nhãn giờ đè lên digital quanh 6 giờ.)
-    const marginBottom = sideBySide ? maxReach : Math.max(8, badgeOut + BADGE_H/2);
+    const marginBottom = Math.max(8, badgeOut + BADGE_H/2);
     let faceByW, faceByH;
     if(sideBySide){
-      const GAP = 24;  // khoảng cách giữa các khối (khớp gap của body & .clock)
-      faceByH = (vh - bodyPad - marginTop - marginBottom) / 2;
-      // Bề rộng: trừ lề nhãn hai bên, cột digital, LỊCH bên phải và hai khe GAP
-      //   (analog | digital) và (đồng hồ | lịch).
+      const GAP = 24;  // khe giữa đồng hồ và lịch (khớp gap của body)
+      // Lịch ở bên PHẢI -> KHÔNG ăn chiều cao: cao chứa analog + digital (xếp dọc).
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
+      // Bề rộng: cả màn trừ lề nhãn hai bên, LỊCH bên phải và 1 khe GAP.
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
-      faceByW = (availW - 2*maxReach - digitalW - calW - 2*GAP) / 2;
+      faceByW = (availW - 2*maxReach - calW - GAP) / 2;
     } else {
       // Mobile/dọc: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;

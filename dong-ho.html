@@ -116,7 +116,6 @@
     line-height:1;
     /* Căn giữa số bằng flex (không dựa baseline/line-box) */
     display:flex;align-items:center;justify-content:center;
-    will-change:transform;            /* lớp compositing riêng ổn định -> nảy không vẽ lại các cung */
     background:var(--badge-bg);color:#fff;
   }
   #badgeH{--badge-bg:var(--c-hour);}
@@ -351,7 +350,6 @@
 <script>
   const $ = id => document.getElementById(id);
   const analog = $('analog');
-  const arcSvg = $('arcSvg');
 
   // Phần tử cập nhật MỖI FRAME -> cache sẵn, khỏi tra DOM lặp lại
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
@@ -517,13 +515,6 @@
     ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60') — nhóm trong, sát mặt
     ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
     ARC_R_D2 = FACE + R_D2_OFF;       // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
-
-    // SVG cung: viewBox + kích thước RÕ RÀNG (tâm 0,0), bao đủ vòng ngoài cùng.
-    // Bắt buộc để Safari render đúng tâm & ổn định (không lệch khi lớp bị vẽ lại).
-    const RSVG = FACE + 30;
-    arcSvg.setAttribute('viewBox', `${-RSVG} ${-RSVG} ${2*RSVG} ${2*RSVG}`);
-    arcSvg.style.width = arcSvg.style.height = (2*RSVG)+'px';
-    arcSvg.style.marginLeft = arcSvg.style.marginTop = (-RSVG)+'px';
 
     // Tâm nhãn: nằm NGOÀI cả cụm vòng (đã tính ở trên), không đè vòng ngày khi quay tới 3/9 giờ
     const badgeM_r = FACE + badgeM_off;   // nhãn phút

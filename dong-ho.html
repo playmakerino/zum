@@ -423,34 +423,40 @@
          + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
   }
 
-  // Buổi trong ngày bằng tiếng Anh (cùng mốc giờ như buoi())
-  function buoiEn(h){
-    if(h>=4  && h<=10) return 'morning';
-    if(h>=11 && h<=12) return 'noon';
-    if(h>=13 && h<=17) return 'afternoon';
-    if(h>=18 && h<=21) return 'evening';
-    return 'night';
+  // Số đếm tiếng Anh 0..59 (đủ cho giờ 1-12 và phút 1-29 trong cách nói past/to)
+  const ONES=['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+              'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen',
+              'eighteen','nineteen'];
+  const TENS=['','','twenty','thirty','forty','fifty'];
+  function numEn(n){
+    if(n<20) return ONES[n];
+    const o=n%10; return o ? TENS[(n/10)|0]+'-'+ONES[o] : TENS[(n/10)|0];
   }
-  // Cách nói giờ tiếng Anh (kiểu "past/to"), tô màu cùng quy ước: giờ -> sp-h, phút -> sp-m, buổi -> sp-b
-  //   0      -> "X o'clock <period>"
-  //   1..29  -> "m past X <period>"
-  //   30     -> "half past X <period>"
-  //   31..59 -> "(60-m) to (X+1) <period>"
+  // Buổi trong ngày, kèm giới từ đúng ngữ pháp ("in the ..." / "at night")
+  function periodEn(h){
+    if(h>=5  && h<12) return 'in the morning';
+    if(h>=12 && h<18) return 'in the afternoon';
+    if(h>=18 && h<22) return 'in the evening';
+    return 'at night';
+  }
+  // Cách nói giờ tiếng Anh TỰ NHIÊN (kiểu past/to, dùng chữ + quarter/half).
+  //   12:00 -> "twelve noon"; 0:00 -> "twelve midnight"
+  //   :00 -> "<giờ> o'clock"   :15 -> "quarter past <giờ>"   :30 -> "half past <giờ>"
+  //   :45 -> "quarter to <giờ+1>"   m<30 -> "<m> past <giờ>"   m>30 -> "<60-m> to <giờ+1>"
   function noiGioEn(h,m){
-    const b='<span class="sp-b">'+buoiEn(h)+'</span>';
-    if(m===0){
-      return "<span class=\"sp-h\">"+gio12(h)+" o'clock</span> "+b;
-    }
-    if(m<30){
-      return '<span class="sp-m">'+m+' past</span> '
-           + '<span class="sp-h">'+gio12(h)+'</span> '+b;
-    }
-    if(m===30){
-      return '<span class="sp-m">half past</span> '
-           + '<span class="sp-h">'+gio12(h)+'</span> '+b;
-    }
-    return '<span class="sp-m">'+(60-m)+' to</span> '
-         + '<span class="sp-h">'+gio12(h+1)+'</span> '+b;
+    const H=gio12(h), Hn=gio12(h+1);
+    const sh=x=>'<span class="sp-h">'+x+'</span>';
+    const sm=x=>'<span class="sp-m">'+x+'</span>';
+    const sb=x=>'<span class="sp-b">'+x+'</span>';
+    if(m===0 && h===12) return sh('twelve')+' '+sb('noon');
+    if(m===0 && h===0)  return sh('twelve')+' '+sb('midnight');
+    const b=sb(periodEn(h));
+    if(m===0)  return sh(numEn(H)+" o'clock")+' '+b;
+    if(m===15) return sm('quarter past')+' '+sh(numEn(H))+' '+b;
+    if(m===30) return sm('half past')+' '+sh(numEn(H))+' '+b;
+    if(m===45) return sm('quarter to')+' '+sh(numEn(Hn))+' '+b;
+    if(m<30)   return sm(numEn(m)+' past')+' '+sh(numEn(H))+' '+b;
+    return sm(numEn(60-m)+' to')+' '+sh(numEn(Hn))+' '+b;
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====

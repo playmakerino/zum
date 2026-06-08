@@ -37,17 +37,19 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Khối "đồng hồ" = analog TRÊN, digital + đồng hồ cát DƯỚI. LUÔN xếp dọc
-     (cả desktop lẫn mobile). Lịch là khối riêng đặt cạnh/khối này. */
+  /* Khối "đồng hồ" = analog + digital. Mặc định xếp DỌC (analog trên, digital dưới). */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang): ĐỒNG HỒ sang TRÁI,
-     LỊCH sang PHẢI. Bên trong đồng hồ vẫn dọc (digital nằm dưới analog).
-     Landscape thiếu chiều cao nhưng vẫn xếp đồng hồ | lịch cho gọn. */
+  /* Desktop >=760px HOẶC mobile xoay ngang: ĐỒNG HỒ sang TRÁI, LỊCH sang PHẢI. */
   @media (min-width:760px), (orientation:landscape){
     body{ flex-direction:row; gap:24px; }
-    /* Desktop: lịch không cần lề trên (đã căn giữa theo chiều dọc). */
-    .calendar{ margin-top:0; }
+    .calendar{ margin-top:0; }   /* đã căn giữa theo chiều dọc, không cần lề trên */
+  }
+
+  /* Landscape THẤP (điện thoại xoay ngang): chiều cao ít -> analog nằm BÊN digital
+     (đỡ tốn chiều dọc) để hiển thị đầy đủ. Desktop/màn cao vẫn xếp dọc như trên. */
+  @media (orientation:landscape) and (max-height:600px){
+    .clock{ flex-direction:row; gap:24px; }
   }
 
   /* ANALOG */
@@ -421,6 +423,36 @@
          + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
   }
 
+  // Buổi trong ngày bằng tiếng Anh (cùng mốc giờ như buoi())
+  function buoiEn(h){
+    if(h>=4  && h<=10) return 'morning';
+    if(h>=11 && h<=12) return 'noon';
+    if(h>=13 && h<=17) return 'afternoon';
+    if(h>=18 && h<=21) return 'evening';
+    return 'night';
+  }
+  // Cách nói giờ tiếng Anh (kiểu "past/to"), tô màu cùng quy ước: giờ -> sp-h, phút -> sp-m, buổi -> sp-b
+  //   0      -> "X o'clock <period>"
+  //   1..29  -> "m past X <period>"
+  //   30     -> "half past X <period>"
+  //   31..59 -> "(60-m) to (X+1) <period>"
+  function noiGioEn(h,m){
+    const b='<span class="sp-b">'+buoiEn(h)+'</span>';
+    if(m===0){
+      return "<span class=\"sp-h\">"+gio12(h)+" o'clock</span> "+b;
+    }
+    if(m<30){
+      return '<span class="sp-m">'+m+' past</span> '
+           + '<span class="sp-h">'+gio12(h)+'</span> '+b;
+    }
+    if(m===30){
+      return '<span class="sp-m">half past</span> '
+           + '<span class="sp-h">'+gio12(h)+'</span> '+b;
+    }
+    return '<span class="sp-m">'+(60-m)+' to</span> '
+         + '<span class="sp-h">'+gio12(h+1)+'</span> '+b;
+  }
+
   /* ===== Bố cục nhãn — tự co theo màn hình =====
      px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
      tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
@@ -462,6 +494,7 @@
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
+    const digitalW = digitalCol?.offsetWidth  || 200;
     // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
     const calendar = document.querySelector('.calendar');
     const calW = calendar?.offsetWidth  || 0;
@@ -469,22 +502,28 @@
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // sideBySide = LỊCH nằm bên PHẢI (desktop >=760px / landscape); ngược lại lịch nằm DƯỚI.
-    //   Khớp đúng media query CSS ở trên để bố cục JS và CSS luôn đồng bộ.
-    //   Đồng hồ LUÔN xếp dọc: analog trên, digital dưới (cả hai chế độ).
+    // clockRow = landscape THẤP (đt xoay ngang): analog nằm BÊN digital cho đỡ tốn chiều cao.
+    //   Cả hai khớp đúng media query CSS để bố cục JS và CSS luôn đồng bộ.
     const sideBySide = window.matchMedia('(min-width:760px), (orientation:landscape)').matches;
+    const clockRow   = window.matchMedia('(orientation:landscape) and (max-height:600px)').matches;
 
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
     const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
+    const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
     let faceByW, faceByH;
     if(sideBySide){
-      const GAP = 24;  // khe giữa đồng hồ và lịch (khớp gap của body)
-      // Lịch ở bên PHẢI -> KHÔNG ăn chiều cao: cao chứa analog + digital (xếp dọc).
-      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
-      // Bề rộng: cả màn trừ lề nhãn hai bên, LỊCH bên phải và 1 khe GAP.
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
-      faceByW = (availW - 2*maxReach - calW - GAP) / 2;
+      if(clockRow){
+        // analog | digital | LỊCH -> chiều cao CHỈ cần analog (digital nằm bên cạnh).
+        faceByH = (vh - bodyPad - marginTop - marginBottom) / 2;
+        faceByW = (availW - 2*maxReach - digitalW - calW - 2*GAP) / 2;
+      } else {
+        // (analog trên / digital dưới) | LỊCH -> chiều cao cần analog + digital.
+        faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
+        faceByW = (availW - 2*maxReach - calW - GAP) / 2;
+      }
     } else {
       // Mobile/dọc: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
@@ -763,9 +802,12 @@
       elM.textContent=pad(m);
       elS.textContent=pad(s);
 
-      // Văn nói: hiện ở GIÂY 0-5 của MỌI phút, ẩn các giây còn lại
+      // Văn nói: giây 0-5 tiếng Việt, giây 6-10 tiếng Anh, còn lại ẩn
       if(s<=5){
         elSpoken.innerHTML=noiGio(h,m);
+        elSpoken.classList.add('show');
+      }else if(s<=10){
+        elSpoken.innerHTML=noiGioEn(h,m);
         elSpoken.classList.add('show');
       }else{
         elSpoken.classList.remove('show');

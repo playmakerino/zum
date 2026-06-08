@@ -34,11 +34,16 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang): analog bên TRÁI,
-     digital + đồng hồ cát bên PHẢI. Landscape thiếu chiều cao nên xếp ngang
-     hợp lý hơn -> dùng chung bố cục như desktop. */
+  /* Khối "đồng hồ" = analog + digital. Mobile dọc: analog trên, digital dưới.
+     Hàng ngang: analog trái, digital phải. (Lịch là khối riêng cạnh khối này.) */
+  .clock{ display:flex; flex-direction:column; align-items:center; }
+
+  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang):
+     ĐỒNG HỒ dồn sang TRÁI, LỊCH sang PHẢI; bên trong đồng hồ thì analog trái,
+     digital phải. Landscape thiếu chiều cao nên xếp ngang hợp lý hơn. */
   @media (min-width:760px), (orientation:landscape){
     body{ flex-direction:row; gap:24px; }
+    .clock{ flex-direction:row; gap:24px; }
     /* Cân đối dọc cột digital: chừa phía TRÊN hàng số một khoảng đúng bằng
        dòng văn nói phía DƯỚI -> hàng số nằm chính giữa cột -> căn giữa khớp
        với tâm mặt analog (lề trên = dưới) khi body căn giữa theo chiều dọc. */
@@ -48,6 +53,8 @@
       margin-bottom:.6rem;
       font-size:clamp(.85rem,3.6vw,1.05rem);
     }
+    /* Desktop: lịch không cần lề trên (đã căn giữa theo chiều dọc). */
+    .calendar{ margin-top:0; }
   }
 
   /* ANALOG */
@@ -217,9 +224,54 @@
   .spoken .sp-h{color:var(--c-hour);}
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
+
+  /* LỊCH THÁNG */
+  .calendar{
+    display:flex;flex-direction:column;align-items:center;
+    gap:clamp(.5rem,2vw,.8rem);
+    margin-top:.8rem;                 /* mobile: cách digital phía trên; desktop reset =0 */
+    font-variant-numeric:tabular-nums;
+  }
+  .cal-head{
+    font-size:clamp(.95rem,4vw,1.2rem);
+    font-weight:500;
+    letter-spacing:.02em;
+    color:var(--c-buoi);              /* màu ngày (xanh ngọc) */
+  }
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:clamp(.15rem,1vw,.4rem);
+  }
+  .cal-cell{
+    width:clamp(1.7rem,6.5vw,2.3rem);
+    height:clamp(1.7rem,6.5vw,2.3rem);
+    display:flex;align-items:center;justify-content:center;
+    font-size:clamp(.78rem,3.2vw,1rem);
+    line-height:1;
+    border-radius:50%;
+  }
+  .cal-dow{                           /* tiêu đề thứ trong tuần */
+    color:var(--muted);
+    font-size:clamp(.6rem,2.6vw,.78rem);
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .cal-day{ color:var(--ink); }       /* ngày trong tương lai */
+  .cal-day.past{                      /* ngày đã qua: xanh ngọc + opacity */
+    color:var(--c-buoi);
+    opacity:.4;
+  }
+  .cal-day.today{                     /* ngày hiện tại: xanh ngọc nổi bật */
+    background:var(--c-buoi);
+    color:#fff;
+    font-weight:700;
+  }
 </style>
 </head>
 <body>
+  <div class="clock">
   <div class="analog" id="analog">
     <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <path id="hourTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.5"></path>
@@ -279,6 +331,12 @@
       </div>
     </div>
     <div class="spoken" id="spoken"></div>
+  </div>
+  </div><!-- /clock -->
+
+  <div class="calendar" id="calendar">
+    <div class="cal-head" id="calHead"></div>
+    <div class="cal-grid" id="calGrid"></div>
   </div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -380,6 +438,10 @@
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
     const digitalW = digital?.offsetWidth  || 200;
+    // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
+    const calendar = document.querySelector('.calendar');
+    const calW = calendar?.offsetWidth  || 0;
+    const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // Hàng ngang khi desktop (>=760px) HOẶC mobile xoay ngang (landscape).
@@ -398,15 +460,17 @@
     const marginBottom = sideBySide ? maxReach : Math.max(8, badgeOut + BADGE_H/2);
     let faceByW, faceByH;
     if(sideBySide){
-      const GAP = 24;  // khoảng cách analog <-> digital (khớp body gap)
+      const GAP = 24;  // khoảng cách giữa các khối (khớp gap của body & .clock)
       faceByH = (vh - bodyPad - marginTop - marginBottom) / 2;
+      // Bề rộng: trừ lề nhãn hai bên, cột digital, LỊCH bên phải và hai khe GAP
+      //   (analog | digital) và (đồng hồ | lịch).
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
-      faceByW = (availW - 2*maxReach - digitalW - GAP) / 2;
+      faceByW = (availW - 2*maxReach - digitalW - calW - 2*GAP) / 2;
     } else {
-      // Mobile/dọc: như cũ — chiều cao phải chứa cả analog lẫn digital.
+      // Mobile/dọc: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
       faceByW = halfW - maxReach;
-      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 4) / 2;
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - calH - 16) / 2;
     }
 
     FACE = Math.min(faceByW, faceByH);
@@ -571,6 +635,42 @@
     // Lúc buồng dưới đầy nó hoà vào đống cát (cùng màu) nên không cần ẩn.
   }
 
+  /* ===== LỊCH THÁNG =====
+     Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
+       - Ngày hiện tại : xanh ngọc nổi bật (.today)
+       - Ngày đã qua   : xanh ngọc + opacity (.past)
+       - Ngày sắp tới  : màu chữ thường */
+  const DOW = ['T2','T3','T4','T5','T6','T7','CN'];
+  let lastDay = -1;
+  function buildCalendar(){
+    const now = new Date();
+    const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
+    document.getElementById('calHead').textContent = `Tháng ${mo+1}, ${y}`;
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    DOW.forEach(d=>{
+      const c=document.createElement('div');
+      c.className='cal-cell cal-dow';
+      c.textContent=d;
+      grid.appendChild(c);
+    });
+    // Ô trống đầu tháng: lùi theo thứ (Thứ Hai = 0)
+    const startOffset = (new Date(y,mo,1).getDay()+6)%7;
+    for(let i=0;i<startOffset;i++){
+      const blank=document.createElement('div');
+      blank.className='cal-cell';
+      grid.appendChild(blank);
+    }
+    const daysInMonth = new Date(y,mo+1,0).getDate();
+    for(let d=1;d<=daysInMonth;d++){
+      const c=document.createElement('div');
+      c.className='cal-cell cal-day'+(d<today?' past':d===today?' today':'');
+      c.textContent=d;
+      grid.appendChild(c);
+    }
+    lastDay = today;
+  }
+
   function tick(){
     const now=new Date();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
@@ -611,6 +711,9 @@
     if(s!==lastSec){
       const justSwitched = (lastSec===59 && s===0); // vừa qua mốc 59->00
       lastSec=s;
+
+      // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
+      if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
       updateBadge('textH', pad(gio12(h)));
       updateBadge('textM', pad(m));
       document.getElementById('h').textContent=pad(h);
@@ -645,6 +748,7 @@
 
     requestAnimationFrame(tick);
   }
+  buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', layout);

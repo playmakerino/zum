@@ -213,7 +213,7 @@
     pointer-events:none;
   }
   .spoken.show{opacity:1;}
-  /* Giờ -> màu giờ; phần phút (đúng/rưỡi/kém/Y phút) -> màu phút; buổi -> màu mới */
+  /* Giờ -> màu giờ; phần phút (đúng/rưỡi/kém/Y phút) -> màu phút; buổi -> xanh ngọc */
   .spoken .sp-h{color:var(--c-hour);}
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
@@ -353,7 +353,15 @@
   </svg>
 
 <script>
-  const analog=document.getElementById('analog');
+  const $ = id => document.getElementById(id);
+  const analog = $('analog');
+
+  // Phần tử cập nhật MỖI FRAME -> cache sẵn, khỏi tra DOM lặp lại
+  const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
+  const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
+  const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
+  const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
+
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -392,7 +400,7 @@
   //   1..29   -> "X giờ m phút <buổi>"        (vd: 10 giờ 15 phút sáng)
   //   30      -> "X giờ rưỡi <buổi>"          (vd: 10 giờ rưỡi sáng)
   //   31..59  -> "(X+1) giờ kém (60-m) phút <buổi>"  (vd: 9 giờ kém 20 phút tối)
-  //   Tô màu: giờ -> màu giờ, phút (đúng/rưỡi/kém) -> màu phút, buổi -> màu mới
+  //   Tô màu: giờ -> màu giờ, phút (đúng/rưỡi/kém) -> màu phút, buổi -> xanh ngọc
   function noiGio(h,m){
     const b='<span class="sp-b">'+buoi(h)+'</span>';
     if(m===0){
@@ -439,7 +447,6 @@
     const badgeH_off = badgeM_off + BADGE_H + SAFE;     // khoảng cách tâm -> nhãn GIỜ (xa hơn, không đè)
 
     // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
-    const badgeOut = badgeH_off;               // tâm nhãn giờ thò ra ngoài FACE
     const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
     // Vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari). visualViewport chính xác
@@ -465,9 +472,9 @@
     const sideBySide = window.matchMedia('(min-width:760px), (orientation:landscape)').matches;
 
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
-    // (thò thẳng xuống = badgeOut + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
+    // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
-    const marginBottom = Math.max(8, badgeOut + BADGE_H/2);
+    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
     let faceByW, faceByH;
     if(sideBySide){
       const GAP = 24;  // khe giữa đồng hồ và lịch (khớp gap của body)
@@ -492,7 +499,7 @@
     const D = FACE*2;
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
-    // Lề: desktop trên=dưới (căn giữa khớp digital); mobile dưới mỏng để sát digital
+    // Lề: trên = maxReach (đủ cho nhãn); dưới = vừa đủ nhãn lúc 6 giờ; hai bên = maxReach.
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
     // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
@@ -507,8 +514,8 @@
 
     // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M); nhãn GIỜ nối từ VÒNG NGÀY ngoài (ARC_R_D2).
     //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
-    const realHalfM = document.getElementById('badgeM').offsetHeight/2 || BADGE_H/2;
-    const realHalfH = document.getElementById('badgeH').offsetHeight/2 || BADGE_H/2;
+    const realHalfM = $('badgeM').offsetHeight/2 || BADGE_H/2;
+    const realHalfH = $('badgeH').offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
     const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
 
@@ -537,7 +544,7 @@
   //   Vòng đang diễn ra: vòng 1 nếu SÁNG, vòng 2 nếu CHIỀU/TỐI.
   //   Vòng nửa ĐÃ XONG (sáng khi đang chiều) -> đầy; nửa CHƯA TỚI -> trống.
   function updateDayArcs(h, m, s){
-    const set=(id,d)=>document.getElementById(id).setAttribute('d', d||'');
+    const set=(id,d)=>$(id).setAttribute('d', d||'');
     const H = h % 12;                          // giờ trong nửa ngày (0..11)
     const startDeg = H*30;                      // đầu ô giờ hiện tại
     const liveDeg  = (H + m/60 + s/3600)*30;    // tiến trình trong giờ hiện tại
@@ -562,19 +569,19 @@
   }
   function updateMinArc(startDeg, endDeg){
     // Track: full circle (0 -> 60 phút = 0° -> 360°)
-    document.getElementById('minTrack').setAttribute('d', arcPath(ARC_R_M, 0, 359.999));
+    $('minTrack').setAttribute('d', arcPath(ARC_R_M, 0, 359.999));
     // Progress đậm: từ 0 phút tới đầu phút hiện tại
-    document.getElementById('minArc').setAttribute('d', arcPath(ARC_R_M, 0, startDeg));
+    $('minArc').setAttribute('d', arcPath(ARC_R_M, 0, startDeg));
     // Đoạn 6° hiện tại: track mảnh màu phút làm nền + đường đậm chạy theo giây
-    document.getElementById('minActiveTrack').setAttribute('d', arcPath(ARC_R_M, startDeg, startDeg+6));
-    document.getElementById('minActive').setAttribute('d', arcPath(ARC_R_M, startDeg, endDeg));
+    $('minActiveTrack').setAttribute('d', arcPath(ARC_R_M, startDeg, startDeg+6));
+    $('minActive').setAttribute('d', arcPath(ARC_R_M, startDeg, endDeg));
   }
 
   function place(connId, badgeId, connStart, len, badgeR){
-    const c=document.getElementById(connId);
+    const c=$(connId);
     c.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
     c.style.height = len+'px';
-    document.getElementById(badgeId).style.marginTop = (-badgeR)+'px';
+    $(badgeId).style.marginTop = (-badgeR)+'px';
   }
 
   // Đặt lại vạch chia và số theo FACE hiện tại
@@ -612,9 +619,9 @@
       el.style.top=`calc(50% + ${Math.sin(ang)*radius}px)`;
     });
     // Kim ngắn hơn vòng số để không đè lên số
-    const hourEl=document.getElementById('hour');
-    const minEl=document.getElementById('minute');
-    const secEl=document.getElementById('second');
+    const hourEl=$('hour');
+    const minEl=$('minute');
+    const secEl=$('second');
     const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
     hourEl.style.height=hh+'px'; hourEl.style.marginTop=(-hh)+'px';
     minEl.style.height=mh+'px';  minEl.style.marginTop=(-mh)+'px';
@@ -622,15 +629,15 @@
   }
 
   function updateBadge(id, txt){
-    const el=document.getElementById(id);
+    const el=$(id);
     if(el.textContent!==txt) el.textContent=txt;
   }
 
   // Bắn một nhịp lên nhãn: gỡ class cũ rồi thêm lại để animation chạy lại từ đầu.
   // cls = 'beat' (thường) hoặc 'beat-final' (nhịp cuối).
   function pulse(badgeId, spanId, cls){
-    const badge=document.getElementById(badgeId);
-    const span=document.getElementById(spanId);
+    const badge=$(badgeId);
+    const span=$(spanId);
     badge.classList.remove('beat','beat-final');
     span.classList.remove('beat','beat-final');
     void badge.offsetWidth;
@@ -640,7 +647,7 @@
 
   // Lật đồng hồ cát (one-shot): gỡ class rồi thêm lại để animation chạy lại từ đầu
   function flipHourglass(id){
-    const el=document.getElementById(id);
+    const el=$(id);
     el.classList.remove('flip');
     void el.offsetWidth;
     el.classList.add('flip');
@@ -656,13 +663,13 @@
   //   Cát trên còn lại = (1-p) thể tích  -> chiều cao còn lại ~ sqrt(1-p)
   //   Cát dưới phần TRỐNG phía trên = (1-p) thể tích -> chiều cao trống ~ sqrt(1-p)
   function updateHourglass(prefix, p){
-    const el=document.getElementById(prefix);
+    const el=$(prefix);
     // Đang lật: giữ cát ở trạng thái CẠN cho khớp lúc xoay, chưa refill vội
     if(el.classList.contains('flip')) p=1;
     const TOP_Y=4,  TOP_NECK=15;     // tam giác trên: đáy y=4, đỉnh ở cổ y=15
     const BOT_Y=28, BOT_NECK=17;     // tam giác dưới: đáy y=28, đỉnh ở cổ y=17
-    const topR=document.getElementById(prefix+'-top-r');
-    const botR=document.getElementById(prefix+'-bot-r');
+    const topR=$(prefix+'-top-r');
+    const botR=$(prefix+'-bot-r');
     const rem=Math.sqrt(Math.max(0, 1-p));   // tỉ lệ CHIỀU CAO ứng với (1-p) thể tích
     const topStart=TOP_NECK - (TOP_NECK-TOP_Y)*rem;
     topR.setAttribute('y', topStart);
@@ -684,8 +691,8 @@
   function buildCalendar(){
     const now = new Date();
     const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
-    document.getElementById('calHead').textContent = `Tháng ${mo+1}, ${y}`;
-    const grid = document.getElementById('calGrid');
+    $('calHead').textContent = `Tháng ${mo+1}, ${y}`;
+    const grid = $('calGrid');
     grid.innerHTML = '';
     DOW.forEach(d=>{
       const c=document.createElement('div');
@@ -719,13 +726,13 @@
     const secDeg  = totalSec*6;
     const minDeg  = (totalSec/60)*6;
     const hourDeg = (totalSec/3600)*30;
-    document.getElementById('second').style.transform=`rotate(${secDeg}deg)`;
-    document.getElementById('minute').style.transform=`rotate(${minDeg}deg)`;
-    document.getElementById('hour').style.transform=`rotate(${hourDeg}deg)`;
-    document.getElementById('orbitH').style.transform=`rotate(${hourDeg}deg)`;
-    document.getElementById('orbitM').style.transform=`rotate(${minDeg}deg)`;
-    document.getElementById('badgeH').style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg)`;
-    document.getElementById('badgeM').style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
+    elSec.style.transform=`rotate(${secDeg}deg)`;
+    elMin.style.transform=`rotate(${minDeg}deg)`;
+    elHour.style.transform=`rotate(${hourDeg}deg)`;
+    elOrbitH.style.transform=`rotate(${hourDeg}deg)`;
+    elOrbitM.style.transform=`rotate(${minDeg}deg)`;
+    elBadgeH.style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg)`;
+    elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
 
     // Cung: cập nhật mỗi frame để chạy theo kim mượt
     const minDegN  = (m + s/60)*6;
@@ -754,20 +761,19 @@
       if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
       updateBadge('textH', String(gio12(h)));
       updateBadge('textM', String(m));
-      document.getElementById('h').textContent=pad(h);
-      document.getElementById('m').textContent=pad(m);
-      document.getElementById('s').textContent=pad(s);
+      elH.textContent=pad(h);
+      elM.textContent=pad(m);
+      elS.textContent=pad(s);
 
       // Văn nói: hiện ở GIÂY 0-5 của MỌI phút, ẩn các giây còn lại
-      const spokenEl=document.getElementById('spoken');
       if(s<=5){
-        spokenEl.innerHTML=noiGio(h,m);
-        spokenEl.classList.add('show');
+        elSpoken.innerHTML=noiGio(h,m);
+        elSpoken.classList.add('show');
       }else{
-        spokenEl.classList.remove('show');
+        elSpoken.classList.remove('show');
       }
 
-      // Tô đỏ số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)
+      // Tô đậm số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)
       const hourNum = (h%12)===0 ? 12 : (h%12);
       numerals.forEach(el=>{
         el.classList.toggle('active', +el.dataset.n===hourNum);

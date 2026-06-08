@@ -455,8 +455,10 @@
     if(m===15) return sm('quarter past')+' '+sh(numEn(H))+' '+b;
     if(m===30) return sm('half past')+' '+sh(numEn(H))+' '+b;
     if(m===45) return sm('quarter to')+' '+sh(numEn(Hn))+' '+b;
-    if(m<30)   return sm(numEn(m)+' past')+' '+sh(numEn(H))+' '+b;
-    return sm(numEn(60-m)+' to')+' '+sh(numEn(Hn))+' '+b;
+    // Phút KHÔNG chia hết 5 -> thêm "minute/minutes" cho tự nhiên (vd "one minute past eight").
+    if(m<30){ const u=m%5?(m===1?' minute':' minutes'):''; return sm(numEn(m)+u+' past')+' '+sh(numEn(H))+' '+b; }
+    const k=60-m, u=k%5?(k===1?' minute':' minutes'):'';
+    return sm(numEn(k)+u+' to')+' '+sh(numEn(Hn))+' '+b;
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====

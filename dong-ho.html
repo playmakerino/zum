@@ -430,13 +430,14 @@
     // Đây là lề cần chừa quanh mặt để nhãn quay tới đâu cũng không chạm digital.
     const maxReach = badgeOut + ARC_GAP + BADGE_HALF;
 
-    // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ.
-    // Dùng chiều cao THẬT đang nhìn thấy: body cao 100dvh nên body.clientHeight =
-    // vùng nhìn thấy động (đã trừ thanh công cụ Safari). innerHeight có thể lớn hơn
-    // -> tính mặt to quá rồi tràn/cắt. visualViewport là phương án dự phòng.
-    const vh = document.body.clientHeight
-            || (window.visualViewport && window.visualViewport.height)
+    // Vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari). visualViewport chính xác
+    // nhất; 100dvh/clientHeight trên một số bản Safari vẫn trả về vùng LỚN (kéo xuống
+    // dưới thanh công cụ) -> đồng hồ căn giữa bị đẩy lên, cắt mất phần trên.
+    const vh = (window.visualViewport && window.visualViewport.height)
+            || document.documentElement.clientHeight
             || window.innerHeight;
+    // Ghim chiều cao body đúng vùng nhìn thấy -> căn giữa không lọt xuống dưới thanh công cụ.
+    document.body.style.height = vh + 'px';
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;

@@ -534,8 +534,9 @@
     const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
     let faceByW, faceByH;
     if(desktop){
-      // [analog/digital] | LỊCH -> cao chứa analog + digital; rộng trừ lịch + 1 khe.
-      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
+      // [analog/digital] | LỊCH. Chừa thêm ~40px chiều cao (clock căn giữa -> ~28px lề
+      // trên & dưới) để DÒNG VĂN NÓI ở đáy cột digital không sát mép dưới màn hình.
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40) / 2;
       faceByW = (availW - 2*maxReach - calW - GAP) / 2;
     } else if(mobLandscape){
       // [analog | digital] ở trên, LỊCH ở dưới -> cao chứa analog + lịch; rộng trừ digital + 1 khe.

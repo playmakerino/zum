@@ -175,18 +175,9 @@
     font-variant-numeric:tabular-nums;
     letter-spacing:-.02em;
   }
-  .lbl{
-    font-size:.7rem;font-weight:400;
-    text-transform:uppercase;
-    letter-spacing:.28em;
-    color:var(--muted);
-  }
   #h{color:var(--c-hour);}
   #m{color:var(--c-min);}
   #s{color:var(--c-sec);}
-  .unit.u-hour .lbl{color:var(--c-hour);}
-  .unit.u-min .lbl{color:var(--c-min);}
-  .unit.u-sec .lbl{color:var(--c-sec);}
   .sep{
     display:flex;flex-direction:column;align-items:center;gap:.45rem;
   }
@@ -233,11 +224,11 @@
     <div class="hand second" id="second"></div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
-      <div class="badge" id="badgeH"><span id="textH">00 giờ</span></div>
+      <div class="badge" id="badgeH"><span id="textH">00</span></div>
     </div>
     <div class="orbit" id="orbitM">
       <div class="connector" id="connM"></div>
-      <div class="badge" id="badgeM"><span id="textM">00 phút</span></div>
+      <div class="badge" id="badgeM"><span id="textM">00</span></div>
     </div>
     <div class="center"></div>
   </div>
@@ -255,7 +246,7 @@
             <rect class="hg-stream" id="hgH-stream" x="11.4" y="15" width="1.2" height="3"></rect>
           </svg>
         </span>
-        <span class="num" id="h">00</span><span class="lbl">giờ</span>
+        <span class="num" id="h">00</span>
       </div>
       <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
       <div class="unit u-min">
@@ -269,12 +260,12 @@
             <rect class="hg-stream" id="hgM-stream" x="11.4" y="15" width="1.2" height="3"></rect>
           </svg>
         </span>
-        <span class="num" id="m">00</span><span class="lbl">phút</span>
+        <span class="num" id="m">00</span>
       </div>
       <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
       <div class="unit u-sec">
         <span class="hg-slot"></span>
-        <span class="num" id="s">00</span><span class="lbl">giây</span>
+        <span class="num" id="s">00</span>
       </div>
     </div>
     <div class="spoken" id="spoken"></div>
@@ -355,8 +346,8 @@
        (nếu không, nhãn sẽ phủ lên chính nét nối và che mất nó)
      Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
   const LEN_M      = 16;   // độ dài nét nối phút
-  const BADGE_H    = 40;   // chiều cao một nhãn
-  const BADGE_HALF = 28;   // nửa bề rộng nhãn (chừa lề khỏi cắt)
+  const BADGE_H    = 24;   // chiều cao một nhãn (chỉ còn số, không chữ -> thấp hơn)
+  const BADGE_HALF = 16;   // nửa bề rộng nhãn (chỉ còn 2 chữ số, min-width 30px -> ~16)
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
@@ -601,8 +592,8 @@
     if(s!==lastSec){
       const justSwitched = (lastSec===59 && s===0); // vừa qua mốc 59->00
       lastSec=s;
-      updateBadge('textH', gio12(h)+' giờ');
-      updateBadge('textM', m+' phút');
+      updateBadge('textH', pad(gio12(h)));
+      updateBadge('textM', pad(m));
       document.getElementById('h').textContent=pad(h);
       document.getElementById('m').textContent=pad(m);
       document.getElementById('s').textContent=pad(s);

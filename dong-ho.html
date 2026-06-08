@@ -270,7 +270,7 @@
 <body>
   <div class="clock">
   <div class="analog" id="analog">
-    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
+    <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
            track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
            + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).
@@ -313,7 +313,7 @@
             <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
             <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
             <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" id="hgH-stream" x="11.7" y="15" width="0.6" height="13"></rect>
+            <rect class="hg-stream" x="11.7" y="15" width="0.6" height="13"></rect>
           </svg>
         </span>
         <span class="num" id="h">00</span>
@@ -327,7 +327,7 @@
             <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
             <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
             <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" id="hgM-stream" x="11.5" y="15" width="1" height="13"></rect>
+            <rect class="hg-stream" x="11.5" y="15" width="1" height="13"></rect>
           </svg>
         </span>
         <span class="num" id="m">00</span>
@@ -366,6 +366,8 @@
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
   const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
+  const elConnH=$('connH'), elConnM=$('connM');
+  const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
   // Các path cung (cập nhật mỗi frame) gom theo NHÓM 4 lớp: track / arc(đã qua) / act(ô hiện tại) / live
@@ -480,6 +482,19 @@
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
   let FACE;
+  let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
+
+  // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari): visualViewport chính
+  // xác nhất; 100dvh/clientHeight trên vài bản Safari trả vùng LỚN -> căn giữa bị lệch.
+  const viewportH = () => (window.visualViewport && window.visualViewport.height)
+        || document.documentElement.clientHeight || window.innerHeight;
+
+  // MediaQuery dùng chung cho layout()/relayout() (3 bố cục theo BỀ RỘNG màn hình):
+  //   >=1200px desktop | 768–1199 ngang (cuộn được) | <768 dọc
+  const MQ = {
+    desktop:   window.matchMedia('(min-width:1200px)'),
+    landscape: window.matchMedia('(min-width:768px) and (max-width:1199.98px)'),
+  };
 
   function layout(){
     const ARC_GAP = 8;
@@ -500,19 +515,11 @@
     // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
     const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
-    // Vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari). visualViewport chính xác
-    // nhất; 100dvh/clientHeight trên một số bản Safari vẫn trả về vùng LỚN (kéo xuống
-    // dưới thanh công cụ) -> đồng hồ căn giữa bị đẩy lên, cắt mất phần trên.
-    const vh = (window.visualViewport && window.visualViewport.height)
-            || document.documentElement.clientHeight
-            || window.innerHeight;
+    const vh = viewportH();
 
-    // 3 bố cục theo CHIỀU RỘNG màn hình (khớp media query CSS để JS & CSS đồng bộ):
-    //   >=1200px  desktop      : [analog/digital] | LỊCH
-    //   768–1199  mobLandscape : [analog | digital] ở trên, LỊCH ở dưới (CUỘN được)
-    //   <768      mobile dọc   : analog / digital / LỊCH (xếp dọc)
-    const desktop      = window.matchMedia('(min-width:1200px)').matches;
-    const mobLandscape = window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
+    // 3 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop | ngang (cuộn) | dọc
+    const desktop      = MQ.desktop.matches;
+    const mobLandscape = MQ.landscape.matches;
 
     // Mobile NGANG cho CUỘN -> KHÔNG ghim chiều cao (để body cao theo nội dung).
     // Chế độ khác: ghim chiều cao = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
@@ -579,13 +586,12 @@
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
     const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
 
-    place('connM','badgeM', ARC_R_M, lenM, badgeM_r);
-    place('connH','badgeH', ARC_R_D2, lenH, badgeH_r);
+    place(elConnM, elBadgeM, ARC_R_M, lenM, badgeM_r);
+    place(elConnH, elBadgeH, ARC_R_D2, lenH, badgeH_r);
 
     layoutFace();
   }
 
-  let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
   function polar(r, deg){
     const a=(deg-90)*Math.PI/180;
     return [r*Math.cos(a), r*Math.sin(a)];
@@ -623,11 +629,10 @@
     drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
   }
 
-  function place(connId, badgeId, connStart, len, badgeR){
-    const c=$(connId);
-    c.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
-    c.style.height = len+'px';
-    $(badgeId).style.marginTop = (-badgeR)+'px';
+  function place(conn, badge, connStart, len, badgeR){
+    conn.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
+    conn.style.height = len+'px';
+    badge.style.marginTop = (-badgeR)+'px';
   }
 
   // Đặt lại vạch chia và số theo FACE hiện tại
@@ -660,18 +665,14 @@
       el.style.left=`calc(50% + ${Math.cos(ang)*radius}px)`;
       el.style.top=`calc(50% + ${Math.sin(ang)*radius}px)`;
     });
-    // Kim ngắn hơn vòng số để không đè lên số
-    const hourEl=$('hour');
-    const minEl=$('minute');
-    const secEl=$('second');
+    // Kim ngắn hơn vòng số để không đè lên số (dùng ref đã cache)
     const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
-    hourEl.style.height=hh+'px'; hourEl.style.marginTop=(-hh)+'px';
-    minEl.style.height=mh+'px';  minEl.style.marginTop=(-mh)+'px';
-    secEl.style.height=sh+'px';  secEl.style.marginTop=(-sh)+'px';
+    elHour.style.height=hh+'px'; elHour.style.marginTop=(-hh)+'px';
+    elMin.style.height=mh+'px';  elMin.style.marginTop=(-mh)+'px';
+    elSec.style.height=sh+'px';  elSec.style.marginTop=(-sh)+'px';
   }
 
-  function updateBadge(id, txt){
-    const el=$(id);
+  function updateBadge(el, txt){
     if(el.textContent!==txt) el.textContent=txt;
   }
 
@@ -816,8 +817,8 @@
 
       // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
       if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
-      updateBadge('textH', String(gio12(h)));
-      updateBadge('textM', String(m));
+      updateBadge(elTextH, String(gio12(h)));
+      updateBadge(elTextM, String(m));
       elH.textContent=pad(h);
       elM.textContent=pad(m);
       elS.textContent=pad(s);
@@ -859,9 +860,8 @@
   let lastW=-1, lastVh=-1;
   function relayout(){
     const w=window.innerWidth;
-    const vh=(window.visualViewport && window.visualViewport.height)
-          || document.documentElement.clientHeight || window.innerHeight;
-    const mobLandscape=window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
+    const vh=viewportH();
+    const mobLandscape=MQ.landscape.matches;
     if(mobLandscape ? w===lastW : (w===lastW && Math.abs(vh-lastVh)<2)) return;
     lastW=w; lastVh=vh; layout();
   }

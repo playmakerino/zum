@@ -828,17 +828,20 @@
       elS.textContent=pad(s);
 
       // Văn nói: 0–5s VN hơn · 5–10s EN hơn · 10–15s VN kém · 15–20s EN kém.
-      // Nửa đầu giờ (<:30) không có cách đọc kém -> 2 cửa sổ kém trả null -> ẩn dòng. Sau 20s cũng ẩn.
+      // Nửa đầu giờ (<:30) không có cách đọc kém -> trả null. Khi hết câu: bỏ 'show' cho
+      // mờ dần, giây sau XOÁ HẲN nội dung -> không để text ẩn nằm lại trong DOM.
       const phrase = s<5  ? noiGioHon(h,m)
                    : s<10 ? noiGioEnHon(h,m)
                    : s<15 ? noiGioKem(h,m)
                    : s<20 ? noiGioEnKem(h,m)
                    : null;
       if(phrase){
-        elSpoken.innerHTML=phrase;
+        if(elSpoken.innerHTML!==phrase) elSpoken.innerHTML=phrase;
         elSpoken.classList.add('show');
-      }else{
-        elSpoken.classList.remove('show');
+      }else if(elSpoken.classList.contains('show')){
+        elSpoken.classList.remove('show');   // vừa hết câu -> mờ dần
+      }else if(elSpoken.innerHTML){
+        elSpoken.innerHTML='';               // đã mờ xong -> xoá hẳn, không render nữa
       }
 
       // Tô đậm số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)

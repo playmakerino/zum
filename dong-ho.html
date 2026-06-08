@@ -11,6 +11,7 @@
     --ink:#3f3a5c;
     --muted:#a99fb8;
     --line:#e9cdb6;
+    --neutral:#2b2b2b;       /* đen trung tính: mép đồng hồ + ngày chưa đến + tháng/năm */
     --accent:#ff5d97;
     --c-hour:#5a63d8;
     --c-min:#f5921b;
@@ -51,7 +52,7 @@
   .analog{
     width:300px;height:300px;border-radius:50%;
     background:#fff;
-    border:1px solid var(--ink);      /* mép đồng hồ màu đen */
+    border:1px solid var(--neutral);  /* mép đồng hồ: đen trung tính */
     position:relative;
     margin:58px;
     box-shadow:0 24px 60px -28px rgba(0,0,0,.25);
@@ -226,7 +227,7 @@
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500;
     letter-spacing:.02em;
-    color:var(--ink);                 /* tháng/năm: chữ đen */
+    color:var(--neutral);             /* tháng/năm: đen trung tính */
   }
   .cal-grid{
     display:grid;
@@ -248,7 +249,7 @@
     text-transform:uppercase;
     letter-spacing:.04em;
   }
-  .cal-day{ color:var(--ink); }       /* ngày trong tương lai */
+  .cal-day{ color:var(--neutral); }   /* ngày chưa đến: đen trung tính */
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }

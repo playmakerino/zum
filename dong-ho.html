@@ -437,6 +437,15 @@
          + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
   }
 
+  // Số đếm tiếng Anh bằng CHỮ (0..59): giờ 1-12 và phút 0-59.
+  const ONES=['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+              'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen',
+              'eighteen','nineteen'];
+  const TENS=['','','twenty','thirty','forty','fifty'];
+  function numEn(n){
+    if(n<20) return ONES[n];
+    const o=n%10; return o ? TENS[(n/10)|0]+'-'+ONES[o] : TENS[(n/10)|0];
+  }
   // Buổi trong ngày, kèm giới từ đúng ngữ pháp ("in the ..." / "at night")
   function periodEn(h){
     if(h>=5  && h<12) return 'in the morning';
@@ -444,27 +453,20 @@
     if(h>=18 && h<22) return 'in the evening';
     return 'at night';
   }
-  // Cách nói giờ tiếng Anh: DÙNG SỐ cho giờ & số phút; giữ chữ cho quarter/half/past/to/...
+  // Cách nói giờ tiếng Anh kiểu TRỰC TIẾP (đọc giờ rồi phút), số viết bằng CHỮ.
   // Viết hoa chữ cái đầu câu lo bằng CSS (.spoken::first-letter).
-  //   12:00 -> "12 noon"; 0:00 -> "12 midnight"
-  //   :00 -> "8 o'clock"   :15 -> "quarter past 8"   :30 -> "half past 8"
-  //   :45 -> "quarter to 9"   m<30 -> "20 past 8"   m>30 -> "20 to 9"  (lẻ: thêm "minute(s)")
+  //   12:00 -> "twelve noon"; 0:00 -> "twelve midnight"
+  //   :00 -> "four o'clock"   :01-:09 -> "four oh five"   >=:10 -> "four twenty"
   function noiGioEn(h,m){
-    const H=gio12(h), Hn=gio12(h+1);
     const sh=x=>'<span class="sp-h">'+x+'</span>';
     const sm=x=>'<span class="sp-m">'+x+'</span>';
     const sb=x=>'<span class="sp-b">'+x+'</span>';
-    if(m===0 && h===12) return sh('12')+' '+sb('noon');
-    if(m===0 && h===0)  return sh('12')+' '+sb('midnight');
-    const b=sb(periodEn(h));
-    if(m===0)  return sh(H+" o'clock")+' '+b;
-    if(m===15) return sm('quarter past')+' '+sh(H)+' '+b;
-    if(m===30) return sm('half past')+' '+sh(H)+' '+b;
-    if(m===45) return sm('quarter to')+' '+sh(Hn)+' '+b;
-    // Phút KHÔNG chia hết 5 -> thêm "minute/minutes" cho tự nhiên (vd "1 minute past 8").
-    if(m<30){ const u=m%5?(m===1?' minute':' minutes'):''; return sm(m+u+' past')+' '+sh(H)+' '+b; }
-    const k=60-m, u=k%5?(k===1?' minute':' minutes'):'';
-    return sm(k+u+' to')+' '+sh(Hn)+' '+b;
+    if(m===0 && h===12) return sh('twelve')+' '+sb('noon');
+    if(m===0 && h===0)  return sh('twelve')+' '+sb('midnight');
+    const hr=sh(numEn(gio12(h))), b=sb(periodEn(h));
+    if(m===0) return hr+' '+sm("o'clock")+' '+b;     // four o'clock
+    if(m<10)  return hr+' '+sm('oh '+numEn(m))+' '+b; // four oh five
+    return hr+' '+sm(numEn(m))+' '+b;                 // four twenty / four forty-five
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====

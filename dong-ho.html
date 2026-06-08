@@ -204,6 +204,8 @@
     pointer-events:none;
   }
   .spoken.show{opacity:1;}
+  /* Viết hoa chữ cái đầu câu (câu bắt đầu bằng số thì giữ nguyên; văn nói VN luôn bắt đầu bằng số) */
+  .spoken::first-letter{text-transform:uppercase;}
   /* Giờ -> màu giờ; phần phút (đúng/rưỡi/kém/Y phút) -> màu phút; buổi -> xanh ngọc */
   .spoken .sp-h{color:var(--c-hour);}
   .spoken .sp-m{color:var(--c-min);}
@@ -423,15 +425,6 @@
          + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
   }
 
-  // Số đếm tiếng Anh 0..59 (đủ cho giờ 1-12 và phút 1-29 trong cách nói past/to)
-  const ONES=['zero','one','two','three','four','five','six','seven','eight','nine','ten',
-              'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen',
-              'eighteen','nineteen'];
-  const TENS=['','','twenty','thirty','forty','fifty'];
-  function numEn(n){
-    if(n<20) return ONES[n];
-    const o=n%10; return o ? TENS[(n/10)|0]+'-'+ONES[o] : TENS[(n/10)|0];
-  }
   // Buổi trong ngày, kèm giới từ đúng ngữ pháp ("in the ..." / "at night")
   function periodEn(h){
     if(h>=5  && h<12) return 'in the morning';
@@ -439,26 +432,27 @@
     if(h>=18 && h<22) return 'in the evening';
     return 'at night';
   }
-  // Cách nói giờ tiếng Anh TỰ NHIÊN (kiểu past/to, dùng chữ + quarter/half).
-  //   12:00 -> "twelve noon"; 0:00 -> "twelve midnight"
-  //   :00 -> "<giờ> o'clock"   :15 -> "quarter past <giờ>"   :30 -> "half past <giờ>"
-  //   :45 -> "quarter to <giờ+1>"   m<30 -> "<m> past <giờ>"   m>30 -> "<60-m> to <giờ+1>"
+  // Cách nói giờ tiếng Anh: DÙNG SỐ cho giờ & số phút; giữ chữ cho quarter/half/past/to/...
+  // Viết hoa chữ cái đầu câu lo bằng CSS (.spoken::first-letter).
+  //   12:00 -> "12 noon"; 0:00 -> "12 midnight"
+  //   :00 -> "8 o'clock"   :15 -> "quarter past 8"   :30 -> "half past 8"
+  //   :45 -> "quarter to 9"   m<30 -> "20 past 8"   m>30 -> "20 to 9"  (lẻ: thêm "minute(s)")
   function noiGioEn(h,m){
     const H=gio12(h), Hn=gio12(h+1);
     const sh=x=>'<span class="sp-h">'+x+'</span>';
     const sm=x=>'<span class="sp-m">'+x+'</span>';
     const sb=x=>'<span class="sp-b">'+x+'</span>';
-    if(m===0 && h===12) return sh('twelve')+' '+sb('noon');
-    if(m===0 && h===0)  return sh('twelve')+' '+sb('midnight');
+    if(m===0 && h===12) return sh('12')+' '+sb('noon');
+    if(m===0 && h===0)  return sh('12')+' '+sb('midnight');
     const b=sb(periodEn(h));
-    if(m===0)  return sh(numEn(H)+" o'clock")+' '+b;
-    if(m===15) return sm('quarter past')+' '+sh(numEn(H))+' '+b;
-    if(m===30) return sm('half past')+' '+sh(numEn(H))+' '+b;
-    if(m===45) return sm('quarter to')+' '+sh(numEn(Hn))+' '+b;
-    // Phút KHÔNG chia hết 5 -> thêm "minute/minutes" cho tự nhiên (vd "one minute past eight").
-    if(m<30){ const u=m%5?(m===1?' minute':' minutes'):''; return sm(numEn(m)+u+' past')+' '+sh(numEn(H))+' '+b; }
+    if(m===0)  return sh(H+" o'clock")+' '+b;
+    if(m===15) return sm('quarter past')+' '+sh(H)+' '+b;
+    if(m===30) return sm('half past')+' '+sh(H)+' '+b;
+    if(m===45) return sm('quarter to')+' '+sh(Hn)+' '+b;
+    // Phút KHÔNG chia hết 5 -> thêm "minute/minutes" cho tự nhiên (vd "1 minute past 8").
+    if(m<30){ const u=m%5?(m===1?' minute':' minutes'):''; return sm(m+u+' past')+' '+sh(H)+' '+b; }
     const k=60-m, u=k%5?(k===1?' minute':' minutes'):'';
-    return sm(numEn(k)+u+' to')+' '+sh(numEn(Hn))+' '+b;
+    return sm(k+u+' to')+' '+sh(Hn)+' '+b;
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====

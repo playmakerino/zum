@@ -252,7 +252,7 @@
             <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
             <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
             <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" id="hgH-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+            <rect class="hg-stream" id="hgH-stream" x="11.5" y="15" width="1" height="3"></rect>
           </svg>
         </span>
         <span class="num" id="h">00</span>
@@ -266,7 +266,7 @@
             <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
             <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
             <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" id="hgM-stream" x="11.4" y="15" width="1.2" height="3"></rect>
+            <rect class="hg-stream" id="hgM-stream" x="11.5" y="15" width="1" height="3"></rect>
           </svg>
         </span>
         <span class="num" id="m">00</span>
@@ -562,6 +562,11 @@
     const botStart=BOT_NECK + (BOT_Y-BOT_NECK)*rem;
     botR.setAttribute('y', botStart);
     botR.setAttribute('height', Math.max(0, BOT_Y - botStart));
+    // Nét dọc minh hoạ cát ĐANG RƠI: chạy từ cổ (đỉnh phễu trên) xuống tới
+    // mặt đống cát dưới. Đống cát dâng lên (botStart giảm) -> nét rơi ngắn dần.
+    const STREAM_TOP=TOP_NECK;
+    stream.setAttribute('y', STREAM_TOP);
+    stream.setAttribute('height', Math.max(0, botStart - STREAM_TOP));
     // Dòng cát chảy: ẩn khi gần đầy/đã cạn
     stream.style.opacity = (p>0.004 && p<0.996) ? 1 : 0;
   }

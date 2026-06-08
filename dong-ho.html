@@ -40,14 +40,14 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* MOBILE NGANG (cảm ứng + xoay ngang): [analog | digital] ở TRÊN, LỊCH ở DƯỚI.
+  /* MOBILE NGANG (rộng 768–1199px): [analog | digital] ở TRÊN, LỊCH ở DƯỚI.
      body vẫn xếp dọc -> khối analog|digital ở trên, lịch nằm dưới. */
-  @media (hover:none) and (orientation:landscape){
+  @media (min-width:768px) and (max-width:1199.98px){
     .clock{ flex-direction:row; gap:24px; }
   }
 
-  /* DESKTOP (có chuột): [analog/digital(+cát)] BÊN TRÁI, LỊCH BÊN PHẢI. */
-  @media (hover:hover) and (pointer:fine){
+  /* DESKTOP (rộng >= 1200px): [analog/digital(+cát)] BÊN TRÁI, LỊCH BÊN PHẢI. */
+  @media (min-width:1200px){
     body{ flex-direction:row; gap:24px; }
     .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }
@@ -508,12 +508,12 @@
     const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
-    // 3 bố cục, khớp đúng media query CSS để JS & CSS đồng bộ:
-    //   desktop (chuột)      : [analog/digital] | LỊCH
-    //   mobLandscape (cảm ứng+ngang): [analog | digital] ở trên, LỊCH ở dưới
-    //   còn lại (mobile dọc) : analog / digital / LỊCH (xếp dọc)
-    const desktop      = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
-    const mobLandscape = window.matchMedia('(hover:none) and (orientation:landscape)').matches;
+    // 3 bố cục theo CHIỀU RỘNG màn hình (khớp media query CSS để JS & CSS đồng bộ):
+    //   >=1200px  desktop      : [analog/digital] | LỊCH
+    //   768–1199  mobLandscape : [analog | digital] ở trên, LỊCH ở dưới
+    //   <768      mobile dọc   : analog / digital / LỊCH (xếp dọc)
+    const desktop      = window.matchMedia('(min-width:1200px)').matches;
+    const mobLandscape = window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
 
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.

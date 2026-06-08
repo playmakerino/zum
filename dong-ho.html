@@ -19,10 +19,12 @@
     --c-buoi:#1fab95;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
+  html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
   body{
     height:100vh;
     height:100dvh;
     overflow:hidden;
+    overscroll-behavior:none;
     background:var(--bg);
     color:var(--ink);
     display:flex;
@@ -482,7 +484,10 @@
     }
 
     FACE = Math.min(faceByW, faceByH);
-    FACE = Math.max(70, FACE);
+    // Sàn tối thiểu 70 NHƯNG không bao giờ vượt quá giới hạn BỀ RỘNG (faceByW) ->
+    // bề ngang khối analog luôn vừa viewport, không gây scroll ngang. (Màn quá thấp
+    // thì chấp nhận co theo chiều cao thay vì tràn ngang.)
+    FACE = Math.max(FACE, Math.min(70, faceByW));
 
     const D = FACE*2;
     analog.style.width  = D+'px';

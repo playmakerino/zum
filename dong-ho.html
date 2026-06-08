@@ -601,9 +601,8 @@
     drawRing(ring.min, ARC_R_M, m*6, 6, (m + s/60)*6);
   }
   // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
-  //   Vòng đang chạy: dựng đủ 4 lớp (giống vòng phút). Vòng kia: nửa đã xong -> đầy; chưa tới -> trống.
-  //   Màu: track+đã qua = c-buoi (ngày); ô+tiến trình = c-hour (giờ) — đặt trong CSS.
-  // Vẽ 2 vòng nửa ngày cho MỘT bộ path (analog hoặc lịch): g1/g2 = nhóm 4 lớp, r1/r2 = bán kính.
+  //   Vòng đang chạy dựng đủ 4 lớp (như vòng phút); vòng kia: nửa đã xong -> đầy, chưa tới -> trống.
+  //   Màu (đặt ở thuộc tính stroke của path): track+đã qua = c-buoi (ngày); ô+tiến trình = c-hour (giờ).
   function drawDayRings(g1, g2, r1, r2, h, m, s){
     const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
     drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 lớp
@@ -641,10 +640,6 @@
 
     // Đặt BÁN KÍNH RIÊNG cho từng số: mép ngoài mỗi số cách đuôi vạch đúng G_NUM
     numerals.forEach(el=>{
-      el.style.width='auto';
-      el.style.height='auto';
-    });
-    numerals.forEach(el=>{
       const n=+el.dataset.n;
       const ang=(n*30-90)*Math.PI/180;
       const rg=document.createRange(); rg.selectNodeContents(el);
@@ -671,8 +666,8 @@
 
   // Trạng thái "nảy" của mỗi nhãn: thời điểm bắt đầu + đỉnh scale. Scale do JS lo (xem tick).
   const BEAT_MS = 450;
-  const beat = { H:{start:-1e12, peak:1, badge:null}, M:{start:-1e12, peak:1, badge:null} };
-  beat.H.badge = elBadgeH; beat.M.badge = elBadgeM;
+  const beat = { H:{start:-1e12, peak:1, badge:elBadgeH},
+                 M:{start:-1e12, peak:1, badge:elBadgeM} };
 
   // Hệ số scale tại thời điểm now cho một nhãn (envelope: lên đỉnh ~22% rồi về 1).
   function beatScale(b, now){

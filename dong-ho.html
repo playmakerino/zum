@@ -261,7 +261,7 @@
 <body>
   <div class="clock">
   <div class="analog" id="analog">
-    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;transform:translateZ(0);">
+    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
            track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
            + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).
@@ -351,6 +351,7 @@
 <script>
   const $ = id => document.getElementById(id);
   const analog = $('analog');
+  const arcSvg = $('arcSvg');
 
   // Phần tử cập nhật MỖI FRAME -> cache sẵn, khỏi tra DOM lặp lại
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
@@ -516,6 +517,13 @@
     ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60') — nhóm trong, sát mặt
     ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
     ARC_R_D2 = FACE + R_D2_OFF;       // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
+
+    // SVG cung: viewBox + kích thước RÕ RÀNG (tâm 0,0), bao đủ vòng ngoài cùng.
+    // Bắt buộc để Safari render đúng tâm & ổn định (không lệch khi lớp bị vẽ lại).
+    const RSVG = FACE + 30;
+    arcSvg.setAttribute('viewBox', `${-RSVG} ${-RSVG} ${2*RSVG} ${2*RSVG}`);
+    arcSvg.style.width = arcSvg.style.height = (2*RSVG)+'px';
+    arcSvg.style.marginLeft = arcSvg.style.marginTop = (-RSVG)+'px';
 
     // Tâm nhãn: nằm NGOÀI cả cụm vòng (đã tính ở trên), không đè vòng ngày khi quay tới 3/9 giờ
     const badgeM_r = FACE + badgeM_off;   // nhãn phút

@@ -34,9 +34,10 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Desktop (>=760px): analog bên TRÁI, digital + đồng hồ cát bên PHẢI.
-     Bỏ phần chiều dọc dành cho digital -> analog cao gần cả màn -> to hơn. */
-  @media (min-width:760px){
+  /* Hàng ngang (desktop >=760px HOẶC mobile xoay ngang): analog bên TRÁI,
+     digital + đồng hồ cát bên PHẢI. Landscape thiếu chiều cao nên xếp ngang
+     hợp lý hơn -> dùng chung bố cục như desktop. */
+  @media (min-width:760px), (orientation:landscape){
     body{ flex-direction:row; gap:24px; }
     /* Cân đối dọc cột digital: chừa phía TRÊN hàng số một khoảng đúng bằng
        dòng văn nói phía DƯỚI -> hàng số nằm chính giữa cột -> căn giữa khớp
@@ -379,10 +380,10 @@
     const digitalW = digital?.offsetWidth  || 200;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
-    // >=760px = desktop: analog TRÁI, digital + đồng hồ cát PHẢI.
-    //   Chiều cao analog không bị digital ăn bớt nữa -> cao gần cả màn -> to hơn.
-    //   Chiều rộng: cả màn trừ cột digital và lề nhãn hai bên.
-    const sideBySide = window.innerWidth >= 760;
+    // Hàng ngang khi desktop (>=760px) HOẶC mobile xoay ngang (landscape).
+    //   Khớp đúng media query CSS ở trên để bố cục JS và CSS luôn đồng bộ.
+    //   Chiều cao analog không bị digital ăn bớt -> to hơn; rộng = màn trừ cột digital + lề.
+    const sideBySide = window.matchMedia('(min-width:760px), (orientation:landscape)').matches;
 
     // Lề dọc của mặt analog:
     //   Desktop hàng ngang -> lề trên = lề dưới => TÂM mặt nằm giữa hộp,
@@ -643,6 +644,7 @@
   }
   layout();
   window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', layout);
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(layout);

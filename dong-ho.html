@@ -114,8 +114,9 @@
     font-size:.78rem;font-weight:500;
     font-variant-numeric:tabular-nums;
     line-height:1;
-    /* Căn giữa số bằng flex (không dựa baseline/line-box) -> scale khi nảy không xê dịch */
+    /* Căn giữa số bằng flex (không dựa baseline/line-box) */
     display:flex;align-items:center;justify-content:center;
+    will-change:transform;            /* lớp compositing riêng ổn định -> nảy không vẽ lại các cung */
     background:var(--badge-bg);color:#fff;
   }
   #badgeH{--badge-bg:var(--c-hour);}
@@ -254,7 +255,7 @@
 <body>
   <div class="clock">
   <div class="analog" id="analog">
-    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
+    <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;transform:translateZ(0);">
       <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
            track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
            + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).

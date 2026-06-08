@@ -363,6 +363,19 @@
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
+  // Các path cung (cập nhật mỗi frame) gom theo NHÓM 4 lớp: track / arc(đã qua) / act(ô hiện tại) / live
+  const ring = {
+    min:  {track:$('minTrack'),  arc:$('minArc'),  act:$('minActiveTrack'),  live:$('minActive')},
+    day1: {track:$('dayTrack1'), arc:$('dayArc1'), act:$('dayActiveTrack1'), live:$('dayActive1')},
+    day2: {track:$('dayTrack2'), arc:$('dayArc2'), act:$('dayActiveTrack2'), live:$('dayActive2')},
+  };
+  // Đồng hồ cát: root + 2 clip-rect (cát trên / cát dưới)
+  const hg = {
+    H: {root:$('hgH'), top:$('hgH-top-r'), bot:$('hgH-bot-r')},
+    M: {root:$('hgM'), top:$('hgM-top-r'), bot:$('hgM-bot-r')},
+  };
+  const setD=(el,d)=>el.setAttribute('d', d||'');
+
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -539,43 +552,28 @@
     const largeArc = sweep>180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
-  // Hai vòng nửa ngày (mỗi vòng 12h), dựng GIỐNG HỆT vòng phút nhưng đơn vị là GIỜ (30°/giờ):
-  //   track mờ (cả vòng) + cung "giờ đã qua" (c-buoi, đậm) + ô GIỜ hiện tại (vệt mờ rộng, c-hour)
-  //   + tiến trình trong giờ hiện tại (c-hour, đậm) — cấu trúc y như completed/active của phút.
-  //   Vòng đang diễn ra: vòng 1 nếu SÁNG, vòng 2 nếu CHIỀU/TỐI.
-  //   Vòng nửa ĐÃ XONG (sáng khi đang chiều) -> đầy; nửa CHƯA TỚI -> trống.
-  function updateDayArcs(h, m, s){
-    const set=(id,d)=>$(id).setAttribute('d', d||'');
-    const H = h % 12;                          // giờ trong nửa ngày (0..11)
-    const startDeg = H*30;                      // đầu ô giờ hiện tại
-    const liveDeg  = (H + m/60 + s/3600)*30;    // tiến trình trong giờ hiện tại
-    const pm = h >= 12;
-
-    set('dayTrack1', arcPath(ARC_R_D1, 0, 359.999));   // track mờ luôn full
-    set('dayTrack2', arcPath(ARC_R_D2, 0, 359.999));
-
-    // Vòng ĐANG diễn ra (giống hệt vòng phút)
-    const aR  = pm ? ARC_R_D2 : ARC_R_D1;
-    const aN  = pm ? '2' : '1';
-    set('dayArc'+aN,         arcPath(aR, 0, startDeg));            // giờ đã qua (đậm)
-    set('dayActiveTrack'+aN, arcPath(aR, startDeg, startDeg+30));  // ô giờ hiện tại (vệt mờ)
-    set('dayActive'+aN,      arcPath(aR, startDeg, liveDeg));      // tiến trình giờ hiện tại
-
-    // Vòng KIA: nửa đã xong -> đầy; nửa chưa tới -> trống. Không có ô/tiến trình hiện tại.
-    const iR  = pm ? ARC_R_D1 : ARC_R_D2;
-    const iN  = pm ? '1' : '2';
-    set('dayArc'+iN,         pm ? arcPath(iR, 0, 359.999) : '');
-    set('dayActiveTrack'+iN, '');
-    set('dayActive'+iN,      '');
+  // Vẽ MỘT vòng 4 lớp (track cả vòng + cung đã qua + ô đơn vị hiện tại + tiến trình hiện tại).
+  //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ); liveDeg = tiến trình.
+  //   slot=0 -> không vẽ ô & tiến trình (dùng cho vòng nửa ngày KHÔNG diễn ra).
+  function drawRing(g, r, doneDeg, slot, liveDeg){
+    setD(g.track, arcPath(r, 0, 359.999));
+    setD(g.arc,   arcPath(r, 0, doneDeg));
+    setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : '');
+    setD(g.live,  slot ? arcPath(r, doneDeg, liveDeg) : '');
   }
-  function updateMinArc(startDeg, endDeg){
-    // Track: full circle (0 -> 60 phút = 0° -> 360°)
-    $('minTrack').setAttribute('d', arcPath(ARC_R_M, 0, 359.999));
-    // Progress đậm: từ 0 phút tới đầu phút hiện tại
-    $('minArc').setAttribute('d', arcPath(ARC_R_M, 0, startDeg));
-    // Đoạn 6° hiện tại: track mảnh màu phút làm nền + đường đậm chạy theo giây
-    $('minActiveTrack').setAttribute('d', arcPath(ARC_R_M, startDeg, startDeg+6));
-    $('minActive').setAttribute('d', arcPath(ARC_R_M, startDeg, endDeg));
+  // Vòng phút (60'): đơn vị 6°, đã qua = phút trọn, tiến trình theo giây.
+  function updateMinArc(m, s){
+    drawRing(ring.min, ARC_R_M, m*6, 6, (m + s/60)*6);
+  }
+  // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
+  //   Vòng đang chạy: dựng đủ 4 lớp (giống vòng phút). Vòng kia: nửa đã xong -> đầy; chưa tới -> trống.
+  //   Màu: track+đã qua = c-buoi (ngày); ô+tiến trình = c-hour (giờ) — đặt trong CSS.
+  function updateDayArcs(h, m, s){
+    const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
+    drawRing(pm ? ring.day2 : ring.day1, pm ? ARC_R_D2 : ARC_R_D1, doneDeg, 30, liveDeg);
+    // Vòng kia: không có ô/tiến trình (slot 0); cung = đầy nếu nửa đã xong, trống nếu chưa tới.
+    const done2 = pm ? 359.999 : 0;
+    drawRing(pm ? ring.day1 : ring.day2, pm ? ARC_R_D1 : ARC_R_D2, done2, 0, 0);
   }
 
   function place(connId, badgeId, connStart, len, badgeR){
@@ -647,8 +645,7 @@
   }
 
   // Lật đồng hồ cát (one-shot): gỡ class rồi thêm lại để animation chạy lại từ đầu
-  function flipHourglass(id){
-    const el=$(id);
+  function flipHourglass(el){
     el.classList.remove('flip');
     void el.offsetWidth;
     el.classList.add('flip');
@@ -663,23 +660,19 @@
   //   theo p) thì chiều cao phải đi theo CĂN BẬC HAI, không tuyến tính.
   //   Cát trên còn lại = (1-p) thể tích  -> chiều cao còn lại ~ sqrt(1-p)
   //   Cát dưới phần TRỐNG phía trên = (1-p) thể tích -> chiều cao trống ~ sqrt(1-p)
-  function updateHourglass(prefix, p){
-    const el=$(prefix);
+  function updateHourglass(g, p){
     // Đang lật: giữ cát ở trạng thái CẠN cho khớp lúc xoay, chưa refill vội
-    if(el.classList.contains('flip')) p=1;
+    if(g.root.classList.contains('flip')) p=1;
     const TOP_Y=4,  TOP_NECK=15;     // tam giác trên: đáy y=4, đỉnh ở cổ y=15
     const BOT_Y=28, BOT_NECK=17;     // tam giác dưới: đáy y=28, đỉnh ở cổ y=17
-    const topR=$(prefix+'-top-r');
-    const botR=$(prefix+'-bot-r');
     const rem=Math.sqrt(Math.max(0, 1-p));   // tỉ lệ CHIỀU CAO ứng với (1-p) thể tích
     const topStart=TOP_NECK - (TOP_NECK-TOP_Y)*rem;
-    topR.setAttribute('y', topStart);
-    topR.setAttribute('height', Math.max(0, TOP_NECK - topStart));
+    g.top.setAttribute('y', topStart);
+    g.top.setAttribute('height', Math.max(0, TOP_NECK - topStart));
     const botStart=BOT_NECK + (BOT_Y-BOT_NECK)*rem;
-    botR.setAttribute('y', botStart);
-    botR.setAttribute('height', Math.max(0, BOT_Y - botStart));
-    // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện.
-    // Lúc buồng dưới đầy nó hoà vào đống cát (cùng màu) nên không cần ẩn.
+    g.bot.setAttribute('y', botStart);
+    g.bot.setAttribute('height', Math.max(0, BOT_Y - botStart));
+    // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện -> không xử lý ở JS.
   }
 
   /* ===== LỊCH THÁNG =====
@@ -736,22 +729,21 @@
     elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
 
     // Cung: cập nhật mỗi frame để chạy theo kim mượt
-    const minDegN  = (m + s/60)*6;
     updateDayArcs(h, m, s);
-    updateMinArc(m*6, minDegN);
+    updateMinArc(m, s);
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
     const ms = now.getMilliseconds();
     // Lật NGAY khi sang chu kỳ mới (kiểm tra trước khi vẽ cát để cát không "đầy" lố 1 frame)
     if(s!==lastSecHg){
       if(lastSecHg===59 && s===0){
-        flipHourglass('hgM');
-        if(m===0) flipHourglass('hgH');
+        flipHourglass(hg.M.root);
+        if(m===0) flipHourglass(hg.H.root);
       }
       lastSecHg=s;
     }
-    updateHourglass('hgH', (m + (s + ms/1000)/60) / 60);
-    updateHourglass('hgM', (s + ms/1000) / 60);
+    updateHourglass(hg.H, (m + (s + ms/1000)/60) / 60);
+    updateHourglass(hg.M, (s + ms/1000) / 60);
 
     // Text + nhãn: chỉ cập nhật khi giây đổi (đỡ tải, không gây giật)
     if(s!==lastSec){

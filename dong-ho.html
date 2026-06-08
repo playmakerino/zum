@@ -555,7 +555,6 @@
     const BOT_Y=28, BOT_NECK=17;     // tam giác dưới: đáy y=28, đỉnh ở cổ y=17
     const topR=document.getElementById(prefix+'-top-r');
     const botR=document.getElementById(prefix+'-bot-r');
-    const stream=document.getElementById(prefix+'-stream');
     const rem=Math.sqrt(Math.max(0, 1-p));   // tỉ lệ CHIỀU CAO ứng với (1-p) thể tích
     const topStart=TOP_NECK - (TOP_NECK-TOP_Y)*rem;
     topR.setAttribute('y', topStart);
@@ -563,9 +562,8 @@
     const botStart=BOT_NECK + (BOT_Y-BOT_NECK)*rem;
     botR.setAttribute('y', botStart);
     botR.setAttribute('height', Math.max(0, BOT_Y - botStart));
-    // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), chỉ bật/tắt.
-    // Ẩn khi gần đầy/đã cạn.
-    stream.style.opacity = (p>0.004 && p<0.996) ? 1 : 0;
+    // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện.
+    // Lúc buồng dưới đầy nó hoà vào đống cát (cùng màu) nên không cần ẩn.
   }
 
   function tick(){

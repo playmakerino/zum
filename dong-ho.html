@@ -570,8 +570,8 @@
 
     // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M); nhãn GIỜ nối từ VÒNG NGÀY ngoài (ARC_R_D2).
     //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
-    const realHalfM = $('badgeM').offsetHeight/2 || BADGE_H/2;
-    const realHalfH = $('badgeH').offsetHeight/2 || BADGE_H/2;
+    const realHalfM = elBadgeM.offsetHeight/2 || BADGE_H/2;
+    const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
     const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
 

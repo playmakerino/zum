@@ -41,9 +41,13 @@
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
   /* MOBILE NGANG (rộng 768–1199px): [analog | digital] ở TRÊN, LỊCH ở DƯỚI.
-     body vẫn xếp dọc -> khối analog|digital ở trên, lịch nằm dưới. */
+     body vẫn xếp dọc -> khối analog|digital ở trên, lịch nằm dưới; CUỘN DỌC được
+     khi nội dung (lịch dưới) vượt chiều cao màn. */
   @media (min-width:768px) and (max-width:1199.98px){
     .clock{ flex-direction:row; gap:24px; }
+    html{ overflow-x:hidden; overflow-y:auto; }
+    body{ height:auto; min-height:100dvh; overflow:visible;
+          justify-content:safe center; }   /* vừa -> căn giữa; tràn -> dồn lên đầu để cuộn */
   }
 
   /* DESKTOP (rộng >= 1200px): [analog/digital(+cát)] BÊN TRÁI, LỊCH BÊN PHẢI. */
@@ -496,8 +500,17 @@
     const vh = (window.visualViewport && window.visualViewport.height)
             || document.documentElement.clientHeight
             || window.innerHeight;
-    // Ghim chiều cao body đúng vùng nhìn thấy -> căn giữa không lọt xuống dưới thanh công cụ.
-    document.body.style.height = vh + 'px';
+
+    // 3 bố cục theo CHIỀU RỘNG màn hình (khớp media query CSS để JS & CSS đồng bộ):
+    //   >=1200px  desktop      : [analog/digital] | LỊCH
+    //   768–1199  mobLandscape : [analog | digital] ở trên, LỊCH ở dưới (CUỘN được)
+    //   <768      mobile dọc   : analog / digital / LỊCH (xếp dọc)
+    const desktop      = window.matchMedia('(min-width:1200px)').matches;
+    const mobLandscape = window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
+
+    // Mobile NGANG cho CUỘN -> KHÔNG ghim chiều cao (để body cao theo nội dung).
+    // Chế độ khác: ghim chiều cao = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
+    document.body.style.height = mobLandscape ? '' : (vh + 'px');
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
@@ -507,13 +520,6 @@
     const calW = calendar?.offsetWidth  || 0;
     const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
-
-    // 3 bố cục theo CHIỀU RỘNG màn hình (khớp media query CSS để JS & CSS đồng bộ):
-    //   >=1200px  desktop      : [analog/digital] | LỊCH
-    //   768–1199  mobLandscape : [analog | digital] ở trên, LỊCH ở dưới
-    //   <768      mobile dọc   : analog / digital / LỊCH (xếp dọc)
-    const desktop      = window.matchMedia('(min-width:1200px)').matches;
-    const mobLandscape = window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
 
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.

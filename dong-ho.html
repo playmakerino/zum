@@ -537,10 +537,7 @@
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
-    // Khe hở THÊM dưới analog cho cách xa digital/đồng hồ cát — chỉ khi analog nằm TRÊN
-    // digital (mobile dọc & desktop); landscape analog nằm CẠNH nên giữ nguyên.
-    const GAP_BELOW = mobLandscape ? 0 : 28;
-    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2) + GAP_BELOW;
+    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
     const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
     const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
     let faceByW, faceByH;
@@ -569,8 +566,11 @@
     const D = FACE*2;
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
-    // Lề: trên = maxReach (đủ cho nhãn); dưới = vừa đủ nhãn lúc 6 giờ; hai bên = maxReach.
-    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
+    // Đẩy analog LÊN cho cách digital/cát xa hơn — NHƯNG KHÔNG làm nó nhỏ đi: chỉ lấy khe hở
+    // từ phần chiều cao DƯ (slack) sau khi FACE đã chốt; hết dư thì thôi. (landscape bỏ qua.)
+    const slack = Math.max(0, 2*(faceByH - FACE));
+    const gapBelow = mobLandscape ? 0 : Math.min(28, slack);
+    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom + gapBelow}px`;
 
     // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
     // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng vẫn không đè nhau.)

@@ -365,10 +365,12 @@
 
   function layout(){
     const ARC_GAP = 8;
-    // Điểm xa tâm nhất = mép ngoài nhãn giờ:
-    //   badgeH_r = (FACE+2*ARC_GAP) + LEN_M + BADGE_H/2 + (BADGE_H+SAFE)
-    //   maxReach = phần vượt ra ngoài FACE + nửa bề rộng nhãn
-    const maxReach = 2*ARC_GAP + LEN_M + BADGE_H/2 + (BADGE_H + SAFE) + BADGE_HALF;
+    // Nhãn giờ (orbit ngoài cùng) thò RA NGOÀI mép mặt bao nhiêu theo BÁN KÍNH,
+    // KHÔNG phụ thuộc FACE:  badgeOut = badgeH_r - FACE
+    const badgeOut = ARC_GAP + LEN_M + BADGE_H/2 + (BADGE_H + SAFE);
+    // maxReach = mép NGOÀI nhãn giờ khi nhãn nằm NGANG (thêm nửa bề rộng) + 1 ARC_GAP dư.
+    // Đây là lề cần chừa quanh mặt để nhãn quay tới đâu cũng không chạm digital.
+    const maxReach = badgeOut + ARC_GAP + BADGE_HALF;
 
     // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ
     const vh = window.innerHeight;
@@ -390,7 +392,10 @@
     //     khớp đúng tâm dọc với cột digital (đã cân giữa bằng ::before) khi căn giữa.
     //   Mobile dọc -> digital nằm DƯỚI nên lề dưới mỏng hơn để analog sát digital.
     const marginTop = maxReach;
-    const marginBottom = sideBySide ? maxReach : Math.max(8, maxReach - 40);
+    // Mobile dọc: digital nằm DƯỚI. Lề dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
+    // (thò THẲNG XUỐNG = badgeOut + nửa CHIỀU CAO nhãn) không chạm đồng hồ cát/digital.
+    // (Trước đây dùng maxReach-40 tùy tiện -> nhãn giờ đè lên digital quanh 6 giờ.)
+    const marginBottom = sideBySide ? maxReach : Math.max(8, badgeOut + BADGE_H/2);
     let faceByW, faceByH;
     if(sideBySide){
       const GAP = 24;  // khoảng cách analog <-> digital (khớp body gap)

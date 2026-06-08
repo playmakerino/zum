@@ -276,15 +276,16 @@
       <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
            track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
            + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).
-           Màu/nét trùng khít vòng phút: đã qua = c-hour, đang chạy = c-min. -->
-      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
-      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
-      <path id="dayActiveTrack1" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
-      <path id="dayActiveTrack2" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
-      <path id="dayActive1" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt"></path>
-      <path id="dayActive2" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt"></path>
+           Màu: progress NGÀY (track + giờ đã qua) = c-buoi (xanh ngọc);
+                ô/vệt mờ + tiến trình GIỜ hiện tại = c-hour (xanh của giờ). -->
+      <path id="dayTrack1" fill="none" stroke="var(--c-buoi)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayTrack2" fill="none" stroke="var(--c-buoi)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayArc1" fill="none" stroke="var(--c-buoi)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayArc2" fill="none" stroke="var(--c-buoi)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayActiveTrack1" fill="none" stroke="var(--c-hour)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="dayActiveTrack2" fill="none" stroke="var(--c-hour)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="dayActive1" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayActive2" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
       <path id="minTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
       <path id="minArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
       <path id="minActiveTrack" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
@@ -529,8 +530,8 @@
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
   // Hai vòng nửa ngày (mỗi vòng 12h), dựng GIỐNG HỆT vòng phút nhưng đơn vị là GIỜ (30°/giờ):
-  //   track mờ (cả vòng) + cung "giờ đã qua" (c-hour, đậm) + ô GIỜ hiện tại (vệt mờ rộng, c-min)
-  //   + tiến trình trong giờ hiện tại (c-min, đậm) — y như completed/active của phút.
+  //   track mờ (cả vòng) + cung "giờ đã qua" (c-buoi, đậm) + ô GIỜ hiện tại (vệt mờ rộng, c-hour)
+  //   + tiến trình trong giờ hiện tại (c-hour, đậm) — cấu trúc y như completed/active của phút.
   //   Vòng đang diễn ra: vòng 1 nếu SÁNG, vòng 2 nếu CHIỀU/TỐI.
   //   Vòng nửa ĐÃ XONG (sáng khi đang chiều) -> đầy; nửa CHƯA TỚI -> trống.
   function updateDayArcs(h, m, s){

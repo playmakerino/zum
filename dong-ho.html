@@ -419,21 +419,21 @@
   // Bọc span màu cho văn nói: 'h'=giờ, 'm'=phút/kém, 'b'=buổi
   const spk = (cls,x)=>`<span class="sp-${cls}">${x}</span>`;
 
-  // Văn nói TIẾNG VIỆT — "giờ hơn": đọc theo giờ HIỆN TẠI.
-  //   0 -> "X giờ đúng"  ·  30 -> "X giờ rưỡi"  ·  còn lại -> "X giờ m phút"
-  //   (vd 16:45 -> "4 giờ 45 phút chiều")
+  // Văn nói TIẾNG VIỆT — "giờ hơn": luôn đọc xuôi theo giờ HIỆN TẠI (mọi phút).
+  //   0 -> "X giờ đúng"  ·  còn lại -> "X giờ m phút"
+  //   (:30 -> "X giờ 30 phút", KHÔNG dùng "rưỡi" — rưỡi để cho cửa sổ kém, tránh trùng)
   function noiGioHon(h,m){
     const b=spk('b',buoi(h)), hr=spk('h',gio12(h)+' giờ');
-    if(m===0)  return hr+' '+spk('m','đúng')+' '+b;
-    if(m===30) return hr+' '+spk('m','rưỡi')+' '+b;
+    if(m===0) return hr+' '+spk('m','đúng')+' '+b;
     return hr+' '+spk('m',m+' phút')+' '+b;
   }
-  // Văn nói TIẾNG VIỆT — "giờ kém": đọc theo giờ KẾ TIẾP, trừ số phút còn lại.
-  //   0 -> "X giờ đúng"  ·  30 -> "X giờ rưỡi"  ·  còn lại -> "(X+1) giờ kém (60-m) phút"
-  //   (vd 16:45 -> "5 giờ kém 15 phút chiều"; 16:30 -> "4 giờ rưỡi chiều")
+  // Văn nói TIẾNG VIỆT — "giờ kém": CHỈ có ở nửa sau giờ (rưỡi ở :30, kém ở 31–59).
+  //   <30 -> null (ẩn — nửa đầu giờ không có cách đọc kém)
+  //   30  -> "X giờ rưỡi"  ·  31–59 -> "(X+1) giờ kém (60-m) phút"
+  //   (vd 16:30 -> "4 giờ rưỡi chiều"; 16:45 -> "5 giờ kém 15 phút chiều")
   function noiGioKem(h,m){
+    if(m<30) return null;
     const b=spk('b',buoi(h));
-    if(m===0)  return spk('h',gio12(h)+' giờ')+' '+spk('m','đúng')+' '+b;
     if(m===30) return spk('h',gio12(h)+' giờ')+' '+spk('m','rưỡi')+' '+b;
     return spk('h',gio12(h+1)+' giờ')+' '+spk('m','kém '+(60-m)+' phút')+' '+b;
   }
@@ -447,12 +447,13 @@
     if(n<20) return ONES[n];
     const o=n%10; return o ? TENS[(n/10)|0]+'-'+ONES[o] : TENS[(n/10)|0];
   }
-  // Buổi trong ngày, kèm giới từ đúng ngữ pháp ("in the ..." / "at night")
+  // Buổi tiếng Anh — ĐỒNG BỘ ranh giới với buoi(): sáng/trưa/chiều/tối/đêm
   function periodEn(h){
-    if(h>=5  && h<12) return 'in the morning';
-    if(h>=12 && h<18) return 'in the afternoon';
-    if(h>=18 && h<22) return 'in the evening';
-    return 'at night';
+    if(h>=4  && h<=10) return 'in the morning';
+    if(h>=11 && h<=12) return 'at noon';        // "trưa"
+    if(h>=13 && h<=17) return 'in the afternoon';
+    if(h>=18 && h<=21) return 'in the evening';
+    return 'at night';            // 22,23,0,1,2,3
   }
   // Văn nói TIẾNG ANH — "giờ hơn": đọc giờ rồi phút (số viết bằng CHỮ).
   // Viết hoa chữ cái đầu câu lo bằng CSS (.spoken::first-letter).
@@ -466,11 +467,11 @@
     if(m<10)  return hr+' '+spk('m','oh '+numEn(m))+' '+b; // four oh five
     return hr+' '+spk('m',numEn(m))+' '+b;                 // four forty-five
   }
-  // Văn nói TIẾNG ANH — "giờ kém": số phút còn tới giờ KẾ TIẾP ("... to ...").
-  //   0 -> như "giờ hơn"  ·  30 -> "half past X"  ·  còn lại -> "(60-m) to (X+1)"
-  //   (vd 16:45 -> "fifteen to five..."; 16:30 -> "half past four in the afternoon")
+  // Văn nói TIẾNG ANH — "giờ kém": CHỈ có ở nửa sau giờ ("half past" :30, "... to ..." 31–59).
+  //   <30 -> null (ẩn)  ·  30 -> "half past X"  ·  31–59 -> "(60-m) to (X+1)"
+  //   (vd 16:30 -> "half past four..."; 16:45 -> "fifteen to five...")
   function noiGioEnKem(h,m){
-    if(m===0)  return noiGioEnHon(h,0);
+    if(m<30) return null;
     if(m===30) return spk('m','half past')+' '+spk('h',numEn(gio12(h)))+' '+spk('b',periodEn(h));
     return spk('m',numEn(60-m)+' to')+' '+spk('h',numEn(gio12(h+1)))+' '+spk('b',periodEn(h));
   }
@@ -826,13 +827,14 @@
       elM.textContent=pad(m);
       elS.textContent=pad(s);
 
-      // Văn nói: mỗi giai đoạn 5 giây — VN hơn / EN hơn / VN kém / EN kém; sau 20s thì ẩn
+      // Văn nói: 0–5s VN hơn · 5–10s EN hơn · 10–15s VN kém · 15–20s EN kém.
+      // Nửa đầu giờ (<:30) không có cách đọc kém -> 2 cửa sổ kém trả null -> ẩn dòng. Sau 20s cũng ẩn.
       const phrase = s<5  ? noiGioHon(h,m)
                    : s<10 ? noiGioEnHon(h,m)
                    : s<15 ? noiGioKem(h,m)
                    : s<20 ? noiGioEnKem(h,m)
                    : null;
-      if(phrase!==null){
+      if(phrase){
         elSpoken.innerHTML=phrase;
         elSpoken.classList.add('show');
       }else{

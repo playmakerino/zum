@@ -416,28 +416,26 @@
     if(h>=18 && h<=21) return 'tối';
     return 'đêm';            // 22,23,0,1,2,3
   }
-  // Cách nói giờ trong văn nói:
-  //   0       -> "X giờ đúng <buổi>"          (vd: 10 giờ đúng sáng)
-  //   1..29   -> "X giờ m phút <buổi>"        (vd: 10 giờ 15 phút sáng)
-  //   30      -> "X giờ rưỡi <buổi>"          (vd: 10 giờ rưỡi sáng)
-  //   31..59  -> "(X+1) giờ kém (60-m) phút <buổi>"  (vd: 9 giờ kém 20 phút tối)
-  //   Tô màu: giờ -> màu giờ, phút (đúng/rưỡi/kém) -> màu phút, buổi -> xanh ngọc
-  function noiGio(h,m){
-    const b='<span class="sp-b">'+buoi(h)+'</span>';
-    if(m===0){
-      return '<span class="sp-h">'+gio12(h)+' giờ</span> '
-           + '<span class="sp-m">đúng</span> '+b;
-    }
-    if(m<30){
-      return '<span class="sp-h">'+gio12(h)+' giờ</span> '
-           + '<span class="sp-m">'+m+' phút</span> '+b;
-    }
-    if(m===30){
-      return '<span class="sp-h">'+gio12(h)+' giờ</span> '
-           + '<span class="sp-m">rưỡi</span> '+b;
-    }
-    return '<span class="sp-h">'+gio12(h+1)+' giờ</span> '
-         + '<span class="sp-m">kém '+(60-m)+' phút</span> '+b;
+  // Bọc span màu cho văn nói: 'h'=giờ, 'm'=phút/kém, 'b'=buổi
+  const spk = (cls,x)=>`<span class="sp-${cls}">${x}</span>`;
+
+  // Văn nói TIẾNG VIỆT — "giờ hơn": đọc theo giờ HIỆN TẠI.
+  //   0 -> "X giờ đúng"  ·  30 -> "X giờ rưỡi"  ·  còn lại -> "X giờ m phút"
+  //   (vd 16:45 -> "4 giờ 45 phút chiều")
+  function noiGioHon(h,m){
+    const b=spk('b',buoi(h)), hr=spk('h',gio12(h)+' giờ');
+    if(m===0)  return hr+' '+spk('m','đúng')+' '+b;
+    if(m===30) return hr+' '+spk('m','rưỡi')+' '+b;
+    return hr+' '+spk('m',m+' phút')+' '+b;
+  }
+  // Văn nói TIẾNG VIỆT — "giờ kém": đọc theo giờ KẾ TIẾP, trừ số phút còn lại.
+  //   0 -> "X giờ đúng"  ·  30 -> "X giờ rưỡi"  ·  còn lại -> "(X+1) giờ kém (60-m) phút"
+  //   (vd 16:45 -> "5 giờ kém 15 phút chiều"; 16:30 -> "4 giờ rưỡi chiều")
+  function noiGioKem(h,m){
+    const b=spk('b',buoi(h));
+    if(m===0)  return spk('h',gio12(h)+' giờ')+' '+spk('m','đúng')+' '+b;
+    if(m===30) return spk('h',gio12(h)+' giờ')+' '+spk('m','rưỡi')+' '+b;
+    return spk('h',gio12(h+1)+' giờ')+' '+spk('m','kém '+(60-m)+' phút')+' '+b;
   }
 
   // Số đếm tiếng Anh bằng CHỮ (0..59): giờ 1-12 và phút 0-59.
@@ -456,20 +454,25 @@
     if(h>=18 && h<22) return 'in the evening';
     return 'at night';
   }
-  // Cách nói giờ tiếng Anh kiểu TRỰC TIẾP (đọc giờ rồi phút), số viết bằng CHỮ.
+  // Văn nói TIẾNG ANH — "giờ hơn": đọc giờ rồi phút (số viết bằng CHỮ).
   // Viết hoa chữ cái đầu câu lo bằng CSS (.spoken::first-letter).
   //   12:00 -> "twelve noon"; 0:00 -> "twelve midnight"
-  //   :00 -> "four o'clock"   :01-:09 -> "four oh five"   >=:10 -> "four twenty"
-  function noiGioEn(h,m){
-    const sh=x=>'<span class="sp-h">'+x+'</span>';
-    const sm=x=>'<span class="sp-m">'+x+'</span>';
-    const sb=x=>'<span class="sp-b">'+x+'</span>';
-    if(m===0 && h===12) return sh('twelve')+' '+sb('noon');
-    if(m===0 && h===0)  return sh('twelve')+' '+sb('midnight');
-    const hr=sh(numEn(gio12(h))), b=sb(periodEn(h));
-    if(m===0) return hr+' '+sm("o'clock")+' '+b;     // four o'clock
-    if(m<10)  return hr+' '+sm('oh '+numEn(m))+' '+b; // four oh five
-    return hr+' '+sm(numEn(m))+' '+b;                 // four twenty / four forty-five
+  //   :00 -> "four o'clock"   :01-:09 -> "four oh five"   >=:10 -> "four forty-five"
+  function noiGioEnHon(h,m){
+    if(m===0 && h===12) return spk('h','twelve')+' '+spk('b','noon');
+    if(m===0 && h===0)  return spk('h','twelve')+' '+spk('b','midnight');
+    const hr=spk('h',numEn(gio12(h))), b=spk('b',periodEn(h));
+    if(m===0) return hr+' '+spk('m',"o'clock")+' '+b;     // four o'clock
+    if(m<10)  return hr+' '+spk('m','oh '+numEn(m))+' '+b; // four oh five
+    return hr+' '+spk('m',numEn(m))+' '+b;                 // four forty-five
+  }
+  // Văn nói TIẾNG ANH — "giờ kém": số phút còn tới giờ KẾ TIẾP ("... to ...").
+  //   0 -> như "giờ hơn"  ·  30 -> "half past X"  ·  còn lại -> "(60-m) to (X+1)"
+  //   (vd 16:45 -> "fifteen to five..."; 16:30 -> "half past four in the afternoon")
+  function noiGioEnKem(h,m){
+    if(m===0)  return noiGioEnHon(h,0);
+    if(m===30) return spk('m','half past')+' '+spk('h',numEn(gio12(h)))+' '+spk('b',periodEn(h));
+    return spk('m',numEn(60-m)+' to')+' '+spk('h',numEn(gio12(h+1)))+' '+spk('b',periodEn(h));
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====
@@ -823,12 +826,14 @@
       elM.textContent=pad(m);
       elS.textContent=pad(s);
 
-      // Văn nói: giây 0-5 tiếng Việt, giây 6-10 tiếng Anh, còn lại ẩn
-      if(s<=5){
-        elSpoken.innerHTML=noiGio(h,m);
-        elSpoken.classList.add('show');
-      }else if(s<=10){
-        elSpoken.innerHTML=noiGioEn(h,m);
+      // Văn nói: mỗi giai đoạn 5 giây — VN hơn / EN hơn / VN kém / EN kém; sau 20s thì ẩn
+      const phrase = s<5  ? noiGioHon(h,m)
+                   : s<10 ? noiGioEnHon(h,m)
+                   : s<15 ? noiGioKem(h,m)
+                   : s<20 ? noiGioEnKem(h,m)
+                   : null;
+      if(phrase!==null){
+        elSpoken.innerHTML=phrase;
         elSpoken.classList.add('show');
       }else{
         elSpoken.classList.remove('show');

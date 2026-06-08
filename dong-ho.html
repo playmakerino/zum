@@ -492,11 +492,11 @@
     // Lề: desktop trên=dưới (căn giữa khớp digital); mobile dưới mỏng để sát digital
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
-    // Vòng đồng tâm: phút (trong cùng) -> hai vòng nửa ngày song song (ngoài).
-    // Giãn đủ để vệt mờ rộng (width 6) của các vòng không chồng nhau.
-    ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60')
-    ARC_R_D1 = FACE + 15;             // vòng nửa ngày 1 (sáng 0-12h)
-    ARC_R_D2 = FACE + 22;             // vòng nửa ngày 2 (chiều/tối 12-24h), song song
+    // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
+    // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng width 6 vẫn không đè nhau.)
+    ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60') — nhóm trong, sát mặt
+    ARC_R_D1 = FACE + 18;             // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
+    ARC_R_D2 = FACE + 23;             // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
 
     // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
     const badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;  // nhãn phút

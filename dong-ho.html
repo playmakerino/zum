@@ -113,13 +113,14 @@
     border-radius:99px;
     font-size:.78rem;font-weight:500;
     font-variant-numeric:tabular-nums;
-    text-align:center;
     line-height:1;
+    /* Căn giữa số bằng flex (không dựa baseline/line-box) -> scale khi nảy không xê dịch */
+    display:flex;align-items:center;justify-content:center;
     background:var(--badge-bg);color:#fff;
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  .badge span{display:inline-block;}
+  .badge span{display:block;transform-origin:center center;}
 
   /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền đỏ một nhịp.
      Animate badge cha cho nền + span cho scale. Cùng thời lượng .8s -> đều nhịp.

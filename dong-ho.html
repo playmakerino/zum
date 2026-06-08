@@ -537,7 +537,10 @@
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
-    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
+    // Khe hở THÊM dưới analog cho cách xa digital/đồng hồ cát — chỉ khi analog nằm TRÊN
+    // digital (mobile dọc & desktop); landscape analog nằm CẠNH nên giữ nguyên.
+    const GAP_BELOW = mobLandscape ? 0 : 28;
+    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2) + GAP_BELOW;
     const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
     const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
     let faceByW, faceByH;

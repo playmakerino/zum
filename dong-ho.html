@@ -408,14 +408,18 @@
   // Số giờ kiểu 12h (1..12)
   function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
 
-  // Buổi trong ngày theo giờ 24h (dùng cho cách nói giờ văn nói)
-  function buoi(h){
-    if(h>=4  && h<=10) return 'sáng';
-    if(h>=11 && h<=12) return 'trưa';
-    if(h>=13 && h<=17) return 'chiều';
-    if(h>=18 && h<=21) return 'tối';
-    return 'đêm';            // 22,23,0,1,2,3
+  // Phân buổi theo giờ 24h — MỘT nguồn ranh giới cho cả VN & EN (luôn đồng bộ)
+  function buoiIdx(h){
+    if(h>=4  && h<=10) return 0;   // sáng  / morning
+    if(h>=11 && h<=12) return 1;   // trưa  / noon
+    if(h>=13 && h<=17) return 2;   // chiều / afternoon
+    if(h>=18 && h<=21) return 3;   // tối   / evening
+    return 4;                      // đêm   / night (22,23,0–3)
   }
+  const BUOI_VN = ['sáng','trưa','chiều','tối','đêm'];
+  const BUOI_EN = ['in the morning','at noon','in the afternoon','in the evening','at night'];
+  const buoi     = h => BUOI_VN[buoiIdx(h)];   // buổi tiếng Việt
+  const periodEn = h => BUOI_EN[buoiIdx(h)];   // buổi tiếng Anh (cùng ranh giới)
   // Bọc span màu cho văn nói: 'h'=giờ, 'm'=phút/kém, 'b'=buổi
   const spk = (cls,x)=>`<span class="sp-${cls}">${x}</span>`;
 
@@ -446,14 +450,6 @@
   function numEn(n){
     if(n<20) return ONES[n];
     const o=n%10; return o ? TENS[(n/10)|0]+'-'+ONES[o] : TENS[(n/10)|0];
-  }
-  // Buổi tiếng Anh — ĐỒNG BỘ ranh giới với buoi(): sáng/trưa/chiều/tối/đêm
-  function periodEn(h){
-    if(h>=4  && h<=10) return 'in the morning';
-    if(h>=11 && h<=12) return 'at noon';        // "trưa"
-    if(h>=13 && h<=17) return 'in the afternoon';
-    if(h>=18 && h<=21) return 'in the evening';
-    return 'at night';            // 22,23,0,1,2,3
   }
   // Văn nói TIẾNG ANH — "giờ hơn": đọc giờ rồi phút (số viết bằng CHỮ).
   // Viết hoa chữ cái đầu câu lo bằng CSS (.spoken::first-letter).

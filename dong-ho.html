@@ -505,16 +505,15 @@
     const badgeM_r = FACE + badgeM_off;   // nhãn phút
     const badgeH_r = FACE + badgeH_off;   // nhãn giờ
 
-    // Nét nối: đi từ MÉP NGOÀI cụm vòng tới mép trong THẬT của nhãn (không cắt qua vòng nào).
+    // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M); nhãn GIỜ nối từ VÒNG NGÀY ngoài (ARC_R_D2).
     //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
-    const connStart = FACE + RING_OUT;
     const realHalfM = document.getElementById('badgeM').offsetHeight/2 || BADGE_H/2;
     const realHalfH = document.getElementById('badgeH').offsetHeight/2 || BADGE_H/2;
-    const lenM = (badgeM_r - realHalfM) - connStart;
-    const lenH = (badgeH_r - realHalfH) - connStart;
+    const lenM = (badgeM_r - realHalfM) - ARC_R_M;
+    const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
 
-    place('connM','badgeM', connStart, lenM, badgeM_r);
-    place('connH','badgeH', connStart, lenH, badgeH_r);
+    place('connM','badgeM', ARC_R_M, lenM, badgeM_r);
+    place('connH','badgeH', ARC_R_D2, lenH, badgeH_r);
 
     layoutFace();
   }
@@ -753,8 +752,8 @@
 
       // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
       if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
-      updateBadge('textH', pad(gio12(h)));
-      updateBadge('textM', pad(m));
+      updateBadge('textH', String(gio12(h)));
+      updateBadge('textM', String(m));
       document.getElementById('h').textContent=pad(h);
       document.getElementById('m').textContent=pad(m);
       document.getElementById('s').textContent=pad(s);

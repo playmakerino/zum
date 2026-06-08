@@ -66,7 +66,7 @@
     background:var(--c-min);
     left:-0.5px;top:-118px;
   }
-  .tick.major span{height:12px;width:2px;left:-1px;background:var(--c-hour);}
+  .tick.major span{height:12px;width:1.5px;left:-0.75px;background:var(--c-hour);}
   .numeral{
     position:absolute;
     font-size:.95rem;font-weight:400;line-height:1;
@@ -126,8 +126,8 @@
      NỀN nhấp bằng CSS animation (chỉ đổi background/box-shadow -> không xê dịch).
      SCALE "nảy" do JS gộp thẳng vào transform của badge (cùng translate+rotate,
      transform-origin tâm) -> luôn scale quanh đúng tâm, không lệch vị trí. */
-  .badge.beat{animation:beatBg .8s ease-out;}
-  .badge.beat-final{animation:beatBgFinal .8s ease-out;}
+  .badge.beat{animation:beatBg .45s ease-out;}
+  .badge.beat-final{animation:beatBgFinal .45s ease-out;}
   @keyframes beatBg{
     0%  {background:var(--badge-bg);}
     25% {background:var(--accent);}
@@ -621,7 +621,7 @@
   }
 
   // Trạng thái "nảy" của mỗi nhãn: thời điểm bắt đầu + đỉnh scale. Scale do JS lo (xem tick).
-  const BEAT_MS = 800;
+  const BEAT_MS = 450;
   const beat = { H:{start:-1e12, peak:1, badge:null}, M:{start:-1e12, peak:1, badge:null} };
   beat.H.badge = elBadgeH; beat.M.badge = elBadgeM;
 

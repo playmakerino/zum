@@ -410,11 +410,9 @@
   }
 
   /* ===== Bố cục nhãn — tự co theo màn hình =====
-     px tính từ tâm. Quan hệ then chốt:
-       tâm nhãn = đầu xa của nét nối + nửa chiều cao nhãn
-       (nếu không, nhãn sẽ phủ lên chính nét nối và che mất nó)
+     px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
+     tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
      Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
-  const LEN_M      = 16;   // độ dài nét nối phút
   const BADGE_H    = 24;   // chiều cao một nhãn (chỉ còn số, không chữ -> thấp hơn)
   const BADGE_HALF = 16;   // nửa bề rộng nhãn (chỉ còn 2 chữ số, min-width 30px -> ~16)
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
@@ -424,12 +422,23 @@
 
   function layout(){
     const ARC_GAP = 8;
-    // Nhãn giờ (orbit ngoài cùng) thò RA NGOÀI mép mặt bao nhiêu theo BÁN KÍNH,
-    // KHÔNG phụ thuộc FACE:  badgeOut = badgeH_r - FACE
-    const badgeOut = ARC_GAP + LEN_M + BADGE_H/2 + (BADGE_H + SAFE);
-    // maxReach = mép NGOÀI nhãn giờ khi nhãn nằm NGANG (thêm nửa bề rộng) + 1 ARC_GAP dư.
-    // Đây là lề cần chừa quanh mặt để nhãn quay tới đâu cũng không chạm digital.
-    const maxReach = badgeOut + ARC_GAP + BADGE_HALF;
+
+    // ===== Bán kính VÒNG & NHÃN (đều là độ lệch so với FACE, KHÔNG phụ thuộc FACE) =====
+    const R_D1_OFF = 18;                       // vòng nửa ngày 1
+    const R_D2_OFF = 23;                       // vòng nửa ngày 2 (NGOÀI cùng)
+    const STREAK_HALF = 2;                     // nửa bề rộng vệt mờ rộng nhất (width 4)
+    const RING_OUT = R_D2_OFF + STREAK_HALF;   // mép NGOÀI của cả cụm vòng
+
+    // Nhãn quay quanh mặt: khi ở 3/9 giờ, điểm GẦN TÂM NHẤT của nhãn = tâm_nhãn - BADGE_HALF.
+    // Phải tính cả 2 vòng ngày mới: điểm đó cách mép cụm vòng (RING_OUT) ít nhất CLEAR
+    //   => tâm nhãn phút = RING_OUT + CLEAR + BADGE_HALF (xa hơn công thức cũ dựa vòng phút).
+    const CLEAR = 3;
+    const badgeM_off = RING_OUT + CLEAR + BADGE_HALF;   // khoảng cách tâm -> nhãn PHÚT
+    const badgeH_off = badgeM_off + BADGE_H + SAFE;     // khoảng cách tâm -> nhãn GIỜ (xa hơn, không đè)
+
+    // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
+    const badgeOut = badgeH_off;               // tâm nhãn giờ thò ra ngoài FACE
+    const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
     // Vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari). visualViewport chính xác
     // nhất; 100dvh/clientHeight trên một số bản Safari vẫn trả về vùng LỚN (kéo xuống
@@ -482,25 +491,25 @@
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
     // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
-    // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng width 6 vẫn không đè nhau.)
+    // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng vẫn không đè nhau.)
     ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60') — nhóm trong, sát mặt
-    ARC_R_D1 = FACE + 18;             // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
-    ARC_R_D2 = FACE + 23;             // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
+    ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
+    ARC_R_D2 = FACE + R_D2_OFF;       // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
 
-    // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
-    const badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;  // nhãn phút
-    const badgeH_r = badgeM_r + BADGE_H + SAFE;     // nhãn giờ (xa hơn, không đè)
+    // Tâm nhãn: nằm NGOÀI cả cụm vòng (đã tính ở trên), không đè vòng ngày khi quay tới 3/9 giờ
+    const badgeM_r = FACE + badgeM_off;   // nhãn phút
+    const badgeH_r = FACE + badgeH_off;   // nhãn giờ
 
-    // Nét nối: ĐI TỪ CUNG tới mép trong THẬT của nhãn (chạm hai đầu, không thừa)
-    //   Dùng chiều cao thật của nhãn đo được, không dùng BADGE_H ước lượng,
-    //   để nét nối kết thúc đúng tại mép nhãn (không hở, không lố).
+    // Nét nối: đi từ MÉP NGOÀI cụm vòng tới mép trong THẬT của nhãn (không cắt qua vòng nào).
+    //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
+    const connStart = FACE + RING_OUT;
     const realHalfM = document.getElementById('badgeM').offsetHeight/2 || BADGE_H/2;
     const realHalfH = document.getElementById('badgeH').offsetHeight/2 || BADGE_H/2;
-    const lenM = (badgeM_r - realHalfM) - ARC_R_M;
-    const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
+    const lenM = (badgeM_r - realHalfM) - connStart;
+    const lenH = (badgeH_r - realHalfH) - connStart;
 
-    place('connM','badgeM', ARC_R_M, lenM, badgeM_r);
-    place('connH','badgeH', ARC_R_D2, lenH, badgeH_r);
+    place('connM','badgeM', connStart, lenM, badgeM_r);
+    place('connH','badgeH', connStart, lenH, badgeH_r);
 
     layoutFace();
   }

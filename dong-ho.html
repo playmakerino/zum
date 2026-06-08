@@ -430,8 +430,13 @@
     // Đây là lề cần chừa quanh mặt để nhãn quay tới đâu cũng không chạm digital.
     const maxReach = badgeOut + ARC_GAP + BADGE_HALF;
 
-    // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ
-    const vh = window.innerHeight;
+    // Đo digital (chừa chỗ cho nó); dùng chung cho cả hai chế độ.
+    // Dùng chiều cao THẬT đang nhìn thấy: body cao 100dvh nên body.clientHeight =
+    // vùng nhìn thấy động (đã trừ thanh công cụ Safari). innerHeight có thể lớn hơn
+    // -> tính mặt to quá rồi tràn/cắt. visualViewport là phương án dự phòng.
+    const vh = document.body.clientHeight
+            || (window.visualViewport && window.visualViewport.height)
+            || window.innerHeight;
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
@@ -770,6 +775,11 @@
   layout();
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', layout);
+  // Thanh công cụ Safari ẩn/hiện đổi vùng nhìn thấy -> căn lại cho khỏi tràn/cắt
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', layout);
+    window.visualViewport.addEventListener('scroll', layout);
+  }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(layout);

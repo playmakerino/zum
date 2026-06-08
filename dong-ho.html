@@ -259,9 +259,8 @@
     letter-spacing:.04em;
   }
   .cal-day{ color:var(--ink); }       /* ngày trong tương lai */
-  .cal-day.past{                      /* ngày đã qua: xanh ngọc + opacity */
+  .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
-    opacity:.4;
   }
   .cal-day.today{                     /* ngày hiện tại: xanh ngọc nổi bật */
     background:var(--c-buoi);
@@ -274,8 +273,12 @@
   <div class="clock">
   <div class="analog" id="analog">
     <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
-      <path id="hourTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.5"></path>
-      <path id="hourArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <!-- Hai vòng "nửa ngày", mỗi vòng = 12 giờ: track mờ + cung giờ đậm đè lên.
+           Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h). -->
+      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.18"></path>
+      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.18"></path>
+      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="3.5" stroke-linecap="butt"></path>
+      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="3.5" stroke-linecap="butt"></path>
       <path id="minTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
       <path id="minArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
       <path id="minActiveTrack" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
@@ -482,9 +485,10 @@
     // Lề: desktop trên=dưới (căn giữa khớp digital); mobile dưới mỏng để sát digital
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
-    // Hai cung: khoảng cách đều mép -> cung phút -> cung giờ
-    ARC_R_M = FACE + ARC_GAP;      // cung phút (trong)
-    ARC_R_H = FACE + ARC_GAP*2;    // cung giờ (ngoài)
+    // Vòng đồng tâm: phút (trong cùng) -> hai vòng nửa ngày song song (ngoài)
+    ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60')
+    ARC_R_D1 = FACE + ARC_GAP*2;      // vòng nửa ngày 1 (sáng 0-12h)
+    ARC_R_D2 = ARC_R_D1 + 6;          // vòng nửa ngày 2 (chiều/tối 12-24h), song song
 
     // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
     const badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;  // nhãn phút
@@ -496,15 +500,15 @@
     const realHalfM = document.getElementById('badgeM').offsetHeight/2 || BADGE_H/2;
     const realHalfH = document.getElementById('badgeH').offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
-    const lenH = (badgeH_r - realHalfH) - ARC_R_H;
+    const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
 
     place('connM','badgeM', ARC_R_M, lenM, badgeM_r);
-    place('connH','badgeH', ARC_R_H, lenH, badgeH_r);
+    place('connH','badgeH', ARC_R_D2, lenH, badgeH_r);
 
     layoutFace();
   }
 
-  let ARC_R_M = 0, ARC_R_H = 0;
+  let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
   function polar(r, deg){
     const a=(deg-90)*Math.PI/180;
     return [r*Math.cos(a), r*Math.sin(a)];
@@ -517,9 +521,16 @@
     const largeArc = sweep>180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
-  function updateHourArc(startDeg, endDeg){
-    document.getElementById('hourTrack').setAttribute('d', arcPath(ARC_R_H, startDeg, startDeg+30));
-    document.getElementById('hourArc').setAttribute('d', arcPath(ARC_R_H, startDeg, endDeg));
+  // Hai vòng nửa ngày (mỗi vòng 12h). Cung giờ ĐẬM đè lên track MỜ:
+  //   Nửa đầu  (sáng 0-12h)      : vòng 1 chạy theo giờ, vòng 2 trống.
+  //   Nửa sau (chiều/tối 12-24h): vòng 1 đầy (sáng đã xong), vòng 2 chạy theo giờ.
+  function updateDayArcs(h, m, s){
+    const ang = ((h % 12) + m/60 + s/3600) * 30;   // 12h = 360°
+    const pm  = h >= 12;
+    document.getElementById('dayTrack1').setAttribute('d', arcPath(ARC_R_D1, 0, 359.999));
+    document.getElementById('dayTrack2').setAttribute('d', arcPath(ARC_R_D2, 0, 359.999));
+    document.getElementById('dayArc1').setAttribute('d', arcPath(ARC_R_D1, 0, pm ? 359.999 : ang));
+    document.getElementById('dayArc2').setAttribute('d', arcPath(ARC_R_D2, 0, pm ? ang : 0));
   }
   function updateMinArc(startDeg, endDeg){
     // Track: full circle (0 -> 60 phút = 0° -> 360°)
@@ -688,10 +699,9 @@
     document.getElementById('badgeH').style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg)`;
     document.getElementById('badgeM').style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
 
-    // Cung: cập nhật mỗi frame để chạy theo kim phút mượt
-    const hourDegN = ((h%12) + m/60 + s/3600)*30;
+    // Cung: cập nhật mỗi frame để chạy theo kim mượt
     const minDegN  = (m + s/60)*6;
-    updateHourArc((h%12)*30, hourDegN);
+    updateDayArcs(h, m, s);
     updateMinArc(m*6, minDegN);
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)

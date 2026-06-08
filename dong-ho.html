@@ -842,14 +842,28 @@
 
     requestAnimationFrame(tick);
   }
+  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật.
+  //   Mobile NGANG (cuộn được): chỉ relayout khi đổi BỀ RỘNG; bỏ qua đổi CHIỀU CAO do
+  //   thanh công cụ Safari ẩn/hiện lúc cuộn (nếu không analog sẽ bị resize giật theo).
+  //   Chế độ khác: relayout khi đổi rộng HOẶC cao đáng kể (>2px, bỏ nhiễu).
+  let lastW=-1, lastVh=-1;
+  function relayout(){
+    const w=window.innerWidth;
+    const vh=(window.visualViewport && window.visualViewport.height)
+          || document.documentElement.clientHeight || window.innerHeight;
+    const mobLandscape=window.matchMedia('(min-width:768px) and (max-width:1199.98px)').matches;
+    if(mobLandscape ? w===lastW : (w===lastW && Math.abs(vh-lastVh)<2)) return;
+    lastW=w; lastVh=vh; layout();
+  }
+
   buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();
-  window.addEventListener('resize', layout);
-  window.addEventListener('orientationchange', layout);
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', relayout);
   // Thanh công cụ Safari ẩn/hiện đổi vùng nhìn thấy -> căn lại cho khỏi tràn/cắt
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', layout);
-    window.visualViewport.addEventListener('scroll', layout);
+    window.visualViewport.addEventListener('resize', relayout);
+    window.visualViewport.addEventListener('scroll', relayout);
   }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){

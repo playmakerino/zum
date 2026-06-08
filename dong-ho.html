@@ -273,12 +273,18 @@
   <div class="clock">
   <div class="analog" id="analog">
     <svg id="arcSvg" style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
-      <!-- Hai vòng "nửa ngày", mỗi vòng = 12 giờ: track mờ + cung giờ đậm đè lên.
-           Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h). -->
-      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.18"></path>
-      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.18"></path>
-      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="3.5" stroke-linecap="butt"></path>
-      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="3.5" stroke-linecap="butt"></path>
+      <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
+           track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
+           + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).
+           Màu/nét trùng khít vòng phút: đã qua = c-hour, đang chạy = c-min. -->
+      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayActiveTrack1" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="dayActiveTrack2" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="dayActive1" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt"></path>
+      <path id="dayActive2" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt"></path>
       <path id="minTrack" fill="none" stroke="var(--c-hour)" stroke-width="1.5" stroke-linecap="butt" opacity="0.25"></path>
       <path id="minArc" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt"></path>
       <path id="minActiveTrack" fill="none" stroke="var(--c-min)" stroke-width="6" stroke-linecap="butt" opacity="0.3"></path>
@@ -485,10 +491,11 @@
     // Lề: desktop trên=dưới (căn giữa khớp digital); mobile dưới mỏng để sát digital
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
-    // Vòng đồng tâm: phút (trong cùng) -> hai vòng nửa ngày song song (ngoài)
+    // Vòng đồng tâm: phút (trong cùng) -> hai vòng nửa ngày song song (ngoài).
+    // Giãn đủ để vệt mờ rộng (width 6) của các vòng không chồng nhau.
     ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60')
-    ARC_R_D1 = FACE + ARC_GAP*2;      // vòng nửa ngày 1 (sáng 0-12h)
-    ARC_R_D2 = ARC_R_D1 + 6;          // vòng nửa ngày 2 (chiều/tối 12-24h), song song
+    ARC_R_D1 = FACE + 15;             // vòng nửa ngày 1 (sáng 0-12h)
+    ARC_R_D2 = FACE + 22;             // vòng nửa ngày 2 (chiều/tối 12-24h), song song
 
     // Tâm nhãn: đặt ra ngoài cung tương ứng, chừa chỗ cho nét nối + nửa nhãn
     const badgeM_r = ARC_R_M + LEN_M + BADGE_H/2;  // nhãn phút
@@ -521,16 +528,34 @@
     const largeArc = sweep>180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
-  // Hai vòng nửa ngày (mỗi vòng 12h). Cung giờ ĐẬM đè lên track MỜ:
-  //   Nửa đầu  (sáng 0-12h)      : vòng 1 chạy theo giờ, vòng 2 trống.
-  //   Nửa sau (chiều/tối 12-24h): vòng 1 đầy (sáng đã xong), vòng 2 chạy theo giờ.
+  // Hai vòng nửa ngày (mỗi vòng 12h), dựng GIỐNG HỆT vòng phút nhưng đơn vị là GIỜ (30°/giờ):
+  //   track mờ (cả vòng) + cung "giờ đã qua" (c-hour, đậm) + ô GIỜ hiện tại (vệt mờ rộng, c-min)
+  //   + tiến trình trong giờ hiện tại (c-min, đậm) — y như completed/active của phút.
+  //   Vòng đang diễn ra: vòng 1 nếu SÁNG, vòng 2 nếu CHIỀU/TỐI.
+  //   Vòng nửa ĐÃ XONG (sáng khi đang chiều) -> đầy; nửa CHƯA TỚI -> trống.
   function updateDayArcs(h, m, s){
-    const ang = ((h % 12) + m/60 + s/3600) * 30;   // 12h = 360°
-    const pm  = h >= 12;
-    document.getElementById('dayTrack1').setAttribute('d', arcPath(ARC_R_D1, 0, 359.999));
-    document.getElementById('dayTrack2').setAttribute('d', arcPath(ARC_R_D2, 0, 359.999));
-    document.getElementById('dayArc1').setAttribute('d', arcPath(ARC_R_D1, 0, pm ? 359.999 : ang));
-    document.getElementById('dayArc2').setAttribute('d', arcPath(ARC_R_D2, 0, pm ? ang : 0));
+    const set=(id,d)=>document.getElementById(id).setAttribute('d', d||'');
+    const H = h % 12;                          // giờ trong nửa ngày (0..11)
+    const startDeg = H*30;                      // đầu ô giờ hiện tại
+    const liveDeg  = (H + m/60 + s/3600)*30;    // tiến trình trong giờ hiện tại
+    const pm = h >= 12;
+
+    set('dayTrack1', arcPath(ARC_R_D1, 0, 359.999));   // track mờ luôn full
+    set('dayTrack2', arcPath(ARC_R_D2, 0, 359.999));
+
+    // Vòng ĐANG diễn ra (giống hệt vòng phút)
+    const aR  = pm ? ARC_R_D2 : ARC_R_D1;
+    const aN  = pm ? '2' : '1';
+    set('dayArc'+aN,         arcPath(aR, 0, startDeg));            // giờ đã qua (đậm)
+    set('dayActiveTrack'+aN, arcPath(aR, startDeg, startDeg+30));  // ô giờ hiện tại (vệt mờ)
+    set('dayActive'+aN,      arcPath(aR, startDeg, liveDeg));      // tiến trình giờ hiện tại
+
+    // Vòng KIA: nửa đã xong -> đầy; nửa chưa tới -> trống. Không có ô/tiến trình hiện tại.
+    const iR  = pm ? ARC_R_D1 : ARC_R_D2;
+    const iN  = pm ? '1' : '2';
+    set('dayArc'+iN,         pm ? arcPath(iR, 0, 359.999) : '');
+    set('dayActiveTrack'+iN, '');
+    set('dayActive'+iN,      '');
   }
   function updateMinArc(startDeg, endDeg){
     // Track: full circle (0 -> 60 phút = 0° -> 360°)
@@ -649,7 +674,7 @@
   /* ===== LỊCH THÁNG =====
      Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
        - Ngày hiện tại : xanh ngọc nổi bật (.today)
-       - Ngày đã qua   : xanh ngọc + opacity (.past)
+       - Ngày đã qua   : xanh ngọc đậm (.past)
        - Ngày sắp tới  : màu chữ thường */
   const DOW = ['T2','T3','T4','T5','T6','T7','CN'];
   let lastDay = -1;

@@ -534,17 +534,22 @@
     const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
-    // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
-    // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
-    const marginTop = maxReach;
-    const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
+    // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
+    // marginTop=maxReach (tính theo bề NGANG nhãn) dư hơn tầm với THẲNG ĐỨNG (topNeed) ~12px
+    // -> dời phần dư xuống dưới: analog nhích LÊN. GAP_EXTRA lấy thêm từ ĐỆM ĐÁY (bù trong
+    // faceByH) -> khe hở tới digital rõ hơn mà FACE giữ nguyên.
+    const topNeed   = badgeH_off + BADGE_H/2;
+    const RAISE     = mobLandscape ? 0 : Math.max(0, maxReach - topNeed);   // dời analog lên (~12px)
+    const GAP_EXTRA = mobLandscape ? 0 : (desktop ? 24 : 8);                // khe thêm lấy từ đệm đáy
+    const marginTop = maxReach - RAISE;
+    const marginBottom = Math.max(8, topNeed) + RAISE + GAP_EXTRA;
     const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
     const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
     let faceByW, faceByH;
     if(desktop){
       // [analog/digital] | LỊCH. Chừa thêm ~40px chiều cao (clock căn giữa -> ~28px lề
       // trên & dưới) để DÒNG VĂN NÓI ở đáy cột digital không sát mép dưới màn hình.
-      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40) / 2;
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
       faceByW = (availW - 2*maxReach - calW - GAP) / 2;
     } else if(mobLandscape){
       // [analog | digital] ở trên, LỊCH ở dưới -> cao chứa analog + lịch; rộng trừ digital + 1 khe.
@@ -554,7 +559,7 @@
       // Mobile DỌC: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
       faceByW = halfW - maxReach;
-      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - calH - 16) / 2;
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - calH - 16 + GAP_EXTRA) / 2;
     }
 
     FACE = Math.min(faceByW, faceByH);
@@ -566,11 +571,9 @@
     const D = FACE*2;
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
-    // Đẩy analog LÊN cho cách digital/cát xa hơn — NHƯNG KHÔNG làm nó nhỏ đi: chỉ lấy khe hở
-    // từ phần chiều cao DƯ (slack) sau khi FACE đã chốt; hết dư thì thôi. (landscape bỏ qua.)
-    const slack = Math.max(0, 2*(faceByH - FACE));
-    const gapBelow = mobLandscape ? 0 : Math.min(28, slack);
-    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom + gapBelow}px`;
+    // Lề: trên = marginTop (đã nhích analog lên); dưới = marginBottom (khe hở tới digital);
+    //     hai bên = maxReach (đủ chỗ nhãn lúc 3/9 giờ).
+    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
     // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
     // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng vẫn không đè nhau.)

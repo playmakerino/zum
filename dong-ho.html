@@ -37,25 +37,19 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Khối "đồng hồ" = analog + digital. Mặc định xếp DỌC (analog trên, digital dưới). */
+  /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* Desktop >=760px HOẶC mobile xoay ngang: ĐỒNG HỒ sang TRÁI, LỊCH sang PHẢI. */
-  @media (min-width:760px), (orientation:landscape){
-    body{ flex-direction:row; gap:24px; }
-    .calendar{ margin-top:0; }   /* đã căn giữa theo chiều dọc, không cần lề trên */
+  /* MOBILE NGANG (cảm ứng + xoay ngang): [analog | digital] ở TRÊN, LỊCH ở DƯỚI.
+     body vẫn xếp dọc -> khối analog|digital ở trên, lịch nằm dưới. */
+  @media (hover:none) and (orientation:landscape){
+    .clock{ flex-direction:row; gap:24px; }
   }
 
-  /* Landscape THẤP (điện thoại xoay ngang): chiều cao ít -> analog nằm BÊN digital
-     (đỡ tốn chiều dọc) để hiển thị đầy đủ. Desktop/màn cao vẫn xếp dọc như trên. */
-  @media (orientation:landscape) and (max-height:600px){
-    .clock{ flex-direction:row; gap:24px; }
-    /* Lịch gọn lại để dành bề ngang cho mặt analog (JS đo calW động nên tự co lại). */
-    .calendar{ gap:.35rem; }
-    .cal-head{ font-size:.85rem; }
-    .cal-grid{ gap:.12rem; }
-    .cal-cell{ width:1.55rem; height:1.55rem; font-size:.72rem; }
-    .cal-dow{ font-size:.6rem; }
+  /* DESKTOP (có chuột): [analog/digital(+cát)] BÊN TRÁI, LỊCH BÊN PHẢI. */
+  @media (hover:hover) and (pointer:fine){
+    body{ flex-direction:row; gap:24px; }
+    .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }
 
   /* ANALOG */
@@ -514,31 +508,30 @@
     const calH = calendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
-    // sideBySide = LỊCH nằm bên PHẢI (desktop >=760px / landscape); ngược lại lịch nằm DƯỚI.
-    // clockRow = landscape THẤP (đt xoay ngang): analog nằm BÊN digital cho đỡ tốn chiều cao.
-    //   Cả hai khớp đúng media query CSS để bố cục JS và CSS luôn đồng bộ.
-    const sideBySide = window.matchMedia('(min-width:760px), (orientation:landscape)').matches;
-    const clockRow   = window.matchMedia('(orientation:landscape) and (max-height:600px)').matches;
+    // 3 bố cục, khớp đúng media query CSS để JS & CSS đồng bộ:
+    //   desktop (chuột)      : [analog/digital] | LỊCH
+    //   mobLandscape (cảm ứng+ngang): [analog | digital] ở trên, LỊCH ở dưới
+    //   còn lại (mobile dọc) : analog / digital / LỊCH (xếp dọc)
+    const desktop      = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+    const mobLandscape = window.matchMedia('(hover:none) and (orientation:landscape)').matches;
 
     // Lề dọc mặt analog: trên đủ cho nhãn; dưới chỉ cần đủ để nhãn giờ lúc kim chỉ ~6 giờ
     // (thò thẳng xuống = badgeH_off + nửa chiều cao nhãn) không chạm digital/đồng hồ cát ở DƯỚI.
     const marginTop = maxReach;
     const marginBottom = Math.max(8, badgeH_off + BADGE_H/2);
     const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
+    const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
     let faceByW, faceByH;
-    if(sideBySide){
-      const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
-      if(clockRow){
-        // analog | digital | LỊCH -> chiều cao CHỈ cần analog (digital nằm bên cạnh).
-        faceByH = (vh - bodyPad - marginTop - marginBottom) / 2;
-        faceByW = (availW - 2*maxReach - digitalW - calW - 2*GAP) / 2;
-      } else {
-        // (analog trên / digital dưới) | LỊCH -> chiều cao cần analog + digital.
-        faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
-        faceByW = (availW - 2*maxReach - calW - GAP) / 2;
-      }
+    if(desktop){
+      // [analog/digital] | LỊCH -> cao chứa analog + digital; rộng trừ lịch + 1 khe.
+      faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH) / 2;
+      faceByW = (availW - 2*maxReach - calW - GAP) / 2;
+    } else if(mobLandscape){
+      // [analog | digital] ở trên, LỊCH ở dưới -> cao chứa analog + lịch; rộng trừ digital + 1 khe.
+      faceByH = (vh - bodyPad - marginTop - marginBottom - calH - GAP) / 2;
+      faceByW = (availW - 2*maxReach - digitalW - GAP) / 2;
     } else {
-      // Mobile/dọc: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
+      // Mobile DỌC: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
       faceByW = halfW - maxReach;
       faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - calH - 16) / 2;

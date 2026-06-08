@@ -245,10 +245,16 @@
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }
-  .cal-day.today{                     /* ngày hiện tại: xanh ngọc nổi bật */
-    background:var(--c-buoi);
-    color:#fff;
+  .cal-day.today{                     /* hôm nay: chữ xanh ngọc + in đậm (như giờ hiện tại), KHÔNG nền */
+    position:relative;
+    color:var(--c-buoi);
     font-weight:700;
+  }
+  .cal-rings{                         /* 2 cung progress ngày/giờ quanh ô hôm nay (giống hệt analog) */
+    position:absolute; left:0; top:0;
+    width:100%; height:100%;
+    overflow:visible;
+    pointer-events:none;
   }
 </style>
 </head>
@@ -557,12 +563,14 @@
   // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
   //   Vòng đang chạy: dựng đủ 4 lớp (giống vòng phút). Vòng kia: nửa đã xong -> đầy; chưa tới -> trống.
   //   Màu: track+đã qua = c-buoi (ngày); ô+tiến trình = c-hour (giờ) — đặt trong CSS.
-  function updateDayArcs(h, m, s){
+  // Vẽ 2 vòng nửa ngày cho MỘT bộ path (analog hoặc lịch): g1/g2 = nhóm 4 lớp, r1/r2 = bán kính.
+  function drawDayRings(g1, g2, r1, r2, h, m, s){
     const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
-    drawRing(pm ? ring.day2 : ring.day1, pm ? ARC_R_D2 : ARC_R_D1, doneDeg, 30, liveDeg);
-    // Vòng kia: không có ô/tiến trình (slot 0); cung = đầy nếu nửa đã xong, trống nếu chưa tới.
-    const done2 = pm ? 359.999 : 0;
-    drawRing(pm ? ring.day1 : ring.day2, pm ? ARC_R_D1 : ARC_R_D2, done2, 0, 0);
+    drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 lớp
+    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0, 0); // nửa kia: đầy nếu đã xong, trống nếu chưa tới
+  }
+  function updateDayArcs(h, m, s){
+    drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
   }
 
   function place(connId, badgeId, connStart, len, badgeR){
@@ -679,11 +687,38 @@
 
   /* ===== LỊCH THÁNG =====
      Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
-       - Ngày hiện tại : xanh ngọc nổi bật (.today)
-       - Ngày đã qua   : xanh ngọc đậm (.past)
-       - Ngày sắp tới  : màu chữ thường */
+       - Hôm nay      : chữ xanh ngọc + in đậm + 2 cung progress ngày/giờ (giống analog)
+       - Ngày đã qua  : xanh ngọc đậm (.past)
+       - Ngày sắp tới : màu chữ thường */
   const DOW = ['T2','T3','T4','T5','T6','T7','CN'];
+  const CAL_R1 = 14.5, CAL_R2 = 18;   // bán kính 2 cung trong viewBox 40 (-20..20) của ô hôm nay
   let lastDay = -1;
+  let calRing = null;                 // {day1,day2} path của ô hôm nay (cập nhật mỗi frame trong tick)
+
+  // Tạo SVG 2 vòng nửa ngày cho ô lịch (cùng cấu trúc 4 lớp & màu như analog).
+  function makeDayRingSvg(){
+    const NS='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('viewBox','-20 -20 40 40');
+    svg.setAttribute('class','cal-rings');
+    svg.setAttribute('aria-hidden','true');
+    const mk=(stroke,w,op)=>{
+      const p=document.createElementNS(NS,'path');
+      p.setAttribute('fill','none'); p.setAttribute('stroke',stroke);
+      p.setAttribute('stroke-width',w); p.setAttribute('stroke-linecap','butt');
+      if(op!=null) p.setAttribute('opacity',op);
+      svg.appendChild(p); return p;
+    };
+    // Thứ tự vẽ (dưới -> trên): track, cung đã qua, ô hiện tại (vệt mờ), tiến trình.
+    const t1=mk('var(--c-buoi)',1,0.25), t2=mk('var(--c-buoi)',1,0.25);
+    const a1=mk('var(--c-buoi)',1.6),    a2=mk('var(--c-buoi)',1.6);
+    const at1=mk('var(--c-hour)',2,0.3), at2=mk('var(--c-hour)',2,0.3);
+    const lv1=mk('var(--c-hour)',1.6),   lv2=mk('var(--c-hour)',1.6);
+    return { svg,
+      day1:{track:t1, arc:a1, act:at1, live:lv1},
+      day2:{track:t2, arc:a2, act:at2, live:lv2} };
+  }
+
   function buildCalendar(){
     const now = new Date();
     const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
@@ -704,10 +739,17 @@
       grid.appendChild(blank);
     }
     const daysInMonth = new Date(y,mo+1,0).getDate();
+    calRing = null;
     for(let d=1;d<=daysInMonth;d++){
       const c=document.createElement('div');
-      c.className='cal-cell cal-day'+(d<today?' past':d===today?' today':'');
+      const isToday = d===today;
+      c.className='cal-cell cal-day'+(d<today?' past':isToday?' today':'');
       c.textContent=d;
+      if(isToday){                       // gắn 2 cung progress quanh số (overlay tuyệt đối)
+        const rs=makeDayRingSvg();
+        c.appendChild(rs.svg);
+        calRing = rs;
+      }
       grid.appendChild(c);
     }
     lastDay = today;
@@ -734,6 +776,8 @@
     // Cung: cập nhật mỗi frame để chạy theo kim mượt
     updateDayArcs(h, m, s);
     updateMinArc(m, s);
+    // Cùng 2 vòng ngày đó cho ô "hôm nay" trên lịch (nếu có)
+    if(calRing) drawDayRings(calRing.day1, calRing.day2, CAL_R1, CAL_R2, h, m, s);
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
     const ms = now.getMilliseconds();

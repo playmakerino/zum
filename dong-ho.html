@@ -40,18 +40,8 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* MOBILE NGANG (rộng 768–1023px): [analog | digital] ở TRÊN, LỊCH ở DƯỚI.
-     body vẫn xếp dọc -> khối analog|digital ở trên, lịch nằm dưới; CUỘN DỌC được
-     khi nội dung (lịch dưới) vượt chiều cao màn. */
-  @media (min-width:768px) and (max-width:1023.98px){
-    .clock{ flex-direction:row; gap:24px; }
-    html{ overflow-x:hidden; overflow-y:auto; }
-    body{ height:auto; min-height:100dvh; overflow:visible;
-          justify-content:safe center; }   /* vừa -> căn giữa; tràn -> dồn lên đầu để cuộn */
-  }
-
-  /* DESKTOP/TV (rộng >= 1024px): [analog/digital(+cát)] BÊN TRÁI, LỊCH BÊN PHẢI. */
-  @media (min-width:1024px){
+  /* NGANG (rộng >= 768px): toàn bộ ĐỒNG HỒ bên TRÁI, LỊCH bên PHẢI. */
+  @media (min-width:768px){
     body{ flex-direction:row; gap:24px; }
     .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }

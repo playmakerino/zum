@@ -120,12 +120,12 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  .badge span{display:block;transform-origin:center center;}
+  .badge span{display:block;}
 
-  /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền đỏ một nhịp.
-     Animate badge cha cho nền + span cho scale. Cùng thời lượng .8s -> đều nhịp.
-     Nhịp CUỐI (giây 59->60) dùng biến thể 'final': đỏ đậm, nảy mạnh hơn,
-     nhưng vẫn cùng nhịp .8s nên không phá mạch đều. */
+  /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
+     NỀN nhấp bằng CSS animation (chỉ đổi background/box-shadow -> không xê dịch).
+     SCALE "nảy" do JS gộp thẳng vào transform của badge (cùng translate+rotate,
+     transform-origin tâm) -> luôn scale quanh đúng tâm, không lệch vị trí. */
   .badge.beat{animation:beatBg .8s ease-out;}
   .badge.beat-final{animation:beatBgFinal .8s ease-out;}
   @keyframes beatBg{
@@ -137,18 +137,6 @@
     0%  {background:var(--badge-bg);}
     20% {background:#ff3d83;box-shadow:0 0 0 8px rgba(255,93,151,.32);}
     100%{background:var(--badge-bg);box-shadow:0 0 0 0 rgba(255,93,151,0);}
-  }
-  .badge span.beat{animation:beat .8s ease-out;}
-  .badge span.beat-final{animation:beatFinal .8s ease-out;}
-  @keyframes beat{
-    0%  {transform:scale(1);}
-    25% {transform:scale(1.12);}
-    100%{transform:scale(1);}
-  }
-  @keyframes beatFinal{
-    0%  {transform:scale(1);}
-    20% {transform:scale(1.3);}
-    100%{transform:scale(1);}
   }
 
   /* DIGITAL */
@@ -632,16 +620,29 @@
     if(el.textContent!==txt) el.textContent=txt;
   }
 
-  // Bắn một nhịp lên nhãn: gỡ class cũ rồi thêm lại để animation chạy lại từ đầu.
-  // cls = 'beat' (thường) hoặc 'beat-final' (nhịp cuối).
-  function pulse(badgeId, spanId, cls){
-    const badge=$(badgeId);
-    const span=$(spanId);
-    badge.classList.remove('beat','beat-final');
-    span.classList.remove('beat','beat-final');
-    void badge.offsetWidth;
-    badge.classList.add(cls);
-    span.classList.add(cls);
+  // Trạng thái "nảy" của mỗi nhãn: thời điểm bắt đầu + đỉnh scale. Scale do JS lo (xem tick).
+  const BEAT_MS = 800;
+  const beat = { H:{start:-1e12, peak:1, badge:null}, M:{start:-1e12, peak:1, badge:null} };
+  beat.H.badge = elBadgeH; beat.M.badge = elBadgeM;
+
+  // Hệ số scale tại thời điểm now cho một nhãn (envelope: lên đỉnh ~22% rồi về 1).
+  function beatScale(b, now){
+    const t = (now - b.start) / BEAT_MS;
+    if(t<=0 || t>=1) return 1;
+    const up = 0.22;
+    const e = t<up ? t/up : 1-(t-up)/(1-up);   // tam giác 0..1..0
+    return 1 + (b.peak-1) * (e*(2-e));          // ease-out nhẹ
+  }
+
+  // Bắn một nhịp lên nhãn (key 'H'/'M'): NỀN nhấp bằng CSS; SCALE do JS gộp vào transform.
+  // cls = 'beat' (thường) hoặc 'beat-final' (nhịp cuối, nảy mạnh hơn).
+  function pulse(key, cls){
+    const b = beat[key];
+    b.badge.classList.remove('beat','beat-final');
+    void b.badge.offsetWidth;          // restart CSS animation nền
+    b.badge.classList.add(cls);
+    b.start = performance.now();
+    b.peak  = cls==='beat-final' ? 1.3 : 1.12;
   }
 
   // Lật đồng hồ cát (one-shot): gỡ class rồi thêm lại để animation chạy lại từ đầu
@@ -713,6 +714,7 @@
 
   function tick(){
     const now=new Date();
+    const tNow=performance.now();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
 
     // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
@@ -725,8 +727,8 @@
     elHour.style.transform=`rotate(${hourDeg}deg)`;
     elOrbitH.style.transform=`rotate(${hourDeg}deg)`;
     elOrbitM.style.transform=`rotate(${minDeg}deg)`;
-    elBadgeH.style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg)`;
-    elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg)`;
+    elBadgeH.style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg) scale(${beatScale(beat.H, tNow)})`;
+    elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${beatScale(beat.M, tNow)})`;
 
     // Cung: cập nhật mỗi frame để chạy theo kim mượt
     updateDayArcs(h, m, s);
@@ -775,11 +777,11 @@
       // Đếm ngược 6 nhịp: giây 55,56,57,58,59 (nhịp thường) rồi 00 (nhịp CUỐI).
       // Nhãn phút đập mỗi phút; nhãn giờ chỉ khi đang chạm mốc sang giờ mới.
       if(s>=55){
-        pulse('badgeM','textM','beat');             // phút: 55-59
-        if(m===59) pulse('badgeH','textH','beat');  // giờ : 55-59 của phút 59
+        pulse('M','beat');             // phút: 55-59
+        if(m===59) pulse('H','beat');  // giờ : 55-59 của phút 59
       }else if(justSwitched){
-        pulse('badgeM','textM','beat-final');       // phút: nhịp cuối tại 00
-        if(m===0) pulse('badgeH','textH','beat-final'); // giờ: nhịp cuối tại 00
+        pulse('M','beat-final');       // phút: nhịp cuối tại 00
+        if(m===0) pulse('H','beat-final'); // giờ: nhịp cuối tại 00
       }
     }
 

@@ -50,6 +50,12 @@
      (đỡ tốn chiều dọc) để hiển thị đầy đủ. Desktop/màn cao vẫn xếp dọc như trên. */
   @media (orientation:landscape) and (max-height:600px){
     .clock{ flex-direction:row; gap:24px; }
+    /* Lịch gọn lại để dành bề ngang cho mặt analog (JS đo calW động nên tự co lại). */
+    .calendar{ gap:.35rem; }
+    .cal-head{ font-size:.85rem; }
+    .cal-grid{ gap:.12rem; }
+    .cal-cell{ width:1.55rem; height:1.55rem; font-size:.72rem; }
+    .cal-dow{ font-size:.6rem; }
   }
 
   /* ANALOG */
@@ -192,6 +198,11 @@
      nên analog co vừa đủ để luôn còn chỗ cho dòng văn nói. */
   .digital-col{display:flex;flex-direction:column;align-items:center;}
   .spoken{
+    /* width:0 + min-width:0 -> KHÔNG nới rộng cột digital (chữ căn giữa, tràn ra 2 bên).
+       Tránh dòng văn nói dài (nhất là tiếng Anh) làm analog co nhỏ ở landscape. */
+    width:0;
+    min-width:0;
+    align-self:center;
     height:1.4em;
     margin-top:.6rem;
     white-space:nowrap;

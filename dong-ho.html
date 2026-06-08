@@ -230,11 +230,21 @@
     margin-top:.8rem;                 /* mobile: cách digital phía trên; desktop reset =0 */
     font-variant-numeric:tabular-nums;
   }
+  .cal-head-wrap{                     /* gom 2 dòng tiêu đề (VN + EN) sát nhau */
+    display:flex;flex-direction:column;align-items:center;
+    gap:.15rem;
+  }
   .cal-head{
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500;
     letter-spacing:.02em;
     color:var(--neutral);             /* tháng/năm: đen trung tính */
+  }
+  .cal-sub{                           /* dòng tiếng Anh: thứ + tháng năm */
+    font-size:clamp(.72rem,3vw,.9rem);
+    font-weight:400;
+    letter-spacing:.02em;
+    color:var(--muted);
   }
   .cal-grid{
     display:grid;
@@ -343,7 +353,10 @@
   </div><!-- /clock -->
 
   <div class="calendar" id="calendar">
-    <div class="cal-head" id="calHead"></div>
+    <div class="cal-head-wrap">
+      <div class="cal-head" id="calHead"></div>
+      <div class="cal-sub" id="calSub"></div>
+    </div>
     <div class="cal-grid" id="calGrid"></div>
   </div>
 
@@ -736,12 +749,17 @@
        - Ngày đã qua  : xanh ngọc đậm (.past)
        - Ngày sắp tới : màu chữ thường */
   const DOW = ['T2','T3','T4','T5','T6','T7','CN'];
+  // Thứ & tháng tiếng Anh cho dòng phụ dưới tiêu đề lịch (getDay(): 0=CN..6=T7)
+  const DOW_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_EN = ['January','February','March','April','May','June','July','August',
+                    'September','October','November','December'];
   let lastDay = -1;
 
   function buildCalendar(){
     const now = new Date();
     const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
     $('calHead').textContent = `Tháng ${mo+1}, ${y}`;
+    $('calSub').textContent = `${DOW_EN[now.getDay()]}, ${MONTH_EN[mo]} ${y}`;
     const grid = $('calGrid');
     grid.innerHTML = '';
     DOW.forEach(d=>{

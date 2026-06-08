@@ -602,7 +602,7 @@
       const justSwitched = (lastSec===59 && s===0); // vừa qua mốc 59->00
       lastSec=s;
       updateBadge('textH', gio12(h)+' giờ');
-      updateBadge('textM', pad(m)+' phút');
+      updateBadge('textM', m+' phút');
       document.getElementById('h').textContent=pad(h);
       document.getElementById('m').textContent=pad(m);
       document.getElementById('s').textContent=pad(s);

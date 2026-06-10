@@ -277,10 +277,10 @@
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }
-  .cal-day.today{                     /* hôm nay: ô = THANH TIẾN TRÌNH ngày — nền teal dâng từ ĐÁY theo
-                                         % ngày đã trôi (--day-progress); phần còn lại = track teal mờ
-                                         (khớp track các vòng). Bo tròn 50% -> "bình" tròn chứa mức dâng. */
-    background:linear-gradient(to top,
+  .cal-day.today{                     /* hôm nay: ô = THANH TIẾN TRÌNH ngày — nền teal TRÀN từ TRÁI sang PHẢI
+                                         theo % ngày đã trôi (--day-progress); phần còn lại = track teal mờ
+                                         (khớp track các vòng), cắt theo hình tròn (border-radius:50%). */
+    background:linear-gradient(to right,
       var(--c-buoi)        var(--day-progress,0%),
       var(--c-buoi-faint)  var(--day-progress,0%));
     color:#fff;
@@ -855,7 +855,7 @@
     setTodayProgress(now.getHours(), now.getMinutes(), now.getSeconds());   // tô mức ngày ban đầu
   }
 
-  // Ô "hôm nay" = thanh tiến trình ngày: nền teal dâng từ ĐÁY theo phần ngày đã trôi (0..1).
+  // Ô "hôm nay" = thanh tiến trình ngày: nền teal tràn từ TRÁI sang PHẢI theo phần ngày đã trôi (0..1).
   function setTodayProgress(h,m,s){
     if(!elToday) return;
     const frac=(h*3600+m*60+s)/86400;

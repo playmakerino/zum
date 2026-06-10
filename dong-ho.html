@@ -120,13 +120,13 @@
      CÙNG màu xanh ngọc; NẰM DƯỚI nhãn giờ khi trùng vị trí. */
   .emoji-orbit{z-index:10;}                           /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
   .emoji-orbit .connector{background:var(--c-buoi);}  /* nét nối xanh ngọc */
-  .badge-emoji{padding:.18rem;border:1.6px solid var(--c-buoi);}
-  /* CHƯA đến giờ: nét nối MẢNH, nhãn chỉ có VIỀN (nền trong suốt) */
+  .badge-emoji{padding:.18rem;border:1px solid var(--c-buoi);}
+  /* CHƯA đến giờ: width = VÒNG TRACK (stroke-width 1) -> nét nối + border đều 1px; nhãn chỉ có VIỀN */
   .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;}
-  .emoji-orbit.upcoming .badge-emoji{background:transparent;}
-  /* ĐÃ đến/qua giờ: nét nối ĐẬM, nhãn có NỀN xanh ngọc */
+  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-width:1px;}
+  /* ĐÃ đến/qua giờ: width = VÒNG ARC "đã qua" (stroke-width 2.5) -> nét nối + border đều 2.5px; nhãn có NỀN */
   .emoji-orbit.reached .connector{width:2.5px;margin-left:-1.25px;}
-  .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);}
+  .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);border-width:2.5px;}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;

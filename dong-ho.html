@@ -125,6 +125,7 @@
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
      màu xanh giờ; nét nối + viền MẢNH (--ring-thin) khớp vòng tròn; NẰM DƯỚI nhãn giờ khi trùng. */
   .emoji-orbit{z-index:10;}                /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  .emoji-orbit.off{display:none;}          /* nhãn không thuộc thứ hôm nay -> ẩn hẳn */
   .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
      -> nét nối chạm đúng viền, không đâm xuyên khi nhãn ở góc xiên. */
@@ -336,6 +337,14 @@
       <div class="connector" id="connBreakfast"></div>
       <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span></div>
     </div>
+    <div class="orbit emoji-orbit upcoming" id="orbitBasketball">
+      <div class="connector" id="connBasketball"></div>
+      <div class="badge badge-emoji" id="badgeBasketball"><span class="ic-emoji">🏀</span></div>
+    </div>
+    <div class="orbit emoji-orbit upcoming" id="orbitBallet">
+      <div class="connector" id="connBallet"></div>
+      <div class="badge badge-emoji" id="badgeBallet"><span class="ic-emoji">🩰ྀི</span></div>
+    </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
       <div class="badge" id="badgeH"><span id="textH">00</span></div>
@@ -415,16 +424,24 @@
   const elOrbitDinner=$('orbitDinner'), elBadgeDinner=$('badgeDinner'), elConnDinner=$('connDinner');
   const elOrbitExercise=$('orbitExercise'), elBadgeExercise=$('badgeExercise'), elConnExercise=$('connExercise');
   const elOrbitBreakfast=$('orbitBreakfast'), elBadgeBreakfast=$('badgeBreakfast'), elConnBreakfast=$('connBreakfast');
+  const elOrbitBasketball=$('orbitBasketball'), elBadgeBasketball=$('badgeBasketball'), elConnBasketball=$('connBasketball');
+  const elOrbitBallet=$('orbitBallet'), elBadgeBallet=$('badgeBallet'), elConnBallet=$('connBallet');
   // Mốc nhãn emoji trong ngày -> đổi trạng thái theo giờ hiện tại:
   //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nền + nét đậm).
+  //   days: chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày.
   const fixedLabels = [
-    {orbit:elOrbitExercise,  hour:8},
-    {orbit:elOrbitBreakfast, hour:8.25},
-    {orbit:elOrbitDinner,    hour:19.5},
-    {orbit:elOrbitSleep,     hour:22},
+    {orbit:elOrbitExercise,   hour:8,     days:[1,2,3,4,5]},  // thể dục: T2-T6
+    {orbit:elOrbitBreakfast,  hour:8.25,  days:[1,2,3,4,5]},  // ăn sáng: T2-T6
+    {orbit:elOrbitBasketball, hour:18,    days:[2]},          // bóng rổ: thứ Ba
+    {orbit:elOrbitBallet,     hour:18.25, days:[5]},          // múa: thứ Sáu
+    {orbit:elOrbitDinner,     hour:19.5},                     // ăn tối: mọi ngày
+    {orbit:elOrbitSleep,      hour:22},                       // đi ngủ: mọi ngày
   ];
-  function updateLabelStates(nowH){
+  function updateLabelStates(nowH, dow){
     for(const L of fixedLabels){
+      const show = !L.days || L.days.includes(dow);
+      L.orbit.classList.toggle('off', !show);   // ẩn nhãn không thuộc thứ hôm nay
+      if(!show) continue;
       const reached = nowH >= L.hour;
       L.orbit.classList.toggle('reached', reached);
       L.orbit.classList.toggle('upcoming', !reached);
@@ -661,10 +678,12 @@
       orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
       badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
     };
-    placeFixed(elOrbitExercise,  elConnExercise,  elBadgeExercise,  8);     // tập thể dục 8h
-    placeFixed(elOrbitBreakfast, elConnBreakfast, elBadgeBreakfast, 8.25);  // ăn sáng 8h15
-    placeFixed(elOrbitDinner,    elConnDinner,    elBadgeDinner,    19.5);  // ăn tối 19h30
-    placeFixed(elOrbitSleep,     elConnSleep,     elBadgeSleep,     22);    // đi ngủ 22h
+    placeFixed(elOrbitExercise,   elConnExercise,   elBadgeExercise,   8);     // tập thể dục 8h (T2-T6)
+    placeFixed(elOrbitBreakfast,  elConnBreakfast,  elBadgeBreakfast,  8.25);  // ăn sáng 8h15 (T2-T6)
+    placeFixed(elOrbitBasketball, elConnBasketball, elBadgeBasketball, 18);    // bóng rổ 18h (thứ Ba)
+    placeFixed(elOrbitBallet,     elConnBallet,     elBadgeBallet,     18.25); // múa 18h15 (thứ Sáu)
+    placeFixed(elOrbitDinner,     elConnDinner,     elBadgeDinner,     19.5);  // ăn tối 19h30
+    placeFixed(elOrbitSleep,      elConnSleep,      elBadgeSleep,      22);    // đi ngủ 22h
 
     layoutFace();
   }
@@ -870,7 +889,7 @@
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
 
     // Nhãn mốc: bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
-    updateLabelStates(h + m/60 + s/3600);
+    updateLabelStates(h + m/60 + s/3600, now.getDay());
 
     // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;

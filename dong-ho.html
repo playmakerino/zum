@@ -143,12 +143,12 @@
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
-  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở mép trên-phải nhãn hoạt động, chỉ hiện trong 59'
+  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở mép trên-TRÁI nhãn hoạt động, chỉ hiện trong 59'
      trước giờ hoạt động (vd "30" trên nhãn bơi từ 16h31 -> ẩn lúc 17h30). Mặc định ẩn;
      .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
   .badge-emoji .deadline-min{
     display:none;
-    position:absolute; top:-7px; right:-7px;
+    position:absolute; top:-7px; left:-7px;
     width:16px; height:16px; padding:0; box-sizing:border-box;
     border-radius:50%;
     background:var(--c-min); color:#fff;

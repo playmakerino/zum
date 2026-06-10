@@ -1048,6 +1048,11 @@
   // HOẶC CHIỀU CAO đáng kể (>2px) — bỏ nhiễu do thanh công cụ Safari ẩn/hiện.
   let lastW=-1, lastVh=-1;
   function relayout(){
+    // ĐANG PHÓNG TO BẰNG 2 NGÓN (pinch-zoom) -> GIỮ NGUYÊN bố cục & tỷ lệ:
+    // vùng nhìn thấy lúc zoom thu nhỏ lại, nếu tính lại sẽ co/đẩy đồng hồ theo nó.
+    // Bỏ qua relayout khi scale != 1 -> trang chỉ phóng to đồng đều, không xô lệch.
+    const vv=window.visualViewport;
+    if(vv && Math.abs(vv.scale-1)>0.01) return;
     const w=window.innerWidth;
     const vh=viewportH();
     if(w===lastW && Math.abs(vh-lastVh)<2) return;

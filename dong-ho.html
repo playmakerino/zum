@@ -17,7 +17,11 @@
     --c-min:#f5921b;
     --c-sec:#ff5d97;
     --c-buoi:#1fab95;
-    --c-hour-faint:rgba(90,99,216,.25);    /* xanh giờ MỜ — khớp opacity 0.25 của vòng track */
+    /* Vòng tiến trình & nhãn mốc — dùng chung nhiều nơi */
+    --ring-thin:1px;                       /* nét MẢNH: ô quá khứ / tương lai + nhãn mốc */
+    --ring-bold:3.2px;                      /* nét ĐẬM: ô hiện tại (giờ/phút này) */
+    --faint:.25;                           /* độ MỜ dùng chung (track vòng, ô chưa trôi) */
+    --c-hour-faint:rgba(90,99,216,.25);    /* = c-hour ở độ mờ --faint (cho nét/viền nhãn chưa đến) */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
@@ -118,23 +122,27 @@
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
-     CÙNG màu xanh giờ (--c-hour); NẰM DƯỚI nhãn giờ khi trùng vị trí. */
-  .emoji-orbit{z-index:10;}                           /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
-  .emoji-orbit .connector{background:var(--c-hour);}  /* nét nối xanh giờ */
-  .badge-emoji{padding:.18rem;border:1px solid var(--c-hour);}
-  /* CHƯA đến giờ: KHỚP vòng TRACK (stroke-width 1, opacity 0.25) -> nét nối + border đều
-     1px VÀ màu xanh giờ MỜ (nếu đặc sẽ trông dày hơn vòng mờ dù cùng 1px); nhãn chỉ có VIỀN */
-  .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;background:var(--c-hour-faint);}
-  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-width:1px;border-color:var(--c-hour-faint);}
-  /* ĐÃ đến/qua giờ: KHỚP vòng ARC "đã qua" (luật mới: stroke-width 1, ĐẶC) -> nét nối + border
-     đều 1px ĐẶC; khác 'upcoming' ở chỗ ĐẶC màu (không mờ); nhãn có NỀN xanh giờ */
-  .emoji-orbit.reached .connector{width:1px;margin-left:-.5px;}
-  .emoji-orbit.reached .badge-emoji{background:var(--c-hour);border-width:1px;}
+     màu xanh giờ; nét nối + viền MẢNH (--ring-thin) khớp vòng tròn; NẰM DƯỚI nhãn giờ khi trùng. */
+  .emoji-orbit{z-index:10;}                /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
+  .badge-emoji{padding:.18rem;border:var(--ring-thin) solid var(--c-hour);}
+  /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track), nhãn chỉ có viền (nền trong suốt) */
+  .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
+  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-color:var(--c-hour-faint);}
+  /* ĐÃ đến/qua giờ -> nét nối + viền ĐẶC (khớp vòng arc đã-qua), nhãn có NỀN */
+  .emoji-orbit.reached .badge-emoji{background:var(--c-hour);}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
+
+  /* VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. */
+  .r-track,.r-arc,.r-act,.r-live{fill:none;stroke-linecap:butt;}
+  .r-track{stroke-width:var(--ring-thin);opacity:var(--faint);}  /* MẢNH MỜ  — ô tương lai */
+  .r-arc  {stroke-width:var(--ring-thin);}                        /* MẢNH ĐẶC — ô quá khứ */
+  .r-act  {stroke-width:var(--ring-bold);opacity:var(--faint);}  /* ĐẬM MỜ   — ô hiện tại (chưa trôi) */
+  .r-live {stroke-width:var(--ring-bold);}                        /* ĐẬM ĐẶC  — ô hiện tại (đã trôi) */
 
   /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
      NỀN nhấp bằng CSS animation (chỉ đổi background/box-shadow -> không xê dịch).
@@ -286,18 +294,18 @@
              live  = đã trôi trong ô:ĐẬM  + ĐẶC (op 1)   -> phần ĐÃ trôi của ô hiện tại
            Màu: 2 vòng NGÀY/GIỜ = c-hour (xanh giờ); vòng PHÚT = c-min (cam).
            Thứ tự vẽ (dưới->trên): track, arc, act, live. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối. -->
-      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt"></path>
-      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt"></path>
-      <path id="dayAct1" fill="none" stroke="var(--c-hour)" stroke-width="3.2" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayAct2" fill="none" stroke="var(--c-hour)" stroke-width="3.2" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayLive1" fill="none" stroke="var(--c-hour)" stroke-width="3.2" stroke-linecap="butt"></path>
-      <path id="dayLive2" fill="none" stroke="var(--c-hour)" stroke-width="3.2" stroke-linecap="butt"></path>
-      <path id="minTrack" fill="none" stroke="var(--c-min)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="minArc" fill="none" stroke="var(--c-min)" stroke-width="1" stroke-linecap="butt"></path>
-      <path id="minAct" fill="none" stroke="var(--c-min)" stroke-width="3.2" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="minLive" fill="none" stroke="var(--c-min)" stroke-width="3.2" stroke-linecap="butt"></path>
+      <path id="dayTrack1" class="r-track" stroke="var(--c-hour)"></path>
+      <path id="dayTrack2" class="r-track" stroke="var(--c-hour)"></path>
+      <path id="dayArc1" class="r-arc" stroke="var(--c-hour)"></path>
+      <path id="dayArc2" class="r-arc" stroke="var(--c-hour)"></path>
+      <path id="dayAct1" class="r-act" stroke="var(--c-hour)"></path>
+      <path id="dayAct2" class="r-act" stroke="var(--c-hour)"></path>
+      <path id="dayLive1" class="r-live" stroke="var(--c-hour)"></path>
+      <path id="dayLive2" class="r-live" stroke="var(--c-hour)"></path>
+      <path id="minTrack" class="r-track" stroke="var(--c-min)"></path>
+      <path id="minArc" class="r-arc" stroke="var(--c-min)"></path>
+      <path id="minAct" class="r-act" stroke="var(--c-min)"></path>
+      <path id="minLive" class="r-live" stroke="var(--c-min)"></path>
     </svg>
     <div class="hand hour" id="hour"></div>
     <div class="hand minute" id="minute"></div>
@@ -534,11 +542,11 @@
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
-  // MediaQuery dùng chung cho layout()/relayout() (3 bố cục theo BỀ RỘNG màn hình):
-  //   >=1200px desktop | 768–1199 ngang (cuộn được) | <768 dọc
+  // MediaQuery dùng chung cho layout()/relayout(). Hiện chỉ 2 bố cục theo BỀ RỘNG:
+  //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc. (landscape giữ lại nhưng luôn false)
   const MQ = {
-    desktop:   window.matchMedia('(min-width:768px)'),     // ≥768: đồng hồ trái, lịch phải
-    landscape: window.matchMedia('(max-width:0px)'),        // không còn mức trung gian -> luôn false
+    desktop:   window.matchMedia('(min-width:768px)'),
+    landscape: window.matchMedia('(max-width:0px)'),        // mức trung gian đã bỏ -> luôn false
   };
 
   function layout(){
@@ -547,7 +555,7 @@
     // ===== Bán kính VÒNG & NHÃN (đều là độ lệch so với FACE, KHÔNG phụ thuộc FACE) =====
     const R_D1_OFF = 18;                       // vòng nửa ngày 1
     const R_D2_OFF = 23;                       // vòng nửa ngày 2 (NGOÀI cùng)
-    const STREAK_HALF = 2;                     // nửa bề rộng vệt mờ rộng nhất (width 4)
+    const STREAK_HALF = 2;                     // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2 -> ~1.6, làm tròn lên 2 cho dư)
     const RING_OUT = R_D2_OFF + STREAK_HALF;   // mép NGOÀI của cả cụm vòng
 
     // Nhãn quay quanh mặt: khi ở 3/9 giờ, điểm GẦN TÂM NHẤT của nhãn = tâm_nhãn - BADGE_HALF.

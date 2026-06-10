@@ -116,18 +116,17 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  /* Nhãn EMOJI tuỳ chỉnh (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
-     cố định tại một giờ, NẰM DƯỚI nhãn giờ khi trùng vị trí. */
-  #orbitSleep,#orbitDinner,#orbitExercise,#orbitBreakfast{z-index:10;}  /* < .orbit (11) */
-  #connSleep{background:var(--c-buoi);}      /* xanh ngọc (giống vòng ngày) */
-  #badgeSleep{--badge-bg:var(--c-buoi);}
-  #connDinner{background:var(--c-min);}      /* cam ấm cho bữa tối */
-  #badgeDinner{--badge-bg:var(--c-min);}
-  #connExercise{background:#2e9e5b;}         /* xanh lá tươi cho tập thể dục */
-  #badgeExercise{--badge-bg:#2e9e5b;}
-  #connBreakfast{background:var(--accent);}  /* hồng cho bữa sáng */
-  #badgeBreakfast{--badge-bg:var(--accent);}
-  .badge-emoji{padding:.18rem;}
+  /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
+     CÙNG màu xanh ngọc; NẰM DƯỚI nhãn giờ khi trùng vị trí. */
+  .emoji-orbit{z-index:10;}                           /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  .emoji-orbit .connector{background:var(--c-buoi);}  /* nét nối xanh ngọc */
+  .badge-emoji{padding:.18rem;border:1.6px solid var(--c-buoi);}
+  /* CHƯA đến giờ: nét nối MẢNH, nhãn chỉ có VIỀN (nền trong suốt) */
+  .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;}
+  .emoji-orbit.upcoming .badge-emoji{background:transparent;}
+  /* ĐÃ đến/qua giờ: nét nối ĐẬM, nhãn có NỀN xanh ngọc */
+  .emoji-orbit.reached .connector{width:2.5px;margin-left:-1.25px;}
+  .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;
@@ -298,19 +297,19 @@
     <div class="hand hour" id="hour"></div>
     <div class="hand minute" id="minute"></div>
     <div class="hand second" id="second"></div>
-    <div class="orbit" id="orbitSleep">
+    <div class="orbit emoji-orbit upcoming" id="orbitSleep">
       <div class="connector" id="connSleep"></div>
       <div class="badge badge-emoji" id="badgeSleep"><span class="ic-emoji">😴</span></div>
     </div>
-    <div class="orbit" id="orbitDinner">
+    <div class="orbit emoji-orbit upcoming" id="orbitDinner">
       <div class="connector" id="connDinner"></div>
       <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span></div>
     </div>
-    <div class="orbit" id="orbitExercise">
+    <div class="orbit emoji-orbit upcoming" id="orbitExercise">
       <div class="connector" id="connExercise"></div>
-      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">💪</span></div>
+      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">🙌</span></div>
     </div>
-    <div class="orbit" id="orbitBreakfast">
+    <div class="orbit emoji-orbit upcoming" id="orbitBreakfast">
       <div class="connector" id="connBreakfast"></div>
       <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span></div>
     </div>
@@ -393,6 +392,21 @@
   const elOrbitDinner=$('orbitDinner'), elBadgeDinner=$('badgeDinner'), elConnDinner=$('connDinner');
   const elOrbitExercise=$('orbitExercise'), elBadgeExercise=$('badgeExercise'), elConnExercise=$('connExercise');
   const elOrbitBreakfast=$('orbitBreakfast'), elBadgeBreakfast=$('badgeBreakfast'), elConnBreakfast=$('connBreakfast');
+  // Mốc nhãn emoji trong ngày -> đổi trạng thái theo giờ hiện tại:
+  //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nền + nét đậm).
+  const fixedLabels = [
+    {orbit:elOrbitExercise,  hour:8},
+    {orbit:elOrbitBreakfast, hour:8.25},
+    {orbit:elOrbitDinner,    hour:19.5},
+    {orbit:elOrbitSleep,     hour:22},
+  ];
+  function updateLabelStates(nowH){
+    for(const L of fixedLabels){
+      const reached = nowH >= L.hour;
+      L.orbit.classList.toggle('reached', reached);
+      L.orbit.classList.toggle('upcoming', !reached);
+    }
+  }
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
@@ -625,9 +639,10 @@
     // ARC_R_D2) nhưng đặt tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
     const placeFixed = (orbit, conn, badge, hour) => {
       const deg = hour * 30;
+      const ringR = hour < 12 ? ARC_R_D1 : ARC_R_D2;   // SÁNG -> vòng TRONG (AM); CHIỀU/TỐI -> vòng NGOÀI (PM)
       const realHalf = badge.offsetHeight/2 || BADGE_H/2;
-      const len = (badgeH_r - realHalf) - ARC_R_D2;
-      place(conn, badge, ARC_R_D2, len, badgeH_r);
+      const len = (badgeH_r - realHalf) - ringR;
+      place(conn, badge, ringR, len, badgeH_r);                          // nét nối CHẠM đúng vòng AM/PM
       orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
       badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
     };
@@ -826,6 +841,9 @@
     const now=new Date();
     const tNow=performance.now();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
+
+    // Nhãn mốc: bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
+    updateLabelStates(h + m/60 + s/3600);
 
     // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;

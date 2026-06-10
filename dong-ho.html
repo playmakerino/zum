@@ -140,6 +140,20 @@
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
+  /* Nhãn PHÚT deadline: pill cam nhỏ ở mép trên-phải nhãn hoạt động, chỉ hiện trong 59'
+     trước giờ hoạt động (vd "30" trên nhãn bơi từ 16h31 -> ẩn lúc 17h30). Mặc định ẩn;
+     .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
+  .badge-emoji .deadline-min{
+    display:none;
+    position:absolute; top:-7px; right:-7px;
+    min-width:15px; height:15px; padding:0 3px; box-sizing:border-box;
+    border-radius:99px;
+    background:var(--c-min); color:#fff;
+    font-size:.5rem; font-weight:700; line-height:15px; text-align:center;
+    font-variant-numeric:tabular-nums;
+    box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
+  }
+  .badge-emoji .deadline-min.show{ display:block; }
 
   /* VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. */
   .r-track,.r-arc,.r-act,.r-live{fill:none;stroke-linecap:butt;}
@@ -330,39 +344,39 @@
     <div class="hand second" id="second"></div>
     <div class="orbit emoji-orbit upcoming" id="orbitSleep">
       <div class="connector" id="connSleep"></div>
-      <div class="badge badge-emoji" id="badgeSleep"><span class="ic-emoji">😴</span></div>
+      <div class="badge badge-emoji" id="badgeSleep"><span class="ic-emoji">😴</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitDinner">
       <div class="connector" id="connDinner"></div>
-      <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span></div>
+      <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitExercise">
       <div class="connector" id="connExercise"></div>
-      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">🙌</span></div>
+      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">🙌</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitBreakfast">
       <div class="connector" id="connBreakfast"></div>
-      <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span></div>
+      <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitBasketball">
       <div class="connector" id="connBasketball"></div>
-      <div class="badge badge-emoji" id="badgeBasketball"><span class="ic-emoji">🏀</span></div>
+      <div class="badge badge-emoji" id="badgeBasketball"><span class="ic-emoji">🏀</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitBallet">
       <div class="connector" id="connBallet"></div>
-      <div class="badge badge-emoji" id="badgeBallet"><span class="ic-emoji">🩰</span></div>
+      <div class="badge badge-emoji" id="badgeBallet"><span class="ic-emoji">🩰</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitBasketSat">
       <div class="connector" id="connBasketSat"></div>
-      <div class="badge badge-emoji" id="badgeBasketSat"><span class="ic-emoji">🏀</span></div>
+      <div class="badge badge-emoji" id="badgeBasketSat"><span class="ic-emoji">🏀</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitArt">
       <div class="connector" id="connArt"></div>
-      <div class="badge badge-emoji" id="badgeArt"><span class="ic-emoji">🎨</span></div>
+      <div class="badge badge-emoji" id="badgeArt"><span class="ic-emoji">🎨</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit emoji-orbit upcoming" id="orbitSwim">
       <div class="connector" id="connSwim"></div>
-      <div class="badge badge-emoji" id="badgeSwim"><span class="ic-emoji">🏊🏻‍♀️</span></div>
+      <div class="badge badge-emoji" id="badgeSwim"><span class="ic-emoji">🏊🏻‍♀️</span><span class="deadline-min"></span></div>
     </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
@@ -462,14 +476,25 @@
     {orbit:elOrbitDinner,     hour:19.5},                     // ăn tối: mọi ngày
     {orbit:elOrbitSleep,      hour:22},                       // đi ngủ: mọi ngày
   ];
+  // Mỗi nhãn có 1 "nhãn phút deadline" (pill cam ở mép) -> điền sẵn SỐ PHÚT của giờ hoạt động
+  // (vd 17.5 -> "30", 8.25 -> "15", 8 -> "00"). Nguồn duy nhất là L.hour nên không lệch.
+  for(const L of fixedLabels){
+    L.dline = L.orbit.querySelector('.deadline-min');
+    if(L.dline) L.dline.textContent = String(Math.round((L.hour % 1) * 60)).padStart(2,'0');
+  }
   function updateLabelStates(nowH, dow){
     for(const L of fixedLabels){
       const show = !L.days || L.days.includes(dow);
       L.orbit.classList.toggle('off', !show);   // ẩn nhãn không thuộc thứ hôm nay
-      if(!show) continue;
+      if(!show){ if(L.dline) L.dline.classList.remove('show'); continue; }
       const reached = nowH >= L.hour;
       L.orbit.classList.toggle('reached', reached);
       L.orbit.classList.toggle('upcoming', !reached);
+      // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
+      if(L.dline){
+        const deltaMin = (L.hour - nowH) * 60;
+        L.dline.classList.toggle('show', deltaMin > 0 && deltaMin <= 59);
+      }
     }
   }
   const elTextH=$('textH'), elTextM=$('textM');

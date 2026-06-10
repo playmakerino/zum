@@ -1204,8 +1204,16 @@
       hourStrip.querySelectorAll('button').forEach((b,h)=> b.classList.toggle('past', h<nowH));
       minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('past', selHour===nowH && i*5<nowM));
     }
-    // Mở popup -> cập nhật mờ giờ/phút đã qua + focus GIỜ đang chọn để remote TV điều hướng.
-    fab.addEventListener('click', ()=>{ updatePastDim(); modal.classList.add('open'); (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus(); });
+    // Chọn sẵn mốc 5 phút GẦN NHẤT SẮP TỚI (làm tròn LÊN theo thời điểm mở popup).
+    function pickNextSlot(){
+      const now=new Date();
+      selHour=now.getHours(); selMin=Math.ceil(now.getMinutes()/5)*5;
+      if(selMin>=60){ selMin=0; selHour=(selHour+1)%24; }
+      hourStrip.querySelectorAll('button').forEach((b,h)=> b.classList.toggle('sel', h===selHour));
+      minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('sel', i*5===selMin));
+    }
+    // Mở popup -> chọn sẵn thời gian gần nhất tiếp theo + mờ giờ/phút đã qua + focus GIỜ (cho remote TV).
+    fab.addEventListener('click', ()=>{ pickNextSlot(); updatePastDim(); modal.classList.add('open'); (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus(); });
     modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
     // Nút Back/Escape của remote TV (hoặc phím Esc) -> đóng popup
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modal.classList.contains('open')) modal.classList.remove('open'); });

@@ -301,6 +301,10 @@
     display:flex; line-height:1; letter-spacing:-.12em;
     font-size:.42rem; pointer-events:none;
   }
+  /* Desktop: ô lịch to hơn -> phóng to emoji nhãn cho cân */
+  @media (min-width:768px){
+    .cal-mark{ font-size:.6rem; top:-3px; right:-3px; }
+  }
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }

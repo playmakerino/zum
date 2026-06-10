@@ -278,22 +278,20 @@
   <div class="clock">
   <div class="analog" id="analog">
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
-      <!-- Hai vòng "nửa ngày" (mỗi vòng = 12 giờ), dựng GIỐNG HỆT vòng phút:
-           track mờ (cả vòng) + cung "giờ đã qua" đậm + ô GIỜ hiện tại (vệt mờ rộng)
-           + tiến trình trong giờ hiện tại. Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h).
-           Màu: progress NGÀY (track + giờ đã qua) = c-buoi (xanh ngọc);
-                ô/vệt mờ + tiến trình GIỜ hiện tại = c-hour (xanh của giờ). -->
-      <path id="dayTrack1" fill="none" stroke="var(--c-buoi)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayTrack2" fill="none" stroke="var(--c-buoi)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="dayArc1" fill="none" stroke="var(--c-buoi)" stroke-width="2.5" stroke-linecap="butt"></path>
-      <path id="dayArc2" fill="none" stroke="var(--c-buoi)" stroke-width="2.5" stroke-linecap="butt"></path>
-      <path id="dayActiveTrack1" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt" opacity="0.3"></path>
-      <path id="dayActiveTrack2" fill="none" stroke="var(--c-hour)" stroke-width="4" stroke-linecap="butt" opacity="0.3"></path>
+      <!-- LUẬT MỚI — mỗi vòng MỘT màu, 3 lớp:
+             track  = CẢ vòng, nét MẢNH + MỜ (opacity .25)  -> phần CHƯA tới
+             arc    = phần ĐÃ QUA, nét MẢNH + ĐẶC (opacity 1)
+             active = Ô HIỆN TẠI (giờ/phút này), nét ĐẬM + ĐẶC
+           Màu: 2 vòng NGÀY/GIỜ = c-hour (xanh giờ); vòng PHÚT = c-min (cam).
+           Vòng 1 = sáng (0-12h), vòng 2 = chiều/tối (12-24h). -->
+      <path id="dayTrack1" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayTrack2" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="dayArc1" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt"></path>
+      <path id="dayArc2" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt"></path>
       <path id="dayActive1" fill="none" stroke="var(--c-hour)" stroke-width="2.5" stroke-linecap="butt"></path>
       <path id="dayActive2" fill="none" stroke="var(--c-hour)" stroke-width="2.5" stroke-linecap="butt"></path>
-      <path id="minTrack" fill="none" stroke="var(--c-hour)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
-      <path id="minArc" fill="none" stroke="var(--c-hour)" stroke-width="2.5" stroke-linecap="butt"></path>
-      <path id="minActiveTrack" fill="none" stroke="var(--c-min)" stroke-width="4" stroke-linecap="butt" opacity="0.3"></path>
+      <path id="minTrack" fill="none" stroke="var(--c-min)" stroke-width="1" stroke-linecap="butt" opacity="0.25"></path>
+      <path id="minArc" fill="none" stroke="var(--c-min)" stroke-width="1" stroke-linecap="butt"></path>
       <path id="minActive" fill="none" stroke="var(--c-min)" stroke-width="2.5" stroke-linecap="butt"></path>
     </svg>
     <div class="hand hour" id="hour"></div>
@@ -412,11 +410,11 @@
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
-  // Các path cung (cập nhật mỗi frame) gom theo NHÓM 4 lớp: track / arc(đã qua) / act(ô hiện tại) / live
+  // Các path cung (cập nhật mỗi frame) gom theo 3 lớp: track(cả vòng, mờ) / arc(đã qua) / act(ô hiện tại, đậm)
   const ring = {
-    min:  {track:$('minTrack'),  arc:$('minArc'),  act:$('minActiveTrack'),  live:$('minActive')},
-    day1: {track:$('dayTrack1'), arc:$('dayArc1'), act:$('dayActiveTrack1'), live:$('dayActive1')},
-    day2: {track:$('dayTrack2'), arc:$('dayArc2'), act:$('dayActiveTrack2'), live:$('dayActive2')},
+    min:  {track:$('minTrack'),  arc:$('minArc'),  act:$('minActive')},
+    day1: {track:$('dayTrack1'), arc:$('dayArc1'), act:$('dayActive1')},
+    day2: {track:$('dayTrack2'), arc:$('dayArc2'), act:$('dayActive2')},
   };
   // Đồng hồ cát: root + 2 clip-rect (cát trên / cát dưới)
   const hg = {
@@ -668,29 +666,28 @@
     const largeArc = sweep>180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
-  // Vẽ MỘT vòng 4 lớp (track cả vòng + cung đã qua + ô đơn vị hiện tại + tiến trình hiện tại).
-  //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ); liveDeg = tiến trình.
-  //   slot=0 -> không vẽ ô & tiến trình (dùng cho vòng nửa ngày KHÔNG diễn ra).
-  function drawRing(g, r, doneDeg, slot, liveDeg){
-    setD(g.track, arcPath(r, 0, 359.999));
-    setD(g.arc,   arcPath(r, 0, doneDeg));
-    setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : '');
-    setD(g.live,  slot ? arcPath(r, doneDeg, liveDeg) : '');
+  // Vẽ MỘT vòng 3 lớp: track(cả vòng, MỜ = chưa tới) + arc(đã qua, ĐẶC mảnh) + act(ô hiện tại, ĐẬM).
+  //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ).
+  //   slot=0 -> không có ô hiện tại (dùng cho nửa ngày KHÔNG diễn ra).
+  function drawRing(g, r, doneDeg, slot){
+    setD(g.track, arcPath(r, 0, 359.999));                         // cả vòng: nền mờ (phần chưa tới)
+    setD(g.arc,   arcPath(r, 0, doneDeg));                         // đã qua: đặc, mảnh
+    setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : '');  // ô hiện tại: đậm
   }
-  // Vòng phút (60'): đơn vị 6°, đã qua = phút trọn, tiến trình theo giây.
-  function updateMinArc(m, s){
-    drawRing(ring.min, ARC_R_M, m*6, 6, (m + s/60)*6);
+  // Vòng phút (60'): đơn vị 6°; đã qua = phút trọn, ô PHÚT hiện tại = nét đậm.
+  function updateMinArc(m){
+    drawRing(ring.min, ARC_R_M, m*6, 6);
   }
   // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
-  //   Vòng đang chạy dựng đủ 4 lớp (như vòng phút); vòng kia: nửa đã xong -> đầy, chưa tới -> trống.
-  //   Màu (đặt ở thuộc tính stroke của path): track+đã qua = c-buoi (ngày); ô+tiến trình = c-hour (giờ).
-  function drawDayRings(g1, g2, r1, r2, h, m, s){
-    const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
-    drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 lớp
-    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0, 0); // nửa kia: đầy nếu đã xong, trống nếu chưa tới
+  //   Vòng đang chạy: track mờ + giờ đã qua đặc + ô GIỜ hiện tại đậm.
+  //   Vòng kia: nửa ĐÃ xong -> đầy đặc (track bị cung phủ); chưa tới -> chỉ track mờ.
+  function drawDayRings(g1, g2, r1, r2, h){
+    const H = h % 12, doneDeg = H*30, pm = h >= 12;
+    drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30);          // nửa đang chạy: ô giờ hiện tại đậm
+    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0); // nửa kia: đầy nếu đã qua / trống(mờ) nếu chưa tới
   }
-  function updateDayArcs(h, m, s){
-    drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
+  function updateDayArcs(h){
+    drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h);
   }
 
   function place(conn, badge, connStart, len, badgeR){
@@ -860,9 +857,9 @@
     elBadgeH.style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg) scale(${beatScale(beat.H, tNow)})`;
     elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${beatScale(beat.M, tNow)})`;
 
-    // Cung: cập nhật mỗi frame để chạy theo kim mượt
-    updateDayArcs(h, m, s);
-    updateMinArc(m, s);
+    // Cung: cập nhật theo giờ/phút hiện tại
+    updateDayArcs(h);
+    updateMinArc(m);
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
     const ms = now.getMilliseconds();

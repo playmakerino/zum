@@ -424,23 +424,6 @@
       <div class="connector" id="connArt"></div>
       <div class="badge badge-emoji" id="badgeArt"><span class="ic-emoji">🎨</span><span class="deadline-min"></span></div>
     </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitSwim">
-      <div class="connector" id="connSwim"></div>
-      <div class="badge badge-emoji" id="badgeSwim"><span class="ic-emoji">🏊🏻‍♀️</span><span class="deadline-min"></span></div>
-    </div>
-    <!-- NHÃN CÓ SẴN, ẩn (.off) đến khi được bật trong customLabels: ☀️ mặt trời · 🍒 cherry · 🍬 kẹo -->
-    <div class="orbit emoji-orbit upcoming off" id="orbitSun">
-      <div class="connector" id="connSun"></div>
-      <div class="badge badge-emoji" id="badgeSun"><span class="ic-emoji">☀️</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming off" id="orbitCherry">
-      <div class="connector" id="connCherry"></div>
-      <div class="badge badge-emoji" id="badgeCherry"><span class="ic-emoji">🍒</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming off" id="orbitCandy">
-      <div class="connector" id="connCandy"></div>
-      <div class="badge badge-emoji" id="badgeCandy"><span class="ic-emoji">🍬</span><span class="deadline-min"></span></div>
-    </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
       <div class="badge" id="badgeH"><span id="textH">00</span></div>
@@ -535,10 +518,6 @@
   const elOrbitBallet=$('orbitBallet'), elBadgeBallet=$('badgeBallet'), elConnBallet=$('connBallet');
   const elOrbitBasketSat=$('orbitBasketSat'), elBadgeBasketSat=$('badgeBasketSat'), elConnBasketSat=$('connBasketSat');
   const elOrbitArt=$('orbitArt'), elBadgeArt=$('badgeArt'), elConnArt=$('connArt');
-  const elOrbitSwim=$('orbitSwim'), elBadgeSwim=$('badgeSwim'), elConnSwim=$('connSwim');
-  const elOrbitSun=$('orbitSun'),       elBadgeSun=$('badgeSun'),       elConnSun=$('connSun');
-  const elOrbitCherry=$('orbitCherry'), elBadgeCherry=$('badgeCherry'), elConnCherry=$('connCherry');
-  const elOrbitCandy=$('orbitCandy'),   elBadgeCandy=$('badgeCandy'),   elConnCandy=$('connCandy');
   // Mốc nhãn emoji trong ngày -> đổi trạng thái theo giờ hiện tại:
   //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nền + nét đậm).
   //   days: chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày.
@@ -547,27 +526,14 @@
     {orbit:elOrbitBasketSat,  hour:8.25,  days:[6]},          // bóng rổ: thứ Bảy 8h15
     {orbit:elOrbitBreakfast,  hour:8.25,  days:[1,2,3,4,5]},  // ăn sáng: T2-T6
     {orbit:elOrbitArt,        hour:10,    days:[6]},          // vẽ: thứ Bảy 10h
-    {orbit:elOrbitSwim,       hour:17.5},                     // bơi: mọi ngày 17h30
     {orbit:elOrbitBasketball, hour:18,    days:[2]},          // bóng rổ: thứ Ba 18h
     {orbit:elOrbitBallet,     hour:18,    days:[5]},          // múa: thứ Sáu 18h
     {orbit:elOrbitDinner,     hour:19.5},                     // ăn tối: mọi ngày
     {orbit:elOrbitSleep,      hour:22},                       // đi ngủ: mọi ngày
   ];
-  // ====== NHÃN CÓ SẴN — BẬT KHI CẦN (☀️ mặt trời · 🍒 cherry · 🍬 kẹo) ======
-  // Mỗi dòng = 1 lần hiện nhãn. Các trường:
-  //   orbit : elOrbitSun | elOrbitCherry | elOrbitCandy
-  //   hour  : giờ thập phân — 20.25 = 20h15, 15.5 = 15h30, 9 = 9h00
-  //   date  : 'YYYY-MM-DD' -> chỉ hiện ĐÚNG ngày đó      (bỏ trống = mọi ngày)
-  //   days  : [0..6] -> chỉ các thứ này, 0=CN..6=T7       (bỏ trống = mọi ngày)
-  // Vẫn theo cửa sổ ±6 tiếng như nhãn khác. THÊM = thêm 1 dòng; TẮT = xóa dòng đó.
-  const customLabels = [
-    {orbit:elOrbitSun, hour:20.25, date:'2026-06-10'},    // HÔM NAY 10/06: ☀️ lúc 20h15
-    // {orbit:elOrbitCherry, hour:15.5, days:[1,3,5]},     // ví dụ: 🍒 lúc 15h30 các thứ 2/4/6
-    // {orbit:elOrbitCandy,  hour:9},                       // ví dụ: 🍬 lúc 9h00 mọi ngày
-  ];
   // Mỗi nhãn có 1 "nhãn phút deadline" (pill cam ở mép) -> điền sẵn SỐ PHÚT của giờ hoạt động
-  // (vd 17.5 -> "30", 8.25 -> "15", 8 -> "00"). Nguồn duy nhất là L.hour nên không lệch.
-  for(const L of [...fixedLabels, ...customLabels]){
+  // (vd 8.25 -> "15", 8 -> "00"). Nguồn duy nhất là L.hour nên không lệch.
+  for(const L of fixedLabels){
     L.dline = L.orbit.querySelector('.deadline-min');
     if(L.dline) L.dline.textContent = String(Math.round((L.hour % 1) * 60)).padStart(2,'0');
   }
@@ -594,12 +560,6 @@
     // Nhãn lịch tuần cố định: lọc theo THỨ + cửa sổ ±6 tiếng.
     for(const L of fixedLabels){
       applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
-    }
-    // Nhãn bật-khi-cần (☀️🍒🍬): lọc theo NGÀY/THỨ + cửa sổ ±6 tiếng.
-    for(const L of customLabels){
-      const dayOk  = !L.days || L.days.includes(dow);
-      const dateOk = !L.date || L.date === today;
-      applyLabel(L, dayOk && dateOk && within6(L.hour), nowH);
     }
     // Nhãn người dùng tự thêm: hiện theo cửa sổ ±6 tiếng (mọi ngày).
     for(const o of userLabelObjs){ applyLabel(o, within6(o.hour), nowH); }
@@ -846,15 +806,10 @@
     placeFixed(elOrbitBasketSat,  elConnBasketSat,  elBadgeBasketSat,  8.25);       // bóng rổ 8h15 (thứ Bảy)
     placeFixed(elOrbitBreakfast,  elConnBreakfast,  elBadgeBreakfast,  8.25);       // ăn sáng 8h15 (T2-T6)
     placeFixed(elOrbitArt,        elConnArt,        elBadgeArt,        10, true);   // vẽ 10h (thứ Bảy) — vòng TRONG, tránh đè 22h
-    placeFixed(elOrbitSwim,       elConnSwim,       elBadgeSwim,       17.5);       // bơi 17h30 (mọi ngày)
     placeFixed(elOrbitBasketball, elConnBasketball, elBadgeBasketball, 18);         // bóng rổ 18h (thứ Ba)
     placeFixed(elOrbitBallet,     elConnBallet,     elBadgeBallet,     18);          // múa 18h (thứ Sáu)
     placeFixed(elOrbitDinner,     elConnDinner,     elBadgeDinner,     19.5);       // ăn tối 19h30
     placeFixed(elOrbitSleep,      elConnSleep,      elBadgeSleep,      22);         // đi ngủ 22h
-    // Nhãn bật-khi-cần (☀️🍒🍬): đặt vị trí như nhãn giờ theo 'hour' (AM->vòng trong, PM->ngoài).
-    for(const L of customLabels){
-      placeFixed(L.orbit, L.orbit.querySelector('.connector'), L.orbit.querySelector('.badge'), L.hour, !!L.inner);
-    }
     // Nhãn người dùng tự thêm: cùng cách đặt vị trí.
     for(const o of userLabelObjs){ placeFixed(o.orbit, o.conn, o.badge, o.hour, false); }
 
@@ -1208,7 +1163,7 @@
     try{ userLabels = JSON.parse(localStorage.getItem(LS_USER_LABELS)) || []; }catch(e){ userLabels = []; }
     const fab=$('fab'), modal=$('labelModal'), emojiPick=$('emojiPick'),
           hourStrip=$('hourStrip'), minStrip=$('minStrip'), modalAdd=$('modalAdd');
-    const EMOJIS=['☀️','🍒','🍬','🏀','🩰','🎨','🏊','⚽','📚','🎹','🎮','🍎','🥗','🛌','🧘','🚴','🏃','💊','🦷','✏️'];
+    const EMOJIS=['🍬','☀️','🍒','🏊‍♀️','📺'];   // kẹo · mặt trời · cherry · bơi (nữ) · tivi
     let selEmoji=EMOJIS[0], selHour=new Date().getHours(), selMin=0;
     const setSel=(box,btn)=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); btn.classList.add('sel'); };
     const mkBtn=(box,txt,on,sel)=>{ const b=document.createElement('button'); b.textContent=txt; if(sel)b.classList.add('sel'); b.addEventListener('click',()=>{on(); setSel(box,b);}); box.appendChild(b); };

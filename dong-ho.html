@@ -116,14 +116,16 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  /* Nhãn "đi ngủ" (icon trăng) cố định tại 22h: màu XANH NGỌC (giống vòng ngày),
-     NẰM DƯỚI nhãn giờ khi trùng vị trí */
-  #orbitSleep{z-index:10;}                  /* < .orbit (11) -> nhãn giờ đè lên khi tới 22h */
-  #connSleep{background:var(--c-buoi);}
+  /* Nhãn EMOJI tuỳ chỉnh (đi ngủ 22h / ăn tối 19h30): cố định tại một giờ,
+     NẰM DƯỚI nhãn giờ khi trùng vị trí. */
+  #orbitSleep,#orbitDinner{z-index:10;}     /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  #connSleep{background:var(--c-buoi);}      /* xanh ngọc (giống vòng ngày) */
   #badgeSleep{--badge-bg:var(--c-buoi);}
-  /* id -> đè được .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
-  #badgeSleep{padding:.18rem;}
-  #badgeSleep .ic-sleep{display:flex;align-items:center;justify-content:center;
+  #connDinner{background:var(--c-min);}      /* cam ấm cho bữa tối */
+  #badgeDinner{--badge-bg:var(--c-min);}
+  .badge-emoji{padding:.18rem;}
+  /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
+  .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
@@ -294,7 +296,11 @@
     <div class="hand second" id="second"></div>
     <div class="orbit" id="orbitSleep">
       <div class="connector" id="connSleep"></div>
-      <div class="badge" id="badgeSleep"><span class="ic-sleep">😴</span></div>
+      <div class="badge badge-emoji" id="badgeSleep"><span class="ic-emoji">😴</span></div>
+    </div>
+    <div class="orbit" id="orbitDinner">
+      <div class="connector" id="connDinner"></div>
+      <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span></div>
     </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
@@ -372,6 +378,7 @@
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elConnH=$('connH'), elConnM=$('connM');
   const elOrbitSleep=$('orbitSleep'), elBadgeSleep=$('badgeSleep'), elConnSleep=$('connSleep');
+  const elOrbitDinner=$('orbitDinner'), elBadgeDinner=$('badgeDinner'), elConnDinner=$('connDinner');
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
@@ -608,6 +615,14 @@
     place(elConnSleep, elBadgeSleep, ARC_R_D2, lenSleep, badgeH_r);
     elOrbitSleep.style.transform = `rotate(${SLEEP_DEG}deg)`;                  // hướng nhãn ra 22h
     elBadgeSleep.style.transform = `translate(-50%,-50%) rotate(${-SLEEP_DEG}deg)`;  // giữ chữ thẳng đứng
+
+    // Nhãn "ăn tối": GIỐNG nhãn ngủ nhưng CỐ ĐỊNH tại 19h30 -> 19.5*30 = 585° ≡ 225° (vị trí 7h30).
+    const DINNER_DEG = 19.5 * 30;
+    const realHalfDinner = elBadgeDinner.offsetHeight/2 || BADGE_H/2;
+    const lenDinner = (badgeH_r - realHalfDinner) - ARC_R_D2;
+    place(elConnDinner, elBadgeDinner, ARC_R_D2, lenDinner, badgeH_r);
+    elOrbitDinner.style.transform = `rotate(${DINNER_DEG}deg)`;                  // hướng nhãn ra 19h30
+    elBadgeDinner.style.transform = `translate(-50%,-50%) rotate(${-DINNER_DEG}deg)`;  // giữ chữ thẳng đứng
 
     layoutFace();
   }

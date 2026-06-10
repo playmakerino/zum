@@ -116,6 +116,10 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
+  /* Nhãn "đi ngủ" (zzz) cố định tại 22h: dịu, NẰM DƯỚI nhãn giờ khi trùng vị trí */
+  #orbitSleep{z-index:10;}                  /* < .orbit (11) -> nhãn giờ đè lên khi tới 22h */
+  #connSleep{background:var(--muted);}
+  #badgeSleep{--badge-bg:var(--muted);letter-spacing:.06em;}
   .badge span{display:block;}
 
   /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
@@ -282,6 +286,10 @@
     <div class="hand hour" id="hour"></div>
     <div class="hand minute" id="minute"></div>
     <div class="hand second" id="second"></div>
+    <div class="orbit" id="orbitSleep">
+      <div class="connector" id="connSleep"></div>
+      <div class="badge" id="badgeSleep"><span>zzz</span></div>
+    </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
       <div class="badge" id="badgeH"><span id="textH">00</span></div>
@@ -357,6 +365,7 @@
   const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elConnH=$('connH'), elConnM=$('connM');
+  const elOrbitSleep=$('orbitSleep'), elBadgeSleep=$('badgeSleep'), elConnSleep=$('connSleep');
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
@@ -584,6 +593,15 @@
 
     place(elConnM, elBadgeM, ARC_R_M, lenM, badgeM_r);
     place(elConnH, elBadgeH, ARC_R_D2, lenH, badgeH_r);
+
+    // Nhãn "đi ngủ" (zzz): GIỐNG nhãn giờ (cùng bán kính, cùng nét nối từ vòng ngày ngoài)
+    // nhưng CỐ ĐỊNH tại 22h. Trên mặt 12h, hourDeg=(giờ)*30 -> 22h = 660° ≡ 300° (vị trí 10 giờ).
+    const SLEEP_DEG = 22 * 30;
+    const realHalfSleep = elBadgeSleep.offsetHeight/2 || BADGE_H/2;
+    const lenSleep = (badgeH_r - realHalfSleep) - ARC_R_D2;
+    place(elConnSleep, elBadgeSleep, ARC_R_D2, lenSleep, badgeH_r);
+    elOrbitSleep.style.transform = `rotate(${SLEEP_DEG}deg)`;                  // hướng nhãn ra 22h
+    elBadgeSleep.style.transform = `translate(-50%,-50%) rotate(${-SLEEP_DEG}deg)`;  // giữ chữ thẳng đứng
 
     layoutFace();
   }

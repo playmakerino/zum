@@ -17,6 +17,7 @@
     --c-min:#f5921b;
     --c-sec:#ff5d97;
     --c-buoi:#1fab95;
+    --c-buoi-faint:rgba(31,171,149,.25);   /* xanh ngọc MỜ — khớp opacity 0.25 của vòng track */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
@@ -121,9 +122,10 @@
   .emoji-orbit{z-index:10;}                           /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
   .emoji-orbit .connector{background:var(--c-buoi);}  /* nét nối xanh ngọc */
   .badge-emoji{padding:.18rem;border:1px solid var(--c-buoi);}
-  /* CHƯA đến giờ: width = VÒNG TRACK (stroke-width 1) -> nét nối + border đều 1px; nhãn chỉ có VIỀN */
-  .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;}
-  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-width:1px;}
+  /* CHƯA đến giờ: KHỚP vòng TRACK (stroke-width 1, opacity 0.25) -> nét nối + border đều
+     1px VÀ màu xanh ngọc MỜ (nếu đặc sẽ trông dày hơn vòng mờ dù cùng 1px); nhãn chỉ có VIỀN */
+  .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;background:var(--c-buoi-faint);}
+  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-width:1px;border-color:var(--c-buoi-faint);}
   /* ĐÃ đến/qua giờ: width = VÒNG ARC "đã qua" (stroke-width 2.5) -> nét nối + border đều 2.5px; nhãn có NỀN */
   .emoji-orbit.reached .connector{width:2.5px;margin-left:-1.25px;}
   .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);border-width:2.5px;}

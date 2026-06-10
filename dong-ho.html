@@ -116,10 +116,12 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  /* Nhãn "đi ngủ" (zzz) cố định tại 22h: dịu, NẰM DƯỚI nhãn giờ khi trùng vị trí */
+  /* Nhãn "đi ngủ" (icon trăng) cố định tại 22h: màu XANH NGỌC (giống vòng ngày),
+     NẰM DƯỚI nhãn giờ khi trùng vị trí */
   #orbitSleep{z-index:10;}                  /* < .orbit (11) -> nhãn giờ đè lên khi tới 22h */
-  #connSleep{background:var(--muted);}
-  #badgeSleep{--badge-bg:var(--muted);letter-spacing:.06em;}
+  #connSleep{background:var(--c-buoi);}
+  #badgeSleep{--badge-bg:var(--c-buoi);}
+  .ic-sleep{width:14px;height:14px;display:block;fill:#fff;}
   .badge span{display:block;}
 
   /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
@@ -288,7 +290,7 @@
     <div class="hand second" id="second"></div>
     <div class="orbit" id="orbitSleep">
       <div class="connector" id="connSleep"></div>
-      <div class="badge" id="badgeSleep"><span>zzz</span></div>
+      <div class="badge" id="badgeSleep"><svg class="ic-sleep" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
     </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>

@@ -309,17 +309,10 @@
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }
-  .cal-day.today{                     /* hôm nay: ô = THANH TIẾN TRÌNH ngày — nền teal TRÀN từ TRÁI sang PHẢI
-                                         theo % ngày đã trôi (--day-progress); phần còn lại = track teal mờ
-                                         (khớp track các vòng), cắt theo hình tròn (border-radius:50%). */
-    background:linear-gradient(to right,
-      var(--c-buoi)        var(--day-progress,0%),
-      var(--c-buoi-faint)  var(--day-progress,0%));
+  .cal-day.today{                     /* hôm nay: ô tròn nền teal đặc (đã bỏ thanh tiến trình ngày) */
+    background:var(--c-buoi);
     color:#fff;
     font-weight:700;
-    /* VIỀN số: vẽ SAU fill (paint-order) -> số trắng vẫn ĐỌC ĐƯỢC khi nền teal CHƯA dâng tới */
-    -webkit-text-stroke:1.5px var(--c-buoi);
-    paint-order:stroke fill;
   }
 </style>
 </head>
@@ -662,6 +655,7 @@
 
   let FACE;
   let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
+  let HOUR_BADGE_R = 0, HOUR_HALF = 0, lastPm = null;   // nét nối nhãn GIỜ bám vòng ngày đang chạy
 
   // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari): visualViewport chính
   // xác nhất; 100dvh/clientHeight trên vài bản Safari trả vùng LỚN -> căn giữa bị lệch.
@@ -756,15 +750,17 @@
     const badgeM_r = FACE + badgeM_off;   // nhãn phút
     const badgeH_r = FACE + badgeH_off;   // nhãn giờ
 
-    // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M); nhãn GIỜ nối từ VÒNG NGÀY ngoài (ARC_R_D2).
+    // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M). Nhãn GIỜ nối từ vòng ngày ĐANG CHẠY
+    //   (sáng -> vòng TRONG D1, chiều/tối -> vòng NGOÀI D2) nên LUÔN chạm vòng hiện hành.
     //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
     const realHalfM = elBadgeM.offsetHeight/2 || BADGE_H/2;
     const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
-    const lenH = (badgeH_r - realHalfH) - ARC_R_D2;
-
     place(elConnM, elBadgeM, ARC_R_M, lenM, badgeM_r);
-    place(elConnH, elBadgeH, ARC_R_D2, lenH, badgeH_r);
+    // Nhãn GIỜ: lưu bán kính nhãn + nửa chiều cao để placeHourConn() tính lại khi qua trưa/nửa đêm.
+    HOUR_BADGE_R = badgeH_r; HOUR_HALF = realHalfH;
+    elBadgeH.style.marginTop = (-badgeH_r) + 'px';
+    placeHourConn(new Date().getHours() >= 12);
 
     // Nhãn EMOJI cố định: GIỐNG nhãn giờ (cùng bán kính badgeH_r, nét nối từ vòng ngày ngoài
     // ARC_R_D2) nhưng đặt tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
@@ -838,6 +834,14 @@
     conn.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
     conn.style.height = len+'px';
     badge.style.marginTop = (-badgeR)+'px';
+  }
+  // Nét nối nhãn GIỜ: bám vòng ngày đang chạy (pm -> vòng NGOÀI D2, sáng -> vòng TRONG D1).
+  //   Đầu xa (mép nhãn) cố định ở HOUR_BADGE_R - HOUR_HALF; chỉ đổi điểm đầu trong theo vòng.
+  function placeHourConn(pm){
+    const ring = pm ? ARC_R_D2 : ARC_R_D1;
+    const len  = (HOUR_BADGE_R - HOUR_HALF) - ring;
+    elConnH.style.top    = (-(ring + len)) + 'px';
+    elConnH.style.height = len + 'px';
   }
 
   // Đặt lại vạch chia và số theo FACE hiện tại
@@ -948,7 +952,6 @@
   const MONTH_EN = ['January','February','March','April','May','June','July','August',
                     'September','October','November','December'];
   let lastDay = -1;
-  let elToday = null;   // ô "hôm nay" trong lịch -> cập nhật --day-progress (thanh tiến trình) mỗi giây
 
   // Emoji hoạt động hiện ở góc ô lịch theo THỨ (getDay): T3=bóng rổ, T6=múa, T7=bóng rổ+vẽ
   const DAY_ACTIVITIES = { 2:'🏀', 5:'🩰', 6:'🏀🎨' };
@@ -971,12 +974,9 @@
     // Ô trống đầu tháng: lùi theo thứ (Thứ Hai = 0)
     const startOffset = (new Date(y,mo,1).getDay()+6)%7;
     for(let i=0;i<startOffset;i++) addCell('cal-cell');
-    // Các ngày trong tháng — giữ tham chiếu ô "hôm nay" để nâng thanh tiến trình mỗi giây
     const daysInMonth = new Date(y,mo+1,0).getDate();
-    elToday = null;
     for(let d=1;d<=daysInMonth;d++){
       const cell = addCell('cal-cell cal-day'+(d<today?' past':d===today?' today':''), d);
-      if(d===today) elToday = cell;
       // Nhãn hoạt động góc trên-phải theo THỨ (getDay 0=CN..6=T7): bóng rổ T3+T7, múa T6, vẽ T7
       const acts = DAY_ACTIVITIES[new Date(y,mo,d).getDay()];
       if(acts){
@@ -993,14 +993,6 @@
     // Hàng "thứ" tiếng Anh — DƯỚI ngày (cùng thứ tự & style với hàng VN)
     DOW_EN.forEach(d=>addCell('cal-cell cal-dow', d));
     lastDay = today;
-    setTodayProgress(now.getHours(), now.getMinutes(), now.getSeconds());   // tô mức ngày ban đầu
-  }
-
-  // Ô "hôm nay" = thanh tiến trình ngày: nền teal tràn từ TRÁI sang PHẢI theo phần ngày đã trôi (0..1).
-  function setTodayProgress(h,m,s){
-    if(!elToday) return;
-    const frac=(h*3600+m*60+s)/86400;
-    elToday.style.setProperty('--day-progress', (frac*100).toFixed(3)+'%');
   }
 
   function tick(){
@@ -1011,6 +1003,10 @@
     // Nhãn mốc: bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại + cửa sổ ±6 tiếng
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     updateLabelStates(h + m/60 + s/3600, now.getDay(), today);
+
+    // Nét nối nhãn giờ đổi vòng khi qua trưa/nửa đêm (sáng: vòng trong, chiều/tối: vòng ngoài)
+    const pm = h >= 12;
+    if(pm !== lastPm){ placeHourConn(pm); lastPm = pm; }
 
     // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
@@ -1049,7 +1045,6 @@
 
       // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
       if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
-      setTodayProgress(h, m, s);   // nâng mức "thanh tiến trình" của ô hôm nay theo giây
       updateBadge(elTextH, String(gio12(h)));
       updateBadge(elTextM, String(m));
       elH.textContent=pad(h);

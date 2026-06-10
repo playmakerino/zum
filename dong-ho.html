@@ -110,10 +110,13 @@
   .badge{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
-    min-width:30px;
-    padding:.18rem .35rem;
-    border-radius:99px;
-    font-size:.78rem;font-weight:500;
+    /* HÌNH TRÒN đều (Ø = --badge-dia): offsetHeight/2 = bán kính ở MỌI hướng -> nét nối
+       chạm đúng viền ở mọi góc, không đâm xuyên (pill cũ sai khi nhãn ở góc xiên). */
+    --badge-dia:26px;
+    width:var(--badge-dia);height:var(--badge-dia);
+    min-width:0;padding:0;
+    border-radius:50%;
+    font-size:.72rem;font-weight:500;
     font-variant-numeric:tabular-nums;
     line-height:1;
     /* Căn giữa số bằng flex (không dựa baseline/line-box) */
@@ -129,7 +132,7 @@
   .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
      -> nét nối chạm đúng viền, không đâm xuyên khi nhãn ở góc xiên. */
-  .badge-emoji{min-width:0;width:24px;height:24px;padding:0;border:var(--ring-thin) solid var(--c-hour);}
+  .badge-emoji{width:var(--badge-dia);height:var(--badge-dia);border:var(--ring-thin) solid var(--c-hour);}
   /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track), nhãn chỉ có viền (nền trong suốt) */
   .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
   .emoji-orbit.upcoming .badge-emoji{background:transparent;border-color:var(--c-hour-faint);}
@@ -140,16 +143,16 @@
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
-  /* Nhãn PHÚT deadline: pill cam nhỏ ở mép trên-phải nhãn hoạt động, chỉ hiện trong 59'
+  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở mép trên-phải nhãn hoạt động, chỉ hiện trong 59'
      trước giờ hoạt động (vd "30" trên nhãn bơi từ 16h31 -> ẩn lúc 17h30). Mặc định ẩn;
      .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
   .badge-emoji .deadline-min{
     display:none;
     position:absolute; top:-7px; right:-7px;
-    min-width:15px; height:15px; padding:0 3px; box-sizing:border-box;
-    border-radius:99px;
+    width:16px; height:16px; padding:0; box-sizing:border-box;
+    border-radius:50%;
     background:var(--c-min); color:#fff;
-    font-size:.5rem; font-weight:700; line-height:15px; text-align:center;
+    font-size:.48rem; font-weight:700; line-height:16px; text-align:center;
     font-variant-numeric:tabular-nums;
     box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
   }
@@ -606,8 +609,9 @@
      px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
      tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
      Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
-  const BADGE_H    = 24;   // chiều cao một nhãn (chỉ còn số, không chữ -> thấp hơn)
-  const BADGE_HALF = 16;   // nửa bề rộng nhãn (chỉ còn 2 chữ số, min-width 30px -> ~16)
+  // Nhãn nay là HÌNH TRÒN đều Ø=26px (khớp --badge-dia ở CSS) -> nửa bề ngang = nửa bề cao = bán kính.
+  const BADGE_H    = 26;   // ĐƯỜNG KÍNH nhãn (cũng = khoảng hở dọc tối thiểu giữa 2 vòng nhãn)
+  const BADGE_HALF = 13;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 

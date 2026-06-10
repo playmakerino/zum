@@ -126,9 +126,10 @@
      1px VÀ màu xanh ngọc MỜ (nếu đặc sẽ trông dày hơn vòng mờ dù cùng 1px); nhãn chỉ có VIỀN */
   .emoji-orbit.upcoming .connector{width:1px;margin-left:-.5px;background:var(--c-buoi-faint);}
   .emoji-orbit.upcoming .badge-emoji{background:transparent;border-width:1px;border-color:var(--c-buoi-faint);}
-  /* ĐÃ đến/qua giờ: width = VÒNG ARC "đã qua" (stroke-width 2.5) -> nét nối + border đều 2.5px; nhãn có NỀN */
-  .emoji-orbit.reached .connector{width:2.5px;margin-left:-1.25px;}
-  .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);border-width:2.5px;}
+  /* ĐÃ đến/qua giờ: KHỚP vòng ARC "đã qua" (luật mới: stroke-width 1, ĐẶC) -> nét nối + border
+     đều 1px ĐẶC; khác 'upcoming' ở chỗ ĐẶC màu (không mờ); nhãn có NỀN xanh ngọc */
+  .emoji-orbit.reached .connector{width:1px;margin-left:-.5px;}
+  .emoji-orbit.reached .badge-emoji{background:var(--c-buoi);border-width:1px;}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;

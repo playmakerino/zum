@@ -296,13 +296,15 @@
   /* Nhãn hoạt động ở GÓC TRÊN BÊN PHẢI ô lịch (bóng rổ/múa/vẽ theo thứ). Tuyệt đối -> không
      phá việc căn giữa số (số là text node duy nhất trong flow). */
   .cal-mark{
-    position:absolute; top:0; right:0;
+    position:absolute; top:0; right:0;     /* nằm BĂNG TRÊN, phía trên số ở giữa ô -> không chạm số */
     display:flex; line-height:1; letter-spacing:-.12em;
     font-size:.42rem; pointer-events:none;
   }
-  /* Desktop: ô lịch to hơn -> phóng to emoji nhãn cho cân */
+  .cal-mark--multi{ right:-2px; }            /* ngày 2 emoji (T7): dịch sang PHẢI chút cho thoáng số */
+  /* Desktop: ô lịch to hơn -> phóng to emoji + nhích LÊN để KHÔNG chạm số */
   @media (min-width:768px){
-    .cal-mark{ font-size:.8rem; top:0; right:0; }
+    .cal-mark{ font-size:.8rem; top:-2px; right:-1px; }
+    .cal-mark--multi{ right:-5px; }          /* 2 emoji to hơn -> dịch phải nhiều hơn cho khỏi đè số */
   }
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
@@ -979,7 +981,8 @@
       const acts = DAY_ACTIVITIES[new Date(y,mo,d).getDay()];
       if(acts){
         const mk = document.createElement('span');
-        mk.className = 'cal-mark';
+        // 2 emoji (T7: 🏀🎨) -> class --multi để dịch sang phải, khỏi đè số
+        mk.className = 'cal-mark' + ([...acts].length > 1 ? ' cal-mark--multi' : '');
         mk.textContent = acts;
         cell.appendChild(mk);
       }

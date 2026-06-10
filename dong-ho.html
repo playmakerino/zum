@@ -126,7 +126,9 @@
      màu xanh giờ; nét nối + viền MẢNH (--ring-thin) khớp vòng tròn; NẰM DƯỚI nhãn giờ khi trùng. */
   .emoji-orbit{z-index:10;}                /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
   .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
-  .badge-emoji{padding:.18rem;border:var(--ring-thin) solid var(--c-hour);}
+  /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
+     -> nét nối chạm đúng viền, không đâm xuyên khi nhãn ở góc xiên. */
+  .badge-emoji{min-width:0;width:24px;height:24px;padding:0;border:var(--ring-thin) solid var(--c-hour);}
   /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track), nhãn chỉ có viền (nền trong suốt) */
   .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
   .emoji-orbit.upcoming .badge-emoji{background:transparent;border-color:var(--c-hour-faint);}

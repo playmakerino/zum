@@ -550,11 +550,10 @@
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
-  // MediaQuery dùng chung cho layout()/relayout(). Hiện chỉ 2 bố cục theo BỀ RỘNG:
-  //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc. (landscape giữ lại nhưng luôn false)
+  // MediaQuery dùng chung cho layout()/relayout(). 2 bố cục theo BỀ RỘNG:
+  //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc.
   const MQ = {
-    desktop:   window.matchMedia('(min-width:768px)'),
-    landscape: window.matchMedia('(max-width:0px)'),        // mức trung gian đã bỏ -> luôn false
+    desktop: window.matchMedia('(min-width:768px)'),
   };
 
   function layout(){
@@ -578,17 +577,14 @@
 
     const vh = viewportH();
 
-    // 3 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop | ngang (cuộn) | dọc
-    const desktop      = MQ.desktop.matches;
-    const mobLandscape = MQ.landscape.matches;
+    // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
+    const desktop = MQ.desktop.matches;
 
-    // Mobile NGANG cho CUỘN -> KHÔNG ghim chiều cao (để body cao theo nội dung).
-    // Chế độ khác: ghim chiều cao = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
-    document.body.style.height = mobLandscape ? '' : (vh + 'px');
+    // Ghim chiều cao body = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
+    document.body.style.height = vh + 'px';
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalCol = document.querySelector('.digital-col');
     const digitalH = digitalCol?.offsetHeight || 140;
-    const digitalW = digitalCol?.offsetWidth  || 200;
     // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
     const calendar = document.querySelector('.calendar');
     const calW = calendar?.offsetWidth  || 0;
@@ -600,8 +596,8 @@
     // -> dời phần dư xuống dưới: analog nhích LÊN. GAP_EXTRA lấy thêm từ ĐỆM ĐÁY (bù trong
     // faceByH) -> khe hở tới digital rõ hơn mà FACE giữ nguyên.
     const topNeed   = badgeH_off + BADGE_H/2;
-    const RAISE     = mobLandscape ? 0 : Math.max(0, maxReach - topNeed);   // dời analog lên (~12px)
-    const GAP_EXTRA = mobLandscape ? 0 : (desktop ? 24 : 8);                // khe thêm lấy từ đệm đáy
+    const RAISE     = Math.max(0, maxReach - topNeed);   // dời analog lên (~12px)
+    const GAP_EXTRA = desktop ? 24 : 8;                  // khe thêm lấy từ đệm đáy
     const marginTop = maxReach - RAISE;
     const marginBottom = Math.max(8, topNeed) + RAISE + GAP_EXTRA;
     const GAP = 24;  // khe giữa các khối (khớp gap của body & .clock)
@@ -612,10 +608,6 @@
       // trên & dưới) để DÒNG VĂN NÓI ở đáy cột digital không sát mép dưới màn hình.
       faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
       faceByW = (availW - 2*maxReach - calW - GAP) / 2;
-    } else if(mobLandscape){
-      // [analog | digital] ở trên, LỊCH ở dưới -> cao chứa analog + lịch; rộng trừ digital + 1 khe.
-      faceByH = (vh - bodyPad - marginTop - marginBottom - calH - GAP) / 2;
-      faceByW = (availW - 2*maxReach - digitalW - GAP) / 2;
     } else {
       // Mobile DỌC: chiều cao phải chứa analog + digital + LỊCH (xếp dọc).
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
@@ -958,16 +950,13 @@
 
     requestAnimationFrame(tick);
   }
-  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật.
-  //   Mobile NGANG (cuộn được): chỉ relayout khi đổi BỀ RỘNG; bỏ qua đổi CHIỀU CAO do
-  //   thanh công cụ Safari ẩn/hiện lúc cuộn (nếu không analog sẽ bị resize giật theo).
-  //   Chế độ khác: relayout khi đổi rộng HOẶC cao đáng kể (>2px, bỏ nhiễu).
+  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật: relayout khi đổi BỀ RỘNG
+  // HOẶC CHIỀU CAO đáng kể (>2px) — bỏ nhiễu do thanh công cụ Safari ẩn/hiện.
   let lastW=-1, lastVh=-1;
   function relayout(){
     const w=window.innerWidth;
     const vh=viewportH();
-    const mobLandscape=MQ.landscape.matches;
-    if(mobLandscape ? w===lastW : (w===lastW && Math.abs(vh-lastVh)<2)) return;
+    if(w===lastW && Math.abs(vh-lastVh)<2) return;
     lastW=w; lastVh=vh; layout();
   }
 

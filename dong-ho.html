@@ -296,13 +296,13 @@
   /* Nhãn hoạt động ở GÓC TRÊN BÊN PHẢI ô lịch (bóng rổ/múa/vẽ theo thứ). Tuyệt đối -> không
      phá việc căn giữa số (số là text node duy nhất trong flow). */
   .cal-mark{
-    position:absolute; top:-2px; right:-2px;
+    position:absolute; top:0; right:0;
     display:flex; line-height:1; letter-spacing:-.12em;
     font-size:.42rem; pointer-events:none;
   }
   /* Desktop: ô lịch to hơn -> phóng to emoji nhãn cho cân */
   @media (min-width:768px){
-    .cal-mark{ font-size:.6rem; top:-3px; right:-3px; }
+    .cal-mark{ font-size:.8rem; top:0; right:0; }
   }
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);

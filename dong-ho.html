@@ -130,8 +130,8 @@
   /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track), nhãn chỉ có viền (nền trong suốt) */
   .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
   .emoji-orbit.upcoming .badge-emoji{background:transparent;border-color:var(--c-hour-faint);}
-  /* ĐÃ đến/qua giờ -> nét nối + viền ĐẶC (khớp vòng arc đã-qua), nhãn có NỀN */
-  .emoji-orbit.reached .badge-emoji{background:var(--c-hour);}
+  /* ĐÃ đến/qua giờ -> nét nối + viền ĐẶC (khớp vòng arc đã-qua), nhãn KHÔNG nền (trong suốt) */
+  .emoji-orbit.reached .badge-emoji{background:transparent;}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:15px;line-height:1;

@@ -121,7 +121,8 @@
   #orbitSleep{z-index:10;}                  /* < .orbit (11) -> nhãn giờ đè lên khi tới 22h */
   #connSleep{background:var(--c-buoi);}
   #badgeSleep{--badge-bg:var(--c-buoi);}
-  .ic-sleep{width:14px;height:14px;display:block;fill:#fff;}
+  .ic-sleep{width:17px;height:17px;display:block;
+    fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
   .badge span{display:block;}
 
   /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
@@ -290,7 +291,14 @@
     <div class="hand second" id="second"></div>
     <div class="orbit" id="orbitSleep">
       <div class="connector" id="connSleep"></div>
-      <div class="badge" id="badgeSleep"><svg class="ic-sleep" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+      <div class="badge" id="badgeSleep"><svg class="ic-sleep" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.5" cy="13" r="8"/>
+        <path d="M6.3 12.4 Q8 10.9 9.7 12.4"/>
+        <path d="M11.3 12.4 Q13 10.9 14.7 12.4"/>
+        <path d="M8.6 16 Q10.5 17.4 12.4 16"/>
+        <path d="M15.5 4 H19 L15.5 7.5 H19"/>
+        <path d="M19 8 H21.5 L19 10.5 H21.5"/>
+      </svg></div>
     </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>

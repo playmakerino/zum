@@ -341,14 +341,14 @@
   .modal-card button:focus-visible{ outline:3px solid var(--ink); outline-offset:2px; }  /* thấy ô đang chọn khi dùng remote TV */
   .emoji-pick{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
   .emoji-pick button{
-    width:38px; height:38px; border-radius:50%; padding:0; cursor:pointer;
+    width:38px; height:38px; border-radius:11px; padding:0; cursor:pointer;
     border:2px solid transparent; background:var(--bg); font-size:20px; line-height:1;
     display:flex; align-items:center; justify-content:center;
   }
   .emoji-pick button.sel{ border-color:var(--c-buoi); background:#fff; }   /* khung chọn emoji -> màu NGÀY (teal) */
   .num-strip{ display:grid; grid-template-columns:repeat(6,1fr); gap:5px; padding:4px 2px; }   /* 6 CỘT, không cuộn -> remote TV chọn được */
   .num-strip button{
-    width:32px; height:32px; border-radius:50%; padding:0; cursor:pointer; justify-self:center;
+    min-width:0; height:32px; border-radius:9px; padding:0; cursor:pointer;
     border:2px solid var(--pick); color:var(--pick); background:transparent;
     font:600 .9rem/1 'Space Grotesk',sans-serif; font-variant-numeric:tabular-nums;
     display:flex; align-items:center; justify-content:center;

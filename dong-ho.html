@@ -314,6 +314,55 @@
     color:#fff;
     font-weight:700;
   }
+
+  /* ===== Nút + (thêm nhãn) + popup ===== */
+  #fab{
+    position:fixed; right:18px; bottom:18px; z-index:50;
+    width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--accent); color:#fff; font-size:30px; line-height:1; font-weight:300;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal{
+    position:fixed; inset:0; z-index:60; display:none;
+    align-items:center; justify-content:center; padding:16px;
+    background:rgba(63,58,92,.28);    /* nền mờ (ink) */
+  }
+  .modal.open{ display:flex; }
+  .modal-card{
+    background:#fff; border-radius:22px; padding:16px;
+    width:min(92vw,340px); display:flex; flex-direction:column; gap:14px;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .emoji-pick{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .emoji-pick button{
+    width:38px; height:38px; border-radius:11px; padding:0; cursor:pointer;
+    border:2px solid transparent; background:var(--bg); font-size:20px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .emoji-pick button.sel{ border-color:var(--accent); background:#fff; }
+  .num-strip{ display:flex; gap:5px; overflow-x:auto; padding:4px 2px; }
+  .num-strip button{
+    flex:0 0 auto; min-width:32px; height:32px; border-radius:9px; padding:0 7px; cursor:pointer;
+    border:2px solid var(--pick); color:var(--pick); background:transparent;
+    font:600 .9rem/1 'Space Grotesk',sans-serif; font-variant-numeric:tabular-nums;
+  }
+  .num-strip button.sel{ background:var(--pick); color:#fff; }
+  .hour-strip{ --pick:var(--c-hour); }   /* số GIỜ -> màu giờ (xanh) */
+  .min-strip{  --pick:var(--c-min); }    /* số PHÚT -> màu phút (cam) */
+  .modal-add{
+    align-self:center; width:46px; height:46px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--c-buoi); color:#fff; font-size:22px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* Nút × xóa nhãn (chỉ nhãn người dùng tự thêm) — hiện khi rê chuột / chạm vào nhãn */
+  .label-del{
+    position:absolute; top:-7px; right:-7px; z-index:20; display:none;
+    width:15px; height:15px; border-radius:50%; padding:0; cursor:pointer;
+    border:1.5px solid #fff; background:var(--accent); color:#fff;
+    font:700 11px/1 sans-serif; align-items:center; justify-content:center;
+  }
+  .emoji-orbit:hover .label-del,
+  .emoji-orbit.reveal-del .label-del{ display:flex; }
 </style>
 </head>
 <body>
@@ -458,6 +507,17 @@
     </defs>
   </svg>
 
+  <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
+  <button id="fab" aria-label="Thêm nhãn">+</button>
+  <div class="modal" id="labelModal">
+    <div class="modal-card">
+      <div class="emoji-pick" id="emojiPick"></div>
+      <div class="num-strip hour-strip" id="hourStrip"></div>
+      <div class="num-strip min-strip" id="minStrip"></div>
+      <button class="modal-add" id="modalAdd" aria-label="Tạo nhãn">✓</button>
+    </div>
+  </div>
+
 <script>
   const $ = id => document.getElementById(id);
   const analog = $('analog');
@@ -511,6 +571,10 @@
     L.dline = L.orbit.querySelector('.deadline-min');
     if(L.dline) L.dline.textContent = String(Math.round((L.hour % 1) * 60)).padStart(2,'0');
   }
+  // Nhãn do NGƯỜI DÙNG tự thêm (nạp từ localStorage, dựng DOM động). userLabelObjs giống cấu
+  // trúc {orbit,hour,dline} của fixedLabels -> dùng chung applyLabel/placeFixed/within6.
+  let userLabels = [];      // [{id, emoji, hour}] — nguồn lưu
+  let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline}] — DOM đang hiển thị
   // Bật/tắt 1 nhãn + cập nhật trạng thái upcoming/reached + nhãn phút deadline.
   function applyLabel(L, show, nowH){
     L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
@@ -537,6 +601,8 @@
       const dateOk = !L.date || L.date === today;
       applyLabel(L, dayOk && dateOk && within6(L.hour), nowH);
     }
+    // Nhãn người dùng tự thêm: hiện theo cửa sổ ±6 tiếng (mọi ngày).
+    for(const o of userLabelObjs){ applyLabel(o, within6(o.hour), nowH); }
   }
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
@@ -789,6 +855,8 @@
     for(const L of customLabels){
       placeFixed(L.orbit, L.orbit.querySelector('.connector'), L.orbit.querySelector('.badge'), L.hour, !!L.inner);
     }
+    // Nhãn người dùng tự thêm: cùng cách đặt vị trí.
+    for(const o of userLabelObjs){ placeFixed(o.orbit, o.conn, o.badge, o.hour, false); }
 
     layoutFace();
   }
@@ -1101,6 +1169,58 @@
     if(w===lastW && Math.abs(vh-lastVh)<2) return;
     lastW=w; lastVh=vh; layout();
   }
+
+  // ===== Nhãn người dùng + popup tạo nhãn =====
+  const LS_USER_LABELS = 'zumUserLabels';
+  function saveUserLabels(){ try{ localStorage.setItem(LS_USER_LABELS, JSON.stringify(userLabels)); }catch(e){} }
+  // Dựng lại toàn bộ DOM nhãn người dùng từ mảng userLabels (gắn vào .analog như nhãn emoji khác).
+  function buildUserLabels(){
+    userLabelObjs.forEach(o => o.orbit.remove());
+    userLabelObjs = [];
+    for(const u of userLabels){
+      const orbit = document.createElement('div');
+      orbit.className = 'orbit emoji-orbit upcoming off user-label';
+      const conn  = document.createElement('div'); conn.className = 'connector';
+      const badge = document.createElement('div'); badge.className = 'badge badge-emoji';
+      const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = u.emoji;
+      const dline = document.createElement('span'); dline.className = 'deadline-min';
+      dline.textContent = String(Math.round((u.hour % 1) * 60)).padStart(2,'0');
+      const del   = document.createElement('button'); del.className = 'label-del';
+      del.textContent = '×'; del.setAttribute('aria-label','Xóa nhãn');
+      del.addEventListener('click', e => { e.stopPropagation(); removeUserLabel(u.id); });
+      badge.append(ic, dline, del);
+      badge.addEventListener('click', () => orbit.classList.toggle('reveal-del'));  // chạm để hiện × (mobile)
+      orbit.append(conn, badge);
+      analog.appendChild(orbit);
+      userLabelObjs.push({orbit, conn, badge, hour:u.hour, dline});
+    }
+  }
+  function addUserLabel(emoji, hour){
+    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), emoji, hour});
+    saveUserLabels(); buildUserLabels(); layout();
+  }
+  function removeUserLabel(id){
+    userLabels = userLabels.filter(u => u.id !== id);
+    saveUserLabels(); buildUserLabels(); layout();
+  }
+  // Popup (không chữ): chọn emoji / giờ (màu giờ) / phút (màu phút) -> ✓ tạo nhãn.
+  (function setupAddLabelUI(){
+    try{ userLabels = JSON.parse(localStorage.getItem(LS_USER_LABELS)) || []; }catch(e){ userLabels = []; }
+    const fab=$('fab'), modal=$('labelModal'), emojiPick=$('emojiPick'),
+          hourStrip=$('hourStrip'), minStrip=$('minStrip'), modalAdd=$('modalAdd');
+    const EMOJIS=['☀️','🍒','🍬','🏀','🩰','🎨','🏊','⚽','📚','🎹','🎮','🍎','🥗','🛌','🧘','🚴','🏃','💊','🦷','✏️'];
+    let selEmoji=EMOJIS[0], selHour=new Date().getHours(), selMin=0;
+    const setSel=(box,btn)=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); btn.classList.add('sel'); };
+    const mkBtn=(box,txt,on,sel)=>{ const b=document.createElement('button'); b.textContent=txt; if(sel)b.classList.add('sel'); b.addEventListener('click',()=>{on(); setSel(box,b);}); box.appendChild(b); };
+    EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>selEmoji=em, i===0));
+    for(let h=0;h<24;h++)  mkBtn(hourStrip, String(h).padStart(2,'0'),  ()=>selHour=h, h===selHour);
+    for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, String(mm).padStart(2,'0'), ()=>selMin=mm, mm===selMin);
+    const centerSel = strip => { const s=strip.querySelector('.sel'); if(s) strip.scrollLeft = s.offsetLeft - strip.clientWidth/2 + s.clientWidth/2; };
+    fab.addEventListener('click', ()=>{ modal.classList.add('open'); centerSel(hourStrip); centerSel(minStrip); });
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+    modalAdd.addEventListener('click', ()=>{ addUserLabel(selEmoji, selHour + selMin/60); modal.classList.remove('open'); });
+    buildUserLabels();
+  })();
 
   buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();

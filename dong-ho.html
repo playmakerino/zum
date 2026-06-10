@@ -6,6 +6,7 @@
 <title>Đồng Hồ</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+  /* ===== BIẾN & KHUNG TRANG ===== */
   :root{
     --bg:#fdf6f0;
     --ink:#3f3a5c;
@@ -52,7 +53,7 @@
     .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }
 
-  /* ANALOG */
+  /* ===== ANALOG: MẶT SỐ, VẠCH, KIM ===== */
   .analog{
     width:300px;height:300px;border-radius:50%;
     background:#fff;
@@ -93,6 +94,19 @@
     z-index:10;
     box-shadow:0 0 0 4px #fff;
   }
+  /* Emoji hoạt động hiện NGAY TRÊN TÂM khi ĐẾN GIỜ — JS bật .show trong 5 giây rồi tắt */
+  .center-emoji{
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    font-size:30px;line-height:1;      /* x2 cỡ emoji trên nhãn (.ic-emoji 15px) */
+    z-index:14;                        /* nổi trên kim + mọi nhãn (cao nhất là #orbitHt z13) */
+    opacity:0;
+    transition:opacity .3s ease;
+    pointer-events:none;
+  }
+  .center-emoji.show{opacity:1;}
+
+  /* ===== NHÃN QUAY QUANH MẶT (giờ / phút / emoji hoạt động) ===== */
   .orbit{
     position:absolute;left:50%;top:50%;
     width:0;height:0;
@@ -161,14 +175,14 @@
   }
   .badge-emoji .deadline-min.show{ display:block; }
 
-  /* VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. */
+  /* ===== VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. ===== */
   .r-track,.r-arc,.r-act,.r-live{fill:none;stroke-linecap:butt;}
   .r-track{stroke-width:var(--ring-thin);opacity:var(--faint);}  /* MẢNH MỜ  — ô tương lai */
   .r-arc  {stroke-width:var(--ring-thin);}                        /* MẢNH ĐẶC — ô quá khứ */
   .r-act  {stroke-width:var(--ring-bold);opacity:var(--faint);}  /* ĐẬM MỜ   — ô hiện tại (chưa trôi) */
   .r-live {stroke-width:var(--ring-bold);}                        /* ĐẬM ĐẶC  — ô hiện tại (đã trôi) */
 
-  /* Nhịp đếm ngược (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp.
+  /* ===== NHỊP ĐẾM NGƯỢC (giây 55-59): mỗi giây một cú nảy gọn, nền nhấp một nhịp. =====
      NỀN nhấp bằng CSS animation (chỉ đổi background/box-shadow -> không xê dịch).
      SCALE "nảy" do JS gộp thẳng vào transform của badge (cùng translate+rotate,
      transform-origin tâm) -> luôn scale quanh đúng tâm, không lệch vị trí. */
@@ -185,7 +199,7 @@
     100%{background:var(--badge-bg);box-shadow:0 0 0 0 rgba(255,93,151,0);}
   }
 
-  /* DIGITAL */
+  /* ===== DIGITAL + ĐỒNG HỒ CÁT ===== */
   .digital{
     display:flex;
     align-items:flex-start;
@@ -230,6 +244,7 @@
     font-size:clamp(1.1rem,4.6vw,1.6rem);font-weight:300;line-height:1;color:var(--line);
   }
 
+  /* ===== CỘT DIGITAL + DÒNG VĂN NÓI ===== */
   /* Cột digital: bọc đồng hồ số + dòng "văn nói" ngay dưới nó.
      Dòng văn nói nằm trong luồng, chiều cao cố định luôn được dành sẵn
      (chỉ đổi opacity khi hiện/ẩn -> không giật), và layout() đo cả cột này
@@ -263,7 +278,7 @@
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
 
-  /* LỊCH THÁNG */
+  /* ===== LỊCH THÁNG ===== */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
     gap:clamp(.5rem,2vw,.8rem);
@@ -319,7 +334,7 @@
     font-weight:700;
   }
 
-  /* ===== Nút + (thêm nhãn) + popup ===== */
+  /* ===== NÚT + & POPUP TẠO NHÃN ===== */
   #fab{
     position:fixed; right:18px; bottom:18px; z-index:50;
     width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
@@ -400,38 +415,8 @@
     <div class="hand hour" id="hour"></div>
     <div class="hand minute" id="minute"></div>
     <div class="hand second" id="second"></div>
-    <div class="orbit emoji-orbit upcoming" id="orbitSleep">
-      <div class="connector" id="connSleep"></div>
-      <div class="badge badge-emoji" id="badgeSleep"><span class="ic-emoji">😴</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitDinner">
-      <div class="connector" id="connDinner"></div>
-      <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitExercise">
-      <div class="connector" id="connExercise"></div>
-      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">🙌</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitBreakfast">
-      <div class="connector" id="connBreakfast"></div>
-      <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitBasketball">
-      <div class="connector" id="connBasketball"></div>
-      <div class="badge badge-emoji" id="badgeBasketball"><span class="ic-emoji">🏀</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitBallet">
-      <div class="connector" id="connBallet"></div>
-      <div class="badge badge-emoji" id="badgeBallet"><span class="ic-emoji">🩰</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitBasketSat">
-      <div class="connector" id="connBasketSat"></div>
-      <div class="badge badge-emoji" id="badgeBasketSat"><span class="ic-emoji">🏀</span><span class="deadline-min"></span></div>
-    </div>
-    <div class="orbit emoji-orbit upcoming" id="orbitArt">
-      <div class="connector" id="connArt"></div>
-      <div class="badge badge-emoji" id="badgeArt"><span class="ic-emoji">🎨</span><span class="deadline-min"></span></div>
-    </div>
+    <!-- Nhãn EMOJI hoạt động (cố định + người dùng): KHÔNG viết tay ở đây.
+         JS dựng toàn bộ từ MỘT nguồn: bảng FIXED_LABELS + localStorage (phần 3 của script). -->
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
       <div class="badge" id="badgeH"><span id="textH">00</span></div>
@@ -445,6 +430,8 @@
       <div class="badge" id="badgeM"><span id="textM">00</span></div>
     </div>
     <div class="center"></div>
+    <!-- Emoji hoạt động hiện TRÊN TÂM khi đến giờ (x2, tự ẩn sau 5s) — JS điều khiển -->
+    <div class="center-emoji" id="centerEmoji"></div>
   </div>
 
   <div class="digital-col">
@@ -514,6 +501,17 @@
   </div>
 
 <script>
+  /* ============================================================
+     ĐỒNG HỒ — script chia 11 phần:
+       1. Tiện ích & tham chiếu DOM      7. Nhịp nhãn + đồng hồ cát
+       2. Mặt số: vạch chia + chữ số     8. Lịch tháng
+       3. Nhãn hoạt động (1 nguồn)       9. Vòng lặp tick()
+       4. Văn nói giờ (VN + EN)         10. Popup tạo nhãn
+       5. Bố cục tự co (layout)         11. Khởi động
+       6. Vòng tiến trình (SVG)
+     ============================================================ */
+
+  /* ===== 1. TIỆN ÍCH & THAM CHIẾU DOM ===== */
   const $ = id => document.getElementById(id);
   const analog = $('analog');
 
@@ -523,61 +521,6 @@
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elOrbitHt=$('orbitHt'), elBadgeHt=$('badgeHt'), elTextHt=$('textHt');   // lớp SỐ giờ riêng (z cao)
   const elConnH=$('connH'), elConnM=$('connM');
-  const elOrbitSleep=$('orbitSleep'), elBadgeSleep=$('badgeSleep'), elConnSleep=$('connSleep');
-  const elOrbitDinner=$('orbitDinner'), elBadgeDinner=$('badgeDinner'), elConnDinner=$('connDinner');
-  const elOrbitExercise=$('orbitExercise'), elBadgeExercise=$('badgeExercise'), elConnExercise=$('connExercise');
-  const elOrbitBreakfast=$('orbitBreakfast'), elBadgeBreakfast=$('badgeBreakfast'), elConnBreakfast=$('connBreakfast');
-  const elOrbitBasketball=$('orbitBasketball'), elBadgeBasketball=$('badgeBasketball'), elConnBasketball=$('connBasketball');
-  const elOrbitBallet=$('orbitBallet'), elBadgeBallet=$('badgeBallet'), elConnBallet=$('connBallet');
-  const elOrbitBasketSat=$('orbitBasketSat'), elBadgeBasketSat=$('badgeBasketSat'), elConnBasketSat=$('connBasketSat');
-  const elOrbitArt=$('orbitArt'), elBadgeArt=$('badgeArt'), elConnArt=$('connArt');
-  // Mốc nhãn emoji trong ngày -> đổi trạng thái theo giờ hiện tại:
-  //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nền + nét đậm).
-  //   days: chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày.
-  const fixedLabels = [
-    {orbit:elOrbitExercise,   hour:8,     days:[1,2,3,4,5]},  // thể dục: T2-T6
-    {orbit:elOrbitBasketSat,  hour:8.25,  days:[6]},          // bóng rổ: thứ Bảy 8h15
-    {orbit:elOrbitBreakfast,  hour:8.25,  days:[1,2,3,4,5]},  // ăn sáng: T2-T6
-    {orbit:elOrbitArt,        hour:10,    days:[6]},          // vẽ: thứ Bảy 10h
-    {orbit:elOrbitBasketball, hour:18,    days:[2]},          // bóng rổ: thứ Ba 18h
-    {orbit:elOrbitBallet,     hour:18,    days:[5]},          // múa: thứ Sáu 18h
-    {orbit:elOrbitDinner,     hour:19.5},                     // ăn tối: mọi ngày
-    {orbit:elOrbitSleep,      hour:22},                       // đi ngủ: mọi ngày
-  ];
-  // Mỗi nhãn có 1 "nhãn phút deadline" (pill cam ở mép) -> điền sẵn SỐ PHÚT của giờ hoạt động
-  // (vd 8.25 -> "15", 8 -> "00"). Nguồn duy nhất là L.hour nên không lệch.
-  for(const L of fixedLabels){
-    L.dline = L.orbit.querySelector('.deadline-min');
-    if(L.dline) L.dline.textContent = String(Math.round((L.hour % 1) * 60)).padStart(2,'0');
-  }
-  // Nhãn do NGƯỜI DÙNG tự thêm (nạp từ localStorage, dựng DOM động). userLabelObjs giống cấu
-  // trúc {orbit,hour,dline} của fixedLabels -> dùng chung applyLabel/placeFixed/within6.
-  let userLabels = [];      // [{id, emoji, hour}] — nguồn lưu
-  let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline}] — DOM đang hiển thị
-  // Bật/tắt 1 nhãn + cập nhật trạng thái upcoming/reached + nhãn phút deadline.
-  function applyLabel(L, show, nowH){
-    L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
-    if(!show){ if(L.dline) L.dline.classList.remove('show'); return; }
-    const reached = nowH >= L.hour;
-    L.orbit.classList.toggle('reached', reached);
-    L.orbit.classList.toggle('upcoming', !reached);
-    // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
-    if(L.dline){
-      const deltaMin = (L.hour - nowH) * 60;
-      L.dline.classList.toggle('show', deltaMin > 0 && deltaMin <= 59);
-    }
-  }
-  function updateLabelStates(nowH, dow, today){
-    // CHỈ hiện nhãn khi cách giờ hiện tại KHÔNG QUÁ 6 TIẾNG (trước hoặc sau).
-    const within6 = hour => Math.abs(hour - nowH) <= 6;
-    // Nhãn lịch tuần cố định: lọc theo THỨ + cửa sổ ±6 tiếng.
-    for(const L of fixedLabels){
-      applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
-    }
-    // Nhãn người dùng tự thêm: KHÔNG áp cửa sổ ±6 tiếng -> LUÔN hiện (show=true);
-    //   pill phút vẫn theo logic 59' của applyLabel (chỉ hiện trong 59' trước giờ).
-    for(const o of userLabelObjs){ applyLabel(o, true, nowH); }
-  }
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
@@ -594,6 +537,17 @@
   };
   const setD=(el,d)=>el.setAttribute('d', d||'');
 
+  const pad=n=>String(n).padStart(2,'0');
+
+  // Số giờ kiểu 12h (1..12)
+  function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
+
+  // Ghi text vào badge chỉ khi đổi (đỡ tải)
+  function updateBadge(el, txt){
+    if(el.textContent!==txt) el.textContent=txt;
+  }
+
+  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ ===== */
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -614,11 +568,125 @@
     analog.appendChild(el);
   }
 
-  const pad=n=>String(n).padStart(2,'0');
+  /* ===== 3. NHÃN HOẠT ĐỘNG — MỘT NGUỒN CẤU HÌNH ===== */
+  // Toàn bộ nhãn cố định khai báo Ở ĐÂY; DOM, vị trí, trạng thái và emoji ô lịch đều sinh từ bảng này:
+  //   emoji   : icon trên nhãn
+  //   hour    : giờ thập phân (8.25 = 8h15)
+  //   days    : chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày
+  //   inner   : đặt nhãn ở VÒNG TRONG (bán kính nhãn phút) để không đè nhãn cùng góc ở vòng ngoài
+  //             (vd 10h sáng & 22h tối đều ở 300°: nhãn sáng nằm trong, tối nằm ngoài)
+  //   calMark : in emoji ở góc ô lịch vào các thứ trong days
+  const FIXED_LABELS = [
+    {emoji:'🙌', hour:8,    days:[1,2,3,4,5]},                    // thể dục: T2-T6
+    {emoji:'🏀', hour:8.25, days:[6], calMark:true},              // bóng rổ: thứ Bảy 8h15
+    {emoji:'🍜', hour:8.25, days:[1,2,3,4,5]},                    // ăn sáng: T2-T6
+    {emoji:'🎨', hour:10,   days:[6], inner:true, calMark:true},  // vẽ: thứ Bảy 10h — vòng TRONG, tránh đè 22h
+    {emoji:'🏀', hour:18,   days:[2], calMark:true},              // bóng rổ: thứ Ba 18h
+    {emoji:'🩰', hour:18,   days:[5], calMark:true},              // múa: thứ Sáu 18h
+    {emoji:'🍲', hour:19.5},                                      // ăn tối: mọi ngày
+    {emoji:'😴', hour:22},                                        // đi ngủ: mọi ngày
+  ];
+  // Emoji hoạt động ở góc ô lịch theo THỨ — gom từ các nhãn có calMark (vd thứ Bảy -> '🏀🎨')
+  const DAY_ACTIVITIES = {};
+  for(const L of FIXED_LABELS){
+    if(L.calMark) for(const d of L.days) DAY_ACTIVITIES[d] = (DAY_ACTIVITIES[d] || '') + L.emoji;
+  }
 
-  // Số giờ kiểu 12h (1..12)
-  function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
+  // Dựng DOM 1 nhãn emoji — dùng CHUNG cho nhãn cố định & nhãn người dùng.
+  // Trả về {orbit, conn, badge, hour, dline}: cấu trúc chung cho applyLabel (trạng thái)
+  // và placeLabel (vị trí). Nhãn phút deadline (.deadline-min) điền sẵn SỐ PHÚT của giờ
+  // hoạt động (vd 8.25 -> "15"); nguồn duy nhất là hour nên không lệch.
+  function createLabel(emoji, hour, extraClass){
+    const orbit = document.createElement('div');
+    orbit.className = 'orbit emoji-orbit upcoming' + (extraClass ? ' ' + extraClass : '');
+    const conn  = document.createElement('div'); conn.className = 'connector';
+    const badge = document.createElement('div'); badge.className = 'badge badge-emoji';
+    const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = emoji;
+    const dline = document.createElement('span'); dline.className = 'deadline-min';
+    dline.textContent = String(Math.round((hour % 1) * 60)).padStart(2,'0');
+    badge.append(ic, dline);
+    orbit.append(conn, badge);
+    analog.appendChild(orbit);
+    return {orbit, conn, badge, hour, dline, emoji};
+  }
+  // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng
+  const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner}));
 
+  // Nhãn do NGƯỜI DÙNG tự thêm (lưu localStorage, dựng DOM động). userLabelObjs giống cấu
+  // trúc {orbit,conn,badge,hour,dline} của fixedLabels -> dùng chung applyLabel/placeLabel.
+  const LS_USER_LABELS = 'zumUserLabels';
+  let userLabels = [];      // [{id, emoji, hour}] — nguồn lưu
+  let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline}] — DOM đang hiển thị
+  function loadUserLabels(){
+    try{ userLabels = JSON.parse(localStorage.getItem(LS_USER_LABELS)) || []; }catch(e){ userLabels = []; }
+  }
+  function saveUserLabels(){ try{ localStorage.setItem(LS_USER_LABELS, JSON.stringify(userLabels)); }catch(e){} }
+  // Dựng lại toàn bộ DOM nhãn người dùng từ mảng userLabels; khác nhãn cố định ở chỗ
+  // có nút × xóa + chạm để hiện × (mobile).
+  function buildUserLabels(){
+    userLabelObjs.forEach(o => o.orbit.remove());
+    userLabelObjs = userLabels.map(u => {
+      const o = createLabel(u.emoji, u.hour, 'off user-label');
+      const del = document.createElement('button'); del.className = 'label-del';
+      del.textContent = '×'; del.setAttribute('aria-label','Xóa nhãn');
+      del.addEventListener('click', e => { e.stopPropagation(); removeUserLabel(u.id); });
+      o.badge.appendChild(del);
+      o.badge.addEventListener('click', () => o.orbit.classList.toggle('reveal-del'));  // chạm để hiện × (mobile)
+      return o;
+    });
+  }
+  function addUserLabel(emoji, hour){
+    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), emoji, hour});
+    saveUserLabels(); buildUserLabels(); layout();
+  }
+  function removeUserLabel(id){
+    userLabels = userLabels.filter(u => u.id !== id);
+    saveUserLabels(); buildUserLabels(); layout();
+  }
+
+  // ĐẾN GIỜ hoạt động -> hiện emoji của nhãn NGAY TRÊN TÂM đồng hồ (x2 cỡ nhãn) trong 5 giây.
+  // Nhãn mới kích hoạt sau (hiếm khi trùng) đè nhãn trước và tính lại 5 giây.
+  const elCenterEmoji = $('centerEmoji');
+  const CENTER_EMOJI_MS = 5000;
+  let centerEmojiTimer = 0;
+  function showCenterEmoji(emoji){
+    elCenterEmoji.textContent = emoji;
+    elCenterEmoji.classList.add('show');
+    clearTimeout(centerEmojiTimer);
+    centerEmojiTimer = setTimeout(()=>elCenterEmoji.classList.remove('show'), CENTER_EMOJI_MS);
+  }
+
+  // Bật/tắt 1 nhãn + cập nhật trạng thái upcoming/reached + nhãn phút deadline.
+  //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nét đậm).
+  function applyLabel(L, show, nowH){
+    L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
+    if(!show){ if(L.dline) L.dline.classList.remove('show'); L.wasReached = undefined; return; }
+    const reached = nowH >= L.hour;
+    // VỪA chạm giờ hoạt động (đang hiện + upcoming -> reached) -> emoji nổi trên tâm 5s.
+    //   So sánh === false (không phải falsy): lần áp đầu tiên wasReached = undefined
+    //   -> mở trang khi ĐÃ QUA giờ sẽ không bắn lại.
+    if(reached && L.wasReached === false) showCenterEmoji(L.emoji);
+    L.wasReached = reached;
+    L.orbit.classList.toggle('reached', reached);
+    L.orbit.classList.toggle('upcoming', !reached);
+    // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
+    if(L.dline){
+      const deltaMin = (L.hour - nowH) * 60;
+      L.dline.classList.toggle('show', deltaMin > 0 && deltaMin <= 59);
+    }
+  }
+  function updateLabelStates(nowH, dow){
+    // Nhãn lịch tuần cố định: lọc theo THỨ + CHỈ hiện khi cách giờ hiện tại KHÔNG QUÁ 6 TIẾNG.
+    const within6 = hour => Math.abs(hour - nowH) <= 6;
+    for(const L of fixedLabels){
+      applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
+    }
+    // Nhãn người dùng tự thêm: KHÔNG áp cửa sổ ±6 tiếng -> LUÔN hiện (show=true);
+    //   pill phút vẫn theo logic 59' của applyLabel (chỉ hiện trong 59' trước giờ).
+    for(const o of userLabelObjs){ applyLabel(o, true, nowH); }
+  }
+
+  /* ===== 4. VĂN NÓI GIỜ (VN + EN) ===== */
   // Phân buổi theo giờ 24h — MỘT nguồn ranh giới cho cả VN & EN (luôn đồng bộ)
   function buoiIdx(h){
     if(h>=4  && h<=10) return 0;   // sáng  / morning
@@ -683,11 +751,11 @@
     return spk('m',numEn(60-m)+' to')+' '+spk('h',numEn(gio12(h+1)))+' '+spk('b',periodEn(h));
   }
 
-  /* ===== Bố cục nhãn — tự co theo màn hình =====
-     px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
+  /* ===== 5. BỐ CỤC TỰ CO (layout) ===== */
+  /* px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
      tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
      Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
-  // Nhãn nay là HÌNH TRÒN đều Ø=26px (khớp --badge-dia ở CSS) -> nửa bề ngang = nửa bề cao = bán kính.
+  // Nhãn là HÌNH TRÒN đều Ø=26px (khớp --badge-dia ở CSS) -> nửa bề ngang = nửa bề cao = bán kính.
   const BADGE_H    = 26;   // ĐƯỜNG KÍNH nhãn (cũng = khoảng hở dọc tối thiểu giữa 2 vòng nhãn)
   const BADGE_HALF = 13;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
@@ -803,77 +871,31 @@
     elBadgeHt.style.marginTop = (-badgeH_r) + 'px';   // lớp số giờ trùng vị trí nhãn giờ
     placeHourConn(new Date().getHours() >= 12);
 
-    // Nhãn EMOJI cố định: GIỐNG nhãn giờ (cùng bán kính badgeH_r, nét nối từ vòng ngày ngoài
-    // ARC_R_D2) nhưng đặt tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
+    // Nhãn EMOJI (cố định + người dùng): GIỐNG nhãn giờ (nét nối từ vòng ngày AM/PM) nhưng đặt
+    // tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
     //   inner=true -> đặt nhãn ở VÒNG TRONG (bán kính nhãn phút) để KHÔNG đè nhãn cùng góc
     //   ở vòng ngoài (vd 10h sáng & 22h tối đều ở 300°): nhãn sáng nằm trong, tối nằm ngoài.
-    const placeFixed = (orbit, conn, badge, hour, inner=false) => {
-      const deg = hour * 30;
-      const ringR = hour < 12 ? ARC_R_D1 : ARC_R_D2;   // SÁNG -> vòng TRONG (AM); CHIỀU/TỐI -> vòng NGOÀI (PM)
-      const badgeR = inner ? badgeM_r : badgeH_r;       // tầng nhãn: trong (badgeM_r) / ngoài (badgeH_r)
-      const realHalf = badge.offsetHeight/2 || BADGE_H/2;
+    const placeLabel = L => {
+      const deg = L.hour * 30;
+      const ringR = L.hour < 12 ? ARC_R_D1 : ARC_R_D2;   // SÁNG -> vòng TRONG (AM); CHIỀU/TỐI -> vòng NGOÀI (PM)
+      const badgeR = L.inner ? badgeM_r : badgeH_r;       // tầng nhãn: trong (badgeM_r) / ngoài (badgeH_r)
+      const realHalf = L.badge.offsetHeight/2 || BADGE_H/2;
       const len = (badgeR - realHalf) - ringR;
-      place(conn, badge, ringR, len, badgeR);                            // nét nối CHẠM đúng vòng AM/PM
-      orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
-      badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
+      place(L.conn, L.badge, ringR, len, badgeR);                          // nét nối CHẠM đúng vòng AM/PM
+      L.orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
+      L.badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
       // Pill phút: đẩy ra ĐIỂM XA TÂM NHẤT của nhãn (mép ngoài, đối diện nét nối). Net xoay
       //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
-      const dl = badge.querySelector('.deadline-min');
-      if(dl){
-        const R = (badge.offsetHeight/2) || (BADGE_H/2);
+      if(L.dline){
+        const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
         const a = deg * Math.PI/180;
-        dl.style.transform = `translate(-50%,-50%) translate(${(R*Math.sin(a)).toFixed(2)}px, ${(-R*Math.cos(a)).toFixed(2)}px)`;
+        L.dline.style.transform = `translate(-50%,-50%) translate(${(R*Math.sin(a)).toFixed(2)}px, ${(-R*Math.cos(a)).toFixed(2)}px)`;
       }
     };
-    placeFixed(elOrbitExercise,   elConnExercise,   elBadgeExercise,   8);          // tập thể dục 8h (T2-T6)
-    placeFixed(elOrbitBasketSat,  elConnBasketSat,  elBadgeBasketSat,  8.25);       // bóng rổ 8h15 (thứ Bảy)
-    placeFixed(elOrbitBreakfast,  elConnBreakfast,  elBadgeBreakfast,  8.25);       // ăn sáng 8h15 (T2-T6)
-    placeFixed(elOrbitArt,        elConnArt,        elBadgeArt,        10, true);   // vẽ 10h (thứ Bảy) — vòng TRONG, tránh đè 22h
-    placeFixed(elOrbitBasketball, elConnBasketball, elBadgeBasketball, 18);         // bóng rổ 18h (thứ Ba)
-    placeFixed(elOrbitBallet,     elConnBallet,     elBadgeBallet,     18);          // múa 18h (thứ Sáu)
-    placeFixed(elOrbitDinner,     elConnDinner,     elBadgeDinner,     19.5);       // ăn tối 19h30
-    placeFixed(elOrbitSleep,      elConnSleep,      elBadgeSleep,      22);         // đi ngủ 22h
-    // Nhãn người dùng tự thêm: cùng cách đặt vị trí.
-    for(const o of userLabelObjs){ placeFixed(o.orbit, o.conn, o.badge, o.hour, false); }
+    for(const L of fixedLabels)   placeLabel(L);
+    for(const o of userLabelObjs) placeLabel(o);
 
     layoutFace();
-  }
-
-  function polar(r, deg){
-    const a=(deg-90)*Math.PI/180;
-    return [r*Math.cos(a), r*Math.sin(a)];
-  }
-  function arcPath(r, startDeg, endDeg){
-    const sweep=endDeg-startDeg;
-    if(sweep<=0.001) return '';
-    const [x1,y1]=polar(r, startDeg);
-    const [x2,y2]=polar(r, endDeg);
-    const largeArc = sweep>180 ? 1 : 0;
-    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-  }
-  // Vẽ MỘT vòng 4 trạng thái: track(MẢNH MỜ=tương lai) + arc(MẢNH ĐẶC=quá khứ)
-  //   + act(ĐẬM MỜ=ô hiện tại) + live(ĐẬM ĐẶC=phần đã trôi trong ô hiện tại).
-  //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ); liveDeg = tiến trình.
-  //   slot=0 -> không có ô hiện tại (dùng cho nửa ngày KHÔNG diễn ra).
-  function drawRing(g, r, doneDeg, slot, liveDeg){
-    setD(g.track, arcPath(r, 0, 359.999));                         // cả vòng: MẢNH MỜ (chưa tới)
-    setD(g.arc,   arcPath(r, 0, doneDeg));                         // đã qua: MẢNH ĐẶC
-    setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : ''); // ô hiện tại: ĐẬM MỜ
-    setD(g.live,  slot ? arcPath(r, doneDeg, liveDeg) : '');      // đã trôi trong ô: ĐẬM ĐẶC
-  }
-  // Vòng phút (60'): đơn vị 6°; đã qua = phút trọn, ô PHÚT hiện tại đậm, tiến trình theo giây.
-  function updateMinArc(m, s){
-    drawRing(ring.min, ARC_R_M, m*6, 6, (m + s/60)*6);
-  }
-  // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
-  //   Vòng đang chạy: đủ 4 trạng thái. Vòng kia: nửa ĐÃ xong -> đầy đặc; chưa tới -> chỉ track mờ.
-  function drawDayRings(g1, g2, r1, r2, h, m, s){
-    const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
-    drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 trạng thái
-    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0, 0); // nửa kia: đầy nếu đã qua / mờ nếu chưa tới
-  }
-  function updateDayArcs(h, m, s){
-    drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
   }
 
   function place(conn, badge, connStart, len, badgeR){
@@ -927,10 +949,45 @@
     elSec.style.height=sh+'px';  elSec.style.marginTop=(-sh)+'px';
   }
 
-  function updateBadge(el, txt){
-    if(el.textContent!==txt) el.textContent=txt;
+  /* ===== 6. VÒNG TIẾN TRÌNH (SVG) ===== */
+  function polar(r, deg){
+    const a=(deg-90)*Math.PI/180;
+    return [r*Math.cos(a), r*Math.sin(a)];
+  }
+  function arcPath(r, startDeg, endDeg){
+    const sweep=endDeg-startDeg;
+    if(sweep<=0.001) return '';
+    const [x1,y1]=polar(r, startDeg);
+    const [x2,y2]=polar(r, endDeg);
+    const largeArc = sweep>180 ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+  }
+  // Vẽ MỘT vòng 4 trạng thái: track(MẢNH MỜ=tương lai) + arc(MẢNH ĐẶC=quá khứ)
+  //   + act(ĐẬM MỜ=ô hiện tại) + live(ĐẬM ĐẶC=phần đã trôi trong ô hiện tại).
+  //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ); liveDeg = tiến trình.
+  //   slot=0 -> không có ô hiện tại (dùng cho nửa ngày KHÔNG diễn ra).
+  function drawRing(g, r, doneDeg, slot, liveDeg){
+    setD(g.track, arcPath(r, 0, 359.999));                         // cả vòng: MẢNH MỜ (chưa tới)
+    setD(g.arc,   arcPath(r, 0, doneDeg));                         // đã qua: MẢNH ĐẶC
+    setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : ''); // ô hiện tại: ĐẬM MỜ
+    setD(g.live,  slot ? arcPath(r, doneDeg, liveDeg) : '');      // đã trôi trong ô: ĐẬM ĐẶC
+  }
+  // Vòng phút (60'): đơn vị 6°; đã qua = phút trọn, ô PHÚT hiện tại đậm, tiến trình theo giây.
+  function updateMinArc(m, s){
+    drawRing(ring.min, ARC_R_M, m*6, 6, (m + s/60)*6);
+  }
+  // Hai vòng nửa ngày (mỗi vòng 12h, đơn vị GIỜ = 30°): SÁNG -> vòng 1 chạy, CHIỀU/TỐI -> vòng 2.
+  //   Vòng đang chạy: đủ 4 trạng thái. Vòng kia: nửa ĐÃ xong -> đầy đặc; chưa tới -> chỉ track mờ.
+  function drawDayRings(g1, g2, r1, r2, h, m, s){
+    const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
+    drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 trạng thái
+    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0, 0); // nửa kia: đầy nếu đã qua / mờ nếu chưa tới
+  }
+  function updateDayArcs(h, m, s){
+    drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
   }
 
+  /* ===== 7. NHỊP NHÃN + ĐỒNG HỒ CÁT ===== */
   // Trạng thái "nảy" của mỗi nhãn: thời điểm bắt đầu + đỉnh scale. Scale do JS lo (xem tick).
   const BEAT_MS = 450;
   const beat = { H:{start:-1e12, peak:1, badge:elBadgeH},
@@ -964,8 +1021,6 @@
     el.addEventListener('animationend', ()=>el.classList.remove('flip'), {once:true});
   }
 
-  let lastSec=-1;
-  let lastSecHg=-1;
   // Đồng hồ cát: p = tiến trình 0..1. Cát trên vơi (lùi xuống), cát dưới đầy (dâng lên).
   //   Hai buồng cát là TAM GIÁC (đỉnh ở cổ) nên THỂ TÍCH (~ diện tích) tỉ lệ với
   //   chiều cao BÌNH PHƯƠNG. Muốn cát chảy đều theo thời gian (thể tích tuyến tính
@@ -987,8 +1042,8 @@
     // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện -> không xử lý ở JS.
   }
 
-  /* ===== LỊCH THÁNG =====
-     Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
+  /* ===== 8. LỊCH THÁNG ===== */
+  /* Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
        - Hôm nay      : nền xanh ngọc, chữ trắng đậm (.today)
        - Ngày đã qua  : xanh ngọc đậm (.past)
        - Ngày sắp tới : màu chữ thường */
@@ -999,8 +1054,6 @@
                     'September','October','November','December'];
   let lastDay = -1;
 
-  // Emoji hoạt động hiện ở góc ô lịch theo THỨ (getDay): T3=bóng rổ, T6=múa, T7=bóng rổ+vẽ
-  const DAY_ACTIVITIES = { 2:'🏀', 5:'🩰', 6:'🏀🎨' };
   function buildCalendar(){
     const now = new Date();
     const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
@@ -1023,7 +1076,7 @@
     const daysInMonth = new Date(y,mo+1,0).getDate();
     for(let d=1;d<=daysInMonth;d++){
       const cell = addCell('cal-cell cal-day'+(d<today?' past':d===today?' today':''), d);
-      // Nhãn hoạt động góc trên-phải theo THỨ (getDay 0=CN..6=T7): bóng rổ T3+T7, múa T6, vẽ T7
+      // Nhãn hoạt động góc trên-phải theo THỨ — DAY_ACTIVITIES gom từ FIXED_LABELS có calMark
       const acts = DAY_ACTIVITIES[new Date(y,mo,d).getDay()];
       if(acts){
         const mk = document.createElement('span');
@@ -1041,14 +1094,17 @@
     lastDay = today;
   }
 
+  /* ===== 9. VÒNG LẶP MỖI FRAME — tick() ===== */
+  let lastSec=-1;
+  let lastSecHg=-1;
+
   function tick(){
     const now=new Date();
     const tNow=performance.now();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
 
     // Nhãn mốc: bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại + cửa sổ ±6 tiếng
-    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    updateLabelStates(h + m/60 + s/3600, now.getDay(), today);
+    updateLabelStates(h + m/60 + s/3600, now.getDay());
 
     // Nét nối nhãn giờ đổi vòng khi qua trưa/nửa đêm (sáng: vòng trong, chiều/tối: vòng ngoài)
     const pm = h >= 12;
@@ -1138,57 +1194,10 @@
 
     requestAnimationFrame(tick);
   }
-  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật: relayout khi đổi BỀ RỘNG
-  // HOẶC CHIỀU CAO đáng kể (>2px) — bỏ nhiễu do thanh công cụ Safari ẩn/hiện.
-  let lastW=-1, lastVh=-1;
-  function relayout(){
-    // ĐANG PHÓNG TO BẰNG 2 NGÓN (pinch-zoom) -> GIỮ NGUYÊN bố cục & tỷ lệ:
-    // vùng nhìn thấy lúc zoom thu nhỏ lại, nếu tính lại sẽ co/đẩy đồng hồ theo nó.
-    // Bỏ qua relayout khi scale != 1 -> trang chỉ phóng to đồng đều, không xô lệch.
-    const vv=window.visualViewport;
-    if(vv && Math.abs(vv.scale-1)>0.01) return;
-    const w=window.innerWidth;
-    const vh=viewportH();
-    if(w===lastW && Math.abs(vh-lastVh)<2) return;
-    lastW=w; lastVh=vh; layout();
-  }
 
-  // ===== Nhãn người dùng + popup tạo nhãn =====
-  const LS_USER_LABELS = 'zumUserLabels';
-  function saveUserLabels(){ try{ localStorage.setItem(LS_USER_LABELS, JSON.stringify(userLabels)); }catch(e){} }
-  // Dựng lại toàn bộ DOM nhãn người dùng từ mảng userLabels (gắn vào .analog như nhãn emoji khác).
-  function buildUserLabels(){
-    userLabelObjs.forEach(o => o.orbit.remove());
-    userLabelObjs = [];
-    for(const u of userLabels){
-      const orbit = document.createElement('div');
-      orbit.className = 'orbit emoji-orbit upcoming off user-label';
-      const conn  = document.createElement('div'); conn.className = 'connector';
-      const badge = document.createElement('div'); badge.className = 'badge badge-emoji';
-      const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = u.emoji;
-      const dline = document.createElement('span'); dline.className = 'deadline-min';
-      dline.textContent = String(Math.round((u.hour % 1) * 60)).padStart(2,'0');
-      const del   = document.createElement('button'); del.className = 'label-del';
-      del.textContent = '×'; del.setAttribute('aria-label','Xóa nhãn');
-      del.addEventListener('click', e => { e.stopPropagation(); removeUserLabel(u.id); });
-      badge.append(ic, dline, del);
-      badge.addEventListener('click', () => orbit.classList.toggle('reveal-del'));  // chạm để hiện × (mobile)
-      orbit.append(conn, badge);
-      analog.appendChild(orbit);
-      userLabelObjs.push({orbit, conn, badge, hour:u.hour, dline});
-    }
-  }
-  function addUserLabel(emoji, hour){
-    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), emoji, hour});
-    saveUserLabels(); buildUserLabels(); layout();
-  }
-  function removeUserLabel(id){
-    userLabels = userLabels.filter(u => u.id !== id);
-    saveUserLabels(); buildUserLabels(); layout();
-  }
+  /* ===== 10. POPUP TẠO NHÃN ===== */
   // Popup (không chữ): chọn emoji / giờ (màu giờ) / phút (màu phút) -> ✓ tạo nhãn.
-  (function setupAddLabelUI(){
-    try{ userLabels = JSON.parse(localStorage.getItem(LS_USER_LABELS)) || []; }catch(e){ userLabels = []; }
+  function setupAddLabelUI(){
     const fab=$('fab'), modal=$('labelModal'), emojiPick=$('emojiPick'),
           hourStrip=$('hourStrip'), minStrip=$('minStrip'), modalAdd=$('modalAdd');
     const EMOJIS=['🍬','☀️','🍒','🏊‍♀️','📺'];   // kẹo · mặt trời · cherry · bơi (nữ) · tivi
@@ -1198,11 +1207,12 @@
     EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>selEmoji=em, i===0));
     for(let h=0;h<24;h++)  mkBtn(hourStrip, String(h).padStart(2,'0'),  ()=>{ selHour=h; updatePastDim(); }, h===selHour);
     for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, String(mm).padStart(2,'0'), ()=>selMin=mm, mm===selMin);
-    // Làm mờ ô GIỜ đã qua; và ô PHÚT đã qua khi đang chọn GIỜ HIỆN TẠI.
+    // Làm mờ ô GIỜ đã qua; ô PHÚT mờ ĐẾN TẬN phút hiện tại (<=, vì phút này đã "đang trôi",
+    // không còn là tương lai) khi đang chọn GIỜ HIỆN TẠI.
     function updatePastDim(){
       const now=new Date(), nowH=now.getHours(), nowM=now.getMinutes();
       hourStrip.querySelectorAll('button').forEach((b,h)=> b.classList.toggle('past', h<nowH));
-      minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('past', selHour===nowH && i*5<nowM));
+      minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('past', selHour===nowH && i*5<=nowM));
     }
     // Chọn sẵn mốc 5 phút GẦN NHẤT SẮP TỚI (làm tròn LÊN theo thời điểm mở popup).
     function pickNextSlot(){
@@ -1218,9 +1228,26 @@
     // Nút Back/Escape của remote TV (hoặc phím Esc) -> đóng popup
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modal.classList.contains('open')) modal.classList.remove('open'); });
     modalAdd.addEventListener('click', ()=>{ addUserLabel(selEmoji, selHour + selMin/60); modal.classList.remove('open'); });
-    buildUserLabels();
-  })();
+  }
 
+  /* ===== 11. KHỞI ĐỘNG ===== */
+  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật: relayout khi đổi BỀ RỘNG
+  // HOẶC CHIỀU CAO đáng kể (>2px) — bỏ nhiễu do thanh công cụ Safari ẩn/hiện.
+  let lastW=-1, lastVh=-1;
+  function relayout(){
+    // ĐANG PHÓNG TO BẰNG 2 NGÓN (pinch-zoom) -> GIỮ NGUYÊN bố cục & tỷ lệ:
+    // vùng nhìn thấy lúc zoom thu nhỏ lại, nếu tính lại sẽ co/đẩy đồng hồ theo nó.
+    // Bỏ qua relayout khi scale != 1 -> trang chỉ phóng to đồng đều, không xô lệch.
+    const vv=window.visualViewport;
+    if(vv && Math.abs(vv.scale-1)>0.01) return;
+    const w=window.innerWidth;
+    const vh=viewportH();
+    if(w===lastW && Math.abs(vh-lastVh)<2) return;
+    lastW=w; lastVh=vh; layout();
+  }
+
+  loadUserLabels(); buildUserLabels();   // nhãn người dùng đã lưu (localStorage)
+  setupAddLabelUI();
   buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();
   window.addEventListener('resize', relayout);

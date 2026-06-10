@@ -22,6 +22,7 @@
     --ring-bold:3.2px;                      /* nét ĐẬM: ô hiện tại (giờ/phút này) */
     --faint:.25;                           /* độ MỜ dùng chung (track vòng, ô chưa trôi) */
     --c-hour-faint:rgba(90,99,216,.25);    /* = c-hour ở độ mờ --faint (cho nét/viền nhãn chưa đến) */
+    --c-buoi-faint:rgba(31,171,149,.25);   /* = c-buoi ở độ mờ --faint (track ô "hôm nay") */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
@@ -276,10 +277,17 @@
   .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
     color:var(--c-buoi);
   }
-  .cal-day.today{                     /* hôm nay: nền xanh ngọc, chữ trắng đậm */
-    background:var(--c-buoi);
+  .cal-day.today{                     /* hôm nay: ô = THANH TIẾN TRÌNH ngày — nền teal dâng từ ĐÁY theo
+                                         % ngày đã trôi (--day-progress); phần còn lại = track teal mờ
+                                         (khớp track các vòng). Bo tròn 50% -> "bình" tròn chứa mức dâng. */
+    background:linear-gradient(to top,
+      var(--c-buoi)        var(--day-progress,0%),
+      var(--c-buoi-faint)  var(--day-progress,0%));
     color:#fff;
     font-weight:700;
+    /* VIỀN số: vẽ SAU fill (paint-order) -> số trắng vẫn ĐỌC ĐƯỢC khi nền teal CHƯA dâng tới */
+    -webkit-text-stroke:1.5px var(--c-buoi);
+    paint-order:stroke fill;
   }
 </style>
 </head>
@@ -818,6 +826,7 @@
   const MONTH_EN = ['January','February','March','April','May','June','July','August',
                     'September','October','November','December'];
   let lastDay = -1;
+  let elToday = null;   // ô "hôm nay" trong lịch -> cập nhật --day-progress (thanh tiến trình) mỗi giây
 
   function buildCalendar(){
     const now = new Date();
@@ -831,16 +840,19 @@
       c.className=cls;
       if(txt!=null) c.textContent=txt;
       grid.appendChild(c);
+      return c;
     };
     // Hàng "thứ" tiếng Việt — TRÊN ngày
     DOW.forEach(d=>addCell('cal-cell cal-dow', d));
     // Ô trống đầu tháng: lùi theo thứ (Thứ Hai = 0)
     const startOffset = (new Date(y,mo,1).getDay()+6)%7;
     for(let i=0;i<startOffset;i++) addCell('cal-cell');
-    // Các ngày trong tháng
+    // Các ngày trong tháng — giữ tham chiếu ô "hôm nay" để nâng thanh tiến trình mỗi giây
     const daysInMonth = new Date(y,mo+1,0).getDate();
+    elToday = null;
     for(let d=1;d<=daysInMonth;d++){
-      addCell('cal-cell cal-day'+(d<today?' past':d===today?' today':''), d);
+      const cell = addCell('cal-cell cal-day'+(d<today?' past':d===today?' today':''), d);
+      if(d===today) elToday = cell;
     }
     // Ô trống cuối: lấp đầy hàng cuối để hàng "thứ" EN bên dưới thẳng cột
     const trailing = (7 - ((startOffset+daysInMonth)%7))%7;
@@ -848,6 +860,14 @@
     // Hàng "thứ" tiếng Anh — DƯỚI ngày (cùng thứ tự & style với hàng VN)
     DOW_EN.forEach(d=>addCell('cal-cell cal-dow', d));
     lastDay = today;
+    setTodayProgress(now.getHours(), now.getMinutes(), now.getSeconds());   // tô mức ngày ban đầu
+  }
+
+  // Ô "hôm nay" = thanh tiến trình ngày: nền teal dâng từ ĐÁY theo phần ngày đã trôi (0..1).
+  function setTodayProgress(h,m,s){
+    if(!elToday) return;
+    const frac=(h*3600+m*60+s)/86400;
+    elToday.style.setProperty('--day-progress', (frac*100).toFixed(3)+'%');
   }
 
   function tick(){
@@ -895,6 +915,7 @@
 
       // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
       if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
+      setTodayProgress(h, m, s);   // nâng mức "thanh tiến trình" của ô hôm nay theo giây
       updateBadge(elTextH, String(gio12(h)));
       updateBadge(elTextM, String(m));
       elH.textContent=pad(h);

@@ -116,13 +116,17 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  /* Nhãn EMOJI tuỳ chỉnh (đi ngủ 22h / ăn tối 19h30): cố định tại một giờ,
-     NẰM DƯỚI nhãn giờ khi trùng vị trí. */
-  #orbitSleep,#orbitDinner{z-index:10;}     /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  /* Nhãn EMOJI tuỳ chỉnh (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
+     cố định tại một giờ, NẰM DƯỚI nhãn giờ khi trùng vị trí. */
+  #orbitSleep,#orbitDinner,#orbitExercise,#orbitBreakfast{z-index:10;}  /* < .orbit (11) */
   #connSleep{background:var(--c-buoi);}      /* xanh ngọc (giống vòng ngày) */
   #badgeSleep{--badge-bg:var(--c-buoi);}
   #connDinner{background:var(--c-min);}      /* cam ấm cho bữa tối */
   #badgeDinner{--badge-bg:var(--c-min);}
+  #connExercise{background:#2e9e5b;}         /* xanh lá tươi cho tập thể dục */
+  #badgeExercise{--badge-bg:#2e9e5b;}
+  #connBreakfast{background:var(--accent);}  /* hồng cho bữa sáng */
+  #badgeBreakfast{--badge-bg:var(--accent);}
   .badge-emoji{padding:.18rem;}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
@@ -302,6 +306,14 @@
       <div class="connector" id="connDinner"></div>
       <div class="badge badge-emoji" id="badgeDinner"><span class="ic-emoji">🍲</span></div>
     </div>
+    <div class="orbit" id="orbitExercise">
+      <div class="connector" id="connExercise"></div>
+      <div class="badge badge-emoji" id="badgeExercise"><span class="ic-emoji">💪</span></div>
+    </div>
+    <div class="orbit" id="orbitBreakfast">
+      <div class="connector" id="connBreakfast"></div>
+      <div class="badge badge-emoji" id="badgeBreakfast"><span class="ic-emoji">🍜</span></div>
+    </div>
     <div class="orbit" id="orbitH">
       <div class="connector" id="connH"></div>
       <div class="badge" id="badgeH"><span id="textH">00</span></div>
@@ -379,6 +391,8 @@
   const elConnH=$('connH'), elConnM=$('connM');
   const elOrbitSleep=$('orbitSleep'), elBadgeSleep=$('badgeSleep'), elConnSleep=$('connSleep');
   const elOrbitDinner=$('orbitDinner'), elBadgeDinner=$('badgeDinner'), elConnDinner=$('connDinner');
+  const elOrbitExercise=$('orbitExercise'), elBadgeExercise=$('badgeExercise'), elConnExercise=$('connExercise');
+  const elOrbitBreakfast=$('orbitBreakfast'), elBadgeBreakfast=$('badgeBreakfast'), elConnBreakfast=$('connBreakfast');
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
 
@@ -607,22 +621,20 @@
     place(elConnM, elBadgeM, ARC_R_M, lenM, badgeM_r);
     place(elConnH, elBadgeH, ARC_R_D2, lenH, badgeH_r);
 
-    // Nhãn "đi ngủ" (zzz): GIỐNG nhãn giờ (cùng bán kính, cùng nét nối từ vòng ngày ngoài)
-    // nhưng CỐ ĐỊNH tại 22h. Trên mặt 12h, hourDeg=(giờ)*30 -> 22h = 660° ≡ 300° (vị trí 10 giờ).
-    const SLEEP_DEG = 22 * 30;
-    const realHalfSleep = elBadgeSleep.offsetHeight/2 || BADGE_H/2;
-    const lenSleep = (badgeH_r - realHalfSleep) - ARC_R_D2;
-    place(elConnSleep, elBadgeSleep, ARC_R_D2, lenSleep, badgeH_r);
-    elOrbitSleep.style.transform = `rotate(${SLEEP_DEG}deg)`;                  // hướng nhãn ra 22h
-    elBadgeSleep.style.transform = `translate(-50%,-50%) rotate(${-SLEEP_DEG}deg)`;  // giữ chữ thẳng đứng
-
-    // Nhãn "ăn tối": GIỐNG nhãn ngủ nhưng CỐ ĐỊNH tại 19h30 -> 19.5*30 = 585° ≡ 225° (vị trí 7h30).
-    const DINNER_DEG = 19.5 * 30;
-    const realHalfDinner = elBadgeDinner.offsetHeight/2 || BADGE_H/2;
-    const lenDinner = (badgeH_r - realHalfDinner) - ARC_R_D2;
-    place(elConnDinner, elBadgeDinner, ARC_R_D2, lenDinner, badgeH_r);
-    elOrbitDinner.style.transform = `rotate(${DINNER_DEG}deg)`;                  // hướng nhãn ra 19h30
-    elBadgeDinner.style.transform = `translate(-50%,-50%) rotate(${-DINNER_DEG}deg)`;  // giữ chữ thẳng đứng
+    // Nhãn EMOJI cố định: GIỐNG nhãn giờ (cùng bán kính badgeH_r, nét nối từ vòng ngày ngoài
+    // ARC_R_D2) nhưng đặt tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
+    const placeFixed = (orbit, conn, badge, hour) => {
+      const deg = hour * 30;
+      const realHalf = badge.offsetHeight/2 || BADGE_H/2;
+      const len = (badgeH_r - realHalf) - ARC_R_D2;
+      place(conn, badge, ARC_R_D2, len, badgeH_r);
+      orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
+      badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
+    };
+    placeFixed(elOrbitExercise,  elConnExercise,  elBadgeExercise,  8);     // tập thể dục 8h
+    placeFixed(elOrbitBreakfast, elConnBreakfast, elBadgeBreakfast, 8.25);  // ăn sáng 8h15
+    placeFixed(elOrbitDinner,    elConnDinner,    elBadgeDinner,    19.5);  // ăn tối 19h30
+    placeFixed(elOrbitSleep,     elConnSleep,     elBadgeSleep,     22);    // đi ngủ 22h
 
     layoutFace();
   }

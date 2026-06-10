@@ -124,9 +124,12 @@
   }
   #badgeH{--badge-bg:var(--c-hour);}
   #badgeM{--badge-bg:var(--c-min);}
-  /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h):
-     màu xanh giờ; nét nối + viền MẢNH (--ring-thin) khớp vòng tròn; NẰM DƯỚI nhãn giờ khi trùng. */
-  .emoji-orbit{z-index:10;}                /* < .orbit (11) -> nhãn giờ đè lên khi trùng */
+  /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h): màu xanh giờ;
+     nét nối + viền MẢNH (--ring-thin) khớp vòng tròn. */
+  /* z-index THẤP -> CAO: nhãn GIỜ (#orbitH) < nhãn hoạt động MẶC ĐỊNH (.emoji-orbit) < nhãn USER (.user-label) */
+  #orbitH{z-index:9;}                       /* nhãn GIỜ xuống DƯỚI nhãn hoạt động khi trùng */
+  .emoji-orbit{z-index:10;}                 /* nhãn hoạt động mặc định */
+  .emoji-orbit.user-label{z-index:12;}      /* nhãn do user tạo -> TRÊN cùng */
   .emoji-orbit.off{display:none;}          /* nhãn không thuộc thứ hôm nay -> ẩn hẳn */
   .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
@@ -142,12 +145,11 @@
     width:100%;height:100%;font-size:15px;line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
-  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở mép trên-TRÁI nhãn hoạt động, chỉ hiện trong 59'
-     trước giờ hoạt động (vd "30" trên nhãn bơi từ 16h31 -> ẩn lúc 17h30). Mặc định ẩn;
-     .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
+  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở MÉP XA TÂM NHẤT của nhãn hoạt động (JS đặt theo góc).
+     Mặc định ẩn; .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
   .badge-emoji .deadline-min{
     display:none;
-    position:absolute; top:-7px; left:-7px;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
     width:16px; height:16px; padding:0; box-sizing:border-box;
     border-radius:50%;
     background:var(--c-min); color:#fff;
@@ -561,8 +563,14 @@
     for(const L of fixedLabels){
       applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
     }
-    // Nhãn người dùng tự thêm: hiện theo cửa sổ ±6 tiếng (mọi ngày).
-    for(const o of userLabelObjs){ applyLabel(o, within6(o.hour), nowH); }
+    // Nhãn người dùng tự thêm: KHÔNG áp cửa sổ ±6 tiếng -> LUÔN hiện; pill phút cũng LUÔN hiện.
+    for(const o of userLabelObjs){
+      o.orbit.classList.remove('off');
+      const reached = nowH >= o.hour;
+      o.orbit.classList.toggle('reached', reached);
+      o.orbit.classList.toggle('upcoming', !reached);
+      if(o.dline) o.dline.classList.add('show');
+    }
   }
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
@@ -801,6 +809,14 @@
       place(conn, badge, ringR, len, badgeR);                            // nét nối CHẠM đúng vòng AM/PM
       orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
       badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
+      // Pill phút: đẩy ra ĐIỂM XA TÂM NHẤT của nhãn (mép ngoài, đối diện nét nối). Net xoay
+      //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
+      const dl = badge.querySelector('.deadline-min');
+      if(dl){
+        const R = (badge.offsetHeight/2) || (BADGE_H/2);
+        const a = deg * Math.PI/180;
+        dl.style.transform = `translate(-50%,-50%) translate(${(R*Math.sin(a)).toFixed(2)}px, ${(-R*Math.cos(a)).toFixed(2)}px)`;
+      }
     };
     placeFixed(elOrbitExercise,   elConnExercise,   elBadgeExercise,   8);          // tập thể dục 8h (T2-T6)
     placeFixed(elOrbitBasketSat,  elConnBasketSat,  elBadgeBasketSat,  8.25);       // bóng rổ 8h15 (thứ Bảy)

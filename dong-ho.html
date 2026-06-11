@@ -745,10 +745,10 @@
     }
   }
   function updateLabelStates(nowH, dow){
-    // Nhãn lịch tuần cố định: lọc theo THỨ + CHỈ hiện khi cách giờ hiện tại KHÔNG QUÁ 6 TIẾNG.
-    const within6 = hour => Math.abs(hour - nowH) <= 6;
+    // Nhãn lịch tuần cố định: lọc theo THỨ — hiện TẤT CẢ nhãn của hôm đó suốt cả ngày
+    // (nhãn trùng góc đã có cờ inner xếp tầng trong/ngoài nên không đè nhau).
     for(const L of fixedLabels){
-      applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
+      applyLabel(L, !L.days || L.days.includes(dow), nowH);
     }
     // Nhãn người dùng: TỰ XÓA HẲN khi đã qua 6 tiếng sau giờ của nhãn — xóa cả trên
     // SERVER (idempotent: nhiều thiết bị cùng xóa một id không sao) lẫn cache cục bộ.
@@ -758,7 +758,7 @@
       userLabels = userLabels.filter(u => u.at >= cutoff);
       saveUserLabels(); buildUserLabels(); layout();
     }
-    // Còn hạn -> LUÔN hiện (không áp cửa sổ ±6 tiếng như nhãn cố định);
+    // Còn hạn -> LUÔN hiện;
     //   pill phút vẫn theo logic 59' của applyLabel (chỉ hiện trong 59' trước giờ).
     for(const o of userLabelObjs){ applyLabel(o, true, nowH); }
   }
@@ -1180,7 +1180,7 @@
     const tNow=performance.now();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
 
-    // Nhãn mốc: bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại + cửa sổ ±6 tiếng
+    // Nhãn mốc: lọc theo thứ hôm nay + bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
     updateLabelStates(h + m/60 + s/3600, now.getDay());
 
     // Nét nối nhãn giờ đổi vòng khi qua trưa/nửa đêm (sáng: vòng trong, chiều/tối: vòng ngoài)

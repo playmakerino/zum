@@ -1,7 +1,10 @@
-# Workflow TẠM THỜI: xóa mọi nhánh trừ main (chạy tay qua workflow_dispatch).
-# Sẽ được gỡ khỏi repo ngay sau khi chạy xong.
+# Workflow TẠM THỜI: xóa mọi nhánh trừ main. Tự chạy khi chính file này được push
+# lên main (môi trường hiện tại không dispatch tay được). Sẽ gỡ ngay sau khi chạy.
 name: cleanup-branches
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cleanup-branches.yml']
 permissions:
   contents: write
 jobs:

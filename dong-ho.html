@@ -186,7 +186,7 @@
   }
   .badge-emoji .deadline-min.show{ display:block; }
   /* Nhãn ☀️/🌕 nhỏ: CÙNG VỊ TRÍ pill phút, hai cái THAY PHIÊN (JS chỉ hiện ☀️/🌕 khi pill ẩn)
-     -> nhãn hoạt động luôn cho biết thuộc buổi SÁNG (AM) hay CHIỀU/TỐI (PM), khớp vòng ngày. */
+     -> nhãn hoạt động luôn cho biết thuộc BAN NGÀY (6h-18h) hay BAN ĐÊM (18h-6h). */
   .badge-emoji .sky-min{
     display:none;
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
@@ -640,8 +640,8 @@
   // Trả về {orbit, conn, badge, hour, dline, sky}: cấu trúc chung cho applyLabel (trạng thái)
   // và placeLabel (vị trí). Nhãn phút deadline (.deadline-min) điền sẵn SỐ PHÚT của giờ
   // hoạt động (vd 8.25 -> "15"); nguồn duy nhất là hour nên không lệch.
-  // Nhãn ☀️/🌕 (.sky-min) cùng vị trí pill phút: SÁNG (hour<12) -> ☀️, CHIỀU/TỐI -> 🌕
-  // — khớp quy ước 2 vòng ngày (AM vòng trong / PM vòng ngoài).
+  // Nhãn ☀️/🌕 (.sky-min) cùng vị trí pill phút: chia theo NGÀY/ĐÊM thật (không phải AM/PM)
+  // — BAN NGÀY (6h-17h59) -> ☀️, BAN ĐÊM (18h-5h59, gồm cả rạng sáng) -> 🌕.
   function createLabel(emoji, hour, extraClass){
     const orbit = document.createElement('div');
     orbit.className = 'orbit emoji-orbit upcoming' + (extraClass ? ' ' + extraClass : '');
@@ -651,7 +651,7 @@
     const dline = document.createElement('span'); dline.className = 'deadline-min';
     dline.textContent = pad(minPart(hour));
     const sky   = document.createElement('span'); sky.className = 'sky-min';
-    sky.textContent = hour < 12 ? '☀️' : '🌕';
+    sky.textContent = (hour >= 6 && hour < 18) ? '☀️' : '🌕';
     badge.append(ic, dline, sky);
     orbit.append(conn, badge);
     analog.appendChild(orbit);

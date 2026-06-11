@@ -472,6 +472,12 @@
     </div>
   </div>
 
+<!-- Firebase compat (đồng bộ nhãn người dùng giữa các thiết bị qua Realtime Database).
+     Dùng bản COMPAT để gọi được từ script thường bên dưới (không phải module).
+     CDN không tải được (offline/chặn mạng) -> typeof firebase === 'undefined'
+     -> trang tự rớt về chế độ localStorage một máy như bản cũ. -->
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-database-compat.js"></script>
 <script>
   /* ============================================================
      ĐỒNG HỒ — script chia 11 phần:
@@ -605,17 +611,58 @@
   // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng
   const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner}));
 
-  // Nhãn do NGƯỜI DÙNG tự thêm (lưu localStorage, dựng DOM động) — là LỜI NHẮC MỘT LẦN:
+  // Nhãn do NGƯỜI DÙNG tự thêm (dựng DOM động) — là LỜI NHẮC MỘT LẦN:
   // hiện từ lúc tạo và TỰ XÓA khi đã qua 6 TIẾNG sau giờ của nhãn (xem updateLabelStates).
   // Ngoài hour (vị trí trên mặt), mỗi nhãn lưu mốc TUYỆT ĐỐI 'at' (ms) = lần xuất hiện
   // sắp tới lúc tạo -> trạng thái & hạn xóa so theo thời gian thật, không lệch khi qua
   // nửa đêm (vd nhãn 22h vẫn "reached" lúc 1h sáng, tự xóa lúc 4h).
   // userLabelObjs giống cấu trúc {orbit,conn,badge,hour,dline} của fixedLabels
   // -> dùng chung applyLabel/placeLabel.
+  //
+  // ĐỒNG BỘ NHIỀU THIẾT BỊ (Firebase Realtime Database):
+  //   Nguồn CHUẨN = nhánh /labels trên RTDB, MỖI NHÃN MỘT NODE con (id -> {emoji,hour,at})
+  //   -> hai thiết bị thêm/xóa cùng lúc không ghi đè nhau. Mọi thiết bị nghe on('value'):
+  //   thêm/xóa ở máy này hiện ra máy kia sau ~1 giây. localStorage chỉ còn là CACHE OFFLINE
+  //   (mở trang không mạng vẫn thấy nhãn); snapshot server về -> server là chuẩn, thay cache.
+  //   Mất mạng TẠM trong phiên: SDK tự xếp hàng lệnh ghi, gửi lại khi nối lại.
+  //   Không tải được SDK (chặn CDN / offline từ đầu) -> labelsRef = null, mọi thứ chạy
+  //   localStorage một máy như bản cũ (chỉ không đồng bộ).
   const LS_USER_LABELS = 'zumUserLabels';
   const USER_LABEL_TTL_MS = 6*3600e3;   // sống thêm 6 tiếng sau giờ của nhãn
-  let userLabels = [];      // [{id, emoji, hour, at}] — nguồn lưu
+  let userLabels = [];      // [{id, emoji, hour, at}] — bản chiếu đang hiển thị (server là chuẩn)
   let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline, at}] — DOM đang hiển thị
+  let labelsRef = null;     // nhánh /labels trên RTDB; null = chạy một máy (không sync)
+  try{
+    if(typeof firebase !== 'undefined'){
+      firebase.initializeApp({
+        apiKey: "AIzaSyCQnlQxrXyceuYHCNnyGIEAyU_KyBQUAXs",
+        authDomain: "a2-1011-thoi-gian.firebaseapp.com",
+        databaseURL: "https://a2-1011-thoi-gian-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "a2-1011-thoi-gian",
+        storageBucket: "a2-1011-thoi-gian.firebasestorage.app",
+        messagingSenderId: "1017684060626",
+        appId: "1:1017684060626:web:636c64f4f049521074800b"
+      });
+      labelsRef = firebase.database().ref('labels');
+    }
+  }catch(e){ labelsRef = null; }
+  // Thứ tự ổn định (mốc 'at' rồi id) -> mảng cục bộ và snapshot server so JSON được với nhau
+  const sortLabels = a => a.sort((x,y) => (x.at - y.at) || (x.id < y.id ? -1 : 1));
+  // Nghe server: mọi thay đổi /labels (kể cả echo do chính máy này ghi) đều về qua đây.
+  // Dựng lại userLabels từ snapshot; so JSON trước, không đổi thì khỏi dựng lại DOM
+  // (echo sau cập-nhật-tại-chỗ cho ra mảng y hệt nhờ sortLabels -> không giật).
+  function startLabelSync(){
+    if(!labelsRef) return;
+    labelsRef.on('value', snap => {
+      const v = snap.val() || {};
+      const arr = sortLabels(Object.keys(v)
+        .map(id => ({id, emoji:String(v[id].emoji||''), hour:+v[id].hour, at:+v[id].at}))
+        .filter(u => u.emoji && isFinite(u.hour) && isFinite(u.at)));   // bỏ node dị dạng
+      if(JSON.stringify(arr) === JSON.stringify(userLabels)) return;
+      userLabels = arr;
+      saveUserLabels(); buildUserLabels(); layout();
+    });
+  }
   // Mốc tuyệt đối GẦN NHẤT SẮP TỚI của giờ thập phân: hôm nay, hoặc NGÀY MAI nếu hôm nay
   // đã qua (vd 23:50 tạo nhãn 00:05 -> hiểu là 15 phút nữa, không phải đầu hôm nay).
   function nextOccurrence(hour){
@@ -631,6 +678,7 @@
       userLabels.forEach(u => { if(!u.at) u.at = nextOccurrence(u.hour); });
       saveUserLabels();
     }
+    sortLabels(userLabels);
   }
   function saveUserLabels(){ try{ localStorage.setItem(LS_USER_LABELS, JSON.stringify(userLabels)); }catch(e){} }
   // Dựng lại toàn bộ DOM nhãn người dùng từ mảng userLabels; khác nhãn cố định ở chỗ
@@ -647,12 +695,17 @@
       return o;
     });
   }
+  // Thêm/xóa: ghi SERVER (nếu có) + cập nhật TẠI CHỖ ngay, không chờ echo
+  // -> bấm là thấy liền, và đang offline (SDK chưa nối lại) vẫn dùng được.
   function addUserLabel(emoji, hour){
-    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-                     emoji, hour, at: nextOccurrence(hour)});
+    const u = {id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+               emoji, hour, at: nextOccurrence(hour)};
+    if(labelsRef) labelsRef.child(u.id).set({emoji:u.emoji, hour:u.hour, at:u.at});
+    userLabels.push(u); sortLabels(userLabels);
     saveUserLabels(); buildUserLabels(); layout();
   }
   function removeUserLabel(id){
+    if(labelsRef) labelsRef.child(id).remove();
     userLabels = userLabels.filter(u => u.id !== id);
     saveUserLabels(); buildUserLabels(); layout();
   }
@@ -696,9 +749,11 @@
     for(const L of fixedLabels){
       applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
     }
-    // Nhãn người dùng: TỰ XÓA HẲN (cả localStorage) khi đã qua 6 tiếng sau giờ của nhãn.
+    // Nhãn người dùng: TỰ XÓA HẲN khi đã qua 6 tiếng sau giờ của nhãn — xóa cả trên
+    // SERVER (idempotent: nhiều thiết bị cùng xóa một id không sao) lẫn cache cục bộ.
     const cutoff = Date.now() - USER_LABEL_TTL_MS;
     if(userLabels.some(u => u.at < cutoff)){
+      if(labelsRef) for(const u of userLabels) if(u.at < cutoff) labelsRef.child(u.id).remove();
       userLabels = userLabels.filter(u => u.at >= cutoff);
       saveUserLabels(); buildUserLabels(); layout();
     }
@@ -1270,7 +1325,8 @@
     lastW=w; lastVh=vh; layout();
   }
 
-  loadUserLabels(); buildUserLabels();   // nhãn người dùng đã lưu (localStorage)
+  loadUserLabels(); buildUserLabels();   // cache cục bộ hiện NGAY; snapshot server về sẽ thay
+  startLabelSync();                      // nghe /labels trên RTDB -> đồng bộ giữa các thiết bị
   setupAddLabelUI();
   buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();

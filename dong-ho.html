@@ -61,7 +61,10 @@
     background:#fff;
     border:1px solid var(--neutral);  /* mép đồng hồ: đen trung tính */
     position:relative;
-    isolation:isolate;   /* nhóm hòa trộn DUY NHẤT: kính nhãn (mix-blend) chỉ tint trong mặt, không lem ra lịch/nền */
+    /* LƯU Ý: KHÔNG đặt isolation:isolate ở đây. WebKit (Safari iOS) BỎ VẼ emoji màu
+       khi nhóm isolate chứa phần tử mix-blend-mode (bug đã tái hiện bằng Playwright
+       WebKit: mọi nhãn hoạt động biến mất). Nhóm hòa trộn vì thế là cả trang; đĩa
+       kính multiply trên nền be ngoài mặt chỉ sẫm hơn ~1% — không nhận ra được. */
     margin:58px;
   }
   .tick{position:absolute;left:50%;top:50%;transform-origin:0 0;}
@@ -143,7 +146,8 @@
   /* ĐĨA NHÃN GIỜ/PHÚT = KÍNH MÀU: mix-blend-mode multiply -> trên nền trắng giữ NGUYÊN màu;
      đè lên nét nối/emoji/kim thì tint như nhìn qua tấm kính xanh/cam. Là CON TRỰC TIẾP của
      .analog (không nằm trong orbit xoay) để "phông nền" hòa trộn gồm cả mặt đồng hồ.
-     KHÔNG chứa số (multiply với chữ trắng = trong suốt -> số biến mất); số nằm ở lớp #orbitHt/#orbitMt. */
+     KHÔNG chứa số (multiply với chữ trắng = trong suốt -> số biến mất); số nằm ở lớp #orbitHt/#orbitMt.
+     KHÔNG bọc nhóm isolate quanh đĩa kính (xem chú thích .analog — WebKit mất emoji). */
   .glass-badge{ top:50%; mix-blend-mode:multiply; z-index:13; }
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h): màu xanh giờ;
      nét nối + viền MẢNH (--ring-thin) khớp vòng tròn. */

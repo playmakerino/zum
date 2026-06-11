@@ -185,7 +185,7 @@
     box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
   }
   .badge-emoji .deadline-min.show{ display:block; }
-  /* Nhãn ☀️/🌙 nhỏ: CÙNG VỊ TRÍ pill phút, hai cái THAY PHIÊN (JS chỉ hiện ☀️/🌙 khi pill ẩn)
+  /* Nhãn ☀️/🌕 nhỏ: CÙNG VỊ TRÍ pill phút, hai cái THAY PHIÊN (JS chỉ hiện ☀️/🌕 khi pill ẩn)
      -> nhãn hoạt động luôn cho biết thuộc buổi SÁNG (AM) hay CHIỀU/TỐI (PM), khớp vòng ngày. */
   .badge-emoji .sky-min{
     display:none;
@@ -640,7 +640,7 @@
   // Trả về {orbit, conn, badge, hour, dline, sky}: cấu trúc chung cho applyLabel (trạng thái)
   // và placeLabel (vị trí). Nhãn phút deadline (.deadline-min) điền sẵn SỐ PHÚT của giờ
   // hoạt động (vd 8.25 -> "15"); nguồn duy nhất là hour nên không lệch.
-  // Nhãn ☀️/🌙 (.sky-min) cùng vị trí pill phút: SÁNG (hour<12) -> ☀️, CHIỀU/TỐI -> 🌙
+  // Nhãn ☀️/🌕 (.sky-min) cùng vị trí pill phút: SÁNG (hour<12) -> ☀️, CHIỀU/TỐI -> 🌕
   // — khớp quy ước 2 vòng ngày (AM vòng trong / PM vòng ngoài).
   function createLabel(emoji, hour, extraClass){
     const orbit = document.createElement('div');
@@ -651,7 +651,7 @@
     const dline = document.createElement('span'); dline.className = 'deadline-min';
     dline.textContent = pad(minPart(hour));
     const sky   = document.createElement('span'); sky.className = 'sky-min';
-    sky.textContent = hour < 12 ? '☀️' : '🌙';
+    sky.textContent = hour < 12 ? '☀️' : '🌕';
     badge.append(ic, dline, sky);
     orbit.append(conn, badge);
     analog.appendChild(orbit);
@@ -791,7 +791,7 @@
     L.orbit.classList.toggle('reached', reached);
     L.orbit.classList.toggle('upcoming', !reached);
     // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ).
-    // Ngoài cửa sổ đó, nhãn ☀️/🌙 thế chỗ (cùng vị trí, hai cái không hiện cùng lúc).
+    // Ngoài cửa sổ đó, nhãn ☀️/🌕 thế chỗ (cùng vị trí, hai cái không hiện cùng lúc).
     if(L.dline){
       const deltaMin = L.at ? (L.at - Date.now())/60000 : (L.hour - nowH) * 60;
       const showDline = deltaMin > 0 && deltaMin <= 59;
@@ -1021,7 +1021,7 @@
         const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
         const outer = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
         L.dline.style.transform = outer;
-        L.sky.style.transform   = outer;   // ☀️/🌙 cùng điểm (hai cái thay phiên, không đè nhau)
+        L.sky.style.transform   = outer;   // ☀️/🌕 cùng điểm (hai cái thay phiên, không đè nhau)
       }
     };
     for(const L of fixedLabels)   placeLabel(L);

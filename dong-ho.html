@@ -437,31 +437,14 @@
 
   <div class="digital-col">
     <div class="digital">
+      <!-- 2 đồng hồ cát: JS dựng từ MỘT khuôn (buildHourglass — phần 2 của script) vào .hg-slot -->
       <div class="unit u-hour">
-        <span class="hg-slot">
-          <svg class="hourglass" id="hgH" viewBox="0 0 24 32" aria-hidden="true">
-            <use href="#hg-frame"></use>
-            <clipPath id="hgH-top"><rect id="hgH-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
-            <clipPath id="hgH-bot"><rect id="hgH-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
-            <path class="hg-sand" clip-path="url(#hgH-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
-            <path class="hg-sand" clip-path="url(#hgH-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" x="11.7" y="15" width="0.6" height="13"></rect>
-          </svg>
-        </span>
+        <span class="hg-slot"></span>
         <span class="num" id="h">00</span>
       </div>
       <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
       <div class="unit u-min">
-        <span class="hg-slot">
-          <svg class="hourglass" id="hgM" viewBox="0 0 24 32" aria-hidden="true">
-            <use href="#hg-frame"></use>
-            <clipPath id="hgM-top"><rect id="hgM-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
-            <clipPath id="hgM-bot"><rect id="hgM-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
-            <path class="hg-sand" clip-path="url(#hgM-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
-            <path class="hg-sand" clip-path="url(#hgM-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
-            <rect class="hg-stream" x="11.5" y="15" width="1" height="13"></rect>
-          </svg>
-        </span>
+        <span class="hg-slot"></span>
         <span class="num" id="m">00</span>
       </div>
       <span class="sep"><span class="hg-slot"></span><span class="sep-mark">:</span></span>
@@ -505,7 +488,7 @@
   /* ============================================================
      ĐỒNG HỒ — script chia 11 phần:
        1. Tiện ích & tham chiếu DOM      7. Nhịp nhãn + đồng hồ cát
-       2. Mặt số: vạch chia + chữ số     8. Lịch tháng
+       2. Mặt số: vạch, số, đồng hồ cát  8. Lịch tháng
        3. Nhãn hoạt động (1 nguồn)       9. Vòng lặp tick()
        4. Văn nói giờ (VN + EN)         10. Popup tạo nhãn
        5. Bố cục tự co (layout)         11. Khởi động
@@ -532,11 +515,6 @@
     day1: {track:$('dayTrack1'), arc:$('dayArc1'), act:$('dayAct1'), live:$('dayLive1')},
     day2: {track:$('dayTrack2'), arc:$('dayArc2'), act:$('dayAct2'), live:$('dayLive2')},
   };
-  // Đồng hồ cát: root + 2 clip-rect (cát trên / cát dưới)
-  const hg = {
-    H: {root:$('hgH'), top:$('hgH-top-r'), bot:$('hgH-bot-r')},
-    M: {root:$('hgM'), top:$('hgM-top-r'), bot:$('hgM-bot-r')},
-  };
   const setD=(el,d)=>el.setAttribute('d', d||'');
 
   const pad=n=>String(n).padStart(2,'0');
@@ -549,7 +527,7 @@
     if(el.textContent!==txt) el.textContent=txt;
   }
 
-  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ ===== */
+  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ + ĐỒNG HỒ CÁT ===== */
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -569,6 +547,27 @@
     numerals.push(el);
     analog.appendChild(el);
   }
+
+  // Hai ĐỒNG HỒ CÁT (giờ/phút) dựng từ MỘT khuôn — chỉ khác id và nét cát rơi (giờ mảnh hơn).
+  // Khung kính + 2 nắp dùng chung qua <defs id="hg-frame"> khai báo sẵn trong HTML.
+  function buildHourglass(slot, id, streamX, streamW){
+    slot.innerHTML =
+      `<svg class="hourglass" id="${id}" viewBox="0 0 24 32" aria-hidden="true">
+        <use href="#hg-frame"></use>
+        <clipPath id="${id}-top"><rect id="${id}-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
+        <clipPath id="${id}-bot"><rect id="${id}-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
+        <path class="hg-sand" clip-path="url(#${id}-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
+        <path class="hg-sand" clip-path="url(#${id}-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+        <rect class="hg-stream" x="${streamX}" y="15" width="${streamW}" height="13"></rect>
+      </svg>`;
+  }
+  buildHourglass(document.querySelector('.u-hour .hg-slot'), 'hgH', 11.7, 0.6);
+  buildHourglass(document.querySelector('.u-min .hg-slot'),  'hgM', 11.5, 1);
+  // Cache root + 2 clip-rect (cát trên / cát dưới) cho updateHourglass()/flipHourglass()
+  const hg = {
+    H: {root:$('hgH'), top:$('hgH-top-r'), bot:$('hgH-bot-r')},
+    M: {root:$('hgM'), top:$('hgM-top-r'), bot:$('hgM-bot-r')},
+  };
 
   /* ===== 3. NHÃN HOẠT ĐỘNG — MỘT NGUỒN CẤU HÌNH ===== */
   // Toàn bộ nhãn cố định khai báo Ở ĐÂY; DOM, vị trí, trạng thái và emoji ô lịch đều sinh từ bảng này:
@@ -614,13 +613,32 @@
   // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng
   const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner}));
 
-  // Nhãn do NGƯỜI DÙNG tự thêm (lưu localStorage, dựng DOM động). userLabelObjs giống cấu
-  // trúc {orbit,conn,badge,hour,dline} của fixedLabels -> dùng chung applyLabel/placeLabel.
+  // Nhãn do NGƯỜI DÙNG tự thêm (lưu localStorage, dựng DOM động) — là LỜI NHẮC MỘT LẦN:
+  // hiện từ lúc tạo và TỰ XÓA khi đã qua 6 TIẾNG sau giờ của nhãn (xem updateLabelStates).
+  // Ngoài hour (vị trí trên mặt), mỗi nhãn lưu mốc TUYỆT ĐỐI 'at' (ms) = lần xuất hiện
+  // sắp tới lúc tạo -> trạng thái & hạn xóa so theo thời gian thật, không lệch khi qua
+  // nửa đêm (vd nhãn 22h vẫn "reached" lúc 1h sáng, tự xóa lúc 4h).
+  // userLabelObjs giống cấu trúc {orbit,conn,badge,hour,dline} của fixedLabels
+  // -> dùng chung applyLabel/placeLabel.
   const LS_USER_LABELS = 'zumUserLabels';
-  let userLabels = [];      // [{id, emoji, hour}] — nguồn lưu
-  let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline}] — DOM đang hiển thị
+  const USER_LABEL_TTL_MS = 6*3600e3;   // sống thêm 6 tiếng sau giờ của nhãn
+  let userLabels = [];      // [{id, emoji, hour, at}] — nguồn lưu
+  let userLabelObjs = [];   // [{orbit, conn, badge, hour, dline, at}] — DOM đang hiển thị
+  // Mốc tuyệt đối GẦN NHẤT SẮP TỚI của giờ thập phân: hôm nay, hoặc NGÀY MAI nếu hôm nay
+  // đã qua (vd 23:50 tạo nhãn 00:05 -> hiểu là 15 phút nữa, không phải đầu hôm nay).
+  function nextOccurrence(hour){
+    const d = new Date();
+    d.setHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
+    if(d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    return d.getTime();
+  }
   function loadUserLabels(){
     try{ userLabels = JSON.parse(localStorage.getItem(LS_USER_LABELS)) || []; }catch(e){ userLabels = []; }
+    // Nhãn lưu từ bản cũ chưa có mốc 'at' -> gán lần xuất hiện sắp tới rồi lưu lại
+    if(userLabels.some(u => !u.at)){
+      userLabels.forEach(u => { if(!u.at) u.at = nextOccurrence(u.hour); });
+      saveUserLabels();
+    }
   }
   function saveUserLabels(){ try{ localStorage.setItem(LS_USER_LABELS, JSON.stringify(userLabels)); }catch(e){} }
   // Dựng lại toàn bộ DOM nhãn người dùng từ mảng userLabels; khác nhãn cố định ở chỗ
@@ -628,7 +646,7 @@
   function buildUserLabels(){
     userLabelObjs.forEach(o => o.orbit.remove());
     userLabelObjs = userLabels.map(u => {
-      const o = createLabel(u.emoji, u.hour, 'off user-label');
+      const o = Object.assign(createLabel(u.emoji, u.hour, 'off user-label'), {at:u.at});
       const del = document.createElement('button'); del.className = 'label-del';
       del.textContent = '×'; del.setAttribute('aria-label','Xóa nhãn');
       del.addEventListener('click', e => { e.stopPropagation(); removeUserLabel(u.id); });
@@ -638,7 +656,8 @@
     });
   }
   function addUserLabel(emoji, hour){
-    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), emoji, hour});
+    userLabels.push({id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+                     emoji, hour, at: nextOccurrence(hour)});
     saveUserLabels(); buildUserLabels(); layout();
   }
   function removeUserLabel(id){
@@ -663,7 +682,9 @@
   function applyLabel(L, show, nowH){
     L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
     if(!show){ if(L.dline) L.dline.classList.remove('show'); L.wasReached = undefined; return; }
-    const reached = nowH >= L.hour;
+    // Nhãn người dùng có mốc tuyệt đối 'at' (một lần) -> so theo thời gian thật để không
+    // lệch khi qua nửa đêm; nhãn cố định lặp hằng ngày -> so theo giờ trong ngày.
+    const reached = L.at ? Date.now() >= L.at : nowH >= L.hour;
     // VỪA chạm giờ hoạt động (đang hiện + upcoming -> reached) -> emoji nổi trên tâm 5s.
     //   So sánh === false (không phải falsy): lần áp đầu tiên wasReached = undefined
     //   -> mở trang khi ĐÃ QUA giờ sẽ không bắn lại.
@@ -673,7 +694,7 @@
     L.orbit.classList.toggle('upcoming', !reached);
     // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
     if(L.dline){
-      const deltaMin = (L.hour - nowH) * 60;
+      const deltaMin = L.at ? (L.at - Date.now())/60000 : (L.hour - nowH) * 60;
       L.dline.classList.toggle('show', deltaMin > 0 && deltaMin <= 59);
     }
   }
@@ -683,7 +704,13 @@
     for(const L of fixedLabels){
       applyLabel(L, (!L.days || L.days.includes(dow)) && within6(L.hour), nowH);
     }
-    // Nhãn người dùng tự thêm: KHÔNG áp cửa sổ ±6 tiếng -> LUÔN hiện (show=true);
+    // Nhãn người dùng: TỰ XÓA HẲN (cả localStorage) khi đã qua 6 tiếng sau giờ của nhãn.
+    const cutoff = Date.now() - USER_LABEL_TTL_MS;
+    if(userLabels.some(u => u.at < cutoff)){
+      userLabels = userLabels.filter(u => u.at >= cutoff);
+      saveUserLabels(); buildUserLabels(); layout();
+    }
+    // Còn hạn -> LUÔN hiện (không áp cửa sổ ±6 tiếng như nhãn cố định);
     //   pill phút vẫn theo logic 59' của applyLabel (chỉ hiện trong 59' trước giờ).
     for(const o of userLabelObjs){ applyLabel(o, true, nowH); }
   }

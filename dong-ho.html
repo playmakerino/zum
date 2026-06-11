@@ -998,6 +998,7 @@
     for(const L of fixedLabels)   placeLabel(L);
     for(const o of userLabelObjs) placeLabel(o);
 
+    lastArcSec = -1;   // bán kính vòng vừa đổi -> tick() vẽ lại cung + nét nối ngay frame sau
     layoutFace();
   }
 
@@ -1198,6 +1199,7 @@
   /* ===== 9. VÒNG LẶP MỖI FRAME — tick() ===== */
   let lastSec=-1;
   let lastSecHg=-1;
+  let lastArcSec=-1;   // giây đã vẽ cung+nét nối lần cuối; layout() đặt -1 để ép vẽ lại
 
   function tick(){
     const now=new Date();
@@ -1207,7 +1209,8 @@
     // Nhãn mốc: lọc theo thứ hôm nay + bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
     updateLabelStates(h + m/60 + s/3600, now.getDay());
 
-    // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
+    // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt (transform = lớp compositor,
+    // không vẽ lại nội dung -> không dính líu tile raster của SVG bên dưới)
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
     const secDeg  = totalSec*6;
     const minDeg  = (totalSec/60)*6;
@@ -1215,10 +1218,6 @@
     elSec.style.transform=`rotate(${secDeg}deg)`;
     elMin.style.transform=`rotate(${minDeg}deg)`;
     elHour.style.transform=`rotate(${hourDeg}deg)`;
-    // Nét nối giờ/phút (SVG, cùng lớp với cung): phút bám vòng phút; giờ bám vòng ngày
-    // ĐANG CHẠY (sáng -> vòng trong D1, chiều/tối -> vòng ngoài D2).
-    setConn(elConnH, h >= 12 ? ARC_R_D2 : ARC_R_D1, CONN_H_OUT, hourDeg);
-    setConn(elConnM, ARC_R_M, CONN_M_OUT, minDeg);
     const sH = beatScale(beat.H, tNow), sM = beatScale(beat.M, tNow);
     // ĐĨA KÍNH giờ/phút (con .analog): đặt bằng TỌA ĐỘ CỰC (polarTranslate), đứng thẳng
     //   (không cần đối-xoay); translate(-50%,-50%) căn tâm đĩa vào điểm cực.
@@ -1230,14 +1229,22 @@
     elOrbitMt.style.transform=`rotate(${minDeg}deg)`;
     elBadgeMt.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${sM})`;
 
-    // Cung: cập nhật mỗi frame, dùng GIÂY LẺ (sFrac, kèm ms) cho mép cung 'live' bám SÁT
-    // kim & nét nối. (Giây NGUYÊN làm mép cung đứng yên trọn 1 giây trong khi nét nối
-    // vẫn trôi -> nét nối chạy TRƯỚC mép đậm rồi mép mới nhảy theo, lộ rõ khi phóng to.)
-    const ms = now.getMilliseconds(), sFrac = s + ms/1000;
-    updateDayArcs(h, m, sFrac);
-    updateMinArc(m, sFrac);
+    // CUNG + NÉT NỐI: vẽ MỘT LẦN MỖI GIÂY, cùng MỘT giá trị giây nguyên -> mép cung 'live'
+    // và nét nối TRÙNG GÓC TUYỆT ĐỐI trong cùng một lần vẽ. Không vẽ lại giữa các giây ->
+    // SVG đứng yên, tile raster của Safari iOS không bị xé lệch khi pinch-zoom (vẽ mỗi
+    // frame từng làm các tile/lớp hiển thị ở những thời điểm khác nhau -> nét nối tách
+    // khỏi mép cung, thậm chí tự xé đôi). Bước nhảy 0.1°/giây ≈ 0.3px: không nhận ra.
+    // Nét nối giờ bám vòng ngày ĐANG CHẠY (sáng -> vòng trong D1, chiều/tối -> vòng ngoài D2).
+    if(s !== lastArcSec){
+      lastArcSec = s;
+      setConn(elConnH, h >= 12 ? ARC_R_D2 : ARC_R_D1, CONN_H_OUT, ((h%12) + m/60 + s/3600)*30);
+      setConn(elConnM, ARC_R_M, CONN_M_OUT, (m + s/60)*6);
+      updateDayArcs(h, m, s);
+      updateMinArc(m, s);
+    }
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
+    const ms = now.getMilliseconds(), sFrac = s + ms/1000;
     // Lật NGAY khi sang chu kỳ mới (kiểm tra trước khi vẽ cát để cát không "đầy" lố 1 frame)
     if(s!==lastSecHg){
       if(lastSecHg===59 && s===0){

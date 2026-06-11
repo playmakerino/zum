@@ -1235,12 +1235,14 @@
     elOrbitMt.style.transform=`rotate(${minDeg}deg)`;
     elBadgeMt.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${sM})`;
 
-    // Cung: cập nhật mỗi frame để chạy theo kim mượt
-    updateDayArcs(h, m, s);
-    updateMinArc(m, s);
+    // Cung: cập nhật mỗi frame, dùng GIÂY LẺ (sFrac, kèm ms) cho mép cung 'live' bám SÁT
+    // kim & nét nối. (Giây NGUYÊN làm mép cung đứng yên trọn 1 giây trong khi nét nối
+    // vẫn trôi -> nét nối chạy TRƯỚC mép đậm rồi mép mới nhảy theo, lộ rõ khi phóng to.)
+    const ms = now.getMilliseconds(), sFrac = s + ms/1000;
+    updateDayArcs(h, m, sFrac);
+    updateMinArc(m, sFrac);
 
     // Đồng hồ cát: giờ theo phút trôi trong giờ; phút theo giây trôi trong phút (mượt theo ms)
-    const ms = now.getMilliseconds();
     // Lật NGAY khi sang chu kỳ mới (kiểm tra trước khi vẽ cát để cát không "đầy" lố 1 frame)
     if(s!==lastSecHg){
       if(lastSecHg===59 && s===0){
@@ -1249,8 +1251,8 @@
       }
       lastSecHg=s;
     }
-    updateHourglass(hg.H, (m + (s + ms/1000)/60) / 60);
-    updateHourglass(hg.M, (s + ms/1000) / 60);
+    updateHourglass(hg.H, (m + sFrac/60) / 60);
+    updateHourglass(hg.M, sFrac / 60);
 
     // Text + nhãn: chỉ cập nhật khi giây đổi (đỡ tải, không gây giật)
     if(s!==lastSec){

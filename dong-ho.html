@@ -370,6 +370,16 @@
     display:flex; align-items:center; justify-content:center;
   }
   .emoji-pick button.sel{ border-color:var(--c-buoi); background:#fff; }   /* khung chọn emoji -> màu NGÀY (teal) */
+  /* Ô DÁN emoji tùy ý (cuối hàng emoji) — JS chỉ thêm trên thiết bị dán được (không phải tivi).
+     Viền ĐỨT để phân biệt với nút có sẵn; .sel khi đang dùng emoji vừa dán (giống nút được chọn). */
+  .emoji-pick .emoji-paste{
+    width:38px; height:38px; border-radius:11px; padding:0;
+    border:2px dashed var(--line); background:var(--bg);
+    font:20px/1 'Space Grotesk',sans-serif; text-align:center; color:var(--ink);
+  }
+  .emoji-pick .emoji-paste::placeholder{ color:var(--muted); font-weight:300; }
+  .emoji-pick .emoji-paste:focus{ outline:none; border-color:var(--c-buoi); }
+  .emoji-pick .emoji-paste.sel{ border-style:solid; border-color:var(--c-buoi); background:#fff; }
   .num-strip{ display:grid; grid-template-columns:repeat(6,1fr); gap:5px; padding:4px 2px; }   /* 6 CỘT, không cuộn -> remote TV chọn được */
   .num-strip button{
     min-width:0; height:32px; border-radius:9px; padding:0; cursor:pointer;
@@ -1311,7 +1321,38 @@
     let selEmoji=EMOJIS[0], selHour=new Date().getHours(), selMin=0;
     const setSel=(box,btn)=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); btn.classList.add('sel'); };
     const mkBtn=(box,txt,on,sel)=>{ const b=document.createElement('button'); b.textContent=txt; if(sel)b.classList.add('sel'); b.addEventListener('click',()=>{on(); setSel(box,b);}); box.appendChild(b); };
-    EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>selEmoji=em, i===0));
+    // --- Ô DÁN emoji tùy ý (cuối hàng emoji) — CHỈ trên thiết bị dán được ---
+    // "Tivi" (smart TV điều khiển bằng remote) không có clipboard nên không dán được -> ẩn ô.
+    // Hiện ô chỉ khi có CÁCH DÁN thật: cảm ứng (điện thoại/tablet) hoặc chuột (máy tính).
+    // TV dùng D-pad không có con trỏ (any-pointer:none) nên bị loại; chặn thêm theo user-agent
+    // các dòng TV thường gặp (phòng remote-con-trỏ kiểu LG webOS lọt lưới con trỏ).
+    const mq = q => !!(window.matchMedia && window.matchMedia(q).matches);
+    const isTV = /SmartTV|SMART-TV|SmartHub|Tizen|Web0S|WebOS|webOS|HbbTV|NetCast|BRAVIA|GoogleTV|Android.?TV|AFT[\w-]|AppleTV|CrKey|Chromecast|Viera|NETTV|DTVNG|POV_TV|Roku|DLNADOC|VIDAA/i.test(navigator.userAgent||'');
+    const canPaste = !isTV && ( mq('(any-pointer: coarse)') || mq('(any-hover: hover) and (any-pointer: fine)') );
+    // Lấy 1 emoji (cụm grapheme ĐẦU) từ chuỗi dán -> gộp đúng emoji ghép ZWJ (vd 🙋🏻‍♀️) làm MỘT.
+    const firstEmoji = s => {
+      s = (s||'').trim(); if(!s) return '';
+      if(window.Intl && Intl.Segmenter){ for(const g of new Intl.Segmenter().segment(s)) return g.segment; }
+      return Array.from(s)[0] || '';
+    };
+    const emojiPaste = document.createElement('input');
+    emojiPaste.className='emoji-paste'; emojiPaste.type='text';
+    emojiPaste.placeholder='＋'; emojiPaste.setAttribute('aria-label','Dán emoji');
+    emojiPaste.addEventListener('focus', ()=> emojiPaste.select());   // chọn sẵn -> lần dán/gõ sau THAY emoji cũ
+    emojiPaste.addEventListener('input', ()=>{
+      const em = firstEmoji(emojiPaste.value);
+      if(em){                                                          // có emoji -> dùng làm nhãn, bỏ chọn nút có sẵn
+        selEmoji = em;
+        emojiPick.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
+        emojiPaste.classList.add('sel');
+      }else{                                                           // ô trống -> quay về emoji ĐẦU hàng (khỏi tạo nhãn rỗng)
+        selEmoji = EMOJIS[0];
+        emojiPaste.classList.remove('sel');
+        emojiPick.querySelector('button')?.classList.add('sel');
+      }
+    });
+    EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>{ selEmoji=em; emojiPaste.value=''; emojiPaste.classList.remove('sel'); }, i===0));
+    if(canPaste) emojiPick.appendChild(emojiPaste);                    // ô dán nằm CUỐI hàng emoji (không tạo trên tivi)
     for(let h=0;h<24;h++)  mkBtn(hourStrip, pad(h),  ()=>{ selHour=h; updatePastDim(); }, h===selHour);
     for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, pad(mm), ()=>selMin=mm, mm===selMin);
     // Giá trị của một nút giờ/phút = chính chữ số trên nút (+'05' -> 5) -> không phụ thuộc

@@ -124,8 +124,6 @@
     background:var(--ink);
     transform-origin:center;
   }
-  #connH{background:var(--c-hour);}
-  #connM{background:var(--c-min);}
   .badge{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
@@ -151,8 +149,7 @@
   .glass-badge{ top:50%; mix-blend-mode:multiply; z-index:13; }
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h): màu xanh giờ;
      nét nối + viền MẢNH (--ring-thin) khớp vòng tròn. */
-  /* z-index THẤP -> CAO: nét nối GIỜ/PHÚT (#orbitH/#orbitM) < emoji < KÍNH nhãn (.glass-badge z13) < SỐ (z14) */
-  #orbitH,#orbitM{z-index:9;}               /* nét nối giờ/phút xuống DƯỚI nhãn hoạt động khi trùng */
+  /* z-index THẤP -> CAO: nét nối GIỜ/PHÚT (vẽ trong SVG z9) < emoji < KÍNH nhãn (.glass-badge z13) < SỐ (z14) */
   .emoji-orbit{z-index:10;}                 /* nhãn hoạt động mặc định */
   .emoji-orbit.user-label{z-index:12;}      /* nhãn do user tạo */
   #orbitHt,#orbitMt{z-index:14;}             /* lớp SỐ GIỜ/PHÚT riêng -> TRÊN cùng (nổi trên KÍNH + emoji) */
@@ -420,24 +417,24 @@
       <path id="minArc" class="r-arc" stroke="var(--c-min)"></path>
       <path id="minAct" class="r-act" stroke="var(--c-min)"></path>
       <path id="minLive" class="r-live" stroke="var(--c-min)"></path>
+      <!-- NÉT NỐI giờ/phút vẽ TRONG CÙNG SVG với cung (không phải div xoay riêng): cùng
+           một lớp raster nên mép cung 'live' và nét nối KHÔNG BAO GIỜ tách rời, kể cả khi
+           Safari iOS vẽ trễ từng lớp lúc pinch-zoom (div transform là lớp compositor cập
+           nhật tức thì, còn SVG raster trễ -> hai lớp từng bị xé lệch nhau). -->
+      <line id="connH" stroke="var(--c-hour)" stroke-width="1.5"></line>
+      <line id="connM" stroke="var(--c-min)" stroke-width="1.5"></line>
     </svg>
     <div class="hand hour" id="hour"></div>
     <div class="hand minute" id="minute"></div>
     <div class="hand second" id="second"></div>
     <!-- Nhãn EMOJI hoạt động (cố định + người dùng): KHÔNG viết tay ở đây.
          JS dựng toàn bộ từ MỘT nguồn: bảng FIXED_LABELS + localStorage (phần 3 của script). -->
-    <div class="orbit" id="orbitH">
-      <div class="connector" id="connH"></div>
-    </div>
     <!-- ĐĨA KÍNH GIỜ: con TRỰC TIẾP .analog (không trong orbit xoay) -> multiply tint được cả mặt.
          Vị trí do JS đặt bằng tọa độ cực mỗi frame. Không có số (số ở #orbitHt). -->
     <div class="badge glass-badge" id="badgeH"></div>
     <!-- Lớp SỐ GIỜ riêng (z cao): SỐ solid nổi TRÊN kính + emoji -->
     <div class="orbit" id="orbitHt">
       <div class="badge" id="badgeHt"><span id="textHt">00</span></div>
-    </div>
-    <div class="orbit" id="orbitM">
-      <div class="connector" id="connM"></div>
     </div>
     <!-- ĐĨA KÍNH PHÚT: như đĩa kính giờ -->
     <div class="badge glass-badge" id="badgeM"></div>
@@ -512,11 +509,10 @@
 
   // Phần tử cập nhật MỖI FRAME -> cache sẵn, khỏi tra DOM lặp lại
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
-  const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elOrbitHt=$('orbitHt'), elBadgeHt=$('badgeHt'), elTextHt=$('textHt');   // lớp SỐ giờ riêng (z cao)
   const elOrbitMt=$('orbitMt'), elBadgeMt=$('badgeMt'), elTextMt=$('textMt');   // lớp SỐ phút riêng (z cao)
-  const elConnH=$('connH'), elConnM=$('connM');
+  const elConnH=$('connH'), elConnM=$('connM');   // nét nối giờ/phút = <line> trong SVG cung
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
   const elDigitalCol=document.querySelector('.digital-col'), elCalendar=$('calendar');   // layout() đo mỗi lần căn
 
@@ -874,7 +870,8 @@
 
   let FACE;
   let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
-  let HOUR_BADGE_R = 0, MIN_BADGE_R = 0, HOUR_HALF = 0, lastPm = null;   // bán kính đĩa kính giờ/phút (JS đặt vị trí) + nét nối giờ bám vòng ngày
+  let HOUR_BADGE_R = 0, MIN_BADGE_R = 0;     // bán kính đĩa kính giờ/phút (tick() đặt vị trí mỗi frame)
+  let CONN_H_OUT = 0, CONN_M_OUT = 0;        // đầu NGOÀI nét nối giờ/phút (mép trong nhãn) — tick() vẽ
 
   // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari): visualViewport chính
   // xác nhất; 100dvh/clientHeight trên vài bản Safari trả vùng LỚN -> căn giữa bị lệch.
@@ -965,19 +962,18 @@
     const badgeM_r = FACE + badgeM_off;   // nhãn phút
     const badgeH_r = FACE + badgeH_off;   // nhãn giờ
 
-    // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M). Nhãn GIỜ nối từ vòng ngày ĐANG CHẠY
-    //   (sáng -> vòng TRONG D1, chiều/tối -> vòng NGOÀI D2) nên LUÔN chạm vòng hiện hành.
-    //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
+    // Nét nối giờ/phút là <line> trong SVG cung, tick() vẽ mỗi frame theo góc kim — ở đây
+    //   chỉ lưu BÁN KÍNH ĐẦU NGOÀI (mép trong nhãn, dùng chiều cao thật của nhãn đo được
+    //   để nét nối kết thúc đúng tại mép). Đầu trong: phút bám VÒNG PHÚT (ARC_R_M); giờ
+    //   bám vòng ngày ĐANG CHẠY (sáng D1 / chiều tối D2) — tick() chọn theo giờ hiện tại.
     const realHalfM = elBadgeM.offsetHeight/2 || BADGE_H/2;
     const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
-    const lenM = (badgeM_r - realHalfM) - ARC_R_M;
-    // Nét nối PHÚT + lớp số phút (đĩa kính phút là con .analog, tick() lo vị trí theo MIN_BADGE_R).
-    place(elConnM, elBadgeMt, ARC_R_M, lenM, badgeM_r);
-    MIN_BADGE_R = badgeM_r;                            // tick() đặt đĩa kính phút theo bán kính này
-    // Nhãn GIỜ: lưu bán kính nhãn + nửa chiều cao để placeHourConn() tính lại khi qua trưa/nửa đêm.
-    HOUR_BADGE_R = badgeH_r; HOUR_HALF = realHalfH;
+    MIN_BADGE_R  = badgeM_r;                           // tick() đặt đĩa kính phút theo bán kính này
+    CONN_M_OUT   = badgeM_r - realHalfM;               // đầu ngoài nét nối phút
+    elBadgeMt.style.marginTop = (-badgeM_r) + 'px';   // lớp số phút trùng vị trí đĩa kính
+    HOUR_BADGE_R = badgeH_r;
+    CONN_H_OUT   = badgeH_r - realHalfH;               // đầu ngoài nét nối giờ
     elBadgeHt.style.marginTop = (-badgeH_r) + 'px';   // lớp số giờ trùng vị trí đĩa kính
-    placeHourConn(new Date().getHours() >= 12);
 
     // Nhãn EMOJI (cố định + người dùng): GIỐNG nhãn giờ (nét nối từ vòng ngày AM/PM) nhưng đặt
     // tại 'hour' giờ thập phân. Trên mặt 12h: góc = hour*30 (vd 22h -> 660°≡300°).
@@ -1005,18 +1001,11 @@
     layoutFace();
   }
 
+  // Đặt nét nối (div) + nhãn của NHÃN EMOJI tĩnh — nét nối giờ/phút động vẽ bằng SVG (setConn)
   function place(conn, badge, connStart, len, badgeR){
     conn.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
     conn.style.height = len+'px';
     badge.style.marginTop = (-badgeR)+'px';
-  }
-  // Nét nối nhãn GIỜ: bám vòng ngày đang chạy (pm -> vòng NGOÀI D2, sáng -> vòng TRONG D1).
-  //   Đầu xa (mép nhãn) cố định ở HOUR_BADGE_R - HOUR_HALF; chỉ đổi điểm đầu trong theo vòng.
-  function placeHourConn(pm){
-    const ring = pm ? ARC_R_D2 : ARC_R_D1;
-    const len  = (HOUR_BADGE_R - HOUR_HALF) - ring;
-    elConnH.style.top    = (-(ring + len)) + 'px';
-    elConnH.style.height = len + 'px';
   }
 
   // Đặt lại vạch chia và số theo FACE hiện tại
@@ -1056,7 +1045,15 @@
     elSec.style.height=sh+'px';  elSec.style.marginTop=(-sh)+'px';
   }
 
-  /* ===== 6. VÒNG TIẾN TRÌNH (SVG) ===== */
+  /* ===== 6. VÒNG TIẾN TRÌNH + NÉT NỐI ĐỘNG (SVG) ===== */
+  // Nét nối giờ/phút: đoạn thẳng bán kính từ rIn (vòng cung) ra rOut (mép nhãn) tại góc deg.
+  // Vẽ TRONG CÙNG SVG với cung -> cùng lớp raster, không bao giờ tách rời mép cung
+  // (div transform là lớp compositor riêng, từng bị Safari iOS vẽ lệch nhịp khi pinch-zoom).
+  function setConn(el, rIn, rOut, deg){
+    const [x1,y1]=polar(rIn, deg), [x2,y2]=polar(rOut, deg);
+    el.setAttribute('x1', x1.toFixed(2)); el.setAttribute('y1', y1.toFixed(2));
+    el.setAttribute('x2', x2.toFixed(2)); el.setAttribute('y2', y2.toFixed(2));
+  }
   // Cung tròn từ startDeg đến endDeg (đo từ 12h) — dựa trên polar() ở phần 1
   function arcPath(r, startDeg, endDeg){
     const sweep=endDeg-startDeg;
@@ -1210,10 +1207,6 @@
     // Nhãn mốc: lọc theo thứ hôm nay + bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
     updateLabelStates(h + m/60 + s/3600, now.getDay());
 
-    // Nét nối nhãn giờ đổi vòng khi qua trưa/nửa đêm (sáng: vòng trong, chiều/tối: vòng ngoài)
-    const pm = h >= 12;
-    if(pm !== lastPm){ placeHourConn(pm); lastPm = pm; }
-
     // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
     const secDeg  = totalSec*6;
@@ -1222,8 +1215,10 @@
     elSec.style.transform=`rotate(${secDeg}deg)`;
     elMin.style.transform=`rotate(${minDeg}deg)`;
     elHour.style.transform=`rotate(${hourDeg}deg)`;
-    elOrbitH.style.transform=`rotate(${hourDeg}deg)`;
-    elOrbitM.style.transform=`rotate(${minDeg}deg)`;
+    // Nét nối giờ/phút (SVG, cùng lớp với cung): phút bám vòng phút; giờ bám vòng ngày
+    // ĐANG CHẠY (sáng -> vòng trong D1, chiều/tối -> vòng ngoài D2).
+    setConn(elConnH, h >= 12 ? ARC_R_D2 : ARC_R_D1, CONN_H_OUT, hourDeg);
+    setConn(elConnM, ARC_R_M, CONN_M_OUT, minDeg);
     const sH = beatScale(beat.H, tNow), sM = beatScale(beat.M, tNow);
     // ĐĨA KÍNH giờ/phút (con .analog): đặt bằng TỌA ĐỘ CỰC (polarTranslate), đứng thẳng
     //   (không cần đối-xoay); translate(-50%,-50%) căn tâm đĩa vào điểm cực.

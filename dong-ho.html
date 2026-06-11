@@ -185,6 +185,18 @@
     box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
   }
   .badge-emoji .deadline-min.show{ display:block; }
+  /* Nhãn ☀️/🌙 nhỏ: CÙNG VỊ TRÍ pill phút, hai cái THAY PHIÊN (JS chỉ hiện ☀️/🌙 khi pill ẩn)
+     -> nhãn hoạt động luôn cho biết thuộc buổi SÁNG (AM) hay CHIỀU/TỐI (PM), khớp vòng ngày. */
+  .badge-emoji .sky-min{
+    display:none;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
+    width:13px; height:13px;
+    border-radius:50%;
+    background:var(--bg);               /* đĩa nền be che mép emoji bên dưới cho dễ đọc */
+    font-size:8px; line-height:13px; text-align:center;
+    pointer-events:none;
+  }
+  .badge-emoji .sky-min.show{ display:block; }
 
   /* ===== VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. ===== */
   .r-track,.r-arc,.r-act,.r-live{fill:none;stroke-linecap:butt;}
@@ -625,9 +637,11 @@
   }
 
   // Dựng DOM 1 nhãn emoji — dùng CHUNG cho nhãn cố định & nhãn người dùng.
-  // Trả về {orbit, conn, badge, hour, dline}: cấu trúc chung cho applyLabel (trạng thái)
+  // Trả về {orbit, conn, badge, hour, dline, sky}: cấu trúc chung cho applyLabel (trạng thái)
   // và placeLabel (vị trí). Nhãn phút deadline (.deadline-min) điền sẵn SỐ PHÚT của giờ
   // hoạt động (vd 8.25 -> "15"); nguồn duy nhất là hour nên không lệch.
+  // Nhãn ☀️/🌙 (.sky-min) cùng vị trí pill phút: SÁNG (hour<12) -> ☀️, CHIỀU/TỐI -> 🌙
+  // — khớp quy ước 2 vòng ngày (AM vòng trong / PM vòng ngoài).
   function createLabel(emoji, hour, extraClass){
     const orbit = document.createElement('div');
     orbit.className = 'orbit emoji-orbit upcoming' + (extraClass ? ' ' + extraClass : '');
@@ -636,10 +650,12 @@
     const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = emoji;
     const dline = document.createElement('span'); dline.className = 'deadline-min';
     dline.textContent = pad(minPart(hour));
-    badge.append(ic, dline);
+    const sky   = document.createElement('span'); sky.className = 'sky-min';
+    sky.textContent = hour < 12 ? '☀️' : '🌙';
+    badge.append(ic, dline, sky);
     orbit.append(conn, badge);
     analog.appendChild(orbit);
-    return {orbit, conn, badge, hour, dline, emoji};
+    return {orbit, conn, badge, hour, dline, sky, emoji};
   }
   // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng
   const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner}));
@@ -759,7 +775,11 @@
   //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nét đậm).
   function applyLabel(L, show, nowH){
     L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
-    if(!show){ if(L.dline) L.dline.classList.remove('show'); L.wasReached = undefined; return; }
+    if(!show){
+      if(L.dline) L.dline.classList.remove('show');
+      if(L.sky)   L.sky.classList.remove('show');
+      L.wasReached = undefined; return;
+    }
     // Nhãn người dùng có mốc tuyệt đối 'at' (một lần) -> so theo thời gian thật để không
     // lệch khi qua nửa đêm; nhãn cố định lặp hằng ngày -> so theo giờ trong ngày.
     const reached = L.at ? Date.now() >= L.at : nowH >= L.hour;
@@ -770,10 +790,13 @@
     L.wasReached = reached;
     L.orbit.classList.toggle('reached', reached);
     L.orbit.classList.toggle('upcoming', !reached);
-    // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
+    // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ).
+    // Ngoài cửa sổ đó, nhãn ☀️/🌙 thế chỗ (cùng vị trí, hai cái không hiện cùng lúc).
     if(L.dline){
       const deltaMin = L.at ? (L.at - Date.now())/60000 : (L.hour - nowH) * 60;
-      L.dline.classList.toggle('show', deltaMin > 0 && deltaMin <= 59);
+      const showDline = deltaMin > 0 && deltaMin <= 59;
+      L.dline.classList.toggle('show', showDline);
+      L.sky.classList.toggle('show', !showDline);
     }
   }
   function updateLabelStates(nowH, dow){
@@ -996,7 +1019,9 @@
       //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
       if(L.dline){
         const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
-        L.dline.style.transform = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
+        const outer = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
+        L.dline.style.transform = outer;
+        L.sky.style.transform   = outer;   // ☀️/🌙 cùng điểm (hai cái thay phiên, không đè nhau)
       }
     };
     for(const L of fixedLabels)   placeLabel(L);

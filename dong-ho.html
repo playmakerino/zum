@@ -23,7 +23,9 @@
     --ring-bold:3.2px;                      /* nét ĐẬM: ô hiện tại (giờ/phút này) */
     --faint:.25;                           /* độ MỜ dùng chung (track vòng, ô chưa trôi) */
     --c-hour-faint:rgba(90,99,216,.25);    /* = c-hour ở độ mờ --faint (cho nét/viền nhãn chưa đến) */
-    --c-buoi-faint:rgba(31,171,149,.25);   /* = c-buoi ở độ mờ --faint (track ô "hôm nay") */
+    /* Kích thước nhãn & emoji — MỘT nguồn (JS đọc --badge-dia để tính bố cục) */
+    --badge-dia:26px;                      /* đường kính nhãn tròn (giờ / phút / emoji) */
+    --emoji-size:15px;                     /* cỡ emoji trên nhãn; emoji trên tâm = x2 */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
@@ -98,7 +100,7 @@
   .center-emoji{
     position:absolute;left:50%;top:50%;
     transform:translate(-50%,-50%);
-    font-size:30px;line-height:1;      /* x2 cỡ emoji trên nhãn (.ic-emoji 15px) */
+    font-size:calc(var(--emoji-size)*2);line-height:1;   /* x2 cỡ emoji trên nhãn */
     z-index:14;                        /* nổi trên kim + mọi nhãn (cao nhất là #orbitHt z13) */
     opacity:0;
     transition:opacity .3s ease;
@@ -123,9 +125,8 @@
   .badge{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
-    /* HÌNH TRÒN đều (Ø = --badge-dia): offsetHeight/2 = bán kính ở MỌI hướng -> nét nối
-       chạm đúng viền ở mọi góc, không đâm xuyên (pill cũ sai khi nhãn ở góc xiên). */
-    --badge-dia:26px;
+    /* HÌNH TRÒN đều (Ø = --badge-dia khai báo ở :root): offsetHeight/2 = bán kính ở MỌI hướng
+       -> nét nối chạm đúng viền ở mọi góc, không đâm xuyên (pill cũ sai khi nhãn ở góc xiên). */
     width:var(--badge-dia);height:var(--badge-dia);
     min-width:0;padding:0;
     border-radius:50%;
@@ -158,7 +159,7 @@
   .emoji-orbit.reached .badge-emoji{background:transparent;}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
-    width:100%;height:100%;font-size:15px;line-height:1;
+    width:100%;height:100%;font-size:var(--emoji-size);line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
   /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở MÉP XA TÂM NHẤT của nhãn hoạt động (JS đặt theo góc).
@@ -523,6 +524,7 @@
   const elConnH=$('connH'), elConnM=$('connM');
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
+  const elDigitalCol=document.querySelector('.digital-col'), elCalendar=$('calendar');   // layout() đo mỗi lần căn
 
   // Các path cung gom 4 lớp = 4 trạng thái: track(mảnh mờ)/arc(mảnh đặc)/act(đậm mờ)/live(đậm đặc)
   const ring = {
@@ -603,7 +605,7 @@
     const badge = document.createElement('div'); badge.className = 'badge badge-emoji';
     const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = emoji;
     const dline = document.createElement('span'); dline.className = 'deadline-min';
-    dline.textContent = String(Math.round((hour % 1) * 60)).padStart(2,'0');
+    dline.textContent = pad(Math.round((hour % 1) * 60));
     badge.append(ic, dline);
     orbit.append(conn, badge);
     analog.appendChild(orbit);
@@ -755,9 +757,11 @@
   /* px tính từ tâm. Nhãn nằm NGOÀI cả cụm vòng (phút + 2 vòng ngày); bán kính nhãn
      tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
      Hai tâm nhãn cách nhau >= chiều cao nhãn => không đè khi hai kim trùng. */
-  // Nhãn là HÌNH TRÒN đều Ø=26px (khớp --badge-dia ở CSS) -> nửa bề ngang = nửa bề cao = bán kính.
-  const BADGE_H    = 26;   // ĐƯỜNG KÍNH nhãn (cũng = khoảng hở dọc tối thiểu giữa 2 vòng nhãn)
-  const BADGE_HALF = 13;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
+  // Nhãn là HÌNH TRÒN đều -> nửa bề ngang = nửa bề cao = bán kính. Đường kính đọc từ
+  // --badge-dia ở :root (MỘT nguồn với CSS, khỏi lệch khi đổi cỡ nhãn).
+  const BADGE_H    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
+                           // ĐƯỜNG KÍNH nhãn (cũng = khoảng hở dọc tối thiểu giữa 2 vòng nhãn)
+  const BADGE_HALF = BADGE_H/2;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
   const SAFE       = 10;   // dư để hai nhãn chắc chắn không chạm
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
@@ -803,12 +807,10 @@
     // Ghim chiều cao body = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
     document.body.style.height = vh + 'px';
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
-    const digitalCol = document.querySelector('.digital-col');
-    const digitalH = digitalCol?.offsetHeight || 140;
+    const digitalH = elDigitalCol?.offsetHeight || 140;
     // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
-    const calendar = document.querySelector('.calendar');
-    const calW = calendar?.offsetWidth  || 0;
-    const calH = calendar?.offsetHeight || 0;
+    const calW = elCalendar?.offsetWidth  || 0;
+    const calH = elCalendar?.offsetHeight || 0;
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
@@ -1205,22 +1207,25 @@
     const setSel=(box,btn)=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); btn.classList.add('sel'); };
     const mkBtn=(box,txt,on,sel)=>{ const b=document.createElement('button'); b.textContent=txt; if(sel)b.classList.add('sel'); b.addEventListener('click',()=>{on(); setSel(box,b);}); box.appendChild(b); };
     EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>selEmoji=em, i===0));
-    for(let h=0;h<24;h++)  mkBtn(hourStrip, String(h).padStart(2,'0'),  ()=>{ selHour=h; updatePastDim(); }, h===selHour);
-    for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, String(mm).padStart(2,'0'), ()=>selMin=mm, mm===selMin);
+    for(let h=0;h<24;h++)  mkBtn(hourStrip, pad(h),  ()=>{ selHour=h; updatePastDim(); }, h===selHour);
+    for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, pad(mm), ()=>selMin=mm, mm===selMin);
+    // Giá trị của một nút giờ/phút = chính chữ số trên nút (+'05' -> 5) -> không phụ thuộc
+    // thứ tự index, thêm/bớt mốc trong strip không phá logic bên dưới.
+    const btnVal = b => +b.textContent;
     // Làm mờ ô GIỜ đã qua; ô PHÚT mờ ĐẾN TẬN phút hiện tại (<=, vì phút này đã "đang trôi",
     // không còn là tương lai) khi đang chọn GIỜ HIỆN TẠI.
     function updatePastDim(){
       const now=new Date(), nowH=now.getHours(), nowM=now.getMinutes();
-      hourStrip.querySelectorAll('button').forEach((b,h)=> b.classList.toggle('past', h<nowH));
-      minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('past', selHour===nowH && i*5<=nowM));
+      hourStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('past', btnVal(b)<nowH));
+      minStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('past', selHour===nowH && btnVal(b)<=nowM));
     }
     // Chọn sẵn mốc 5 phút GẦN NHẤT SẮP TỚI (làm tròn LÊN theo thời điểm mở popup).
     function pickNextSlot(){
       const now=new Date();
       selHour=now.getHours(); selMin=Math.ceil(now.getMinutes()/5)*5;
       if(selMin>=60){ selMin=0; selHour=(selHour+1)%24; }
-      hourStrip.querySelectorAll('button').forEach((b,h)=> b.classList.toggle('sel', h===selHour));
-      minStrip.querySelectorAll('button').forEach((b,i)=> b.classList.toggle('sel', i*5===selMin));
+      hourStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('sel', btnVal(b)===selHour));
+      minStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('sel', btnVal(b)===selMin));
     }
     // Mở popup -> chọn sẵn thời gian gần nhất tiếp theo + mờ giờ/phút đã qua + focus GIỜ (cho remote TV).
     fab.addEventListener('click', ()=>{ pickNextSlot(); updatePastDim(); modal.classList.add('open'); (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus(); });

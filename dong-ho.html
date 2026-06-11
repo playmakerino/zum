@@ -1221,7 +1221,7 @@
   function setupAddLabelUI(){
     const fab=$('fab'), modal=$('labelModal'), emojiPick=$('emojiPick'),
           hourStrip=$('hourStrip'), minStrip=$('minStrip'), modalAdd=$('modalAdd');
-    const EMOJIS=['🍬','☀️','🍒','🏊‍♀️','📺'];   // kẹo · mặt trời · cherry · bơi (nữ) · tivi
+    const EMOJIS=['🍬','☀️','🍒','🏊‍♀️','📺','🙋🏻‍♀️'];   // kẹo · mặt trời · cherry · bơi (nữ) · tivi · giơ tay (nữ)
     let selEmoji=EMOJIS[0], selHour=new Date().getHours(), selMin=0;
     const setSel=(box,btn)=>{ box.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); btn.classList.add('sel'); };
     const mkBtn=(box,txt,on,sel)=>{ const b=document.createElement('button'); b.textContent=txt; if(sel)b.classList.add('sel'); b.addEventListener('click',()=>{on(); setSel(box,b);}); box.appendChild(b); };

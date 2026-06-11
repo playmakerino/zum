@@ -463,16 +463,6 @@
     <div class="cal-head" id="calHeadEn"></div>
   </div>
 
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <defs>
-      <g id="hg-frame">
-        <path class="hg-glass" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
-        <line class="hg-cap" x1="4" y1="4" x2="20" y2="4"></line>
-        <line class="hg-cap" x1="4" y1="28" x2="20" y2="28"></line>
-      </g>
-    </defs>
-  </svg>
-
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
   <button id="fab" aria-label="Thêm nhãn">+</button>
   <div class="modal" id="labelModal">
@@ -549,16 +539,20 @@
   }
 
   // Hai ĐỒNG HỒ CÁT (giờ/phút) dựng từ MỘT khuôn — chỉ khác id và nét cát rơi (giờ mảnh hơn).
-  // Khung kính + 2 nắp dùng chung qua <defs id="hg-frame"> khai báo sẵn trong HTML.
+  // THỨ TỰ VẼ quan trọng: cát + nét rơi TRƯỚC, kính + 2 nắp SAU CÙNG -> nắp/kính đè lên,
+  // nét rơi dừng đúng tại nắp đáy, cát không lòi ra ngoài. Đáy cát (5..19) khớp đáy KÍNH
+  // (nắp rộng hơn: 4..20).
   function buildHourglass(slot, id, streamX, streamW){
     slot.innerHTML =
       `<svg class="hourglass" id="${id}" viewBox="0 0 24 32" aria-hidden="true">
-        <use href="#hg-frame"></use>
         <clipPath id="${id}-top"><rect id="${id}-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
         <clipPath id="${id}-bot"><rect id="${id}-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
         <path class="hg-sand" clip-path="url(#${id}-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
-        <path class="hg-sand" clip-path="url(#${id}-bot)" d="M4 28 L11.2 17 V16 H12.8 V17 L20 28 Z"></path>
+        <path class="hg-sand" clip-path="url(#${id}-bot)" d="M5 28 L11.2 17 V16 H12.8 V17 L19 28 Z"></path>
         <rect class="hg-stream" x="${streamX}" y="15" width="${streamW}" height="13"></rect>
+        <path class="hg-glass" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
+        <line class="hg-cap" x1="4" y1="4" x2="20" y2="4"></line>
+        <line class="hg-cap" x1="4" y1="28" x2="20" y2="28"></line>
       </svg>`;
   }
   buildHourglass(document.querySelector('.u-hour .hg-slot'), 'hgH', 11.7, 0.6);

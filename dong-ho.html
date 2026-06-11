@@ -172,30 +172,32 @@
     width:100%;height:100%;font-size:var(--emoji-size);line-height:1;
     transform:translateY(.06em);}   /* glyph emoji nằm cao trong line-box -> bù xuống ~0.9px */
   .badge span{display:block;}
-  /* Nhãn PHÚT deadline: chấm TRÒN cam nhỏ ở MÉP XA TÂM NHẤT của nhãn hoạt động (JS đặt theo góc).
-     Mặc định ẩn; .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
-  .badge-emoji .deadline-min{
-    display:none;
-    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
-    width:16px; height:16px; padding:0; box-sizing:border-box;
-    border-radius:50%;
-    background:var(--c-min); color:#fff;
-    font-size:.48rem; font-weight:700; line-height:16px; text-align:center;
-    font-variant-numeric:tabular-nums;
-    box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
-  }
-  .badge-emoji .deadline-min.show{ display:block; }
-  /* Nhãn ☀️/🌕 nhỏ: CÙNG VỊ TRÍ pill phút, hai cái THAY PHIÊN (JS chỉ hiện ☀️/🌕 khi pill ẩn)
-     -> nhãn hoạt động luôn cho biết thuộc BAN NGÀY (6h-18h) hay BAN ĐÊM (18h-6h). */
+  /* HAI VỆ TINH nhỏ ở MÉP XA TÂM NHẤT của nhãn hoạt động, THAY PHIÊN nhau hiện (JS đặt
+     cùng vị trí theo góc): pill PHÚT deadline & nhãn ☀️/🌕 ngày/đêm. Phần chung gom ở đây;
+     mặc định ẩn, .show mới hiện (đè .badge span{display:block} bằng specificity 2 class). */
+  .badge-emoji .deadline-min,
   .badge-emoji .sky-min{
     display:none;
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
-    width:13px; height:13px;
     border-radius:50%;
+    text-align:center;
+  }
+  /* Pill PHÚT deadline: chấm TRÒN cam — chỉ hiện trong 59' trước giờ hoạt động */
+  .badge-emoji .deadline-min{
+    width:16px; height:16px; padding:0; box-sizing:border-box;
+    background:var(--c-min); color:#fff;
+    font-size:.48rem; font-weight:700; line-height:16px;
+    font-variant-numeric:tabular-nums;
+    box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
+  }
+  /* Nhãn ☀️/🌕: hoạt động thuộc BAN NGÀY (6h-18h) hay BAN ĐÊM — hiện khi pill phút ẩn */
+  .badge-emoji .sky-min{
+    width:13px; height:13px;
     background:var(--bg);               /* đĩa nền be che mép emoji bên dưới cho dễ đọc */
-    font-size:8px; line-height:13px; text-align:center;
+    font-size:8px; line-height:13px;
     pointer-events:none;
   }
+  .badge-emoji .deadline-min.show,
   .badge-emoji .sky-min.show{ display:block; }
 
   /* ===== VÒNG TIẾN TRÌNH — 4 trạng thái = (đậm/mảnh) × (đặc/mờ). Màu đặt ở thuộc tính stroke mỗi path. ===== */
@@ -548,6 +550,10 @@
   // Phần PHÚT của giờ thập phân (8.25 -> 15)
   const minPart = hour => Math.round((hour % 1) * 60);
 
+  // BAN NGÀY (6h-17h59) hay BAN ĐÊM — cho nhãn ☀️/🌕. CỐ Ý khác ranh giới buổi của
+  // buoiIdx (phần 4): đây là ngày/đêm TRỰC QUAN trên nhãn, không phải buổi trong văn nói.
+  const isDaytime = h => h >= 6 && h < 18;
+
   // TỌA ĐỘ CỰC quanh tâm mặt — MỘT quy ước cho cả trang: deg đo TỪ 12 GIỜ, theo chiều kim.
   // Trả [dx, dy] px so với tâm. Dùng chung cho: cung SVG, chữ số, đĩa kính, pill deadline.
   function polar(r, deg){
@@ -640,8 +646,8 @@
   // Trả về {orbit, conn, badge, hour, dline, sky}: cấu trúc chung cho applyLabel (trạng thái)
   // và placeLabel (vị trí). Nhãn phút deadline (.deadline-min) điền sẵn SỐ PHÚT của giờ
   // hoạt động (vd 8.25 -> "15"); nguồn duy nhất là hour nên không lệch.
-  // Nhãn ☀️/🌕 (.sky-min) cùng vị trí pill phút: chia theo NGÀY/ĐÊM thật (không phải AM/PM)
-  // — BAN NGÀY (6h-17h59) -> ☀️, BAN ĐÊM (18h-5h59, gồm cả rạng sáng) -> 🌕.
+  // Nhãn ☀️/🌕 (.sky-min) cùng vị trí pill phút: BAN NGÀY -> ☀️, BAN ĐÊM -> 🌕
+  // (ranh giới ngày/đêm = isDaytime, phần 1 — MỘT nguồn).
   function createLabel(emoji, hour, extraClass){
     const orbit = document.createElement('div');
     orbit.className = 'orbit emoji-orbit upcoming' + (extraClass ? ' ' + extraClass : '');
@@ -651,7 +657,7 @@
     const dline = document.createElement('span'); dline.className = 'deadline-min';
     dline.textContent = pad(minPart(hour));
     const sky   = document.createElement('span'); sky.className = 'sky-min';
-    sky.textContent = (hour >= 6 && hour < 18) ? '☀️' : '🌕';
+    sky.textContent = isDaytime(hour) ? '☀️' : '🌕';
     badge.append(ic, dline, sky);
     orbit.append(conn, badge);
     analog.appendChild(orbit);
@@ -776,8 +782,9 @@
   function applyLabel(L, show, nowH){
     L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
     if(!show){
-      if(L.dline) L.dline.classList.remove('show');
-      if(L.sky)   L.sky.classList.remove('show');
+      // mọi nhãn đều có đủ pill phút + ☀️/🌕 (createLabel) -> khỏi guard từng cái
+      L.dline.classList.remove('show');
+      L.sky.classList.remove('show');
       L.wasReached = undefined; return;
     }
     // Nhãn người dùng có mốc tuyệt đối 'at' (một lần) -> so theo thời gian thật để không
@@ -792,12 +799,10 @@
     L.orbit.classList.toggle('upcoming', !reached);
     // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ).
     // Ngoài cửa sổ đó, nhãn ☀️/🌕 thế chỗ (cùng vị trí, hai cái không hiện cùng lúc).
-    if(L.dline){
-      const deltaMin = L.at ? (L.at - Date.now())/60000 : (L.hour - nowH) * 60;
-      const showDline = deltaMin > 0 && deltaMin <= 59;
-      L.dline.classList.toggle('show', showDline);
-      L.sky.classList.toggle('show', !showDline);
-    }
+    const deltaMin = L.at ? (L.at - Date.now())/60000 : (L.hour - nowH) * 60;
+    const showDline = deltaMin > 0 && deltaMin <= 59;
+    L.dline.classList.toggle('show', showDline);
+    L.sky.classList.toggle('show', !showDline);
   }
   function updateLabelStates(nowH, dow){
     // Nhãn lịch tuần cố định: lọc theo THỨ — hiện TẤT CẢ nhãn của hôm đó suốt cả ngày
@@ -1015,14 +1020,13 @@
       place(L.conn, L.badge, ringR, len, badgeR);                          // nét nối CHẠM đúng vòng AM/PM
       L.orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
       L.badge.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`; // giữ nhãn thẳng đứng
-      // Pill phút: đẩy ra ĐIỂM XA TÂM NHẤT của nhãn (mép ngoài, đối diện nét nối). Net xoay
-      //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
-      if(L.dline){
-        const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
-        const outer = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
-        L.dline.style.transform = outer;
-        L.sky.style.transform   = outer;   // ☀️/🌕 cùng điểm (hai cái thay phiên, không đè nhau)
-      }
+      // Pill phút + nhãn ☀️/🌕: đẩy ra ĐIỂM XA TÂM NHẤT của nhãn (mép ngoài, đối diện nét
+      //   nối); hai cái thay phiên nên dùng CHUNG một điểm. Net xoay orbit(+deg)·badge(-deg)=0
+      //   nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
+      const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
+      const outer = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
+      L.dline.style.transform = outer;
+      L.sky.style.transform   = outer;
     };
     for(const L of fixedLabels)   placeLabel(L);
     for(const o of userLabelObjs) placeLabel(o);

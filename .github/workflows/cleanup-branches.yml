@@ -1,0 +1,17 @@
+# Workflow TẠM THỜI: xóa mọi nhánh trừ main (chạy tay qua workflow_dispatch).
+# Sẽ được gỡ khỏi repo ngay sau khi chạy xong.
+name: cleanup-branches
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete all branches except main
+        run: |
+          for b in $(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||' | grep -vx 'main'); do
+            echo "deleting: $b"
+            git push origin --delete "$b" || echo "FAILED: $b"
+          done

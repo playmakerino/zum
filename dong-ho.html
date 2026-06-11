@@ -141,12 +141,12 @@
   #badgeM{--badge-bg:var(--c-min);}
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h): màu xanh giờ;
      nét nối + viền MẢNH (--ring-thin) khớp vòng tròn. */
-  /* z-index THẤP -> CAO: nhãn GIỜ (#orbitH) < nhãn hoạt động MẶC ĐỊNH (.emoji-orbit) < nhãn USER (.user-label) */
-  #orbitH{z-index:9;}                       /* VÒNG TRÒN nhãn giờ xuống DƯỚI nhãn hoạt động khi trùng */
+  /* z-index THẤP -> CAO: nhãn GIỜ/PHÚT (#orbitH/#orbitM) < nhãn hoạt động MẶC ĐỊNH (.emoji-orbit) < nhãn USER (.user-label) */
+  #orbitH,#orbitM{z-index:9;}               /* VÒNG TRÒN nhãn giờ/phút xuống DƯỚI nhãn hoạt động khi trùng */
   .emoji-orbit{z-index:10;}                 /* nhãn hoạt động mặc định */
   .emoji-orbit.user-label{z-index:12;}      /* nhãn do user tạo */
-  #orbitHt{z-index:13;}                      /* lớp SỐ GIỜ riêng -> TRÊN cùng (nổi trên emoji) */
-  #badgeHt{background:transparent;}          /* chỉ hiện SỐ, không vòng tròn nền */
+  #orbitHt,#orbitMt{z-index:13;}             /* lớp SỐ GIỜ/PHÚT riêng -> TRÊN cùng (nổi trên emoji) */
+  #badgeHt,#badgeMt{background:transparent;} /* chỉ hiện SỐ, không vòng tròn nền */
   .emoji-orbit.off{display:none;}          /* nhãn không thuộc thứ hôm nay -> ẩn hẳn */
   .emoji-orbit .connector{width:var(--ring-thin);margin-left:calc(var(--ring-thin)/-2);background:var(--c-hour);}
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
@@ -428,6 +428,10 @@
       <div class="connector" id="connM"></div>
       <div class="badge" id="badgeM"><span id="textM">00</span></div>
     </div>
+    <!-- Lớp SỐ PHÚT riêng (z cao): như số giờ — vòng tròn nhãn phút chìm DƯỚI nhãn hoạt động, SỐ nổi TRÊN -->
+    <div class="orbit" id="orbitMt">
+      <div class="badge" id="badgeMt"><span id="textMt">00</span></div>
+    </div>
     <div class="center"></div>
     <!-- Emoji hoạt động hiện TRÊN TÂM khi đến giờ (x2, tự ẩn sau 5s) — JS điều khiển -->
     <div class="center-emoji" id="centerEmoji"></div>
@@ -498,6 +502,7 @@
   const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elOrbitHt=$('orbitHt'), elBadgeHt=$('badgeHt'), elTextHt=$('textHt');   // lớp SỐ giờ riêng (z cao)
+  const elOrbitMt=$('orbitMt'), elBadgeMt=$('badgeMt'), elTextMt=$('textMt');   // lớp SỐ phút riêng (z cao)
   const elConnH=$('connH'), elConnM=$('connM');
   const elTextH=$('textH'), elTextM=$('textM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
@@ -942,6 +947,7 @@
     const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
     place(elConnM, elBadgeM, ARC_R_M, lenM, badgeM_r);
+    elBadgeMt.style.marginTop = (-badgeM_r) + 'px';   // lớp số phút trùng vị trí nhãn phút
     // Nhãn GIỜ: lưu bán kính nhãn + nửa chiều cao để placeHourConn() tính lại khi qua trưa/nửa đêm.
     HOUR_BADGE_R = badgeH_r; HOUR_HALF = realHalfH;
     elBadgeH.style.marginTop = (-badgeH_r) + 'px';
@@ -1199,10 +1205,13 @@
     elOrbitM.style.transform=`rotate(${minDeg}deg)`;
     const bH=`translate(-50%,-50%) rotate(${-hourDeg}deg) scale(${beatScale(beat.H, tNow)})`;
     elBadgeH.style.transform=bH;
-    elBadgeM.style.transform=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${beatScale(beat.M, tNow)})`;
-    // Lớp SỐ giờ riêng: đồng bộ y hệt nhãn giờ (xoay + scale nhịp) để số trùng khít, nổi trên emoji.
+    const bM=`translate(-50%,-50%) rotate(${-minDeg}deg) scale(${beatScale(beat.M, tNow)})`;
+    elBadgeM.style.transform=bM;
+    // Lớp SỐ giờ/phút riêng: đồng bộ y hệt nhãn gốc (xoay + scale nhịp) để số trùng khít, nổi trên emoji.
     elOrbitHt.style.transform=`rotate(${hourDeg}deg)`;
     elBadgeHt.style.transform=bH;
+    elOrbitMt.style.transform=`rotate(${minDeg}deg)`;
+    elBadgeMt.style.transform=bM;
 
     // Cung: cập nhật mỗi frame để chạy theo kim mượt
     updateDayArcs(h, m, s);
@@ -1231,6 +1240,7 @@
       updateBadge(elTextH, String(gio12(h)));
       updateBadge(elTextHt, String(gio12(h)));   // lớp số giờ trên cùng: cùng số với nhãn giờ
       updateBadge(elTextM, String(m));
+      updateBadge(elTextMt, String(m));          // lớp số phút trên cùng: cùng số với nhãn phút
       elH.textContent=pad(h);
       elM.textContent=pad(m);
       elS.textContent=pad(s);

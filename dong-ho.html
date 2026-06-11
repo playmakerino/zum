@@ -529,6 +529,21 @@
   // Số giờ kiểu 12h (1..12)
   function gio12(h){ const x=((h%12)+12)%12; return x===0?12:x; }
 
+  // Phần PHÚT của giờ thập phân (8.25 -> 15)
+  const minPart = hour => Math.round((hour % 1) * 60);
+
+  // TỌA ĐỘ CỰC quanh tâm mặt — MỘT quy ước cho cả trang: deg đo TỪ 12 GIỜ, theo chiều kim.
+  // Trả [dx, dy] px so với tâm. Dùng chung cho: cung SVG, chữ số, đĩa kính, pill deadline.
+  function polar(r, deg){
+    const a=(deg-90)*Math.PI/180;
+    return [r*Math.cos(a), r*Math.sin(a)];
+  }
+  // Chuỗi translate(...) tới điểm cực (r, deg) — cho transform của đĩa kính / pill deadline
+  function polarTranslate(r, deg){
+    const [x,y]=polar(r, deg);
+    return `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+  }
+
   // Ghi text vào badge chỉ khi đổi (đỡ tải)
   function updateBadge(el, txt){
     if(el.textContent!==txt) el.textContent=txt;
@@ -616,7 +631,7 @@
     const badge = document.createElement('div'); badge.className = 'badge badge-emoji';
     const ic    = document.createElement('span'); ic.className = 'ic-emoji'; ic.textContent = emoji;
     const dline = document.createElement('span'); dline.className = 'deadline-min';
-    dline.textContent = pad(Math.round((hour % 1) * 60));
+    dline.textContent = pad(minPart(hour));
     badge.append(ic, dline);
     orbit.append(conn, badge);
     analog.appendChild(orbit);
@@ -681,7 +696,7 @@
   // đã qua (vd 23:50 tạo nhãn 00:05 -> hiểu là 15 phút nữa, không phải đầu hôm nay).
   function nextOccurrence(hour){
     const d = new Date();
-    d.setHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
+    d.setHours(Math.floor(hour), minPart(hour), 0, 0);
     if(d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
     return d.getTime();
   }
@@ -862,11 +877,9 @@
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
-  // MediaQuery dùng chung cho layout()/relayout(). 2 bố cục theo BỀ RỘNG:
+  // 2 bố cục theo BỀ RỘNG (khớp media query CSS):
   //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc.
-  const MQ = {
-    desktop: window.matchMedia('(min-width:768px)'),
-  };
+  const mqDesktop = window.matchMedia('(min-width:768px)');
 
   function layout(){
     const ARC_GAP = 8;
@@ -890,7 +903,7 @@
     const vh = viewportH();
 
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
-    const desktop = MQ.desktop.matches;
+    const desktop = mqDesktop.matches;
 
     // Ghim chiều cao body = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
     document.body.style.height = vh + 'px';
@@ -954,11 +967,9 @@
     const realHalfM = elBadgeM.offsetHeight/2 || BADGE_H/2;
     const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
-    // Nét nối PHÚT đặt RIÊNG (đĩa kính phút giờ là con .analog, tick() lo vị trí theo MIN_BADGE_R).
-    elConnM.style.top = (-(ARC_R_M + lenM)) + 'px';
-    elConnM.style.height = lenM + 'px';
+    // Nét nối PHÚT + lớp số phút (đĩa kính phút là con .analog, tick() lo vị trí theo MIN_BADGE_R).
+    place(elConnM, elBadgeMt, ARC_R_M, lenM, badgeM_r);
     MIN_BADGE_R = badgeM_r;                            // tick() đặt đĩa kính phút theo bán kính này
-    elBadgeMt.style.marginTop = (-badgeM_r) + 'px';   // lớp số phút trùng vị trí đĩa kính
     // Nhãn GIỜ: lưu bán kính nhãn + nửa chiều cao để placeHourConn() tính lại khi qua trưa/nửa đêm.
     HOUR_BADGE_R = badgeH_r; HOUR_HALF = realHalfH;
     elBadgeHt.style.marginTop = (-badgeH_r) + 'px';   // lớp số giờ trùng vị trí đĩa kính
@@ -981,8 +992,7 @@
       //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
       if(L.dline){
         const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
-        const a = deg * Math.PI/180;
-        L.dline.style.transform = `translate(-50%,-50%) translate(${(R*Math.sin(a)).toFixed(2)}px, ${(-R*Math.cos(a)).toFixed(2)}px)`;
+        L.dline.style.transform = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
       }
     };
     for(const L of fixedLabels)   placeLabel(L);
@@ -1027,13 +1037,13 @@
     // Đặt BÁN KÍNH RIÊNG cho từng số: mép ngoài mỗi số cách đuôi vạch đúng G_NUM
     numerals.forEach(el=>{
       const n=+el.dataset.n;
-      const ang=(n*30-90)*Math.PI/180;
+      const [ux,uy]=polar(1, n*30);   // vector đơn vị từ tâm hướng ra số n
       const rg=document.createRange(); rg.selectNodeContents(el);
       const r=rg.getBoundingClientRect();
-      const halfReach=Math.abs(Math.cos(ang))*r.width/2 + Math.abs(Math.sin(ang))*r.height/2;
+      const halfReach=Math.abs(ux)*r.width/2 + Math.abs(uy)*r.height/2;
       const radius=(tickInner - G_NUM) - halfReach;
-      el.style.left=`calc(50% + ${Math.cos(ang)*radius}px)`;
-      el.style.top=`calc(50% + ${Math.sin(ang)*radius}px)`;
+      el.style.left=`calc(50% + ${ux*radius}px)`;
+      el.style.top=`calc(50% + ${uy*radius}px)`;
     });
     // Kim ngắn hơn vòng số để không đè lên số (dùng ref đã cache)
     const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
@@ -1043,10 +1053,7 @@
   }
 
   /* ===== 6. VÒNG TIẾN TRÌNH (SVG) ===== */
-  function polar(r, deg){
-    const a=(deg-90)*Math.PI/180;
-    return [r*Math.cos(a), r*Math.sin(a)];
-  }
+  // Cung tròn từ startDeg đến endDeg (đo từ 12h) — dựa trên polar() ở phần 1
   function arcPath(r, startDeg, endDeg){
     const sweep=endDeg-startDeg;
     if(sweep<=0.001) return '';
@@ -1214,11 +1221,10 @@
     elOrbitH.style.transform=`rotate(${hourDeg}deg)`;
     elOrbitM.style.transform=`rotate(${minDeg}deg)`;
     const sH = beatScale(beat.H, tNow), sM = beatScale(beat.M, tNow);
-    // ĐĨA KÍNH giờ/phút (con .analog): đặt bằng TỌA ĐỘ CỰC, đứng thẳng (không cần đối-xoay).
-    //   từ 12h theo chiều kim: dx = R·sin, dy = -R·cos; translate(-50%,-50%) căn tâm đĩa vào điểm đó.
-    const aH = hourDeg*Math.PI/180, aM = minDeg*Math.PI/180;
-    elBadgeH.style.transform=`translate(-50%,-50%) translate(${(HOUR_BADGE_R*Math.sin(aH)).toFixed(2)}px,${(-HOUR_BADGE_R*Math.cos(aH)).toFixed(2)}px) scale(${sH})`;
-    elBadgeM.style.transform=`translate(-50%,-50%) translate(${(MIN_BADGE_R*Math.sin(aM)).toFixed(2)}px,${(-MIN_BADGE_R*Math.cos(aM)).toFixed(2)}px) scale(${sM})`;
+    // ĐĨA KÍNH giờ/phút (con .analog): đặt bằng TỌA ĐỘ CỰC (polarTranslate), đứng thẳng
+    //   (không cần đối-xoay); translate(-50%,-50%) căn tâm đĩa vào điểm cực.
+    elBadgeH.style.transform=`translate(-50%,-50%) ${polarTranslate(HOUR_BADGE_R, hourDeg)} scale(${sH})`;
+    elBadgeM.style.transform=`translate(-50%,-50%) ${polarTranslate(MIN_BADGE_R, minDeg)} scale(${sM})`;
     // Lớp SỐ giờ/phút riêng (trong orbit xoay): đối-xoay cho số đứng thẳng + scale nhịp -> trùng khít đĩa kính, nổi TRÊN.
     elOrbitHt.style.transform=`rotate(${hourDeg}deg)`;
     elBadgeHt.style.transform=`translate(-50%,-50%) rotate(${-hourDeg}deg) scale(${sH})`;
@@ -1307,6 +1313,8 @@
     // Giá trị của một nút giờ/phút = chính chữ số trên nút (+'05' -> 5) -> không phụ thuộc
     // thứ tự index, thêm/bớt mốc trong strip không phá logic bên dưới.
     const btnVal = b => +b.textContent;
+    // Đánh dấu .sel cho nút có giá trị val trong một strip (giờ/phút)
+    const selByVal = (strip,val)=> strip.querySelectorAll('button').forEach(b=> b.classList.toggle('sel', btnVal(b)===val));
     // Làm mờ ô GIỜ đã qua; ô PHÚT mờ ĐẾN TẬN phút hiện tại (<=, vì phút này đã "đang trôi",
     // không còn là tương lai) khi đang chọn GIỜ HIỆN TẠI.
     function updatePastDim(){
@@ -1319,8 +1327,8 @@
       const now=new Date();
       selHour=now.getHours(); selMin=Math.ceil(now.getMinutes()/5)*5;
       if(selMin>=60){ selMin=0; selHour=(selHour+1)%24; }
-      hourStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('sel', btnVal(b)===selHour));
-      minStrip.querySelectorAll('button').forEach(b=> b.classList.toggle('sel', btnVal(b)===selMin));
+      selByVal(hourStrip, selHour);
+      selByVal(minStrip, selMin);
     }
     // Mở popup -> chọn sẵn thời gian gần nhất tiếp theo + mờ giờ/phút đã qua + focus GIỜ (cho remote TV).
     fab.addEventListener('click', ()=>{ pickNextSlot(); updatePastDim(); modal.classList.add('open'); (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus(); });

@@ -379,7 +379,7 @@
   }
   .emoji-pick .emoji-paste:focus{ outline:none; border-color:var(--c-buoi); }
   .emoji-pick .emoji-paste.sel{ border-style:solid; border-color:var(--c-buoi); background:#fff; }
-  .emoji-pick .emoji-paste.invalid{ border-style:solid; border-color:var(--accent); }   /* gõ chữ không phải emoji -> báo đỏ */
+  .emoji-pick .emoji-paste.invalid{ border-style:solid; border-color:var(--muted); color:var(--muted); }   /* gõ KHÔNG phải emoji -> XÁM "không hợp lệ" (≠ pink hành động); nút ✓ bị khoá */
   .num-strip{ display:grid; grid-template-columns:repeat(6,1fr); gap:5px; padding:4px 2px; }   /* 6 CỘT, không cuộn -> remote TV chọn được */
   .num-strip button{
     min-width:0; height:32px; border-radius:9px; padding:0; cursor:pointer;
@@ -396,6 +396,7 @@
     background:var(--c-sec); color:#fff; font-size:22px; line-height:1;   /* nút submit -> màu GIÂY */
     display:flex; align-items:center; justify-content:center;
   }
+  .modal-add:disabled{ background:var(--muted); opacity:.6; cursor:not-allowed; }   /* khoá khi ô tự do đang gõ KHÔNG phải emoji */
   /* Nút × xóa nhãn (chỉ nhãn người dùng tự thêm) — hiện khi rê chuột / chạm vào nhãn */
   .label-del{
     position:absolute; top:-7px; right:-7px; z-index:20; display:none;
@@ -1352,16 +1353,20 @@
       if(em){                                                          // CÓ emoji -> dùng làm nhãn, bỏ chọn nút có sẵn
         selEmoji = em;
         emojiPick.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
-        emojiPaste.classList.remove('invalid');
-        emojiPaste.classList.add('sel');
-      }else{                                                           // trống / gõ chữ thường -> KHÔNG nhận, quay về emoji đầu
+        emojiPaste.classList.remove('invalid'); emojiPaste.classList.add('sel');
+        modalAdd.disabled = false;
+      }else if(emojiPaste.value.trim()===''){                          // TRỐNG -> quay về emoji đầu hàng, cho phép tạo
         selEmoji = EMOJIS[0];
-        emojiPaste.classList.remove('sel');
-        emojiPaste.classList.toggle('invalid', emojiPaste.value.trim()!=='');   // có gõ mà không phải emoji -> viền đỏ báo
-        emojiPick.querySelector('button')?.classList.add('sel');
+        emojiPaste.classList.remove('sel','invalid');
+        setSel(emojiPick, emojiPick.querySelector('button'));
+        modalAdd.disabled = false;
+      }else{                                                           // gõ CHỮ (không phải emoji) -> KHOÁ ✓, không cho tạo nhãn
+        emojiPaste.classList.remove('sel'); emojiPaste.classList.add('invalid');
+        emojiPick.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));   // không có gì "đang chọn"
+        modalAdd.disabled = true;
       }
     });
-    EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>{ selEmoji=em; emojiPaste.value=''; emojiPaste.classList.remove('sel','invalid'); }, i===0));
+    EMOJIS.forEach((em,i)=> mkBtn(emojiPick, em, ()=>{ selEmoji=em; emojiPaste.value=''; emojiPaste.classList.remove('sel','invalid'); modalAdd.disabled=false; }, i===0));
     if(canPaste) emojiPick.appendChild(emojiPaste);                    // ô dán nằm CUỐI hàng emoji (không tạo trên tivi)
     for(let h=0;h<24;h++)  mkBtn(hourStrip, pad(h),  ()=>{ selHour=h; updatePastDim(); }, h===selHour);
     for(let mm=0;mm<60;mm+=5) mkBtn(minStrip, pad(mm), ()=>selMin=mm, mm===selMin);
@@ -1386,7 +1391,15 @@
       selByVal(minStrip, selMin);
     }
     // Mở popup -> chọn sẵn thời gian gần nhất tiếp theo + mờ giờ/phút đã qua + focus GIỜ (cho remote TV).
-    fab.addEventListener('click', ()=>{ pickNextSlot(); updatePastDim(); modal.classList.add('open'); (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus(); });
+    fab.addEventListener('click', ()=>{
+      // Dọn ô gõ-sai còn sót từ lần mở trước (đang khoá ✓) -> trả về trạng thái hợp lệ.
+      if(emojiPaste.classList.contains('invalid')){
+        emojiPaste.value=''; emojiPaste.classList.remove('invalid');
+        setSel(emojiPick, emojiPick.querySelector('button')); selEmoji=EMOJIS[0]; modalAdd.disabled=false;
+      }
+      pickNextSlot(); updatePastDim(); modal.classList.add('open');
+      (hourStrip.querySelector('.sel')||emojiPick.firstChild)?.focus();
+    });
     modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
     // Nút Back/Escape của remote TV (hoặc phím Esc) -> đóng popup
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modal.classList.contains('open')) modal.classList.remove('open'); });

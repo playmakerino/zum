@@ -105,7 +105,7 @@
     position:absolute;left:50%;top:50%;
     transform:translate(-50%,-50%);
     font-size:calc(var(--emoji-size)*2);line-height:1;   /* x2 cỡ emoji trên nhãn */
-    z-index:14;                        /* nổi trên kim + mọi nhãn (cao nhất là #orbitHt z13) */
+    z-index:14;                        /* nổi trên kim + mọi nhãn (bằng lớp số #orbitHt/#orbitMt z14, đứng cuối DOM nên đè) */
     opacity:0;
     transition:opacity .3s ease;
     pointer-events:none;
@@ -113,10 +113,10 @@
   .center-emoji.show{opacity:1;}
 
   /* ===== NHÃN QUAY QUANH MẶT (giờ / phút / emoji hoạt động) ===== */
+  /* z-index đặt theo TỪNG LOẠI orbit ở dưới (nét nối z9 / emoji z10-12 / số z14), không đặt ở gốc */
   .orbit{
     position:absolute;left:50%;top:50%;
     width:0;height:0;
-    z-index:11;
   }
   .connector{
     position:absolute;left:50%;

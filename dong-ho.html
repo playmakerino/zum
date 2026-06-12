@@ -151,10 +151,11 @@
   .glass-badge{ top:50%; mix-blend-mode:multiply; z-index:13; }
   /* Nhãn EMOJI mốc trong ngày (tập 8h / ăn sáng 8h15 / ăn tối 19h30 / đi ngủ 22h): màu xanh giờ;
      nét nối + viền MẢNH (--ring-thin) khớp vòng tròn. */
-  /* z-index THẤP -> CAO: nét nối GIỜ/PHÚT (#orbitH/#orbitM) < emoji < KÍNH nhãn (.glass-badge z13) < SỐ (z14) */
+  /* z-index THẤP -> CAO: nét nối GIỜ/PHÚT (#orbitH/#orbitM) < emoji NGOÀI < emoji TRONG < KÍNH nhãn (.glass-badge z13) < SỐ (z14) */
   #orbitH,#orbitM{z-index:9;}               /* nét nối giờ/phút xuống DƯỚI nhãn hoạt động khi trùng */
-  .emoji-orbit{z-index:10;}                 /* nhãn hoạt động mặc định */
-  .emoji-orbit.user-label{z-index:12;}      /* nhãn do user tạo */
+  .emoji-orbit{z-index:10;}                 /* nhãn hoạt động vòng NGOÀI (mặc định) */
+  .emoji-orbit.user-label{z-index:11;}      /* nhãn do user tạo (cũng vòng ngoài) */
+  .emoji-orbit.inner{z-index:12;}           /* nhãn vòng TRONG nổi TRÊN nhãn vòng ngoài (nét nối nhãn ngoài không đè) */
   #orbitHt,#orbitMt{z-index:14;}             /* lớp SỐ GIỜ/PHÚT riêng -> TRÊN cùng (nổi trên KÍNH + emoji) */
   #badgeHt,#badgeMt{background:transparent;} /* chỉ hiện SỐ, không vòng tròn nền */
   .emoji-orbit.off{display:none;}          /* nhãn không thuộc thứ hôm nay -> ẩn hẳn */
@@ -652,8 +653,13 @@
     analog.appendChild(orbit);
     return {orbit, conn, badge, hour, dline, emoji};
   }
-  // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng
-  const fixedLabels = FIXED_LABELS.map(c => Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner}));
+  // Nhãn cố định: dựng từ bảng cấu hình; giữ thêm days/inner để lọc theo thứ & xếp tầng.
+  // inner -> thêm class 'inner' (CSS cho z-index cao hơn nhãn vòng ngoài cùng góc).
+  const fixedLabels = FIXED_LABELS.map(c => {
+    const o = Object.assign(createLabel(c.emoji, c.hour), {days:c.days, inner:c.inner});
+    if(c.inner) o.orbit.classList.add('inner');
+    return o;
+  });
 
   // Nhãn do NGƯỜI DÙNG tự thêm (dựng DOM động) — là LỜI NHẮC MỘT LẦN:
   // hiện từ lúc tạo và TỰ XÓA khi đã qua 6 TIẾNG sau giờ của nhãn (xem updateLabelStates).

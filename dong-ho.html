@@ -163,11 +163,13 @@
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
      -> nét nối chạm đúng viền, không đâm xuyên khi nhãn ở góc xiên. */
   .badge-emoji{width:var(--badge-dia);height:var(--badge-dia);border:var(--ring-thin) solid var(--c-hour);}
-  /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track), nhãn chỉ có viền (nền trong suốt) */
+  /* Nền nhãn = MÀU NỀN TRANG (không phải transparent): nhãn luôn nằm trên nền be ngoài mặt
+     nên trông y hệt, nhưng CHE được nét nối của nhãn vòng ngoài / kim chạy SAU LƯNG (z thấp hơn). */
+  /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track) */
   .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
-  .emoji-orbit.upcoming .badge-emoji{background:transparent;border-color:var(--c-hour-faint);}
-  /* ĐÃ đến/qua giờ -> nét nối + viền ĐẶC (khớp vòng arc đã-qua), nhãn KHÔNG nền (trong suốt) */
-  .emoji-orbit.reached .badge-emoji{background:transparent;}
+  .emoji-orbit.upcoming .badge-emoji{background:var(--bg);border-color:var(--c-hour-faint);}
+  /* ĐÃ đến/qua giờ -> nét nối + viền ĐẶC (khớp vòng arc đã-qua) */
+  .emoji-orbit.reached .badge-emoji{background:var(--bg);}
   /* 2 class -> đè .badge span{display:block}; flex để emoji vào ĐÚNG TÂM (không theo baseline) */
   .badge-emoji .ic-emoji{display:flex;align-items:center;justify-content:center;
     width:100%;height:100%;font-size:var(--emoji-size);line-height:1;

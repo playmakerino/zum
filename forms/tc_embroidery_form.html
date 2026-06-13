@@ -467,13 +467,6 @@
         s + (filesByRow[el.dataset.rowId] || []).reduce((a, f) => a + f.size, 0), 0) / (1024 * 1024);
 
       try {
-        // Probe: tiny POST to test connectivity & CORS before sending files
-        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData() }).catch(() => null);
-        if (!probe) {
-          showStatus('error', '&#10007; Cannot reach webhook — check network connection or CORS (file:// origin is blocked).');
-          return;
-        }
-
         const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd });
 
         if (res.ok) {

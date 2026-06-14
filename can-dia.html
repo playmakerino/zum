@@ -29,15 +29,15 @@
   /* hình học cân (px) — JS đọc lại qua getComputedStyle */
   --cx:200px;
   /* MẶT SỐ + KIM + ĐÒN CÙNG 1 TÂM: disc-cy == pivot */
-  --pivot:166px;          /* tâm CHUNG: trục đòn = tâm đĩa = trục kim */
-  --disc-cy:166px;        /* = --pivot (đĩa mặt số tròn bao quanh trục) */
+  --pivot:86px;           /* tâm CHUNG: trục đòn = tâm đĩa = trục kim (dồn lên, bớt trống) */
+  --disc-cy:86px;         /* = --pivot (đĩa mặt số tròn bao quanh trục) */
   --disc-r:74px;          /* bán kính đĩa mặt số */
   --arm:124px;            /* nửa đòn cân */
   --dial-r:58px;          /* bán kính đặt SỐ (từ tâm chung) */
   --needle-len:48px;      /* dài kim — < bán kính số -> KHÔNG đè số */
   --string-len:66px;      /* dài dây treo */
   --plate-rad:64px;       /* nửa miệng đĩa cân */
-  --base-top:360px;
+  --base-top:280px;
   --unit:34px;            /* 1 ô đơn rộng = 1 đơn vị; đĩa chứa 4 đơn vị */
   --box-h:34px;
   --max-beam:9;           /* nghiêng đòn tối đa (deg) */
@@ -50,6 +50,8 @@ body{
   min-height:100dvh;background:var(--bg);color:var(--dark);
   font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
+/* lúc TẢI TRANG: tắt mọi animation/transition (JS gỡ .preload sau khung hình đầu) */
+.preload *,.preload *::before,.preload *::after{transition:none !important;animation:none !important;}
 
 /* ===== BỐ CỤC: list TRÁI sát mép | cân | list PHẢI sát mép ===== */
 .stage{
@@ -79,7 +81,7 @@ body{
    - .mini = preview trong list & option · .big = trong popup */
 .box{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
   border:2.5px solid var(--dark);border-radius:7px;
-  background:var(--wood);}                  /* ô = GỖ (giữ KHUNG màu theo phe) */
+  background:transparent;}                   /* KHÔNG nền sau emoji (chỉ giữ KHUNG màu) */
 .box.left{border-color:var(--good);}        /* viền ô theo phe (xanh/cam) */
 .box.right{border-color:var(--bad);}
 .box .f{line-height:1;}
@@ -110,13 +112,14 @@ body{
 .panel.left  .emoji-input:focus{border-color:var(--good);border-style:solid;}
 .panel.right .emoji-input:focus{border-color:var(--bad);border-style:solid;}
 
-/* ===== KHU CÂN ===== (phóng to bằng transform; margin chừa chỗ trong layout) */
-.scale{position:relative;flex:0 0 auto;width:400px;height:476px;
+/* ===== KHU CÂN ===== (phóng to bằng transform; margin chừa chỗ trong layout)
+   height 340 đã cắt sát nội dung -> 340*1.4 = 476 = bằng bản gốc -> KHÔNG sinh scroll mới */
+.scale{position:relative;flex:0 0 auto;width:400px;height:340px;
   transform:scale(var(--s));transform-origin:center;
-  margin:calc(238px * (var(--s) - 1)) calc(200px * (var(--s) - 1));}
+  margin:calc(170px * (var(--s) - 1)) calc(200px * (var(--s) - 1));}
 
 /* ----- mặt số bán nguyệt = một phần của cân ----- */
-.dial{position:absolute;left:0;top:0;width:400px;height:476px;overflow:visible;z-index:2;pointer-events:none;}
+.dial{position:absolute;left:0;top:0;width:400px;height:340px;overflow:visible;z-index:2;pointer-events:none;}
 /* (KHÔNG còn SỐ trên mặt đĩa) — đĩa chỉ có vạch khắc + kim */
 .nums{position:absolute;left:var(--cx);top:var(--disc-cy);width:0;height:0;z-index:4;pointer-events:none;}
 
@@ -230,7 +233,7 @@ body{
 }
 </style>
 </head>
-<body>
+<body class="preload">
   <div class="stage">
     <!-- ===== LIST VIỆC TỐT (TRÁI 🙂) ===== -->
     <aside class="panel left">
@@ -414,9 +417,10 @@ function removeItem(id){
 
 /* ===== 4. Ô TRÊN ĐĨA — xếp CHẠM nhau & rơi NGẮN ===== */
 const boxEls=new Map();   // id -> .box-slot
+let animateDrops=false;   // lúc TẢI: false -> ô hiện luôn (không rơi); sau init -> true
 function buildBox(b){
   const slot=document.createElement('div'); slot.className='box-slot';
-  const box=document.createElement('div'); box.className='box dropping '+b.side+' '+(b.type==='rect'?'rect':'square');
+  const box=document.createElement('div'); box.className='box '+(animateDrops?'dropping ':'')+b.side+' '+(b.type==='rect'?'rect':'square');
   for(let i=0;i<weightOf(b.type);i++){ const f=document.createElement('span'); f.className='f'; f.textContent=FACE[b.side]; box.appendChild(f); }
   const badge=document.createElement('span'); badge.className='box-badge'; badge.textContent=b.event;   // sự việc -> góc trên-phải
   box.appendChild(badge);
@@ -553,6 +557,8 @@ function init(){
   $('reset').addEventListener('click', askReset);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
   startSync();
+  // sau khung hình ĐẦU (đã vẽ xong trạng thái cuối): bật lại animation cho thao tác sau
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ document.body.classList.remove('preload'); animateDrops=true; }));
 }
 init();
 </script>

@@ -28,15 +28,16 @@
 
   /* hình học cân (px) — JS đọc lại qua getComputedStyle */
   --cx:200px;
-  --pivot:198px;          /* trục đòn (fulcrum) — beam pivot */
-  --disc-cy:122px;        /* tâm ĐĨA MẶT SỐ tròn (phía TRÊN trục, như ảnh) */
-  --disc-r:88px;          /* bán kính đĩa mặt số */
+  /* MẶT SỐ + KIM + ĐÒN CÙNG 1 TÂM: disc-cy == pivot */
+  --pivot:166px;          /* tâm CHUNG: trục đòn = tâm đĩa = trục kim */
+  --disc-cy:166px;        /* = --pivot (đĩa mặt số tròn bao quanh trục) */
+  --disc-r:74px;          /* bán kính đĩa mặt số */
   --arm:124px;            /* nửa đòn cân */
-  --dial-r:64px;          /* bán kính đặt SỐ (từ tâm đĩa) */
-  --needle-len:55px;      /* dài kim — < bán kính số -> KHÔNG đè số */
-  --string-len:64px;      /* dài dây treo */
+  --dial-r:58px;          /* bán kính đặt SỐ (từ tâm chung) */
+  --needle-len:48px;      /* dài kim — < bán kính số -> KHÔNG đè số */
+  --string-len:66px;      /* dài dây treo */
   --plate-rad:64px;       /* nửa miệng đĩa cân */
-  --base-top:392px;
+  --base-top:360px;
   --unit:34px;            /* 1 ô đơn rộng = 1 đơn vị; đĩa chứa 4 đơn vị */
   --box-h:34px;
   --max-beam:9;           /* nghiêng đòn tối đa (deg) */
@@ -65,7 +66,7 @@ body{
 .event-row{position:relative;display:flex;align-items:center;justify-content:center;
   gap:8px;flex-wrap:nowrap;white-space:nowrap;min-height:38px;}
 /* bề rộng CỐ ĐỊNH cho emoji + dấu = -> các ô THẲNG HÀNG DỌC giữa các row */
-.ev{font-size:1.5rem;line-height:1;width:41px;text-align:center;flex:0 0 auto;}
+.ev{position:relative;font-size:1.5rem;line-height:1;width:41px;text-align:center;flex:0 0 auto;}
 .eq{font-size:1.2rem;font-weight:700;width:16px;text-align:center;flex:0 0 auto;}
 .panel.left  .eq{color:var(--good);}      /* dấu = theo phe */
 .panel.right .eq{color:var(--bad);}
@@ -92,8 +93,8 @@ body{
   width:18px;height:18px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
   background:var(--bad);color:var(--bg);font:700 12px/1 system-ui;align-items:center;justify-content:center;padding:0;
 }
-.panel.left  .row-del{right:-8px;}    /* box ở phải row -> × góc phải */
-.panel.right .row-del{left:-8px;}     /* box ở trái row -> × góc trái */
+.panel.left  .row-del{left:-6px;}     /* emoji ở trái row -> × góc trái-ngoài */
+.panel.right .row-del{right:-6px;}    /* emoji ở phải row -> × góc phải-ngoài */
 .event-row:hover .row-del{display:flex;}
 
 /* hàng custom = 1 DÒNG: [ô nhập] = [ô đơn][ô đôi] (mỗi ô là button) */
@@ -130,10 +131,10 @@ body{
   filter:drop-shadow(0 1px 1.5px rgba(58,36,16,.4));
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);
 }
-/* vít ở khớp đòn-trụ (như ảnh) */
-.hub{position:absolute;left:var(--cx);top:var(--pivot);width:14px;height:14px;
-  margin-left:-7px;margin-top:-7px;border-radius:50%;z-index:6;border:1.8px solid var(--dark);
-  background:radial-gradient(circle at 36% 32%, rgba(255,250,235,.9), rgba(255,250,235,0) 50%), var(--gold);}
+/* vít TRUNG TÂM (khớp đòn-trụ-kim-mặt số chung 1 tâm) — trên cùng */
+.hub{position:absolute;left:var(--cx);top:var(--pivot);width:17px;height:17px;
+  margin-left:-8.5px;margin-top:-8.5px;border-radius:50%;z-index:8;border:2px solid var(--dark);
+  background:radial-gradient(circle at 36% 32%, rgba(255,250,235,.95), rgba(255,250,235,0) 52%), var(--gold);}
 
 /* ----- trụ gỗ dán phẳng ----- */
 .post{position:absolute;left:var(--cx);top:var(--disc-cy);width:26px;margin-left:-13px;
@@ -396,10 +397,10 @@ function makeRow(it){
   const eq=document.createElement('span'); eq.className='eq'; eq.textContent='=';
   const fc=boxNode(it.side, it.type, 'mini');
   fc.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
-  // nút × xóa item — NGAY SÁT box (góc trên-ngoài của box)
+  // nút × xóa item — gắn vào EMOJI (không phải nút add/box)
   const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
   del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it.id); });
-  fc.appendChild(del);
+  ev.appendChild(del);
   if(it.side==='left') li.append(ev, eq, fc); else li.append(fc, eq, ev);   // phải = gương
   return li;
 }
@@ -513,8 +514,8 @@ function buildDial(){
     + `<circle cx="${CX}" cy="${DISC_CY}" r="${DISC_R}" fill="var(--wood)" stroke="var(--dark)" stroke-width="2.5"/>`  // đĩa gỗ
     + `<circle cx="${CX}" cy="${DISC_CY}" r="${DISC_R-5}" fill="none" stroke="rgba(58,36,16,.16)" stroke-width="1"/>`  // vòng khắc trong
     + `<circle cx="${CX}" cy="${DISC_CY}" r="${DISC_R}" fill="url(#discShade)"/>`                                      // bóng tròn
-    + ticks
-    + `<circle cx="${CX}" cy="${DISC_CY}" r="7" fill="var(--gold)" stroke="var(--dark)" stroke-width="1.6"/>`;        // vít trục kim
+    + ticks;
+  // vít trục kim = .hub (HTML, z cao) ở đúng tâm chung -> không vẽ lại trong SVG
 }
 // dây treo chữ V — dài/góc tính 1 lần; vẽ TRÊN ô nên ô không che dây
 function layoutChains(){

@@ -182,10 +182,8 @@ body{
   transition:transform .32s cubic-bezier(.3,1.4,.5,1),opacity .25s ease;}
 .pan .box .f{font-size:1.34rem;}
 .pan .box.dropping{transform:translateY(-40px);opacity:.3;}   /* rơi NGẮN xuống đĩa */
-/* emoji sự việc nhỏ — góc TRÊN-PHẢI mỗi ô (lý do ô thưởng/phạt này) */
-.box-badge{position:absolute;top:-9px;right:-9px;z-index:6;
-  min-width:19px;height:19px;padding:0 2px;border-radius:10px;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;font-size:.8rem;line-height:1;}
+/* emoji sự việc nhỏ — góc TRÊN-PHẢI mỗi ô (KHÔNG nền, chỉ emoji) */
+.box-badge{position:absolute;top:-8px;right:-7px;z-index:6;font-size:.82rem;line-height:1;}
 /* nút × xóa — góc TRÊN-TRÁI (tránh đè badge) */
 .box-x{position:absolute;top:-9px;left:-9px;display:none;z-index:7;
   width:18px;height:18px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
@@ -228,9 +226,10 @@ body{
 /* ===== MOBILE: cân trên, 2 list xuống dưới ===== */
 @media (max-width:860px){
   /* cân full hàng TRÊN; 2 list thưởng/phạt thành 2 CỘT hàng dưới */
-  .stage{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start;
-    padding:10px 6px 24px;gap:16px 10px;}
-  .scale{order:-1;--s:0.92;margin:0;}
+  /* align-content:flex-start -> KHÔNG kéo giãn 2 hàng ra đầy màn hình (sửa khoảng cách quá xa) */
+  .stage{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start;align-content:flex-start;
+    padding:10px 6px 24px;gap:8px 10px;}
+  .scale{order:-1;--s:0.92;margin:0 0 -28px;}   /* kéo 2 list lên sát đế (đáy hộp cân trống ~28px) */
   .panel{width:auto;flex:1 1 0;min-width:0;max-width:48vw;}
 }
 </style>

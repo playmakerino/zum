@@ -5,421 +5,270 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cân Đĩa</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&display=swap');
-
 /* ============================================================
-   CÂN ĐĨA THƯỞNG PHẠT — phong cách Ghibli, cho trẻ nhỏ
-   • Đĩa TRÁI = 🙂 (việc tốt), đĩa PHẢI = 🙁 (việc chưa ngoan)
-   • Ô vuông = 1 emoji (nặng 1), ô chữ nhật = 2 emoji (nặng 2)
-   • Kim chỉ lệch về đĩa NẶNG hơn: số |hiệu| (0..10) hai bên
-   • Realtime Database Firebase — đồng bộ mọi thiết bị (giống dong-ho.html)
+   CÂN ĐĨA THƯỞNG PHẠT — không chữ, cho trẻ nhỏ
+   • Đĩa TRÁI 🙂 (việc tốt) / PHẢI 🙁 (việc chưa ngoan)
+   • Ô đơn = 1 emoji (nặng 1), ô đôi = 2 emoji (nặng 2), các ô CHẠM nhau
+   • Kim chỉ |hiệu trọng lượng| 0..10 hai bên; đòn nghiêng về đĩa nặng
+   • Vòng số là MỘT PHẦN của cân (mặt số bán nguyệt gắn ở trục)
+   • Realtime Database Firebase /candia (giống dong-ho.html), fallback localStorage
    ------------------------------------------------------------
-   Hằng số HÌNH HỌC khai báo ở :root (px) -> JS đọc lại để đặt
-   số trên cung & tính cân bằng. MỘT nguồn, sửa một nơi.
+   BẢNG MÀU — đúng 5 màu (emoji là nội dung, không tính):
+     --bg #f1e7d3 · --wood #c2854b · --dark #5a3d23 · --good #84b063 · --bad #db7d4f
    ============================================================ */
 :root{
-  --cream:#fbf3e4;
-  --ink:#4a4364;
-  --muted:#9a8fa6;
+  --bg:#f1e7d3;
+  --wood:#c2854b;
+  --dark:#5a3d23;
+  --good:#84b063;
+  --bad:#db7d4f;
 
-  /* bảng màu Ghibli: trời, đồng cỏ, gỗ ấm, đồng thau */
-  --sky-top:#bfe6f0;
-  --sky-bot:#eaf7ec;
-  --hill:#bfe0a4;
-  --hill-dark:#a6d188;
-  --wood:#d59a68;
-  --wood-dark:#a86c43;
-  --wood-light:#ecc296;
-  --brass:#e9b85c;
-  --rope:#9a7350;
-
-  --good:#7fbf6b;          /* phe việc tốt (xanh lá) */
-  --bad:#ec8a6a;           /* phe việc chưa ngoan (cam đào) */
-  --smile-box:#ffe08a;     /* nền ô 🙂 */
-  --smile-edge:#f4c24b;
-  --frown-box:#bcd6f4;     /* nền ô 🙁 */
-  --frown-edge:#8fb6e6;
-
-  /* ----- hình học cân (JS đọc qua getComputedStyle) ----- */
-  --arm:140px;             /* nửa chiều dài đòn cân */
-  --pivot-top:248px;       /* tâm trục (từ đỉnh khu .scale) */
-  --needle-len:118px;      /* dài kim (chĩa tới vành số, không vượt số 0) */
-  --gauge-r:126px;         /* bán kính đặt SỐ trên cung */
-  --string-len:60px;       /* dài dây treo */
-  --plate-rad:62px;        /* nửa bề ngang miệng đĩa (dây chữ V bám vào) */
-  --base-top:452px;        /* mặt trên đế (chân trụ chạm tới đây) */
-  --unit:36px;             /* 1 ô vuông = 1 đơn vị bề ngang; đĩa chứa 4 đơn vị */
-  --row-h:38px;            /* cao mỗi tầng ô xếp chồng */
-  --box-h:34px;            /* cao 1 ô */
-  --max-beam:11;           /* độ nghiêng đòn tối đa (deg) ở hiệu = ±10 */
-  --max-deg:72;            /* góc kim tối đa (deg) ở hiệu = ±10 */
+  /* hình học cân (px) — JS đọc lại qua getComputedStyle */
+  --cx:200px;
+  --pivot:186px;          /* tâm trục tính từ đỉnh khu .scale */
+  --arm:120px;            /* nửa đòn cân */
+  --dial-r:134px;         /* bán kính đặt SỐ */
+  --needle-len:112px;     /* dài kim — < bán kính số -> kim KHÔNG đè số */
+  --string-len:70px;      /* dài dây treo */
+  --plate-rad:66px;       /* nửa miệng đĩa (dây bám rìa) */
+  --base-top:408px;
+  --unit:34px;            /* 1 ô đơn rộng = 1 đơn vị; đĩa chứa 4 đơn vị */
+  --box-h:34px;
+  --max-beam:10;          /* nghiêng đòn tối đa (deg) */
+  --max-deg:70;           /* góc kim tối đa (deg) */
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
 body{
-  min-height:100dvh;
-  background:linear-gradient(180deg,var(--sky-top) 0%,#d7eede 52%,var(--sky-bot) 100%);
-  color:var(--ink);
-  font-family:'Baloo 2',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
+  min-height:100dvh;background:var(--bg);color:var(--dark);
+  font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
 
-/* ===== KHUNG CẢNH GHIBLI (mặt trời, mây, đồi) ===== */
-.scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-.sun{position:absolute;top:6%;left:50%;transform:translateX(-50%);
-  width:140px;height:140px;border-radius:50%;
-  background:radial-gradient(circle,#fff3c4 0%,#ffe79a 55%,rgba(255,231,154,0) 72%);}
-.cloud{position:absolute;background:#fff;border-radius:50px;opacity:.92;
-  box-shadow:0 8px 20px rgba(120,150,170,.18);}
-.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%;}
-.cloud.c1{width:120px;height:34px;top:14%;left:8%;animation:drift 38s linear infinite;}
-.cloud.c1::before{width:54px;height:54px;top:-24px;left:18px;}
-.cloud.c1::after{width:40px;height:40px;top:-16px;left:62px;}
-.cloud.c2{width:90px;height:28px;top:22%;right:10%;animation:drift 52s linear infinite reverse;}
-.cloud.c2::before{width:42px;height:42px;top:-20px;left:14px;}
-.cloud.c2::after{width:32px;height:32px;top:-12px;left:48px;}
-.cloud.c3{width:70px;height:22px;top:9%;left:62%;animation:drift 46s linear infinite;}
-.cloud.c3::before{width:34px;height:34px;top:-16px;left:10px;}
-.cloud.c3::after{width:26px;height:26px;top:-10px;left:38px;}
-@keyframes drift{from{transform:translateX(-30px);}to{transform:translateX(30px);}}
-.hill{position:absolute;left:-5%;width:110%;border-radius:50% 50% 0 0;}
-.hill.h1{bottom:0;height:24vh;background:var(--hill-dark);}
-.hill.h2{bottom:0;height:16vh;background:var(--hill);left:-15%;width:130%;}
-
-/* ===== BỐ CỤC TỔNG: list trái | cân | list phải ===== */
+/* ===== BỐ CỤC: list TRÁI sát mép | cân | list PHẢI sát mép ===== */
 .stage{
-  position:relative;z-index:1;
-  min-height:100dvh;
-  display:flex;align-items:center;justify-content:center;
-  gap:clamp(10px,2.4vw,30px);
-  padding:18px 14px 26px;
-  flex-wrap:wrap;
-}
-.title{
-  position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2;
-  font-weight:700;font-size:clamp(1.1rem,3.4vw,1.5rem);color:var(--ink);
-  text-shadow:0 2px 0 #fff;letter-spacing:.5px;
+  min-height:100dvh;display:flex;align-items:center;justify-content:space-between;
+  gap:6px;padding:0 8px;
 }
 
-/* ===== THẺ DANH SÁCH SỰ VIỆC (2 bên) ===== */
+/* ===== LIST SỰ VIỆC 2 BÊN ===== */
 .panel{
-  background:rgba(255,255,255,.82);
-  border-radius:24px;
-  padding:14px 13px 13px;
-  width:min(40vw,238px);
-  box-shadow:0 12px 30px rgba(120,140,160,.22);
-  backdrop-filter:blur(2px);
-  border:2px solid #fff;
+  width:clamp(132px,17vw,210px);flex:0 0 auto;
+  display:flex;flex-direction:column;gap:9px;
 }
-.panel h2{
-  font-size:1.02rem;font-weight:700;text-align:center;margin-bottom:10px;
-  padding:6px 8px;border-radius:14px;color:#fff;line-height:1.15;
+.panel .head{
+  align-self:center;width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:1;
+  border:3px solid;
 }
-.panel.left  h2{background:var(--good);}
-.panel.right h2{background:var(--bad);}
-
+.panel.left  .head{border-color:var(--good);}
+.panel.right .head{border-color:var(--bad);}
 .event-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
-.event-row{
-  position:relative;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:8px 10px;border-radius:16px;cursor:pointer;
-  background:#fff;border:2px solid #f0e6d4;
-  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease;
-  user-select:none;
+.event-row,.opt{
+  display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+  padding:7px 9px;border-radius:15px;border:2.5px solid var(--wood);background:var(--bg);
+  transition:transform .12s ease,border-color .12s ease;user-select:none;min-height:44px;
 }
-.event-row:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(120,140,160,.2);}
-.event-row:active{transform:scale(.97);}
-.event-row.left:hover{border-color:var(--good);}
-.event-row.right:hover{border-color:var(--bad);}
-.event-row .ev{font-size:1.5rem;line-height:1;}
-.event-row .eq{font-size:1.05rem;color:var(--muted);font-weight:600;}
+.event-row:hover,.opt:hover{transform:translateY(-2px);}
+.event-row:active,.opt:active{transform:scale(.96);}
+.panel.left  .event-row:hover,.panel.left  .opt:hover{border-color:var(--good);}
+.panel.right .event-row:hover,.panel.right .opt:hover{border-color:var(--bad);}
+.event-row{position:relative;}
+.ev{font-size:1.5rem;line-height:1;}
+/* Ô = KHUNG vuông/chữ nhật (không nền màu), chứa 1 / 2 emoji. Dùng chung mọi nơi:
+   - mặc định = ô trên đĩa (rộng = slot)
+   - .mini = preview trong list & option · .big = trong popup */
+.box{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  border:2px solid var(--dark);border-radius:7px;background:transparent;}
+.box .f{line-height:1;}
+.box.mini{height:32px;}
+.box.mini.square{width:32px;} .box.mini.rect{width:60px;}
+.box.mini .f{font-size:1.24rem;}
 .row-del{
-  position:absolute;top:-7px;right:-7px;display:none;
-  width:19px;height:19px;border-radius:50%;border:2px solid #fff;cursor:pointer;
-  background:var(--bad);color:#fff;font:700 12px/1 'Baloo 2',sans-serif;
-  align-items:center;justify-content:center;padding:0;
+  position:absolute;top:-8px;right:-8px;display:none;
+  width:20px;height:20px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
+  background:var(--bad);color:var(--bg);font:700 13px/1 system-ui;align-items:center;justify-content:center;padding:0;
 }
 .event-row:hover .row-del{display:flex;}
 
-/* ô preview nhỏ trong danh sách */
-.mini-box{display:inline-flex;align-items:center;justify-content:center;gap:1px;
-  border-radius:8px;padding:3px 5px;border:2px solid;}
-.mini-box.left{background:var(--smile-box);border-color:var(--smile-edge);}
-.mini-box.right{background:var(--frown-box);border-color:var(--frown-edge);}
-.mini-box .face{font-size:1.1rem;line-height:1;}
-
-/* hàng nhập sự việc tùy ý */
-.custom-row{
-  margin-top:11px;padding-top:11px;border-top:2px dashed #ead9bf;
-  display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;
-}
+/* hàng nhập custom: [ô nhập emoji] + 2 option (ô đơn / ô đôi) */
+.custom{margin-top:4px;padding-top:10px;border-top:2px dashed var(--wood);
+  display:flex;flex-direction:column;gap:8px;}
 .emoji-input{
-  width:50px;height:42px;border-radius:13px;border:2px dashed #d9c7a8;
-  background:#fff;text-align:center;font-size:1.3rem;line-height:1;
-  font-family:'Baloo 2',sans-serif;color:var(--ink);
+  align-self:center;width:52px;height:44px;border-radius:14px;border:2.5px dashed var(--wood);
+  background:var(--bg);text-align:center;font-size:1.5rem;line-height:1;color:var(--dark);
 }
-.emoji-input:focus{outline:none;border-style:solid;}
-.panel.left .emoji-input:focus{border-color:var(--good);}
-.panel.right .emoji-input:focus{border-color:var(--bad);}
-.shape-toggle{display:flex;gap:4px;}
-.shape-toggle button{
-  width:38px;height:42px;border-radius:12px;cursor:pointer;
-  border:2px solid #ead9bf;background:#fff;color:var(--muted);
-  display:flex;align-items:center;justify-content:center;padding:0;
-}
-.shape-toggle button .glyph{border-radius:4px;background:currentColor;}
-.shape-toggle button.sq .glyph{width:15px;height:15px;}
-.shape-toggle button.rt .glyph{width:26px;height:14px;}
-.shape-toggle button.sel{background:#fff7e8;}
-.panel.left .shape-toggle button.sel{border-color:var(--good);color:var(--good);}
-.panel.right .shape-toggle button.sel{border-color:var(--bad);color:var(--bad);}
-.add-custom{
-  width:42px;height:42px;border-radius:13px;border:none;cursor:pointer;color:#fff;
-  font-size:1.5rem;line-height:1;display:flex;align-items:center;justify-content:center;
-}
-.panel.left .add-custom{background:var(--good);}
-.panel.right .add-custom{background:var(--bad);}
-.add-custom:disabled{background:var(--muted);opacity:.55;cursor:not-allowed;}
+.emoji-input:focus{outline:none;}
+.panel.left  .emoji-input:focus{border-color:var(--good);border-style:solid;}
+.panel.right .emoji-input:focus{border-color:var(--bad);border-style:solid;}
 
 /* ===== KHU CÂN ===== */
-.scale{
-  position:relative;flex:0 0 auto;
-  width:380px;height:560px;
-}
-/* emoji sự việc gần nhất — góc trên bên phải */
-.last-event{
-  position:absolute;top:6px;right:4px;z-index:6;
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  opacity:0;transition:opacity .3s ease;
-}
-.last-event.show{opacity:1;}
-.last-event .bubble{
-  width:46px;height:46px;border-radius:50%;
-  background:#fff;border:3px solid var(--brass);
-  display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:1;
-  box-shadow:0 6px 14px rgba(120,140,160,.25);
-}
-.last-event.pop .bubble{animation:pop .5s cubic-bezier(.34,1.6,.5,1);}
-@keyframes pop{0%{transform:scale(.3);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
-.last-event .cap{font-size:.62rem;color:var(--muted);font-weight:600;}
+.scale{position:relative;flex:0 0 auto;width:400px;height:476px;}
 
-/* ----- cung số + kim (đồng hồ chỉ thị) ----- */
-.gauge-arc{position:absolute;left:50%;top:var(--pivot-top);overflow:visible;pointer-events:none;z-index:2;}
-.gauge{position:absolute;left:50%;top:var(--pivot-top);width:0;height:0;z-index:3;}
-.tickn{
-  position:absolute;font-size:.82rem;font-weight:600;color:var(--ink);
-  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
-  line-height:1;font-variant-numeric:tabular-nums;
+/* emoji sự việc gần nhất — góc trên bên phải (KHÔNG chữ) */
+.last{
+  position:absolute;top:2px;right:6px;z-index:9;
+  width:46px;height:46px;border-radius:50%;background:var(--bg);
+  border:3px solid var(--wood);display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;line-height:1;opacity:0;transition:opacity .3s ease;
 }
-.tickn.zero{color:var(--brass);font-size:1rem;font-weight:700;}
+.last.show{opacity:1;}
+.last.pop{animation:pop .5s cubic-bezier(.34,1.6,.5,1);}
+@keyframes pop{0%{transform:scale(.3);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
+
+/* ----- mặt số bán nguyệt = một phần của cân ----- */
+.dial{position:absolute;left:0;top:0;width:400px;height:476px;overflow:visible;z-index:2;pointer-events:none;}
+.nums{position:absolute;left:var(--cx);top:var(--pivot);width:0;height:0;z-index:4;pointer-events:none;}
+.tickn{position:absolute;font:600 .82rem/1 system-ui;color:var(--dark);
+  width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+  font-variant-numeric:tabular-nums;transform:translate(-50%,-50%);}
+.tickn.zero{font-size:1rem;font-weight:700;}
+
+/* ----- kim ----- */
 .needle{
-  position:absolute;left:50%;top:var(--pivot-top);
-  width:16px;height:var(--needle-len);margin-left:-8px;margin-top:calc(-1 * var(--needle-len));
-  transform-origin:50% 100%;z-index:4;
-  background:linear-gradient(180deg,#ff6b8a,#e23d68);
-  clip-path:polygon(50% 0,100% 86%,50% 100%,0 86%);
-  transition:transform .85s cubic-bezier(.32,1.45,.55,1);
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));
+  position:absolute;left:var(--cx);top:var(--pivot);
+  width:13px;height:var(--needle-len);margin-left:-6.5px;margin-top:calc(-1 * var(--needle-len));
+  transform-origin:50% 100%;z-index:6;background:var(--dark);
+  clip-path:polygon(50% 0,100% 88%,50% 100%,0 88%);
+  transition:transform .8s cubic-bezier(.32,1.4,.55,1);
 }
-.hub{
-  position:absolute;left:50%;top:var(--pivot-top);
-  width:26px;height:26px;margin-left:-13px;margin-top:-13px;border-radius:50%;
-  background:radial-gradient(circle at 38% 34%,var(--wood-light),var(--brass) 60%,var(--wood-dark));
-  border:2px solid #fff;z-index:7;box-shadow:0 3px 6px rgba(0,0,0,.2);
-}
+.hub{position:absolute;left:var(--cx);top:var(--pivot);width:26px;height:26px;
+  margin-left:-13px;margin-top:-13px;border-radius:50%;z-index:7;
+  background:var(--wood);border:3px solid var(--dark);}
 
 /* ----- trụ + đế ----- */
-.post{
-  position:absolute;left:50%;top:var(--pivot-top);
-  width:24px;margin-left:-12px;
-  height:calc(var(--base-top) - var(--pivot-top));
-  background:linear-gradient(90deg,var(--wood-dark),var(--wood) 45%,var(--wood-light) 55%,var(--wood-dark));
-  border-radius:8px;z-index:1;
-}
-.base{
-  position:absolute;left:50%;top:var(--base-top);transform:translateX(-50%);
-  width:200px;height:30px;border-radius:50%/60%;z-index:1;
-  background:radial-gradient(ellipse at 50% 32%,var(--wood-light),var(--wood) 50%,var(--wood-dark));
-  box-shadow:0 10px 20px rgba(120,100,80,.3);
-}
-.base::after{content:"";position:absolute;left:50%;top:-12px;transform:translateX(-50%);
-  width:60px;height:22px;border-radius:50%/60%;
-  background:linear-gradient(180deg,var(--wood),var(--wood-dark));}
+.post{position:absolute;left:var(--cx);top:var(--pivot);width:22px;margin-left:-11px;
+  height:calc(var(--base-top) - var(--pivot));z-index:1;border-radius:7px 7px 0 0;
+  background:var(--wood);border:2.5px solid var(--dark);border-bottom:none;}
+.base{position:absolute;left:var(--cx);top:var(--base-top);transform:translateX(-50%);
+  width:180px;height:30px;border-radius:50%/55%;z-index:1;
+  background:var(--wood);border:2.5px solid var(--dark);}
 
 /* ----- đòn cân (xoay quanh trục) ----- */
-.beam{
-  position:absolute;left:50%;top:var(--pivot-top);
-  width:calc(2 * var(--arm));height:14px;
-  margin-left:calc(-1 * var(--arm));margin-top:-7px;
-  border-radius:8px;z-index:5;transform-origin:50% 50%;
-  background:linear-gradient(180deg,var(--wood-light),var(--wood) 55%,var(--wood-dark));
-  box-shadow:0 2px 4px rgba(0,0,0,.18);
-  transition:transform .85s cubic-bezier(.32,1.45,.55,1);
-}
-.beam .knob{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
-  margin-top:-7px;background:var(--brass);border:2px solid #fff;}
-.beam .knob.l{left:-7px;}
-.beam .knob.r{right:-7px;}
+.beam{position:absolute;left:var(--cx);top:var(--pivot);width:calc(2 * var(--arm));height:13px;
+  margin-left:calc(-1 * var(--arm));margin-top:-6.5px;border-radius:7px;z-index:5;
+  transform-origin:50% 50%;background:var(--wood);border:2.5px solid var(--dark);
+  transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 
-/* ----- bộ treo (điểm tại đầu đòn) -> phản xoay để dây luôn thẳng đứng ----- */
+/* ----- bộ treo: điểm tại đầu đòn, phản xoay để dây luôn thẳng ----- */
 .hanger{position:absolute;top:50%;width:0;height:0;transform-origin:0 0;
-  transition:transform .85s cubic-bezier(.32,1.45,.55,1);}
+  transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 .hanger.l{left:0;}
 .hanger.r{left:100%;}
-.string{position:absolute;top:0;height:calc(var(--string-len) + 6px);width:2.5px;
-  background:var(--rope);transform-origin:top center;border-radius:2px;}
-/* dây chữ V: góc & dài tính sẵn theo --plate-rad & --string-len (xem JS layout) */
-
-/* ----- đĩa cân ----- */
+/* dây treo chữ V — vẽ TRÊN ô (z cao) nên ô không che dây */
+.chain{position:absolute;top:0;height:2px;background:var(--dark);transform-origin:left center;z-index:4;border-radius:2px;}
+/* đĩa = dĩa nông */
+.plate{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
+  width:calc(2 * var(--plate-rad) + 18px);height:16px;border-radius:50%/60%;z-index:1;
+  background:var(--wood);border:2.5px solid var(--dark);}
+/* vùng xếp ô (CHẠM nhau, không nền/viền) */
 .pan{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
-  width:calc(4 * var(--unit));height:1px;}
-.plate{position:absolute;left:50%;top:0;transform:translate(-50%,-2px);
-  width:calc(2 * var(--plate-rad) + 36px);height:26px;border-radius:50%/70%;z-index:1;
-  background:linear-gradient(180deg,var(--wood-light),var(--wood) 60%,var(--wood-dark));
-  box-shadow:0 8px 14px rgba(120,100,80,.28);}
-.plate::before{content:"";position:absolute;left:50%;top:1px;transform:translateX(-50%);
-  width:86%;height:11px;border-radius:50%;background:rgba(255,255,255,.25);}
+  width:calc(4 * var(--unit));height:1px;z-index:2;}
+.box-slot{position:absolute;transition:left .4s cubic-bezier(.34,1.35,.6,1),bottom .4s cubic-bezier(.34,1.35,.6,1);}
+.pan .box{position:relative;width:100%;height:var(--box-h);   /* ô trên đĩa CHẠM nhau (slot kề sát) */
+  transition:transform .32s cubic-bezier(.3,1.4,.5,1),opacity .25s ease;}
+.pan .box .f{font-size:1.34rem;}
+.pan .box.dropping{transform:translateY(-40px);opacity:.3;}   /* rơi NGẮN xuống đĩa */
+.box-x{position:absolute;top:-7px;right:-7px;display:none;z-index:5;
+  width:17px;height:17px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
+  background:var(--bad);color:var(--bg);font:700 11px/1 system-ui;align-items:center;justify-content:center;padding:0;}
+.box:hover .box-x,.box.show-x .box-x{display:flex;}
 
-/* ----- ô emoji trên đĩa ----- */
-.box-slot{position:absolute;transition:left .45s cubic-bezier(.34,1.4,.6,1),
-  bottom .45s cubic-bezier(.34,1.4,.6,1);z-index:3;}
-.box{
-  display:flex;align-items:center;justify-content:center;gap:2px;
-  height:var(--box-h);border-radius:9px;border:2px solid;
-  box-shadow:0 3px 5px rgba(0,0,0,.12);
-  transition:transform .6s cubic-bezier(.3,1.5,.5,1),opacity .3s ease;
-}
-.box.left{background:var(--smile-box);border-color:var(--smile-edge);}
-.box.right{background:var(--frown-box);border-color:var(--frown-edge);}
-.box .face{font-size:1.18rem;line-height:1;}
-.box.dropping{transform:translateY(-300px);opacity:0;}
+/* nút làm lại — icon, KHÔNG chữ */
+.reset{position:absolute;left:50%;bottom:0;transform:translateX(-50%);z-index:8;
+  width:42px;height:42px;border-radius:50%;border:2.5px solid var(--dark);cursor:pointer;
+  background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0;}
+.reset svg{width:22px;height:22px;stroke:var(--dark);fill:none;stroke-width:2.4;stroke-linecap:round;}
 
-/* nút làm lại (dọn sạch đĩa) */
-.reset{
-  position:absolute;left:50%;bottom:2px;transform:translateX(-50%);z-index:6;
-  display:flex;align-items:center;gap:6px;cursor:pointer;
-  padding:7px 16px;border-radius:20px;border:2px solid #fff;
-  background:rgba(255,255,255,.85);color:var(--muted);font-weight:600;font-size:.9rem;
-  box-shadow:0 4px 10px rgba(120,140,160,.2);font-family:'Baloo 2',sans-serif;
-}
-.reset:hover{color:var(--ink);}
-
-/* ===== POPUP XÁC NHẬN ===== */
-.modal{position:fixed;inset:0;z-index:60;display:none;
-  align-items:center;justify-content:center;padding:18px;background:rgba(74,67,100,.32);}
+/* ===== POPUP XÁC NHẬN (KHÔNG chữ) ===== */
+.modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  padding:18px;background:rgba(90,61,35,.34);}
 .modal.open{display:flex;}
-.modal-card{
-  background:#fff;border-radius:26px;padding:22px 22px 18px;
-  width:min(90vw,330px);text-align:center;
-  box-shadow:0 24px 50px rgba(60,50,80,.3);
-  animation:cardIn .28s cubic-bezier(.34,1.5,.5,1);
-}
+.modal-card{background:var(--bg);border:3px solid var(--dark);border-radius:26px;padding:22px;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+  animation:cardIn .26s cubic-bezier(.34,1.5,.5,1);}
 @keyframes cardIn{from{transform:scale(.8);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal-card .q{font-size:1.12rem;font-weight:600;margin-bottom:16px;}
-.modal-preview{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px;}
-.modal-preview .ev{font-size:2.4rem;line-height:1;}
-.modal-preview .arrow{font-size:1.6rem;color:var(--muted);}
-.modal-preview .box{height:46px;}
-.modal-preview .box .face{font-size:1.7rem;}
-.modal-btns{display:flex;gap:12px;justify-content:center;}
-.modal-btns button{
-  width:64px;height:54px;border-radius:18px;border:none;cursor:pointer;
-  font-size:1.6rem;line-height:1;display:flex;align-items:center;justify-content:center;
-  font-family:'Baloo 2',sans-serif;
-}
-.btn-ok{background:var(--good);color:#fff;}
-.btn-no{background:#f0e6d4;color:var(--muted);}
+.preview{display:flex;align-items:center;justify-content:center;gap:10px;min-height:54px;}
+.preview .ev{font-size:2.4rem;}
+.box.big{height:52px;}
+.box.big.square{width:52px;} .box.big.rect{width:96px;}
+.box.big .f{font-size:1.8rem;}
+.preview .arrow{width:26px;height:18px;stroke:var(--dark);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+.preview .del-mark{position:relative;}
+.preview .del-mark .x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font:700 2.4rem/1 system-ui;color:var(--bad);}
+.preview .reset-ic{width:40px;height:40px;stroke:var(--dark);fill:none;stroke-width:2.6;stroke-linecap:round;}
+.modal-btns{display:flex;gap:14px;}
+.modal-btns button{width:66px;height:54px;border-radius:18px;border:2.5px solid var(--dark);cursor:pointer;
+  font:700 1.6rem/1 system-ui;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.btn-ok{color:var(--good);}
+.btn-no{color:var(--bad);}
 
-/* ===== RESPONSIVE: màn hẹp -> cân ở trên, 2 list xuống dưới ===== */
-@media (max-width:900px){
-  .stage{flex-direction:column;padding-top:52px;}
+/* ===== MOBILE: cân trên, 2 list xuống dưới ===== */
+@media (max-width:860px){
+  .stage{flex-direction:column;justify-content:flex-start;padding:10px 8px 24px;gap:14px;}
   .scale{order:-1;}
-  .panel{width:min(92vw,340px);}
+  .panel{width:min(94vw,360px);}
+  .event-list{flex-direction:row;flex-wrap:wrap;justify-content:center;}
+  .custom{flex-direction:row;justify-content:center;align-items:center;border-top:none;
+    padding-top:0;border-left:2px dashed var(--wood);padding-left:10px;}
 }
 </style>
 </head>
 <body>
-  <div class="scene">
-    <div class="sun"></div>
-    <div class="cloud c1"></div>
-    <div class="cloud c2"></div>
-    <div class="cloud c3"></div>
-    <div class="hill h1"></div>
-    <div class="hill h2"></div>
-  </div>
-
-  <div class="title">⚖️ Cân Đĩa Thưởng Phạt</div>
-
   <div class="stage">
-    <!-- ===== DANH SÁCH VIỆC TỐT (TRÁI = 🙂) ===== -->
+    <!-- ===== LIST VIỆC TỐT (TRÁI 🙂) ===== -->
     <aside class="panel left">
-      <h2>🙂 Việc tốt</h2>
+      <div class="head">🙂</div>
       <ul class="event-list" id="leftList"></ul>
-      <div class="custom-row">
-        <input class="emoji-input" id="leftEmoji" maxlength="4" placeholder="✏️" inputmode="text" aria-label="Emoji sự việc">
-        <div class="shape-toggle" id="leftShape">
-          <button class="sq sel" data-type="square" aria-label="Ô vuông (1)"><span class="glyph"></span></button>
-          <button class="rt" data-type="rect" aria-label="Ô chữ nhật (2)"><span class="glyph"></span></button>
-        </div>
-        <button class="add-custom" id="leftAdd" aria-label="Thêm">＋</button>
+      <div class="custom">
+        <input class="emoji-input" id="leftEmoji" maxlength="4" inputmode="text" aria-label="emoji">
+        <div class="opt" id="leftOpt1" data-type="square"></div>
+        <div class="opt" id="leftOpt2" data-type="rect"></div>
       </div>
     </aside>
 
     <!-- ===== CÂN ===== -->
     <div class="scale" id="scale">
-      <div class="last-event" id="lastEvent">
-        <div class="bubble" id="lastBubble"></div>
-        <div class="cap">vừa rồi</div>
-      </div>
-
-      <svg class="gauge-arc" id="gaugeArc"></svg>
-      <div class="gauge" id="gauge"></div>
+      <div class="last" id="last"></div>
+      <svg class="dial" id="dial"></svg>
+      <div class="nums" id="nums"></div>
       <div class="needle" id="needle"></div>
-
       <div class="post"></div>
-
+      <div class="base"></div>
       <div class="beam" id="beam">
-        <span class="knob l"></span>
-        <span class="knob r"></span>
         <div class="hanger l" id="hangerL">
-          <div class="string sl"></div>
-          <div class="string sr"></div>
-          <div class="pan" id="panL"><div class="plate"></div></div>
+          <div class="plate"></div>
+          <div class="pan" id="panL"></div>
+          <div class="chain ca"></div><div class="chain cb"></div>
         </div>
         <div class="hanger r" id="hangerR">
-          <div class="string sl"></div>
-          <div class="string sr"></div>
-          <div class="pan" id="panR"><div class="plate"></div></div>
+          <div class="plate"></div>
+          <div class="pan" id="panR"></div>
+          <div class="chain ca"></div><div class="chain cb"></div>
         </div>
       </div>
-
       <div class="hub"></div>
-      <div class="base"></div>
-
-      <button class="reset" id="reset">↺ Làm lại</button>
+      <button class="reset" id="reset" aria-label="reset">
+        <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 4v7h-7"/></svg>
+      </button>
     </div>
 
-    <!-- ===== DANH SÁCH VIỆC CHƯA NGOAN (PHẢI = 🙁) ===== -->
+    <!-- ===== LIST VIỆC CHƯA NGOAN (PHẢI 🙁) ===== -->
     <aside class="panel right">
-      <h2>🙁 Việc chưa ngoan</h2>
+      <div class="head">🙁</div>
       <ul class="event-list" id="rightList"></ul>
-      <div class="custom-row">
-        <button class="add-custom" id="rightAdd" aria-label="Thêm">＋</button>
-        <div class="shape-toggle" id="rightShape">
-          <button class="sq sel" data-type="square" aria-label="Ô vuông (1)"><span class="glyph"></span></button>
-          <button class="rt" data-type="rect" aria-label="Ô chữ nhật (2)"><span class="glyph"></span></button>
-        </div>
-        <input class="emoji-input" id="rightEmoji" maxlength="4" placeholder="✏️" inputmode="text" aria-label="Emoji sự việc">
+      <div class="custom">
+        <input class="emoji-input" id="rightEmoji" maxlength="4" inputmode="text" aria-label="emoji">
+        <div class="opt" id="rightOpt1" data-type="square"></div>
+        <div class="opt" id="rightOpt2" data-type="rect"></div>
       </div>
     </aside>
   </div>
 
   <!-- ===== POPUP XÁC NHẬN ===== -->
-  <div class="modal" id="confirmModal">
+  <div class="modal" id="modal">
     <div class="modal-card">
-      <div class="q">Cho lên đĩa cân?</div>
-      <div class="modal-preview" id="modalPreview"></div>
+      <div class="preview" id="preview"></div>
       <div class="modal-btns">
         <button class="btn-no" id="btnNo">✕</button>
         <button class="btn-ok" id="btnOk">✓</button>
@@ -428,58 +277,34 @@ body{
   </div>
 
 <!-- Firebase compat — đồng bộ trạng thái cân qua Realtime Database (giống dong-ho.html).
-     Không tải được SDK (offline/chặn) -> tự rớt về localStorage một máy. -->
+     Không tải được SDK -> tự rớt về localStorage một máy. -->
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-database-compat.js"></script>
 <script>
-/* ============================================================
-   Script chia 7 phần:
-     1. Tiện ích & hằng số          5. Cân bằng (kim/đòn/đĩa)
-     2. Firebase / state            6. Popup xác nhận + thao tác
-     3. Danh sách sự việc           7. Khởi động
-     4. Ô trên đĩa (xếp + rơi)
-   ============================================================ */
-
 /* ===== 1. TIỆN ÍCH & HẰNG SỐ ===== */
 const $ = id => document.getElementById(id);
-const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const pxVar = name => parseFloat(css(name));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const pxVar = n => parseFloat(css(n));
 
-const ARM       = pxVar('--arm');
-const PIVOT_TOP = pxVar('--pivot-top');
-const GAUGE_R   = pxVar('--gauge-r');
-const STRING_LEN= pxVar('--string-len');
-const PLATE_RAD = pxVar('--plate-rad');
-const UNIT      = pxVar('--unit');
-const ROW_H     = pxVar('--row-h');
-const BOX_H     = pxVar('--box-h');
-const MAX_BEAM  = pxVar('--max-beam');
-const MAX_DEG   = pxVar('--max-deg');
-const CAP_UNITS = 4;                       // 1 đĩa rộng = 4 đơn vị (4 vuông / 2 chữ nhật)
+const ARM=pxVar('--arm'), DIAL_R=pxVar('--dial-r'), STRING_LEN=pxVar('--string-len'),
+      PLATE_RAD=pxVar('--plate-rad'), UNIT=pxVar('--unit'), BOX_H=pxVar('--box-h'),
+      MAX_BEAM=pxVar('--max-beam'), MAX_DEG=pxVar('--max-deg'),
+      CX=pxVar('--cx'), PIVOT=pxVar('--pivot');   // tâm trục (px) cho SVG mặt số
+const CAP_UNITS=4;
+const FACE={left:'🙂', right:'🙁'};
+const weightOf = t => t==='rect' ? 2 : 1;
+// deg đo từ 12 giờ, theo chiều kim -> [dx,dy] so với tâm
+function polar(r,deg){ const a=(deg-90)*Math.PI/180; return [r*Math.cos(a), r*Math.sin(a)]; }
 
-const FACE = {left:'🙂', right:'🙁'};
-const weightOf = type => type === 'rect' ? 2 : 1;
-
-// TỌA ĐỘ CỰC quanh tâm trục — deg đo TỪ 12 giờ, theo chiều kim (giống dong-ho.html)
-function polar(r, deg){ const a=(deg-90)*Math.PI/180; return [r*Math.cos(a), r*Math.sin(a)]; }
-
-/* ===== 2. FIREBASE / STATE =====
-   Nguồn CHUẨN = 3 nhánh trên RTDB:
-     candia/boxes/<id> = {side,type,event,at}   ô đang nằm trên đĩa
-     candia/items/<id> = {side,type,event,at}   dòng sự việc user tự thêm
-     candia/last       = {event,side,at}        emoji sự việc gần nhất
-   Mọi thiết bị nghe on('value'); localStorage chỉ là CACHE offline. */
-let boxes = [];        // [{id,side,type,event,at}]
-let userItems = [];    // [{id,side,type,event,at}]
-let lastEvent = null;  // {event,side,at}
+/* ===== 2. FIREBASE / STATE ===== */
+let boxes=[], userItems=[], lastEvent=null;
 let boxesRef=null, itemsRef=null, lastRef=null;
-
 const LS_BOXES='candiaBoxes', LS_ITEMS='candiaItems', LS_LAST='candiaLast';
 
 /* ⚠️ ĐỒNG BỘ ĐA THIẾT BỊ cần thêm RULE cho nhánh /candia trên Firebase Console
    (Realtime Database -> Rules), GỘP cùng rule /labels sẵn có:
        "candia": { ".read": true, ".write": true }
-   Chưa thêm -> ghi bị permission_denied, app vẫn chạy LOCAL một máy (localStorage). */
+   Chưa thêm -> ghi bị permission_denied, app vẫn chạy LOCAL (localStorage). */
 try{
   if(typeof firebase !== 'undefined'){
     firebase.initializeApp({
@@ -491,9 +316,6 @@ try{
       messagingSenderId: "1017684060626",
       appId: "1:1017684060626:web:636c64f4f049521074800b"
     });
-    // Namespace RIÊNG /candia (KHÔNG đụng /labels của dong-ho). Cần thêm rule cho
-    // nhánh này trên Firebase Console (xem chú thích cuối file). Chưa có rule -> ghi
-    // bị permission_denied, app tự chạy LOCAL (localStorage) một máy, không lỗi đỏ.
     boxesRef = firebase.database().ref('candia/boxes');
     itemsRef = firebase.database().ref('candia/items');
     lastRef  = firebase.database().ref('candia/last');
@@ -502,274 +324,242 @@ try{
 
 const genId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const sortByAt = a => a.sort((x,y)=>(x.at-y.at)||(x.id<y.id?-1:1));
+const parseArr = v => sortByAt(Object.keys(v).map(id=>({id,side:v[id].side,type:v[id].type,
+    event:String(v[id].event||''),at:+v[id].at}))
+  .filter(b=>(b.side==='left'||b.side==='right') && b.event && isFinite(b.at)));
 
 function loadCache(){
-  try{ boxes     = JSON.parse(localStorage.getItem(LS_BOXES)) || []; }catch(e){ boxes=[]; }
-  try{ userItems = JSON.parse(localStorage.getItem(LS_ITEMS)) || []; }catch(e){ userItems=[]; }
-  try{ lastEvent = JSON.parse(localStorage.getItem(LS_LAST)) || null; }catch(e){ lastEvent=null; }
+  try{ boxes=JSON.parse(localStorage.getItem(LS_BOXES))||[]; }catch(e){ boxes=[]; }
+  try{ userItems=JSON.parse(localStorage.getItem(LS_ITEMS))||[]; }catch(e){ userItems=[]; }
+  try{ lastEvent=JSON.parse(localStorage.getItem(LS_LAST))||null; }catch(e){ lastEvent=null; }
   sortByAt(boxes); sortByAt(userItems);
 }
-const saveBoxes = ()=>{ try{ localStorage.setItem(LS_BOXES, JSON.stringify(boxes)); }catch(e){} };
-const saveItems = ()=>{ try{ localStorage.setItem(LS_ITEMS, JSON.stringify(userItems)); }catch(e){} };
-const saveLast  = ()=>{ try{ localStorage.setItem(LS_LAST, JSON.stringify(lastEvent)); }catch(e){} };
+const saveBoxes=()=>{ try{ localStorage.setItem(LS_BOXES,JSON.stringify(boxes)); }catch(e){} };
+const saveItems=()=>{ try{ localStorage.setItem(LS_ITEMS,JSON.stringify(userItems)); }catch(e){} };
+const saveLast =()=>{ try{ localStorage.setItem(LS_LAST,JSON.stringify(lastEvent)); }catch(e){} };
 
-// Nghe server: dựng lại mảng từ snapshot, so JSON -> không đổi thì khỏi vẽ lại (chống echo giật)
 function startSync(){
-  // errCb: read-denied (chưa thêm rule /candia) -> giữ nguyên cache local, không spam
-  const onErr = ()=>{};
-  if(boxesRef) boxesRef.on('value', snap=>{
-    const v=snap.val()||{};
-    const arr=sortByAt(Object.keys(v).map(id=>({id,side:v[id].side,type:v[id].type,event:String(v[id].event||''),at:+v[id].at}))
-      .filter(b=>(b.side==='left'||b.side==='right') && b.event && isFinite(b.at)));
-    if(JSON.stringify(arr)===JSON.stringify(boxes)) return;
-    boxes=arr; saveBoxes(); renderBoxes();
-  }, onErr);
-  if(itemsRef) itemsRef.on('value', snap=>{
-    const v=snap.val()||{};
-    const arr=sortByAt(Object.keys(v).map(id=>({id,side:v[id].side,type:v[id].type,event:String(v[id].event||''),at:+v[id].at}))
-      .filter(b=>(b.side==='left'||b.side==='right') && b.event && isFinite(b.at)));
-    if(JSON.stringify(arr)===JSON.stringify(userItems)) return;
-    userItems=arr; saveItems(); renderLists();
-  }, onErr);
-  if(lastRef) lastRef.on('value', snap=>{
-    const v=snap.val();
-    const next = (v && v.event) ? {event:String(v.event), side:v.side, at:+v.at} : null;
-    if(JSON.stringify(next)===JSON.stringify(lastEvent)) return;
-    lastEvent=next; saveLast(); renderLast(true);
-  }, onErr);
+  const onErr=()=>{};   // read-denied (chưa thêm rule) -> giữ cache local
+  if(boxesRef) boxesRef.on('value', s=>{ const a=parseArr(s.val()||{});
+    if(JSON.stringify(a)===JSON.stringify(boxes)) return; boxes=a; saveBoxes(); renderBoxes(); }, onErr);
+  if(itemsRef) itemsRef.on('value', s=>{ const a=parseArr(s.val()||{});
+    if(JSON.stringify(a)===JSON.stringify(userItems)) return; userItems=a; saveItems(); renderLists(); }, onErr);
+  if(lastRef) lastRef.on('value', s=>{ const v=s.val();
+    const n=(v&&v.event)?{event:String(v.event),side:v.side,at:+v.at}:null;
+    if(JSON.stringify(n)===JSON.stringify(lastEvent)) return; lastEvent=n; saveLast(); renderLast(true); }, onErr);
 }
 
 /* ===== 3. DANH SÁCH SỰ VIỆC ===== */
-// 2 dòng có sẵn (không xóa được). User thêm -> userItems (đồng bộ).
-const BASE_ITEMS = [
+const BASE_ITEMS=[
   {id:'base-brush', side:'left',  type:'square', event:'🪥'},   // 🪥 = 🙂
   {id:'base-yell',  side:'right', type:'rect',   event:'🗣️'},   // 🙁🙁 = 🗣️
 ];
-const itemsFor = side => [
-  ...BASE_ITEMS.filter(i=>i.side===side),
-  ...userItems.filter(i=>i.side===side),
-];
+const itemsFor = side => [...BASE_ITEMS.filter(i=>i.side===side), ...userItems.filter(i=>i.side===side)];
 
-function buildBoxNode(side, type, cls){
-  const box=document.createElement('div');
-  box.className='box '+side+(cls?(' '+cls):'');
-  const n=weightOf(type);
-  box.style.width = (n*UNIT - 4) + 'px';
-  for(let i=0;i<n;i++){ const f=document.createElement('span'); f.className='face'; f.textContent=FACE[side]; box.appendChild(f); }
-  return box;
+// Ô = khung vuông (1 emoji) / chữ nhật (2 emoji). cls: 'mini' | 'big' | '' (đĩa)
+function boxHTML(side, type, cls){
+  return `<span class="box ${cls} ${type==='rect'?'rect':'square'}">`+
+    `<span class="f">${FACE[side]}</span>`.repeat(weightOf(type))+`</span>`;
 }
-function miniBox(side, type){
-  const m=document.createElement('span'); m.className='mini-box '+side;
-  const n=weightOf(type);
-  for(let i=0;i<n;i++){ const f=document.createElement('span'); f.className='face'; f.textContent=FACE[side]; m.appendChild(f); }
-  return m;
-}
+function boxNode(side, type, cls){ const t=document.createElement('template'); t.innerHTML=boxHTML(side,type,cls); return t.content.firstChild; }
 function makeRow(it){
-  const li=document.createElement('li'); li.className='event-row '+it.side;
+  const li=document.createElement('li'); li.className='event-row';
   const ev=document.createElement('span'); ev.className='ev'; ev.textContent=it.event;
-  const eq=document.createElement('span'); eq.className='eq'; eq.textContent='=';
-  const box=miniBox(it.side, it.type);
-  // trái: 🪥 = 🙂 ; phải (gương): 🙁🙁 = 🗣️
-  if(it.side==='left') li.append(ev, eq, box);
-  else                 li.append(box, eq, ev);
+  const fc=boxNode(it.side, it.type, 'mini');
+  if(it.side==='left') li.append(ev, fc); else li.append(fc, ev);   // phải = gương
   if(!it.id.startsWith('base-')){
     const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
-    del.setAttribute('aria-label','Xóa');
     del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it.id); });
     li.appendChild(del);
   }
-  li.addEventListener('click', ()=>askConfirm(it));
+  li.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
   return li;
 }
 function renderLists(){
   for(const side of ['left','right']){
-    const ul = side==='left' ? $('leftList') : $('rightList');
+    const ul = side==='left'?$('leftList'):$('rightList');
     ul.innerHTML='';
     for(const it of itemsFor(side)) ul.appendChild(makeRow(it));
   }
+  // 2 option custom = preview ô đơn / ô đôi (giống row trong list)
+  for(const side of ['left','right']){
+    const o1=$(side+'Opt1'), o2=$(side+'Opt2');
+    o1.innerHTML=''; o1.appendChild(boxNode(side,'square','mini'));
+    o2.innerHTML=''; o2.appendChild(boxNode(side,'rect','mini'));
+  }
 }
 function addItem(side, type, event){
+  // bỏ qua nếu đã có hệt trong list (tránh trùng)
+  if(itemsFor(side).some(i=>i.event===event && i.type===type)) return;
   const it={id:genId('i'), side, type, event, at:Date.now()};
-  if(itemsRef) itemsRef.child(it.id).set({side, type, event, at:it.at}).catch(()=>{});
+  if(itemsRef) itemsRef.child(it.id).set({side,type,event,at:it.at}).catch(()=>{});
   userItems.push(it); sortByAt(userItems); saveItems(); renderLists();
-  return it;
 }
 function removeItem(id){
   if(itemsRef) itemsRef.child(id).remove().catch(()=>{});
   userItems=userItems.filter(i=>i.id!==id); saveItems(); renderLists();
 }
 
-/* ===== 4. Ô TRÊN ĐĨA — xếp chồng & rơi ===== */
-const boxEls = new Map();   // id -> .box-slot (để diff thêm/xóa, không vẽ lại từ đầu)
-
+/* ===== 4. Ô TRÊN ĐĨA — xếp CHẠM nhau & rơi NGẮN ===== */
+const boxEls=new Map();   // id -> .box-slot
+function buildBox(b){
+  const slot=document.createElement('div'); slot.className='box-slot';
+  const box=document.createElement('div'); box.className='box dropping '+(b.type==='rect'?'rect':'square');
+  for(let i=0;i<weightOf(b.type);i++){ const f=document.createElement('span'); f.className='f'; f.textContent=FACE[b.side]; box.appendChild(f); }
+  const x=document.createElement('button'); x.className='box-x'; x.textContent='×';
+  x.addEventListener('click', e=>{ e.stopPropagation(); askDelete(b.id); });
+  box.appendChild(x);
+  box.addEventListener('click', ()=>box.classList.toggle('show-x'));   // chạm để hiện × (mobile)
+  slot.appendChild(box);
+  return slot;
+}
 function renderBoxes(){
   const present=new Set(boxes.map(b=>b.id));
   for(const [id,el] of boxEls){ if(!present.has(id)){ el.remove(); boxEls.delete(id); } }
   for(const b of boxes){
     if(boxEls.has(b.id)) continue;
-    const slot=document.createElement('div'); slot.className='box-slot';
-    const box=buildBoxNode(b.side, b.type, 'dropping');
-    slot.appendChild(box);
-    ($(b.side==='left'?'panL':'panR')).appendChild(slot);
-    boxEls.set(b.id, slot);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>box.classList.remove('dropping')));  // rơi xuống
+    const slot=buildBox(b);
+    $(b.side==='left'?'panL':'panR').appendChild(slot); boxEls.set(b.id, slot);
+    const box=slot.firstChild;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>box.classList.remove('dropping')));
   }
-  layoutBoxes('left'); layoutBoxes('right');
-  updateBalance();
+  layoutBoxes('left'); layoutBoxes('right'); updateBalance();
 }
-
-// Xếp ô bottom-up: mỗi tầng tối đa 4 đơn vị; tầng đầy thì lên tầng trên. Căn giữa từng tầng.
+// xếp bottom-up, mỗi tầng tối đa 4 đơn vị, các ô CHẠM nhau (không hở), căn giữa tầng
 function layoutBoxes(side){
-  const list = boxes.filter(b=>b.side===side);
-  // gom thành các tầng
+  const list=boxes.filter(b=>b.side===side);
   const rows=[]; let cur=[], used=0;
-  for(const b of list){
-    const w=weightOf(b.type);
-    if(used+w>CAP_UNITS){ rows.push(cur); cur=[]; used=0; }
-    cur.push(b); used+=w;
-  }
+  for(const b of list){ const w=weightOf(b.type);
+    if(used+w>CAP_UNITS){ rows.push(cur); cur=[]; used=0; } cur.push(b); used+=w; }
   if(cur.length) rows.push(cur);
-  const contentW = CAP_UNITS*UNIT;
-  rows.forEach((row, r)=>{
-    const rowW = row.reduce((s,b)=>s+weightOf(b.type),0)*UNIT;
+  const contentW=CAP_UNITS*UNIT;
+  rows.forEach((row,r)=>{
+    const rowW=row.reduce((s,b)=>s+weightOf(b.type),0)*UNIT;
     let x=(contentW-rowW)/2;
-    for(const b of row){
-      const w=weightOf(b.type)*UNIT;
-      const slot=boxEls.get(b.id);
-      if(slot){ slot.style.left=x+'px'; slot.style.bottom=(r*ROW_H)+'px'; }
-      x+=w;
-    }
+    for(const b of row){ const w=weightOf(b.type)*UNIT; const slot=boxEls.get(b.id);
+      if(slot){ slot.style.left=x+'px'; slot.style.bottom=(r*BOX_H)+'px'; slot.style.width=w+'px'; }
+      x+=w; }
   });
 }
 
-/* ===== 5. CÂN BẰNG — kim, đòn, đĩa ===== */
-const needle=$('needle'), beam=$('beam'), hangerL=$('hangerL'), hangerR=$('hangerR');
+/* ===== 5. CÂN BẰNG — kim / đòn / đĩa ===== */
 function updateBalance(){
   let lw=0, rw=0;
   for(const b of boxes){ (b.side==='left'?lw+=weightOf(b.type):rw+=weightOf(b.type)); }
-  const diff = lw - rw;                              // >0: trái nặng (nhiều 🙂)
-  const n = Math.max(-10, Math.min(10, diff)) / 10;  // -1..1
-  const beamDeg = -n * MAX_BEAM;                      // trái nặng -> CCW -> đầu trái hạ xuống
-  const needleDeg = -n * MAX_DEG;                     // trái nặng -> kim lệch TRÁI
-  beam.style.transform = `rotate(${beamDeg}deg)`;
-  needle.style.transform = `rotate(${needleDeg}deg)`;
-  hangerL.style.transform = `rotate(${-beamDeg}deg)`; // phản xoay -> dây luôn thẳng đứng
-  hangerR.style.transform = `rotate(${-beamDeg}deg)`;
+  const diff=lw-rw;
+  const n=Math.max(-10,Math.min(10,diff))/10;   // -1..1
+  const beamDeg=-n*MAX_BEAM, needleDeg=-n*MAX_DEG;   // trái nặng -> đầu trái hạ, kim lệch trái
+  $('beam').style.transform=`rotate(${beamDeg}deg)`;
+  $('needle').style.transform=`rotate(${needleDeg}deg)`;
+  $('hangerL').style.transform=`rotate(${-beamDeg}deg)`;
+  $('hangerR').style.transform=`rotate(${-beamDeg}deg)`;
 }
-
-// Đặt SỐ trên cung (10..1 trái, 0 giữa, 1..10 phải) + vẽ cung & vạch
-function buildGauge(){
-  const gauge=$('gauge'); gauge.innerHTML='';
+// mặt số + vạch + số (vòng số gắn trên trục = một phần cân)
+function buildDial(){
+  const nums=$('nums'); nums.innerHTML='';
   for(let v=-10; v<=10; v++){
-    const el=document.createElement('div');
-    el.className='tickn'+(v===0?' zero':'');
-    el.textContent=Math.abs(v);
-    const [x,y]=polar(GAUGE_R, v/10*MAX_DEG);
-    el.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px)`;
-    gauge.appendChild(el);
+    const el=document.createElement('div'); el.className='tickn'+(v===0?' zero':''); el.textContent=Math.abs(v);
+    const [x,y]=polar(DIAL_R, v/10*MAX_DEG); el.style.left=x+'px'; el.style.top=y+'px';
+    nums.appendChild(el);
   }
-  // cung nền + vạch chia
-  const svg=$('gaugeArc');
-  const RA=GAUGE_R-16;
-  const [ax,ay]=polar(RA, -MAX_DEG), [bx,by]=polar(RA, MAX_DEG);
-  let d=`M ${ax} ${ay} A ${RA} ${RA} 0 0 1 ${bx} ${by}`;
+  // tọa độ TUYỆT ĐỐI trong SVG (gốc 0,0 = góc khu cân) -> cộng tâm trục
+  const P=(r,deg)=>{ const [dx,dy]=polar(r,deg); return [CX+dx, PIVOT+dy]; };
+  const RB=DIAL_R+14, RBi=DIAL_R-16;     // dải mặt số (gỗ) bao quanh số
+  const dialArc=(r)=>{ const [ax,ay]=P(r,-MAX_DEG), [bx,by]=P(r,MAX_DEG);
+    return `M ${ax} ${ay} A ${r} ${r} 0 0 1 ${bx} ${by}`; };
   let ticks='';
-  for(let v=-10; v<=10; v++){
-    const [x1,y1]=polar(RA-4, v/10*MAX_DEG), [x2,y2]=polar(RA+4, v/10*MAX_DEG);
-    ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${v===0?'#e9b85c':'#cdbfae'}" stroke-width="${v===0?3:2}" stroke-linecap="round"/>`;
-  }
-  svg.innerHTML=`<path d="${d}" fill="none" stroke="#e7d8bf" stroke-width="6" stroke-linecap="round"/>${ticks}`;
+  for(let v=-10; v<=10; v++){ const [x1,y1]=P(RBi+3, v/10*MAX_DEG), [x2,y2]=P(RBi+11, v/10*MAX_DEG);
+    ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--dark)" stroke-width="${v===0?2.6:1.6}" stroke-linecap="round"/>`; }
+  $('dial').innerHTML =
+    `<path d="${dialArc((RB+RBi)/2)}" fill="none" stroke="var(--wood)" stroke-width="${RB-RBi}" stroke-linecap="round"/>`+
+    `<path d="${dialArc(RB)}" fill="none" stroke="var(--dark)" stroke-width="2.5"/>`+
+    `<path d="${dialArc(RBi)}" fill="none" stroke="var(--dark)" stroke-width="2.5"/>`+ticks;
 }
-
-// Dây chữ V: tính góc + độ dài 1 lần theo PLATE_RAD & STRING_LEN
-function layoutStrings(){
+// dây treo chữ V — dài/góc tính 1 lần; vẽ TRÊN ô nên ô không che dây
+function layoutChains(){
   const len=Math.hypot(PLATE_RAD, STRING_LEN);
-  const ang=Math.atan2(PLATE_RAD, STRING_LEN)*180/Math.PI;
+  const ang=Math.atan2(STRING_LEN, PLATE_RAD)*180/Math.PI;   // từ trục NGANG
   document.querySelectorAll('.hanger').forEach(h=>{
-    const sl=h.querySelector('.sl'), sr=h.querySelector('.sr');
-    sl.style.height=len+'px'; sl.style.transform=`rotate(${ang}deg)`;   sl.style.left='-1px';
-    sr.style.height=len+'px'; sr.style.transform=`rotate(${-ang}deg)`;  sr.style.left='-1px';
+    const a=h.querySelector('.ca'), b=h.querySelector('.cb');
+    a.style.width=len+'px'; a.style.transform=`rotate(${ang}deg)`;     // xuống-phải tới rìa phải
+    b.style.width=len+'px'; b.style.transform=`rotate(${180-ang}deg)`; // xuống-trái tới rìa trái
   });
 }
-
 function renderLast(animate){
-  const wrap=$('lastEvent');
-  if(!lastEvent){ wrap.classList.remove('show'); return; }
-  $('lastBubble').textContent=lastEvent.event;
-  wrap.classList.add('show');
-  if(animate){ wrap.classList.remove('pop'); void wrap.offsetWidth; wrap.classList.add('pop'); }
+  const el=$('last');
+  if(!lastEvent){ el.classList.remove('show'); return; }
+  el.textContent=lastEvent.event; el.classList.add('show');
+  if(animate){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 }
 
 /* ===== 6. POPUP XÁC NHẬN + THAO TÁC ===== */
-let pending=null;   // item đang chờ xác nhận
-function askConfirm(it){
-  pending=it;
-  const prev=$('modalPreview'); prev.innerHTML='';
-  const ev=document.createElement('span'); ev.className='ev'; ev.textContent=it.event;
-  const ar=document.createElement('span'); ar.className='arrow'; ar.textContent='→';
-  const box=buildBoxNode(it.side, it.type);
-  box.style.width='auto';
-  prev.append(ev, ar, box);
-  $('confirmModal').classList.add('open');
+let pending=null;   // {kind:'add'|'delete'|'reset', ...}
+const ARROW='<svg class="arrow" viewBox="0 0 24 18"><path d="M3 9h16M14 4l5 5-5 5"/></svg>';
+function openModal(html){ $('preview').innerHTML=html; $('modal').classList.add('open'); }
+function closeModal(){ $('modal').classList.remove('open'); pending=null; }
+
+function askAdd(side, type, event, persist){
+  pending={kind:'add', side, type, event, persist};
+  openModal(`<span class="ev">${event}</span>${ARROW}${boxHTML(side,type,'big')}`);
 }
-function closeModal(){ $('confirmModal').classList.remove('open'); pending=null; }
-function confirmDrop(){
+function askDelete(id){
+  const b=boxes.find(x=>x.id===id); if(!b) return;
+  pending={kind:'delete', id};
+  openModal(`<span class="del-mark">${boxHTML(b.side,b.type,'big')}<span class="x">✕</span></span>`);
+}
+function askReset(){
+  if(!boxes.length) return;
+  pending={kind:'reset'};
+  openModal('<svg class="reset-ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 4v7h-7"/></svg>');
+}
+function confirmPending(){
   if(!pending) return;
-  dropBox(pending.side, pending.type, pending.event);
+  if(pending.kind==='add'){
+    if(pending.persist) addItem(pending.side, pending.type, pending.event);
+    dropBox(pending.side, pending.type, pending.event);
+  }else if(pending.kind==='delete'){ removeBox(pending.id); }
+  else if(pending.kind==='reset'){ resetScale(); }
   closeModal();
 }
-// Thêm ô lên đĩa + cập nhật sự việc gần nhất (ghi server + tại chỗ ngay)
 function dropBox(side, type, event){
   const b={id:genId('b'), side, type, event, at:Date.now()};
-  if(boxesRef) boxesRef.child(b.id).set({side, type, event, at:b.at}).catch(()=>{});
+  if(boxesRef) boxesRef.child(b.id).set({side,type,event,at:b.at}).catch(()=>{});
   boxes.push(b); sortByAt(boxes); saveBoxes(); renderBoxes();
-
   lastEvent={event, side, at:Date.now()};
-  if(lastRef) lastRef.set(lastEvent).catch(()=>{});
-  saveLast(); renderLast(true);
+  if(lastRef) lastRef.set(lastEvent).catch(()=>{}); saveLast(); renderLast(true);
+}
+function removeBox(id){
+  if(boxesRef) boxesRef.child(id).remove().catch(()=>{});
+  boxes=boxes.filter(b=>b.id!==id); saveBoxes(); renderBoxes();
 }
 function resetScale(){
   if(boxesRef) boxesRef.remove().catch(()=>{});
   boxes=[]; saveBoxes(); renderBoxes();
 }
 
-// Hàng nhập tùy ý: gắn toggle hình + nút thêm cho 1 phe
+// hàng custom: nhập emoji rồi click 1 trong 2 option -> popup (persist=true)
 function wireCustom(side){
-  const cap = side[0].toUpperCase()+side.slice(1);   // 'Left'/'Right'
-  const input=$(side+'Emoji'), shape=$(side+'Shape'), add=$(side+'Add');
-  let type='square';
-  shape.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      type=btn.dataset.type;
-      shape.querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b===btn));
+  const input=$(side+'Emoji');
+  [['Opt1','square'],['Opt2','rect']].forEach(([sfx,type])=>{
+    $(side+sfx).addEventListener('click', ()=>{
+      const ev=input.value.trim();
+      if(!ev){ input.focus(); return; }
+      askAdd(side, type, ev, true);
+      input.value='';
     });
-  });
-  const refresh=()=>{ add.disabled = !input.value.trim(); };
-  input.addEventListener('input', refresh); refresh();
-  add.addEventListener('click', ()=>{
-    const ev=input.value.trim(); if(!ev) return;
-    const it=addItem(side, type, ev);   // thêm vào danh sách (đồng bộ) ...
-    input.value=''; refresh();
-    askConfirm(it);                     // ... rồi mở xác nhận để thả luôn
   });
 }
 
 /* ===== 7. KHỞI ĐỘNG ===== */
 function init(){
-  buildGauge();
-  layoutStrings();
-  loadCache();
-  renderLists();
-  renderBoxes();
-  renderLast(false);
+  buildDial(); layoutChains(); loadCache();
+  renderLists(); renderBoxes(); renderLast(false);
   wireCustom('left'); wireCustom('right');
-
-  $('btnOk').addEventListener('click', confirmDrop);
+  $('btnOk').addEventListener('click', confirmPending);
   $('btnNo').addEventListener('click', closeModal);
-  $('confirmModal').addEventListener('click', e=>{ if(e.target===$('confirmModal')) closeModal(); });
-  $('reset').addEventListener('click', resetScale);
+  $('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });
+  $('reset').addEventListener('click', askReset);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-
   startSync();
 }
 init();

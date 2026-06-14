@@ -62,27 +62,26 @@ body{
 }
 .panel.left  .head{border-color:var(--good);}
 .panel.right .head{border-color:var(--bad);}
-.event-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
-.event-row,.opt{
-  display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
-  padding:7px 9px;border-radius:15px;border:2.5px solid var(--wood);background:var(--bg);
-  transition:transform .12s ease,border-color .12s ease;user-select:none;min-height:44px;
-}
-.event-row:hover,.opt:hover{transform:translateY(-2px);}
-.event-row:active,.opt:active{transform:scale(.96);}
-.panel.left  .event-row:hover,.panel.left  .opt:hover{border-color:var(--good);}
-.panel.right .event-row:hover,.panel.right .opt:hover{border-color:var(--bad);}
-.event-row{position:relative;}
+.event-list{list-style:none;display:flex;flex-direction:column;gap:11px;}
+/* ROW = 1 DÒNG (không border, không xuống dòng): [emoji] = [ô-button] */
+.event-row{position:relative;display:flex;align-items:center;justify-content:center;
+  gap:8px;flex-wrap:nowrap;white-space:nowrap;min-height:38px;}
 .ev{font-size:1.5rem;line-height:1;}
+.eq{font-size:1.2rem;font-weight:700;color:var(--dark);}
 /* Ô = KHUNG vuông/chữ nhật (không nền màu), chứa 1 / 2 emoji. Dùng chung mọi nơi:
    - mặc định = ô trên đĩa (rộng = slot)
    - .mini = preview trong list & option · .big = trong popup */
 .box{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
   border:2px solid var(--dark);border-radius:7px;background:transparent;}
 .box .f{line-height:1;}
-.box.mini{height:32px;}
-.box.mini.square{width:32px;} .box.mini.rect{width:60px;}
-.box.mini .f{font-size:1.24rem;}
+/* .mini = nút bấm (ô vuông/chữ nhật) trong list & hàng custom */
+.box.mini{height:36px;cursor:pointer;user-select:none;transition:transform .12s ease,border-color .12s ease;}
+.box.mini.square{width:36px;} .box.mini.rect{width:64px;}
+.box.mini .f{font-size:1.32rem;}
+.box.mini:hover{transform:translateY(-2px);}
+.box.mini:active{transform:scale(.93);}
+.panel.left  .box.mini:hover{border-color:var(--good);}
+.panel.right .box.mini:hover{border-color:var(--bad);}
 .row-del{
   position:absolute;top:-8px;right:-8px;display:none;
   width:20px;height:20px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
@@ -90,12 +89,12 @@ body{
 }
 .event-row:hover .row-del{display:flex;}
 
-/* hàng nhập custom: [ô nhập emoji] + 2 option (ô đơn / ô đôi) */
-.custom{margin-top:4px;padding-top:10px;border-top:2px dashed var(--wood);
-  display:flex;flex-direction:column;gap:8px;}
+/* hàng custom = 1 DÒNG: [ô nhập] = [ô đơn][ô đôi] (mỗi ô là button) */
+.custom{margin-top:6px;display:flex;flex-direction:row;align-items:center;justify-content:center;
+  gap:8px;flex-wrap:nowrap;}
 .emoji-input{
-  align-self:center;width:52px;height:44px;border-radius:14px;border:2.5px dashed var(--wood);
-  background:var(--bg);text-align:center;font-size:1.5rem;line-height:1;color:var(--dark);
+  width:46px;height:44px;border-radius:13px;border:2.5px dashed var(--wood);
+  background:var(--bg);text-align:center;font-size:1.4rem;line-height:1;color:var(--dark);
 }
 .emoji-input:focus{outline:none;}
 .panel.left  .emoji-input:focus{border-color:var(--good);border-style:solid;}
@@ -208,9 +207,6 @@ body{
   .stage{flex-direction:column;justify-content:flex-start;padding:10px 8px 24px;gap:14px;}
   .scale{order:-1;}
   .panel{width:min(94vw,360px);}
-  .event-list{flex-direction:row;flex-wrap:wrap;justify-content:center;}
-  .custom{flex-direction:row;justify-content:center;align-items:center;border-top:none;
-    padding-top:0;border-left:2px dashed var(--wood);padding-left:10px;}
 }
 </style>
 </head>
@@ -222,8 +218,9 @@ body{
       <ul class="event-list" id="leftList"></ul>
       <div class="custom">
         <input class="emoji-input" id="leftEmoji" maxlength="4" inputmode="text" aria-label="emoji">
-        <div class="opt" id="leftOpt1" data-type="square"></div>
-        <div class="opt" id="leftOpt2" data-type="rect"></div>
+        <span class="eq">=</span>
+        <span id="leftOpt1"></span>
+        <span id="leftOpt2"></span>
       </div>
     </aside>
 
@@ -258,9 +255,10 @@ body{
       <div class="head">🙁</div>
       <ul class="event-list" id="rightList"></ul>
       <div class="custom">
+        <span id="rightOpt1"></span>
+        <span id="rightOpt2"></span>
+        <span class="eq">=</span>
         <input class="emoji-input" id="rightEmoji" maxlength="4" inputmode="text" aria-label="emoji">
-        <div class="opt" id="rightOpt1" data-type="square"></div>
-        <div class="opt" id="rightOpt2" data-type="rect"></div>
       </div>
     </aside>
   </div>
@@ -362,17 +360,19 @@ function boxHTML(side, type, cls){
     `<span class="f">${FACE[side]}</span>`.repeat(weightOf(type))+`</span>`;
 }
 function boxNode(side, type, cls){ const t=document.createElement('template'); t.innerHTML=boxHTML(side,type,cls); return t.content.firstChild; }
+// 1 row = [emoji] = [ô-button]. CHỈ ô (vuông/chữ nhật) là button, không phải cả row.
 function makeRow(it){
   const li=document.createElement('li'); li.className='event-row';
   const ev=document.createElement('span'); ev.className='ev'; ev.textContent=it.event;
+  const eq=document.createElement('span'); eq.className='eq'; eq.textContent='=';
   const fc=boxNode(it.side, it.type, 'mini');
-  if(it.side==='left') li.append(ev, fc); else li.append(fc, ev);   // phải = gương
+  fc.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
+  if(it.side==='left') li.append(ev, eq, fc); else li.append(fc, eq, ev);   // phải = gương
   if(!it.id.startsWith('base-')){
     const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
     del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it.id); });
     li.appendChild(del);
   }
-  li.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
   return li;
 }
 function renderLists(){
@@ -381,11 +381,15 @@ function renderLists(){
     ul.innerHTML='';
     for(const it of itemsFor(side)) ul.appendChild(makeRow(it));
   }
-  // 2 option custom = preview ô đơn / ô đôi (giống row trong list)
+  // 2 ô-button custom (ô đơn / ô đôi) — click vào ô là ra popup (nhập emoji trước)
   for(const side of ['left','right']){
+    const mk = type => { const b=boxNode(side,type,'mini'); b.addEventListener('click', ()=>{
+      const ev=$(side+'Emoji').value.trim(); if(!ev){ $(side+'Emoji').focus(); return; }
+      askAdd(side, type, ev, true); $(side+'Emoji').value='';
+    }); return b; };
     const o1=$(side+'Opt1'), o2=$(side+'Opt2');
-    o1.innerHTML=''; o1.appendChild(boxNode(side,'square','mini'));
-    o2.innerHTML=''; o2.appendChild(boxNode(side,'rect','mini'));
+    o1.innerHTML=''; o1.appendChild(mk('square'));
+    o2.innerHTML=''; o2.appendChild(mk('rect'));
   }
 }
 function addItem(side, type, event){
@@ -537,24 +541,10 @@ function resetScale(){
   boxes=[]; saveBoxes(); renderBoxes();
 }
 
-// hàng custom: nhập emoji rồi click 1 trong 2 option -> popup (persist=true)
-function wireCustom(side){
-  const input=$(side+'Emoji');
-  [['Opt1','square'],['Opt2','rect']].forEach(([sfx,type])=>{
-    $(side+sfx).addEventListener('click', ()=>{
-      const ev=input.value.trim();
-      if(!ev){ input.focus(); return; }
-      askAdd(side, type, ev, true);
-      input.value='';
-    });
-  });
-}
-
 /* ===== 7. KHỞI ĐỘNG ===== */
 function init(){
   buildDial(); layoutChains(); loadCache();
-  renderLists(); renderBoxes(); renderLast(false);
-  wireCustom('left'); wireCustom('right');
+  renderLists(); renderBoxes(); renderLast(false);   // option-button custom gắn click trong renderLists
   $('btnOk').addEventListener('click', confirmPending);
   $('btnNo').addEventListener('click', closeModal);
   $('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });

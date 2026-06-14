@@ -17,11 +17,14 @@
      --bg #f1e7d3 · --wood #c2854b · --dark #5a3d23 · --good #84b063 · --bad #db7d4f
    ============================================================ */
 :root{
-  --bg:#f1e7d3;
-  --wood:#c2854b;
-  --dark:#5a3d23;
-  --good:#84b063;
-  --bad:#db7d4f;
+  --bg:#f1e7d3;             /* NỀN — không tính vào 5 màu */
+  --wood:#c2854b;           /* gỗ */
+  --dark:#5a3d23;           /* nâu đậm (nét/khắc) */
+  --good:#84b063;           /* phe tốt (xanh) */
+  --bad:#db7d4f;            /* phe chưa ngoan (cam) */
+  --gold:#e0a02a;           /* đồng thau (màu thứ 5) — trục, số 0, kim lúc cân bằng */
+  --wood-hi:#e6b87f;        /* gỗ SÁNG (vân + highlight) — vẫn là "gỗ" */
+  --wood-lo:#94612f;        /* gỗ TỐI (bóng) */
 
   /* hình học cân (px) — JS đọc lại qua getComputedStyle */
   --cx:200px;
@@ -55,33 +58,31 @@ body{
   width:clamp(132px,17vw,210px);flex:0 0 auto;
   display:flex;flex-direction:column;gap:9px;
 }
-.panel .head{
-  align-self:center;width:40px;height:40px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:1;
-  border:3px solid;
-}
-.panel.left  .head{border-color:var(--good);}
-.panel.right .head{border-color:var(--bad);}
 .event-list{list-style:none;display:flex;flex-direction:column;gap:11px;}
 /* ROW = 1 DÒNG (không border, không xuống dòng): [emoji] = [ô-button] */
 .event-row{position:relative;display:flex;align-items:center;justify-content:center;
   gap:8px;flex-wrap:nowrap;white-space:nowrap;min-height:38px;}
 .ev{font-size:1.5rem;line-height:1;}
-.eq{font-size:1.2rem;font-weight:700;color:var(--dark);}
+.eq{font-size:1.2rem;font-weight:700;}
+.panel.left  .eq{color:var(--good);}      /* dấu = theo phe */
+.panel.right .eq{color:var(--bad);}
+/* list TRÁI căn trái, list PHẢI căn phải */
+.panel.left  .event-row, .panel.left  .custom{justify-content:flex-start;}
+.panel.right .event-row, .panel.right .custom{justify-content:flex-end;}
 /* Ô = KHUNG vuông/chữ nhật (không nền màu), chứa 1 / 2 emoji. Dùng chung mọi nơi:
    - mặc định = ô trên đĩa (rộng = slot)
    - .mini = preview trong list & option · .big = trong popup */
 .box{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
-  border:2px solid var(--dark);border-radius:7px;background:transparent;}
+  border:2.5px solid var(--dark);border-radius:7px;background:transparent;}
+.box.left{border-color:var(--good);}       /* viền ô theo phe (xanh/cam) */
+.box.right{border-color:var(--bad);}
 .box .f{line-height:1;}
 /* .mini = nút bấm (ô vuông/chữ nhật) trong list & hàng custom */
-.box.mini{height:36px;cursor:pointer;user-select:none;transition:transform .12s ease,border-color .12s ease;}
+.box.mini{height:36px;cursor:pointer;user-select:none;transition:transform .12s ease;}
 .box.mini.square{width:36px;} .box.mini.rect{width:64px;}
 .box.mini .f{font-size:1.32rem;}
-.box.mini:hover{transform:translateY(-2px);}
+.box.mini:hover{transform:translateY(-3px) scale(1.04);}
 .box.mini:active{transform:scale(.93);}
-.panel.left  .box.mini:hover{border-color:var(--good);}
-.panel.right .box.mini:hover{border-color:var(--bad);}
 .row-del{
   position:absolute;top:-8px;right:-8px;display:none;
   width:20px;height:20px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
@@ -103,62 +104,90 @@ body{
 /* ===== KHU CÂN ===== */
 .scale{position:relative;flex:0 0 auto;width:400px;height:476px;}
 
-/* emoji sự việc gần nhất — góc trên bên phải (KHÔNG chữ) */
-.last{
-  position:absolute;top:2px;right:6px;z-index:9;
-  width:46px;height:46px;border-radius:50%;background:var(--bg);
-  border:3px solid var(--wood);display:flex;align-items:center;justify-content:center;
-  font-size:1.5rem;line-height:1;opacity:0;transition:opacity .3s ease;
-}
-.last.show{opacity:1;}
-.last.pop{animation:pop .5s cubic-bezier(.34,1.6,.5,1);}
-@keyframes pop{0%{transform:scale(.3);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
-
 /* ----- mặt số bán nguyệt = một phần của cân ----- */
 .dial{position:absolute;left:0;top:0;width:400px;height:476px;overflow:visible;z-index:2;pointer-events:none;}
 .nums{position:absolute;left:var(--cx);top:var(--pivot);width:0;height:0;z-index:4;pointer-events:none;}
-.tickn{position:absolute;font:600 .82rem/1 system-ui;color:var(--dark);
+.tickn{position:absolute;font:700 .84rem/1 system-ui;color:var(--dark);
   width:16px;height:16px;display:flex;align-items:center;justify-content:center;
   font-variant-numeric:tabular-nums;transform:translate(-50%,-50%);}
-.tickn.zero{font-size:1rem;font-weight:700;}
+.tickn.good{color:var(--good);}   /* nửa TRÁI (việc tốt) xanh, nửa PHẢI (chưa ngoan) cam */
+.tickn.bad{color:var(--bad);}
+.tickn.zero{font-size:1.05rem;color:var(--gold);text-shadow:0 1px 0 rgba(255,250,235,.5);}
 
-/* ----- kim ----- */
+/* ----- kim ----- (màu đặt bởi JS: xanh/cam/vàng) */
 .needle{
   position:absolute;left:var(--cx);top:var(--pivot);
   width:13px;height:var(--needle-len);margin-left:-6.5px;margin-top:calc(-1 * var(--needle-len));
-  transform-origin:50% 100%;z-index:6;background:var(--dark);
+  transform-origin:50% 100%;z-index:6;background:var(--gold);
   clip-path:polygon(50% 0,100% 88%,50% 100%,0 88%);
+  filter:drop-shadow(0 1px 1.5px rgba(58,36,16,.45));
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);
 }
-.hub{position:absolute;left:var(--cx);top:var(--pivot);width:26px;height:26px;
-  margin-left:-13px;margin-top:-13px;border-radius:50%;z-index:7;
-  background:var(--wood);border:3px solid var(--dark);}
+/* trục = núm đồng thau bóng */
+.hub{position:absolute;left:var(--cx);top:var(--pivot);width:30px;height:30px;
+  margin-left:-15px;margin-top:-15px;border-radius:50%;z-index:7;border:3px solid var(--dark);
+  background:
+    radial-gradient(circle at 36% 30%, rgba(255,250,235,.9), rgba(255,250,235,0) 44%),
+    radial-gradient(circle at 66% 74%, rgba(58,36,16,.55), rgba(58,36,16,0) 56%),
+    var(--gold);
+  box-shadow:0 2px 5px rgba(58,36,16,.45), inset 0 0 0 2px rgba(255,250,235,.22);}
 
-/* ----- trụ + đế ----- */
-.post{position:absolute;left:var(--cx);top:var(--pivot);width:22px;margin-left:-11px;
-  height:calc(var(--base-top) - var(--pivot));z-index:1;border-radius:7px 7px 0 0;
-  background:var(--wood);border:2.5px solid var(--dark);border-bottom:none;}
+/* ----- trụ gỗ (vân dọc + bóng trụ tròn) ----- */
+.post{position:absolute;left:var(--cx);top:var(--pivot);width:28px;margin-left:-14px;
+  height:calc(var(--base-top) - var(--pivot));z-index:1;border-radius:10px 10px 3px 3px;
+  border:2.5px solid var(--dark);border-bottom:none;
+  background:
+    repeating-linear-gradient(90deg, rgba(58,36,16,.13) 0 1px, rgba(58,36,16,0) 1px 5px),
+    linear-gradient(90deg, var(--wood-lo) 0%, var(--wood-hi) 26%, var(--wood) 50%, var(--wood-lo) 100%);}
+/* cổ trụ (vòng tiện gỗ) ngay dưới trục */
+.post::before{content:"";position:absolute;left:-5px;right:-5px;top:18px;height:11px;border-radius:6px;
+  border:2.5px solid var(--dark);
+  background:linear-gradient(180deg, var(--wood-hi), var(--wood) 50%, var(--wood-lo));}
+/* ----- đế gỗ (mâm bè + bóng) ----- */
 .base{position:absolute;left:var(--cx);top:var(--base-top);transform:translateX(-50%);
-  width:180px;height:30px;border-radius:50%/55%;z-index:1;
-  background:var(--wood);border:2.5px solid var(--dark);}
+  width:194px;height:34px;border-radius:50%/55%;z-index:1;border:2.5px solid var(--dark);
+  background:
+    repeating-linear-gradient(90deg, rgba(58,36,16,.08) 0 1px, rgba(58,36,16,0) 1px 7px),
+    radial-gradient(ellipse at 50% 20%, var(--wood-hi), rgba(0,0,0,0) 55%),
+    radial-gradient(ellipse at 50% 92%, var(--wood-lo), var(--wood) 68%);
+  box-shadow:0 9px 16px rgba(58,36,16,.32);}
+/* gờ chân đế nối trụ */
+.base::before{content:"";position:absolute;left:50%;top:-11px;transform:translateX(-50%);
+  width:56px;height:18px;border-radius:9px 9px 4px 4px;border:2.5px solid var(--dark);
+  background:linear-gradient(180deg, var(--wood-hi), var(--wood) 55%, var(--wood-lo));z-index:-1;}
 
-/* ----- đòn cân (xoay quanh trục) ----- */
-.beam{position:absolute;left:var(--cx);top:var(--pivot);width:calc(2 * var(--arm));height:13px;
-  margin-left:calc(-1 * var(--arm));margin-top:-6.5px;border-radius:7px;z-index:5;
-  transform-origin:50% 50%;background:var(--wood);border:2.5px solid var(--dark);
+/* ----- đòn cân gỗ (vân ngang + chốt đồng 2 đầu) ----- */
+.beam{position:absolute;left:var(--cx);top:var(--pivot);width:calc(2 * var(--arm));height:16px;
+  margin-left:calc(-1 * var(--arm));margin-top:-8px;border-radius:8px;z-index:5;
+  transform-origin:50% 50%;border:2.5px solid var(--dark);
+  background:
+    repeating-linear-gradient(0deg, rgba(58,36,16,.10) 0 1px, rgba(58,36,16,0) 1px 7px),
+    linear-gradient(180deg, var(--wood-hi) 0%, var(--wood) 46%, var(--wood-lo) 100%);
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
+.beam::before,.beam::after{content:"";position:absolute;top:50%;width:15px;height:15px;margin-top:-7.5px;
+  border-radius:50%;border:2px solid var(--dark);z-index:1;
+  background:radial-gradient(circle at 38% 32%, rgba(255,250,235,.85), rgba(255,250,235,0) 48%), var(--gold);}
+.beam::before{left:-7.5px;} .beam::after{right:-7.5px;}
 
 /* ----- bộ treo: điểm tại đầu đòn, phản xoay để dây luôn thẳng ----- */
 .hanger{position:absolute;top:50%;width:0;height:0;transform-origin:0 0;
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 .hanger.l{left:0;}
 .hanger.r{left:100%;}
-/* dây treo chữ V — vẽ TRÊN ô (z cao) nên ô không che dây */
-.chain{position:absolute;top:0;height:2px;background:var(--dark);transform-origin:left center;z-index:4;border-radius:2px;}
-/* đĩa = dĩa nông */
+/* dây treo chữ V — vẽ TRÊN ô (z cao) nên ô không che dây; màu theo phe */
+.chain{position:absolute;top:0;height:2.5px;transform-origin:left center;z-index:4;border-radius:2px;}
+.hanger.l .chain{background:var(--good);}
+.hanger.r .chain{background:var(--bad);}
+/* đĩa gỗ nông (vân + bóng); viền theo phe */
 .plate{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
-  width:calc(2 * var(--plate-rad) + 18px);height:16px;border-radius:50%/60%;z-index:1;
-  background:var(--wood);border:2.5px solid var(--dark);}
+  width:calc(2 * var(--plate-rad) + 20px);height:18px;border-radius:50%/60%;z-index:1;border:3px solid var(--dark);
+  background:
+    repeating-linear-gradient(90deg, rgba(58,36,16,.07) 0 1px, rgba(58,36,16,0) 1px 6px),
+    radial-gradient(ellipse at 50% 26%, var(--wood-hi), rgba(0,0,0,0) 52%),
+    radial-gradient(ellipse at 50% 88%, var(--wood-lo), var(--wood) 66%);
+  box-shadow:0 5px 9px rgba(58,36,16,.28), inset 0 2px 3px rgba(255,250,235,.32);}
+.hanger.l .plate{border-color:var(--good);}
+.hanger.r .plate{border-color:var(--bad);}
 /* vùng xếp ô (CHẠM nhau, không nền/viền) */
 .pan{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
   width:calc(4 * var(--unit));height:1px;z-index:2;}
@@ -167,16 +196,24 @@ body{
   transition:transform .32s cubic-bezier(.3,1.4,.5,1),opacity .25s ease;}
 .pan .box .f{font-size:1.34rem;}
 .pan .box.dropping{transform:translateY(-40px);opacity:.3;}   /* rơi NGẮN xuống đĩa */
-.box-x{position:absolute;top:-7px;right:-7px;display:none;z-index:5;
-  width:17px;height:17px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
+/* emoji sự việc nhỏ — góc TRÊN-PHẢI mỗi ô (lý do ô thưởng/phạt này) */
+.box-badge{position:absolute;top:-9px;right:-9px;z-index:6;
+  min-width:19px;height:19px;padding:0 2px;border-radius:10px;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;line-height:1;}
+/* nút × xóa — góc TRÊN-TRÁI (tránh đè badge) */
+.box-x{position:absolute;top:-9px;left:-9px;display:none;z-index:7;
+  width:18px;height:18px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;
   background:var(--bad);color:var(--bg);font:700 11px/1 system-ui;align-items:center;justify-content:center;padding:0;}
-.box:hover .box-x,.box.show-x .box-x{display:flex;}
+.pan .box:hover .box-x,.pan .box.show-x .box-x{display:flex;}
 
-/* nút làm lại — icon, KHÔNG chữ */
-.reset{position:absolute;left:50%;bottom:0;transform:translateX(-50%);z-index:8;
-  width:42px;height:42px;border-radius:50%;border:2.5px solid var(--dark);cursor:pointer;
-  background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0;}
-.reset svg{width:22px;height:22px;stroke:var(--dark);fill:none;stroke-width:2.4;stroke-linecap:round;}
+/* nút làm lại — núm gỗ, góc DƯỚI-PHẢI màn hình */
+.reset{position:fixed;right:18px;bottom:18px;z-index:50;
+  width:48px;height:48px;border-radius:50%;border:2.5px solid var(--dark);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  background:radial-gradient(circle at 38% 30%, rgba(255,250,235,.7), rgba(255,250,235,0) 46%), var(--wood);
+  box-shadow:0 4px 9px rgba(58,36,16,.32);}
+.reset:active{transform:scale(.94);}
+.reset svg{width:24px;height:24px;stroke:var(--dark);fill:none;stroke-width:2.6;stroke-linecap:round;}
 
 /* ===== POPUP XÁC NHẬN (KHÔNG chữ) ===== */
 .modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
@@ -214,7 +251,6 @@ body{
   <div class="stage">
     <!-- ===== LIST VIỆC TỐT (TRÁI 🙂) ===== -->
     <aside class="panel left">
-      <div class="head">🙂</div>
       <ul class="event-list" id="leftList"></ul>
       <div class="custom">
         <input class="emoji-input" id="leftEmoji" maxlength="4" inputmode="text" aria-label="emoji">
@@ -226,7 +262,6 @@ body{
 
     <!-- ===== CÂN ===== -->
     <div class="scale" id="scale">
-      <div class="last" id="last"></div>
       <svg class="dial" id="dial"></svg>
       <div class="nums" id="nums"></div>
       <div class="needle" id="needle"></div>
@@ -252,7 +287,6 @@ body{
 
     <!-- ===== LIST VIỆC CHƯA NGOAN (PHẢI 🙁) ===== -->
     <aside class="panel right">
-      <div class="head">🙁</div>
       <ul class="event-list" id="rightList"></ul>
       <div class="custom">
         <span id="rightOpt1"></span>
@@ -295,9 +329,9 @@ const weightOf = t => t==='rect' ? 2 : 1;
 function polar(r,deg){ const a=(deg-90)*Math.PI/180; return [r*Math.cos(a), r*Math.sin(a)]; }
 
 /* ===== 2. FIREBASE / STATE ===== */
-let boxes=[], userItems=[], lastEvent=null;
-let boxesRef=null, itemsRef=null, lastRef=null;
-const LS_BOXES='candiaBoxes', LS_ITEMS='candiaItems', LS_LAST='candiaLast';
+let boxes=[], userItems=[];
+let boxesRef=null, itemsRef=null;
+const LS_BOXES='candiaBoxes', LS_ITEMS='candiaItems';
 
 /* ⚠️ ĐỒNG BỘ ĐA THIẾT BỊ cần thêm RULE cho nhánh /candia trên Firebase Console
    (Realtime Database -> Rules), GỘP cùng rule /labels sẵn có:
@@ -316,9 +350,8 @@ try{
     });
     boxesRef = firebase.database().ref('candia/boxes');
     itemsRef = firebase.database().ref('candia/items');
-    lastRef  = firebase.database().ref('candia/last');
   }
-}catch(e){ boxesRef=itemsRef=lastRef=null; }
+}catch(e){ boxesRef=itemsRef=null; }
 
 const genId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const sortByAt = a => a.sort((x,y)=>(x.at-y.at)||(x.id<y.id?-1:1));
@@ -329,12 +362,10 @@ const parseArr = v => sortByAt(Object.keys(v).map(id=>({id,side:v[id].side,type:
 function loadCache(){
   try{ boxes=JSON.parse(localStorage.getItem(LS_BOXES))||[]; }catch(e){ boxes=[]; }
   try{ userItems=JSON.parse(localStorage.getItem(LS_ITEMS))||[]; }catch(e){ userItems=[]; }
-  try{ lastEvent=JSON.parse(localStorage.getItem(LS_LAST))||null; }catch(e){ lastEvent=null; }
   sortByAt(boxes); sortByAt(userItems);
 }
 const saveBoxes=()=>{ try{ localStorage.setItem(LS_BOXES,JSON.stringify(boxes)); }catch(e){} };
 const saveItems=()=>{ try{ localStorage.setItem(LS_ITEMS,JSON.stringify(userItems)); }catch(e){} };
-const saveLast =()=>{ try{ localStorage.setItem(LS_LAST,JSON.stringify(lastEvent)); }catch(e){} };
 
 function startSync(){
   const onErr=()=>{};   // read-denied (chưa thêm rule) -> giữ cache local
@@ -342,9 +373,6 @@ function startSync(){
     if(JSON.stringify(a)===JSON.stringify(boxes)) return; boxes=a; saveBoxes(); renderBoxes(); }, onErr);
   if(itemsRef) itemsRef.on('value', s=>{ const a=parseArr(s.val()||{});
     if(JSON.stringify(a)===JSON.stringify(userItems)) return; userItems=a; saveItems(); renderLists(); }, onErr);
-  if(lastRef) lastRef.on('value', s=>{ const v=s.val();
-    const n=(v&&v.event)?{event:String(v.event),side:v.side,at:+v.at}:null;
-    if(JSON.stringify(n)===JSON.stringify(lastEvent)) return; lastEvent=n; saveLast(); renderLast(true); }, onErr);
 }
 
 /* ===== 3. DANH SÁCH SỰ VIỆC ===== */
@@ -354,9 +382,9 @@ const BASE_ITEMS=[
 ];
 const itemsFor = side => [...BASE_ITEMS.filter(i=>i.side===side), ...userItems.filter(i=>i.side===side)];
 
-// Ô = khung vuông (1 emoji) / chữ nhật (2 emoji). cls: 'mini' | 'big' | '' (đĩa)
+// Ô = khung vuông (1 emoji) / chữ nhật (2 emoji); viền theo phe. cls: 'mini'|'big'|'' (đĩa)
 function boxHTML(side, type, cls){
-  return `<span class="box ${cls} ${type==='rect'?'rect':'square'}">`+
+  return `<span class="box ${cls} ${side} ${type==='rect'?'rect':'square'}">`+
     `<span class="f">${FACE[side]}</span>`.repeat(weightOf(type))+`</span>`;
 }
 function boxNode(side, type, cls){ const t=document.createElement('template'); t.innerHTML=boxHTML(side,type,cls); return t.content.firstChild; }
@@ -408,8 +436,10 @@ function removeItem(id){
 const boxEls=new Map();   // id -> .box-slot
 function buildBox(b){
   const slot=document.createElement('div'); slot.className='box-slot';
-  const box=document.createElement('div'); box.className='box dropping '+(b.type==='rect'?'rect':'square');
+  const box=document.createElement('div'); box.className='box dropping '+b.side+' '+(b.type==='rect'?'rect':'square');
   for(let i=0;i<weightOf(b.type);i++){ const f=document.createElement('span'); f.className='f'; f.textContent=FACE[b.side]; box.appendChild(f); }
+  const badge=document.createElement('span'); badge.className='box-badge'; badge.textContent=b.event;   // sự việc -> góc trên-phải
+  box.appendChild(badge);
   const x=document.createElement('button'); x.className='box-x'; x.textContent='×';
   x.addEventListener('click', e=>{ e.stopPropagation(); askDelete(b.id); });
   box.appendChild(x);
@@ -455,6 +485,7 @@ function updateBalance(){
   const beamDeg=-n*MAX_BEAM, needleDeg=-n*MAX_DEG;   // trái nặng -> đầu trái hạ, kim lệch trái
   $('beam').style.transform=`rotate(${beamDeg}deg)`;
   $('needle').style.transform=`rotate(${needleDeg}deg)`;
+  $('needle').style.background = diff>0?'var(--good)':diff<0?'var(--bad)':'var(--gold)';   // xanh tốt / cam xấu / vàng cân bằng
   $('hangerL').style.transform=`rotate(${-beamDeg}deg)`;
   $('hangerR').style.transform=`rotate(${-beamDeg}deg)`;
 }
@@ -462,22 +493,42 @@ function updateBalance(){
 function buildDial(){
   const nums=$('nums'); nums.innerHTML='';
   for(let v=-10; v<=10; v++){
-    const el=document.createElement('div'); el.className='tickn'+(v===0?' zero':''); el.textContent=Math.abs(v);
+    const tone = v===0?'zero':(v<0?'good':'bad');   // trái(v<0)=tốt xanh, phải=cam, giữa=trung tính
+    const el=document.createElement('div'); el.className='tickn '+tone; el.textContent=Math.abs(v);
     const [x,y]=polar(DIAL_R, v/10*MAX_DEG); el.style.left=x+'px'; el.style.top=y+'px';
     nums.appendChild(el);
   }
   // tọa độ TUYỆT ĐỐI trong SVG (gốc 0,0 = góc khu cân) -> cộng tâm trục
   const P=(r,deg)=>{ const [dx,dy]=polar(r,deg); return [CX+dx, PIVOT+dy]; };
-  const RB=DIAL_R+14, RBi=DIAL_R-16;     // dải mặt số (gỗ) bao quanh số
-  const dialArc=(r)=>{ const [ax,ay]=P(r,-MAX_DEG), [bx,by]=P(r,MAX_DEG);
+  const arc=(r)=>{ const [ax,ay]=P(r,-MAX_DEG), [bx,by]=P(r,MAX_DEG);
     return `M ${ax} ${ay} A ${r} ${r} 0 0 1 ${bx} ${by}`; };
+  const RO=DIAL_R+15, RI=DIAL_R-15, RM=(RO+RI)/2, BW=RO-RI;   // mép ngoài/trong dải gỗ, tâm, bề rộng
+  // 2 THANH CHỐNG gỗ nối TRỤC -> 2 đầu dải số (gắn mặt số vào cân)
+  const strut=(deg)=>{ const [hx,hy]=P(12,deg), [ox,oy]=P(RO-2,deg);
+    return `<line x1="${hx}" y1="${hy}" x2="${ox}" y2="${oy}" stroke="var(--dark)" stroke-width="10" stroke-linecap="round"/>`
+         + `<line x1="${hx}" y1="${hy}" x2="${ox}" y2="${oy}" stroke="url(#woodV)" stroke-width="6" stroke-linecap="round"/>`; };
+  // chốt đồng ở 2 đầu dải
+  const boss=(deg)=>{ const [bx,by]=P(RM,deg);
+    return `<circle cx="${bx}" cy="${by}" r="6.5" fill="var(--gold)" stroke="var(--dark)" stroke-width="2"/>`; };
   let ticks='';
-  for(let v=-10; v<=10; v++){ const [x1,y1]=P(RBi+3, v/10*MAX_DEG), [x2,y2]=P(RBi+11, v/10*MAX_DEG);
-    ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--dark)" stroke-width="${v===0?2.6:1.6}" stroke-linecap="round"/>`; }
+  for(let v=-10; v<=10; v++){ const [x1,y1]=P(RI+3, v/10*MAX_DEG), [x2,y2]=P(RI+12, v/10*MAX_DEG);
+    const col = v===0?'var(--gold)':(v<0?'var(--good)':'var(--bad)');
+    ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${v===0?3:2}" stroke-linecap="round"/>`; }
   $('dial').innerHTML =
-    `<path d="${dialArc((RB+RBi)/2)}" fill="none" stroke="var(--wood)" stroke-width="${RB-RBi}" stroke-linecap="round"/>`+
-    `<path d="${dialArc(RB)}" fill="none" stroke="var(--dark)" stroke-width="2.5"/>`+
-    `<path d="${dialArc(RBi)}" fill="none" stroke="var(--dark)" stroke-width="2.5"/>`+ticks;
+    `<defs>
+       <linearGradient id="woodH" x1="0" y1="0" x2="0" y2="1">
+         <stop offset="0" stop-color="#e6b87f"/><stop offset="1" stop-color="#94612f"/></linearGradient>
+       <linearGradient id="woodV" x1="0" y1="0" x2="1" y2="0">
+         <stop offset="0" stop-color="#e6b87f"/><stop offset="1" stop-color="#94612f"/></linearGradient>
+     </defs>`
+    + strut(-MAX_DEG) + strut(MAX_DEG)
+    + `<path d="${arc(RM)}" fill="none" stroke="var(--dark)" stroke-width="${BW+5}" stroke-linecap="round" opacity=".45"/>`  // bóng dải
+    + `<path d="${arc(RM)}" fill="none" stroke="url(#woodH)" stroke-width="${BW}" stroke-linecap="round"/>`               // thân gỗ
+    + `<path d="${arc(RO)}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`                                        // mép đồng ngoài
+    + `<path d="${arc(RI)}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`                                        // mép đồng trong
+    + `<path d="${arc(RO+1.6)}" fill="none" stroke="var(--dark)" stroke-width="1.6"/>`                                    // nét khắc ngoài
+    + `<path d="${arc(RI-1.6)}" fill="none" stroke="var(--dark)" stroke-width="1.6"/>`                                    // nét khắc trong
+    + boss(-MAX_DEG) + boss(MAX_DEG) + ticks;
 }
 // dây treo chữ V — dài/góc tính 1 lần; vẽ TRÊN ô nên ô không che dây
 function layoutChains(){
@@ -489,13 +540,6 @@ function layoutChains(){
     b.style.width=len+'px'; b.style.transform=`rotate(${180-ang}deg)`; // xuống-trái tới rìa trái
   });
 }
-function renderLast(animate){
-  const el=$('last');
-  if(!lastEvent){ el.classList.remove('show'); return; }
-  el.textContent=lastEvent.event; el.classList.add('show');
-  if(animate){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-}
-
 /* ===== 6. POPUP XÁC NHẬN + THAO TÁC ===== */
 let pending=null;   // {kind:'add'|'delete'|'reset', ...}
 const ARROW='<svg class="arrow" viewBox="0 0 24 18"><path d="M3 9h16M14 4l5 5-5 5"/></svg>';
@@ -529,8 +573,6 @@ function dropBox(side, type, event){
   const b={id:genId('b'), side, type, event, at:Date.now()};
   if(boxesRef) boxesRef.child(b.id).set({side,type,event,at:b.at}).catch(()=>{});
   boxes.push(b); sortByAt(boxes); saveBoxes(); renderBoxes();
-  lastEvent={event, side, at:Date.now()};
-  if(lastRef) lastRef.set(lastEvent).catch(()=>{}); saveLast(); renderLast(true);
 }
 function removeBox(id){
   if(boxesRef) boxesRef.child(id).remove().catch(()=>{});
@@ -544,7 +586,7 @@ function resetScale(){
 /* ===== 7. KHỞI ĐỘNG ===== */
 function init(){
   buildDial(); layoutChains(); loadCache();
-  renderLists(); renderBoxes(); renderLast(false);   // option-button custom gắn click trong renderLists
+  renderLists(); renderBoxes();   // option-button custom gắn click trong renderLists
   $('btnOk').addEventListener('click', confirmPending);
   $('btnNo').addEventListener('click', closeModal);
   $('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });

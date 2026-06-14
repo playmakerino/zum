@@ -359,7 +359,13 @@ const boxStore  = makeStore(boxes, boxesRef, 'candiaBoxes', renderBoxes);
 const itemStore = makeStore(items, itemsRef, 'candiaItems', renderLists);
 
 /* ===== 3. LIST SỰ VIỆC (mẫu tái dùng — KHÔNG có mặc định) ===== */
-const itemsFor = side => items.filter(i=>i.side===side);
+// id mẫu = HÀM của nội dung -> mỗi (phe+loại+emoji) chỉ 1 bản ghi, add lại = ghi đè
+// (tránh nhân đôi row khi đồng bộ Firebase / nhiều thiết bị).
+const itemId = (side, type, event) => `i_${side}_${type}_${encodeURIComponent(event).replace(/\./g,'%2E')}`;
+// Lọc theo phe + KHỬ TRÙNG nội dung (chữa lành dữ liệu cũ có bản ghi trùng).
+const itemsFor = side => { const seen=new Set();
+  return items.filter(i=>{ if(i.side!==side) return false;
+    const k=i.type+' '+i.event; if(seen.has(k)) return false; seen.add(k); return true; }); };
 
 // Ô (vuông/chữ nhật) màu theo phe. cls: 'mini' (list) | 'big' (popup) | '' (đĩa)
 function boxHTML(side, type, cls){
@@ -377,7 +383,7 @@ function makeRow(it){
   const box=boxNode(it.side, it.type, 'mini');
   box.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
   const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
-  del.addEventListener('click', e=>{ e.stopPropagation(); itemStore.remove(it.id); });
+  del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it); });
   ev.appendChild(del);
   it.side==='left' ? li.append(ev,eq,box) : li.append(box,eq,ev);   // PHẢI = gương
   return li;
@@ -398,7 +404,12 @@ function renderLists(){
 }
 function addItem(side, type, event){
   if(itemsFor(side).some(i=>i.event===event && i.type===type)) return;   // tránh trùng
-  itemStore.add({id:genId('i'), side, type, event, at:Date.now()});
+  itemStore.add({id:itemId(side,type,event), side, type, event, at:Date.now()});
+}
+// Xóa mẫu: bỏ MỌI bản ghi cùng nội dung (gồm bản trùng cũ) -> row không "mọc lại".
+function removeItem(it){
+  for(const r of items.filter(x=>x.side===it.side && x.type===it.type && x.event===it.event))
+    itemStore.remove(r.id);
 }
 
 /* ===== 4. Ô TRÊN ĐĨA — xếp CHẠM nhau, rơi NGẮN ===== */

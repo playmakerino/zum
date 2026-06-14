@@ -42,6 +42,7 @@
   --box-h:34px;
   --max-beam:9;           /* nghiêng đòn tối đa (deg) */
   --max-deg:70;           /* góc kim tối đa (deg) */
+  --s:1.4;                /* HỆ SỐ phóng to cả khu cân (giữ nguyên mọi tỉ lệ) */
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
@@ -109,8 +110,10 @@ body{
 .panel.left  .emoji-input:focus{border-color:var(--good);border-style:solid;}
 .panel.right .emoji-input:focus{border-color:var(--bad);border-style:solid;}
 
-/* ===== KHU CÂN ===== */
-.scale{position:relative;flex:0 0 auto;width:400px;height:476px;}
+/* ===== KHU CÂN ===== (phóng to bằng transform; margin chừa chỗ trong layout) */
+.scale{position:relative;flex:0 0 auto;width:400px;height:476px;
+  transform:scale(var(--s));transform-origin:center;
+  margin:calc(238px * (var(--s) - 1)) calc(200px * (var(--s) - 1));}
 
 /* ----- mặt số bán nguyệt = một phần của cân ----- */
 .dial{position:absolute;left:0;top:0;width:400px;height:476px;overflow:visible;z-index:2;pointer-events:none;}
@@ -162,16 +165,14 @@ body{
 .chain{position:absolute;top:0;height:2.5px;transform-origin:left center;z-index:4;border-radius:2px;}
 .hanger.l .chain{background:var(--good);}
 .hanger.r .chain{background:var(--bad);}
-/* ĐĨA CÂN = dĩa nông màu KEM (KHÔNG border) */
+/* ĐĨA CÂN = 1 ĐOẠN THẲNG solid (màu theo phe); ô đặt LÊN TRÊN */
 .plate{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
-  width:calc(2 * var(--plate-rad) + 26px);height:20px;border-radius:48%/62%;z-index:1;
-  background:
-    radial-gradient(ellipse at 50% 20%, #fff, rgba(255,255,255,0) 60%),
-    radial-gradient(ellipse at 50% 92%, rgba(58,36,16,.18), rgba(255,255,255,0) 66%),
-    var(--bg);
-  box-shadow:0 6px 11px rgba(58,36,16,.26), inset 0 2px 5px rgba(255,255,255,.85), inset 0 -3px 6px rgba(58,36,16,.16);}
-/* ô xếp trên GIỮA lòng đĩa (hạ xuống, không nằm trên mép) */
-.pan{position:absolute;left:50%;top:calc(var(--string-len) + 11px);transform:translateX(-50%);
+  width:calc(2 * var(--plate-rad) + 26px);height:5px;border-radius:3px;z-index:1;
+  box-shadow:0 2px 4px rgba(58,36,16,.28);}
+.hanger.l .plate{background:var(--good);}
+.hanger.r .plate{background:var(--bad);}
+/* ô xếp NẰM TRÊN đoạn thẳng (đáy ô = mặt thanh) */
+.pan{position:absolute;left:50%;top:var(--string-len);transform:translateX(-50%);
   width:calc(4 * var(--unit));height:1px;z-index:2;}
 .box-slot{position:absolute;transition:left .4s cubic-bezier(.34,1.35,.6,1),bottom .4s cubic-bezier(.34,1.35,.6,1);}
 .pan .box{position:relative;width:100%;height:var(--box-h);   /* ô trên đĩa CHẠM nhau (slot kề sát) */
@@ -224,7 +225,7 @@ body{
 /* ===== MOBILE: cân trên, 2 list xuống dưới ===== */
 @media (max-width:860px){
   .stage{flex-direction:column;justify-content:flex-start;padding:10px 8px 24px;gap:14px;}
-  .scale{order:-1;}
+  .scale{order:-1;--s:0.92;margin:0;}   /* màn hẹp: vừa khít */
   .panel{width:min(94vw,360px);}
 }
 </style>
@@ -489,8 +490,8 @@ function buildDial(){
 }
 // dây treo chữ V — NỐI CHẠM rìa ngoài đĩa (không lơ lửng)
 function layoutChains(){
-  const RIM_X = PLATE_RAD + 13;     // nửa bề ngang đĩa = (2*plate_rad+26)/2
-  const RIM_Y = STRING_LEN + 8;     // ngang giữa đĩa (điểm bám rìa)
+  const RIM_X = PLATE_RAD + 13;     // nửa bề ngang đoạn thẳng = (2*plate_rad+26)/2
+  const RIM_Y = STRING_LEN + 2;     // chạm đúng đoạn thẳng (dày 5px)
   const len = Math.hypot(RIM_X, RIM_Y);
   const ang = Math.atan2(RIM_Y, RIM_X)*180/Math.PI;   // từ trục NGANG
   document.querySelectorAll('.hanger').forEach(h=>{

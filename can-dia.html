@@ -31,7 +31,7 @@
   /* MẶT SỐ + KIM + ĐÒN CÙNG 1 TÂM: disc-cy == pivot */
   --pivot:86px;           /* tâm CHUNG: trục đòn = tâm đĩa = trục kim (dồn lên, bớt trống) */
   --disc-cy:86px;         /* = --pivot (đĩa mặt số tròn bao quanh trục) */
-  --disc-r:74px;          /* bán kính đĩa mặt số */
+  --disc-r:60px;          /* bán kính đĩa mặt số (thu nhỏ — vạch sát mép, hở ~8px) */
   --arm:124px;            /* nửa đòn cân */
   --dial-r:58px;          /* bán kính đặt SỐ (từ tâm chung) */
   --needle-len:48px;      /* dài kim — < bán kính số -> KHÔNG đè số */
@@ -227,9 +227,11 @@ body{
 
 /* ===== MOBILE: cân trên, 2 list xuống dưới ===== */
 @media (max-width:860px){
-  .stage{flex-direction:column;justify-content:flex-start;padding:10px 8px 24px;gap:14px;}
-  .scale{order:-1;--s:0.92;margin:0;}   /* màn hẹp: vừa khít */
-  .panel{width:min(94vw,360px);}
+  /* cân full hàng TRÊN; 2 list thưởng/phạt thành 2 CỘT hàng dưới */
+  .stage{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+    padding:10px 6px 24px;gap:16px 10px;}
+  .scale{order:-1;--s:0.92;margin:0;}
+  .panel{width:auto;flex:1 1 0;min-width:0;max-width:48vw;}
 }
 </style>
 </head>

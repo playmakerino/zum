@@ -179,12 +179,12 @@
   .badge-emoji .deadline-min{
     display:none;
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);  /* JS thêm translate ra mép ngoài */
-    width:16px; height:16px; padding:0; box-sizing:border-box;
+    width:13px; height:13px; padding:0; box-sizing:border-box;
     border-radius:50%;
     background:var(--c-min); color:#fff;
-    font-size:.48rem; font-weight:700; line-height:16px; text-align:center;
+    font-size:.42rem; font-weight:700; line-height:13px; text-align:center;
     font-variant-numeric:tabular-nums;
-    box-shadow:0 0 0 1.5px var(--bg);   /* tách khỏi emoji bằng vòng nền */
+    box-shadow:0 0 0 1.25px var(--bg);   /* tách khỏi emoji bằng vòng nền */
   }
   .badge-emoji .deadline-min.show{ display:block; }
 
@@ -1015,7 +1015,8 @@
       // Pill phút: đẩy ra ĐIỂM XA TÂM NHẤT của nhãn (mép ngoài, đối diện nét nối). Net xoay
       //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
       if(L.dline){
-        const R = (L.badge.offsetHeight/2) || (BADGE_H/2);
+        // Đẩy chấm phút RA NGOÀI mép nhãn thêm chút nữa -> bớt đè lên emoji
+        const R = ((L.badge.offsetHeight/2) || (BADGE_H/2)) + 4;
         L.dline.style.transform = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
       }
     };

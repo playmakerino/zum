@@ -551,6 +551,8 @@ function init(){
   $('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });
   $('reset').addEventListener('click', askReset);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+  // chạm/click chỗ khác (không phải emoji) -> ẩn nút × (emoji có stopPropagation nên không tự ẩn)
+  document.addEventListener('click', ()=>{ for(const r of document.querySelectorAll('.event-row.show-del')) r.classList.remove('show-del'); });
   fitScale(); window.addEventListener('resize', fitScale);
   boxStore.sync(); itemStore.sync();
   // sau khung hình đầu: bật lại animation cho thao tác về sau

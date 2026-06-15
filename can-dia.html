@@ -86,8 +86,8 @@ body{
 .row-del{position:absolute;top:-8px;display:none;z-index:3;width:18px;height:18px;
   border-radius:50%;cursor:pointer;background:var(--bad);color:var(--bg);
   font:700 12px/1 system-ui;align-items:center;justify-content:center;}
-.panel.left  .row-del{left:-6px;}
-.panel.right .row-del{right:-6px;}
+.panel.left  .row-del{left:0;}      /* sát góc emoji, KHÔNG tràn mép list */
+.panel.right .row-del{right:0;}     /* (list cuộn dọc -> tràn ngang sẽ sinh scrollbar) */
 .event-row:hover .row-del{display:flex;}
 
 /* hàng custom = [ô nhập emoji] = [ô đơn][ô đôi] */
@@ -365,7 +365,7 @@ const itemId = (side, type, event) => `i_${side}_${type}_${encodeURIComponent(ev
 // Lọc theo phe + KHỬ TRÙNG nội dung (chữa lành dữ liệu cũ có bản ghi trùng).
 const itemsFor = side => { const seen=new Set();
   return items.filter(i=>{ if(i.side!==side) return false;
-    const k=i.type+' '+i.event; if(seen.has(k)) return false; seen.add(k); return true; }); };
+    const k=i.type+'\n'+i.event; if(seen.has(k)) return false; seen.add(k); return true; }); };
 
 // Ô (vuông/chữ nhật) màu theo phe. cls: 'mini' (list) | 'big' (popup) | '' (đĩa)
 function boxHTML(side, type, cls){

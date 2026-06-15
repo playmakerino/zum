@@ -127,6 +127,7 @@ body{
   width:11px;height:var(--needle-len);margin-left:-5.5px;margin-top:calc(-1*var(--needle-len));
   transform-origin:50% 100%;background:var(--wood);
   clip-path:polygon(50% 0,100% 86%,50% 100%,0 86%);
+  will-change:transform;                                 /* lên layer riêng -> mobile chốt đúng khung cuối, không kẹt lệch */
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 /* hub = chấm tròn ở tâm chung */
 .hub{position:absolute;left:var(--cx);top:var(--pivot);z-index:8;
@@ -141,10 +142,12 @@ body{
 .beam{position:absolute;left:var(--cx);top:var(--pivot);z-index:5;
   width:calc(2*var(--arm));height:15px;margin-left:calc(-1*var(--arm));margin-top:-7.5px;
   border-radius:var(--radius);transform-origin:50% 50%;background:var(--wood);
+  will-change:transform;
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 
 /* bộ treo: neo ở đầu đòn, phản-xoay để dây/đĩa luôn thẳng đứng */
 .hanger{position:absolute;top:50%;width:0;height:0;transform-origin:0 0;
+  will-change:transform;
   transition:transform .8s cubic-bezier(.32,1.4,.55,1);}
 .hanger.l{left:0;}
 .hanger.r{left:100%;}

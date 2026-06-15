@@ -28,18 +28,17 @@
     --emoji-size:15px;                     /* cỡ emoji trên nhãn; emoji trên tâm = x2 */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  html{overflow:hidden;}            /* chặn cuộn ngang/dọc cấp tài liệu (iOS) */
+  /* MOBILE (mặc định): trang CUỘN tự nhiên. Đồng hồ co theo BỀ RỘNG; nội dung dài hơn
+     màn thì cuộn — KHÔNG ép vừa khít viewport. Logic "không scroll" chỉ bật ở DESKTOP. */
   body{
-    height:100vh;
-    height:100dvh;
-    overflow:hidden;
+    min-height:100dvh;
     overscroll-behavior:none;
     background:var(--bg);
     color:var(--ink);
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:center;
+    justify-content:flex-start;
     gap:0;
     padding:.5rem;
     font-family:'Space Grotesk',sans-serif;
@@ -49,9 +48,17 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* NGANG (rộng >= 768px): toàn bộ ĐỒNG HỒ bên TRÁI, LỊCH bên PHẢI. */
+  /* NGANG (rộng >= 768px): toàn bộ ĐỒNG HỒ bên TRÁI, LỊCH bên PHẢI.
+     DESKTOP giữ logic "vừa khít, không scroll": ghim chiều cao = viewport + overflow ẩn. */
   @media (min-width:768px){
-    body{ flex-direction:row; gap:24px; }
+    html{overflow:hidden;}            /* chặn cuộn cấp tài liệu */
+    body{
+      height:100dvh;
+      overflow:hidden;
+      flex-direction:row;
+      justify-content:center;
+      gap:24px;
+    }
     .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }
 
@@ -929,8 +936,9 @@
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
     const desktop = mqDesktop.matches;
 
-    // Ghim chiều cao body = vùng nhìn thấy để căn giữa khỏi lọt dưới thanh công cụ Safari.
-    document.body.style.height = vh + 'px';
+    // DESKTOP: ghim chiều cao body = vùng nhìn thấy để căn giữa, KHÔNG scroll.
+    // MOBILE: để chiều cao theo NỘI DUNG -> trang cuộn tự nhiên (bỏ logic "không scroll").
+    document.body.style.height = desktop ? vh + 'px' : '';
     // Đo CẢ cột digital (gồm dòng văn nói đã dành chỗ) -> luôn còn chỗ hiển thị.
     const digitalH = elDigitalCol?.offsetHeight || 140;
     // Lịch là khối riêng: desktop nằm bên PHẢI (chừa bề rộng), mobile nằm DƯỚI (chừa chiều cao)
@@ -962,7 +970,8 @@
       faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - calH - 16 + GAP_EXTRA) / 2;
     }
 
-    FACE = Math.min(faceByW, faceByH);
+    // DESKTOP: vừa khít cả BỀ RỘNG lẫn CHIỀU CAO. MOBILE: chỉ theo BỀ RỘNG (cao thì cuộn).
+    FACE = desktop ? Math.min(faceByW, faceByH) : faceByW;
     // Sàn tối thiểu 70 NHƯNG không bao giờ vượt quá giới hạn BỀ RỘNG (faceByW) ->
     // bề ngang khối analog luôn vừa viewport, không gây scroll ngang. (Màn quá thấp
     // thì chấp nhận co theo chiều cao thay vì tràn ngang.)
@@ -1417,18 +1426,18 @@
   }
 
   /* ===== 11. KHỞI ĐỘNG ===== */
-  // Chỉ căn lại khi kích thước THẬT SỰ đổi -> tránh giật: relayout khi đổi BỀ RỘNG
-  // HOẶC CHIỀU CAO đáng kể (>2px) — bỏ nhiễu do thanh công cụ Safari ẩn/hiện.
+  // DESKTOP căn vừa khít viewport -> căn lại khi đổi BỀ RỘNG hoặc CHIỀU CAO (>2px).
+  // MOBILE trang cuộn tự nhiên, đồng hồ chỉ theo BỀ RỘNG -> CHỈ căn lại khi đổi bề rộng
+  // (xoay máy); BỎ QUA đổi chiều cao (thanh công cụ ẩn/hiện, pinch-zoom) nên hết "co dúm".
   let lastW=-1, lastVh=-1;
   function relayout(){
-    // ĐANG PHÓNG TO BẰNG 2 NGÓN (pinch-zoom) -> GIỮ NGUYÊN bố cục & tỷ lệ:
-    // vùng nhìn thấy lúc zoom thu nhỏ lại, nếu tính lại sẽ co/đẩy đồng hồ theo nó.
-    // Bỏ qua relayout khi scale != 1 -> trang chỉ phóng to đồng đều, không xô lệch.
-    const vv=window.visualViewport;
-    if(vv && Math.abs(vv.scale-1)>0.01) return;
     const w=window.innerWidth;
     const vh=viewportH();
-    if(w===lastW && Math.abs(vh-lastVh)<2) return;
+    if(mqDesktop.matches){
+      if(w===lastW && Math.abs(vh-lastVh)<2) return;
+    } else {
+      if(w===lastW) return;
+    }
     lastW=w; lastVh=vh; layout();
   }
 
@@ -1437,20 +1446,10 @@
   setupAddLabelUI();
   buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();
+  // Chỉ nghe resize/orientation cấp window: KHÔNG nghe visualViewport (scroll/pinch) nữa
+  // -> trên mobile pinch-zoom chỉ phóng to đồng đều, không kích relayout giữa cử chỉ.
   window.addEventListener('resize', relayout);
   window.addEventListener('orientationchange', relayout);
-  // Thanh công cụ Safari ẩn/hiện đổi vùng nhìn thấy -> căn lại cho khỏi tràn/cắt.
-  // NHƯNG pinch-zoom phát resize/scroll LIÊN TỤC, và ở NHỊP ĐẦU iOS cập nhật
-  // visualViewport.height TRƯỚC .scale -> relayout chạy với chiều cao đã thu nhỏ
-  // nhưng scale vẫn ~1 (lọt qua chốt chặn) -> FACE tính nhỏ, đồng hồ "co dúm" lần đầu.
-  // HOÃN (debounce) tới khi cử chỉ lắng: lúc đó scale & kích thước đã ĐỒNG BỘ nên
-  // chốt scale!=1 chặn đúng (đang zoom), hoặc căn lại theo chiều cao THẬT (toolbar).
-  if(window.visualViewport){
-    let vvTimer=0;
-    const relayoutSoon=()=>{ clearTimeout(vvTimer); vvTimer=setTimeout(relayout,250); };
-    window.visualViewport.addEventListener('resize', relayoutSoon);
-    window.visualViewport.addEventListener('scroll', relayoutSoon);
-  }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(layout);

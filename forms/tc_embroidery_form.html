@@ -140,26 +140,35 @@
     .field input[type="text"]:hover { background: #2a2a2a; }
     .field input[type="text"]:focus { background: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
 
-    /* Drop zone */
-    .drop-zone {
+    /* Add-image tile (lives inside the thumbnail grid) */
+    .add-tile {
+      aspect-ratio: 1;
       border: 2px dashed var(--text-muted);
-      border-radius: 8px;
-      padding: 16px 12px;
-      text-align: center;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      color: var(--text-muted);
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
     }
-    .drop-zone:hover, .drop-zone.drag-over {
+    .add-tile:hover {
       border-color: var(--accent);
+      color: var(--accent);
       background: var(--accent-soft);
     }
-    .drop-zone svg { width: 22px; height: 22px; color: var(--text-muted); margin-bottom: 4px; }
-    .drop-zone.drag-over svg { color: var(--accent); }
-    .drop-zone p { font-size: 12px; color: var(--text-sub); line-height: 1.4; }
+    .add-tile svg { width: 22px; height: 22px; }
+    /* Whole grid acts as a drop target */
+    .thumbs.drag-over {
+      outline: 2px dashed var(--accent);
+      outline-offset: 5px;
+      border-radius: 8px;
+    }
+    .thumbs.drag-over .add-tile {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
+    }
 
     /* Thumbnails */
     .thumbs {
-      margin-top: 12px;
+      margin-top: 0;
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
       gap: 10px;
@@ -350,31 +359,25 @@
         </div>
         <div class="field">
           <label>Images</label>
-          <div class="drop-zone" data-row-id="${id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
-              <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
-            </svg>
-            <p>Drop images here or click to browse</p>
-          </div>
           <input type="file" class="row-file" multiple accept="image/*" style="display:none" />
-          <div class="thumbs"></div>
+          <div class="thumbs" data-row-id="${id}"></div>
           <div class="row-img-count"></div>
         </div>
       `;
       document.getElementById('rowsContainer').appendChild(div);
 
-      const dz = div.querySelector('.drop-zone');
+      const thumbs = div.querySelector('.thumbs');
       const fi = div.querySelector('.row-file');
-      dz.addEventListener('click', () => fi.click());
-      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-      dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-      dz.addEventListener('drop', e => {
-        e.preventDefault(); dz.classList.remove('drag-over');
+      thumbs.addEventListener('click', e => { if (e.target.closest('.add-tile')) fi.click(); });
+      thumbs.addEventListener('dragover', e => { e.preventDefault(); thumbs.classList.add('drag-over'); });
+      thumbs.addEventListener('dragleave', e => { if (!thumbs.contains(e.relatedTarget)) thumbs.classList.remove('drag-over'); });
+      thumbs.addEventListener('drop', e => {
+        e.preventDefault(); thumbs.classList.remove('drag-over');
         addImages(id, e.dataTransfer.files);
       });
       fi.addEventListener('change', () => { addImages(id, fi.files); fi.value = ''; });
 
+      renderThumbs(id);
       updateCount();
     }
 
@@ -433,6 +436,12 @@
         t.appendChild(rm);
         thumbs.appendChild(t);
       });
+
+      const add = document.createElement('div');
+      add.className = 'add-tile';
+      add.title = 'Add images';
+      add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+      thumbs.appendChild(add);
 
       countEl.textContent = arr.length ? `${arr.length} ${arr.length === 1 ? 'image' : 'images'}` : '';
     }

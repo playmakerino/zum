@@ -1439,10 +1439,17 @@
   layout();
   window.addEventListener('resize', relayout);
   window.addEventListener('orientationchange', relayout);
-  // Thanh công cụ Safari ẩn/hiện đổi vùng nhìn thấy -> căn lại cho khỏi tràn/cắt
+  // Thanh công cụ Safari ẩn/hiện đổi vùng nhìn thấy -> căn lại cho khỏi tràn/cắt.
+  // NHƯNG pinch-zoom phát resize/scroll LIÊN TỤC, và ở NHỊP ĐẦU iOS cập nhật
+  // visualViewport.height TRƯỚC .scale -> relayout chạy với chiều cao đã thu nhỏ
+  // nhưng scale vẫn ~1 (lọt qua chốt chặn) -> FACE tính nhỏ, đồng hồ "co dúm" lần đầu.
+  // HOÃN (debounce) tới khi cử chỉ lắng: lúc đó scale & kích thước đã ĐỒNG BỘ nên
+  // chốt scale!=1 chặn đúng (đang zoom), hoặc căn lại theo chiều cao THẬT (toolbar).
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', relayout);
-    window.visualViewport.addEventListener('scroll', relayout);
+    let vvTimer=0;
+    const relayoutSoon=()=>{ clearTimeout(vvTimer); vvTimer=setTimeout(relayout,250); };
+    window.visualViewport.addEventListener('resize', relayoutSoon);
+    window.visualViewport.addEventListener('scroll', relayoutSoon);
   }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){

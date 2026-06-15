@@ -94,6 +94,8 @@ body{
 .custom{margin-top:6px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;}
 .emoji-input{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius);
   background:rgba(248,212,157,.55);text-align:center;font-size:1.3rem;line-height:1;color:var(--wood);}
+.panel.left  .emoji-input{caret-color:var(--bad);}    /* dấu nháy theo phe */
+.panel.right .emoji-input{caret-color:var(--good);}
 
 /* ===== 5. Ô (.box) — dùng chung: list (.mini) · popup (.big) · đĩa (mặc định) ===== */
 .box{display:inline-flex;align-items:center;justify-content:center;

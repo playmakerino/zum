@@ -82,13 +82,15 @@ body{
 .panel.left  .event-row,.panel.left  .custom{justify-content:flex-start;}   /* TRÁI căn trái */
 .panel.right .event-row,.panel.right .custom{justify-content:flex-end;}     /* PHẢI căn phải */
 
-/* nút × xóa-ITEM — gắn vào EMOJI, hiện khi hover row */
+/* nút × xóa-ITEM — gắn vào EMOJI. Desktop: hover emoji. Mobile: chạm emoji (.show-del).
+   KHÔNG hiện theo hover/chạm Ô -> chạm ô 1 lần là ra popup ngay (không bị double-tap). */
 .row-del{position:absolute;top:-8px;display:none;z-index:3;width:18px;height:18px;
   border-radius:50%;cursor:pointer;background:var(--bad);color:var(--bg);
   font:700 12px/1 system-ui;align-items:center;justify-content:center;}
 .panel.left  .row-del{left:0;}      /* sát góc emoji, KHÔNG tràn mép list */
 .panel.right .row-del{right:0;}     /* (list cuộn dọc -> tràn ngang sẽ sinh scrollbar) */
-.event-row:hover .row-del{display:flex;}
+.event-row.show-del .row-del{display:flex;}                 /* mobile: chạm emoji */
+@media (hover:hover){ .ev:hover .row-del{display:flex;} }   /* desktop: hover emoji */
 
 /* hàng custom = [ô nhập emoji] = [ô đơn][ô đôi] */
 .custom{margin-top:6px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;}
@@ -108,7 +110,7 @@ body{
 .box.mini.square{width:36px;}
 .box.mini.rect{width:64px;}
 .box.mini .f{font-size:1.32rem;}
-.box.mini:hover{transform:translateY(-3px) scale(1.04);}
+@media (hover:hover){ .box.mini:hover{transform:translateY(-3px) scale(1.04);} }  /* chỉ thiết bị có hover -> mobile không bị double-tap/sticky hover */
 .box.mini:active{transform:scale(.93);}
 
 /* ===== 6. KHU CÂN ===== */
@@ -383,9 +385,10 @@ function makeRow(it){
   const ev=document.createElement('span'); ev.className='ev'; ev.textContent=it.event;
   const eq=document.createElement('span'); eq.className='eq'; eq.textContent='=';
   const box=boxNode(it.side, it.type, 'mini');
-  box.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));
+  box.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));   // chạm Ô -> popup
   const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
   del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it); });
+  ev.addEventListener('click', e=>{ e.stopPropagation(); li.classList.toggle('show-del'); });   // chạm EMOJI -> hiện/ẩn ×
   ev.appendChild(del);
   it.side==='left' ? li.append(ev,eq,box) : li.append(box,eq,ev);   // PHẢI = gương
   return li;

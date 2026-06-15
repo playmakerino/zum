@@ -28,10 +28,14 @@
     --emoji-size:15px;                     /* cỡ emoji trên nhãn; emoji trên tâm = x2 */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
+  /* MOBILE (mặc định): chỉ CHẶN TRÀN NGANG (giữ mọi thứ căn giữa, không bị đẩy lệch
+     trái do nhãn/đồng hồ cát tràn mép), nhưng VẪN cho cuộn DỌC tự nhiên. */
+  html{ overflow-x:hidden; }
   /* MOBILE (mặc định): trang CUỘN tự nhiên. Đồng hồ co theo BỀ RỘNG; nội dung dài hơn
      màn thì cuộn — KHÔNG ép vừa khít viewport. Logic "không scroll" chỉ bật ở DESKTOP. */
   body{
     min-height:100dvh;
+    overflow-x:hidden;
     overscroll-behavior:none;
     background:var(--bg);
     color:var(--ink);

@@ -171,7 +171,8 @@ body{
 .box-x{position:absolute;top:-9px;left:-9px;display:none;z-index:7;width:18px;height:18px;
   border-radius:50%;cursor:pointer;background:var(--bad);color:var(--bg);
   font:700 11px/1 system-ui;align-items:center;justify-content:center;}
-.pan .box:hover .box-x,.pan .box.show-x .box-x{display:flex;}
+.pan .box.show-x .box-x{display:flex;}                          /* mobile: chạm khối */
+@media (hover:hover){ .pan .box:hover .box-x{display:flex;} }   /* desktop: hover khối */
 
 /* ===== 7. NÚM RESET (tròn, ngay dưới cân) ===== */
 .reset{z-index:50;width:48px;height:48px;border-radius:50%;cursor:pointer;
@@ -379,6 +380,11 @@ function boxHTML(side, type, cls){
 function boxNode(side, type, cls){
   const t=document.createElement('template'); t.innerHTML=boxHTML(side,type,cls); return t.content.firstChild;
 }
+// ẩn MỌI nút × đang hiện (× list .show-del + × ô đĩa .show-x) — chạm chỗ khác thì gọi
+const clearRowX = ()=>{
+  for(const el of document.querySelectorAll('.event-row.show-del')) el.classList.remove('show-del');
+  for(const el of document.querySelectorAll('.box.show-x'))         el.classList.remove('show-x');
+};
 // 1 row = [emoji] = [ô-button]; CHỈ ô là button. Nút × xóa-item gắn vào emoji.
 function makeRow(it){
   const li=document.createElement('li'); li.className='event-row';
@@ -388,7 +394,7 @@ function makeRow(it){
   box.addEventListener('click', ()=>askAdd(it.side, it.type, it.event, false));   // chạm Ô -> popup
   const del=document.createElement('button'); del.className='row-del'; del.textContent='×';
   del.addEventListener('click', e=>{ e.stopPropagation(); removeItem(it); });
-  ev.addEventListener('click', e=>{ e.stopPropagation(); li.classList.toggle('show-del'); });   // chạm EMOJI -> hiện/ẩn ×
+  ev.addEventListener('click', e=>{ e.stopPropagation(); const on=li.classList.contains('show-del'); clearRowX(); if(!on) li.classList.add('show-del'); });   // chạm EMOJI -> hiện/ẩn × (chỉ 1 × 1 lúc)
   ev.appendChild(del);
   it.side==='left' ? li.append(ev,eq,box) : li.append(box,eq,ev);   // PHẢI = gương
   return li;
@@ -430,7 +436,7 @@ function buildBox(b){
   const x=document.createElement('button'); x.className='box-x'; x.textContent='×';
   x.addEventListener('click', e=>{ e.stopPropagation(); askDelete(b.id); });
   box.appendChild(x);
-  box.addEventListener('click', ()=>box.classList.toggle('show-x'));   // chạm để hiện × (mobile)
+  box.addEventListener('click', e=>{ e.stopPropagation(); const on=box.classList.contains('show-x'); clearRowX(); if(!on) box.classList.add('show-x'); });   // chạm khối -> hiện/ẩn × (chỉ 1 × 1 lúc)
   slot.appendChild(box);
   return slot;
 }
@@ -551,8 +557,8 @@ function init(){
   $('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });
   $('reset').addEventListener('click', askReset);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-  // chạm/click chỗ khác (không phải emoji) -> ẩn nút × (emoji có stopPropagation nên không tự ẩn)
-  document.addEventListener('click', ()=>{ for(const r of document.querySelectorAll('.event-row.show-del')) r.classList.remove('show-del'); });
+  // chạm/click chỗ khác -> ẩn mọi nút × (emoji/khối có stopPropagation nên không tự ẩn)
+  document.addEventListener('click', clearRowX);
   fitScale(); window.addEventListener('resize', fitScale);
   boxStore.sync(); itemStore.sync();
   // sau khung hình đầu: bật lại animation cho thao tác về sau

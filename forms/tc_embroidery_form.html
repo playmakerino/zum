@@ -281,7 +281,7 @@
   <div class="container">
     <div class="header">
       <h1>TC Embroidery</h1>
-      <p>Each product row: paste a product URL + upload images. 1 image = 1 ad.</p>
+      <p>Each product row: Product URL + Print ID + upload images. 1 image = 1 ad.</p>
     </div>
 
     <div class="card">
@@ -342,7 +342,7 @@
       });
     }
 
-    function addRow(product_url = '') {
+    function addRow(product_url = '', print_id = '') {
       const id = 'r' + (rowSeq++);
       filesByRow[id] = [];
 
@@ -357,6 +357,10 @@
         <div class="field">
           <label>Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
+        </div>
+        <div class="field">
+          <label>Print ID</label>
+          <input type="text" class="row-print" placeholder="e.g. TC1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="field">
           <label>Images</label>
@@ -458,15 +462,16 @@
       rowEls.forEach((el, i) => {
         const id = el.dataset.rowId;
         const url = cleanProductUrl(el.querySelector('.row-url').value.trim());
+        const print_id = el.querySelector('.row-print').value.trim();
         const files = filesByRow[id] || [];
-        if (!url || files.length === 0) return;
-        meta.push({ index: i, product_url: url });
+        if (!url || !print_id || files.length === 0) return;
+        meta.push({ index: i, product_url: url, print_id });
         files.forEach((f, j) => fd.append('img_' + i + '_' + j, f, f.name));
         total += files.length;
       });
 
       if (total === 0) {
-        return showStatus('error', '&#9888; Add at least one product URL with at least one image.');
+        return showStatus('error', '&#9888; Each product needs a Product URL, a Print ID, and at least one image.');
       }
       fd.append('meta', JSON.stringify(meta));
 

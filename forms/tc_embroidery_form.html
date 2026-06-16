@@ -349,8 +349,11 @@
     }
 
     function renumberRows() {
-      document.querySelectorAll('#rowsContainer .prow').forEach((el, i) => {
+      const rows = document.querySelectorAll('#rowsContainer .prow');
+      rows.forEach((el, i) => {
         el.querySelector('.prow-title').textContent = 'Product ' + (i + 1);
+        // Hide Remove when there's only one product (can't drop the last row)
+        el.querySelector('.remove-row').style.display = rows.length === 1 ? 'none' : '';
       });
     }
 

@@ -300,10 +300,10 @@ const $ = id => document.getElementById(id);
 const cssVar = n => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n));
 
 // hình học cân — đọc 1 lần từ CSS token (xem :root)
-const ARM=cssVar('--arm'), DIAL_R=cssVar('--dial-r'), STRING_LEN=cssVar('--string-len'),
+const DIAL_R=cssVar('--dial-r'), STRING_LEN=cssVar('--string-len'),
       PLATE_RAD=cssVar('--plate-rad'), UNIT=cssVar('--unit'), BOX_H=cssVar('--box-h'),
       MAX_BEAM=cssVar('--max-beam'), MAX_DEG=cssVar('--max-deg'),
-      CX=cssVar('--cx'), PIVOT=cssVar('--pivot'), DISC_CY=cssVar('--disc-cy'), DISC_R=cssVar('--disc-r');
+      CX=cssVar('--cx'), DISC_CY=cssVar('--disc-cy'), DISC_R=cssVar('--disc-r');
 
 const SCALE_W=414, SCALE_H=312;   // kích thước gốc .scale (px) — dùng cho fitScale
 const CAP_UNITS=4;                // 4 đơn vị / hàng trên đĩa
@@ -380,10 +380,12 @@ const itemsFor = side => { const seen=new Set();
   return items.filter(i=>{ if(i.side!==side) return false;
     const k=i.type+'\n'+i.event; if(seen.has(k)) return false; seen.add(k); return true; }); };
 
-// Ô (vuông/chữ nhật) màu theo phe. cls: 'mini' (list) | 'big' (popup) | '' (đĩa)
-function boxHTML(side, type, cls){
+// Ô (vuông/chữ nhật) màu theo phe. cls: 'mini' (list) | 'big' (popup).
+// event truyền vào -> kèm badge emoji sự việc ở góc. Ô trên ĐĨA dựng riêng tại buildBox.
+function boxHTML(side, type, cls, event){
   const faces = `<span class="f">${FACE[side]}</span>`.repeat(weightOf(type));
-  return `<span class="box ${cls} ${side} ${type==='rect'?'rect':'square'}">${faces}</span>`;
+  const badge = event ? `<span class="box-badge">${event}</span>` : '';
+  return `<span class="box ${cls} ${side} ${type==='rect'?'rect':'square'}">${faces}${badge}</span>`;
 }
 function boxNode(side, type, cls){
   const t=document.createElement('template'); t.innerHTML=boxHTML(side,type,cls); return t.content.firstChild;
@@ -523,9 +525,7 @@ const closeModal = ()   => { $('modal').classList.remove('open'); pending=null; 
 
 function askAdd(side, type, event, persist){
   pending={kind:'add', side, type, event, persist};
-  // ô y như trên đĩa: ô big + badge emoji sự việc ở góc (sibling của .f, trong .box)
-  const faces=`<span class="f">${FACE[side]}</span>`.repeat(weightOf(type));
-  openModal(`<span class="box big ${side} ${type==='rect'?'rect':'square'}">${faces}<span class="box-badge">${event}</span></span>`);
+  openModal(boxHTML(side, type, 'big', event));   // ô big + badge emoji sự việc (như trên đĩa)
 }
 function askDelete(id){
   const b=boxes.find(x=>x.id===id); if(!b) return;

@@ -358,18 +358,12 @@ function makeStore(data, ref, lsKey, render){
               // chỉ push khi chưa có -> không nhân đôi (kim/đòn đếm dư 1 đơn vị tới khi F5).
               if(!data.some(x=>x.id===rec.id)) data.push(rec);
               sortByAt(data); persist(); render(); },
-    remove(id){ const i=data.findIndex(x=>x.id===id); if(i>=0) data.splice(i,1); persist(); render();
-              if(ref) ref.child(id).remove().catch(()=>{}); },   // sửa local TRƯỚC -> echo rỗng không bị re-seed hồi sinh
-    clear(){ data.length=0; persist(); render();                 // xóa local TRƯỚC -> Reset không bị re-seed hồi sinh
-             if(ref) ref.remove().catch(()=>{}); },
+    remove(id){ if(ref) ref.child(id).remove().catch(()=>{});
+              const i=data.findIndex(x=>x.id===id); if(i>=0) data.splice(i,1); persist(); render(); },
+    clear(){ if(ref) ref.remove().catch(()=>{}); data.length=0; persist(); render(); },
     sync(){ if(!ref) return;
             ref.on('value', s=>{ const next=parseSnap(s.val());
               if(JSON.stringify(next)===JSON.stringify(data)) return;   // bỏ qua echo của chính mình
-              // CHỐNG MẤT DATA: remote rỗng mà local còn data -> KHÔNG xóa local. (Reset trên MÁY NÀY đã xóa
-              // local trước nên data=[] -> không rơi vào đây.) Đẩy ngược local lên Firebase để TỰ LÀNH khi node
-              // bị xóa từ ngoài / chưa kịp đồng bộ. Đánh đổi: Reset từ MÁY KHÁC sẽ bị máy này dựng lại.
-              if(!next.length && data.length){            // dựng object rồi set 1 LẦN (atomic): tránh echo giữa vòng làm co data
-                const obj={}; for(const r of data) obj[r.id]=toRecord(r); ref.set(obj).catch(()=>{}); return; }
               replace(next); persist(); render(); }, ()=>{}); }   // onErr: read-denied -> giữ cache local
   };
 }

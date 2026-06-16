@@ -121,6 +121,18 @@
 
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
+
+    /* Print ID + Product URL: stacked on mobile, side-by-side on desktop */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .field-row .field { margin-bottom: 0; }
+    @media (min-width: 560px) {
+      .field-row { grid-template-columns: minmax(120px, 0.5fr) 1fr; }
+    }
     .field label {
       display: block; font-size: 12px; font-weight: 600;
       color: var(--text-sub); margin-bottom: 7px; letter-spacing: 0.01em;
@@ -354,13 +366,15 @@
           <span class="prow-title">Product</span>
           <button class="remove-row" onclick="removeRow(this)">Remove</button>
         </div>
-        <div class="field">
-          <label>Product URL</label>
-          <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
-        </div>
-        <div class="field">
-          <label>Print ID</label>
-          <input type="text" class="row-print" placeholder="e.g. TC1234" value="${escapeHtml(print_id)}" />
+        <div class="field-row">
+          <div class="field">
+            <label>Print ID</label>
+            <input type="text" class="row-print" placeholder="e.g. TC1234" value="${escapeHtml(print_id)}" />
+          </div>
+          <div class="field">
+            <label>Product URL</label>
+            <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
+          </div>
         </div>
         <div class="field">
           <label>Images</label>

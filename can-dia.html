@@ -347,12 +347,17 @@ try{
 // đồng bộ Firebase + localStorage, gọi render() sau mỗi thay đổi.
 function makeStore(data, ref, lsKey, render){
   const persist  = ()=>{ try{ localStorage.setItem(lsKey, JSON.stringify(data)); }catch(e){} };
-  const replace  = next=>{ data.length=0; data.push(...next); sortByAt(data); };
+  const replace  = next=>{ const seen=new Set(); data.length=0;          // khử trùng id (chữa lành cache cũ đã lỡ nhân đôi)
+                           for(const r of next){ if(seen.has(r.id)) continue; seen.add(r.id); data.push(r); }
+                           sortByAt(data); };
   const toRecord = r => ({side:r.side, type:r.type, event:r.event, at:r.at});
   return {
     load(){ let v=[]; try{ v=JSON.parse(localStorage.getItem(lsKey))||[]; }catch(e){} replace(v); },
     add(rec){ if(ref) ref.child(rec.id).set(toRecord(rec)).catch(()=>{});
-              data.push(rec); sortByAt(data); persist(); render(); },
+              // RTDB bắn 'value' (latency compensation) NGAY trong .set() -> sync() đã replace() chèn rec;
+              // chỉ push khi chưa có -> không nhân đôi (kim/đòn đếm dư 1 đơn vị tới khi F5).
+              if(!data.some(x=>x.id===rec.id)) data.push(rec);
+              sortByAt(data); persist(); render(); },
     remove(id){ if(ref) ref.child(id).remove().catch(()=>{});
               const i=data.findIndex(x=>x.id===id); if(i>=0) data.splice(i,1); persist(); render(); },
     clear(){ if(ref) ref.remove().catch(()=>{}); data.length=0; persist(); render(); },

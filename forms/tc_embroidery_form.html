@@ -222,6 +222,11 @@
       margin-top: 8px; text-align: right;
     }
 
+    /* Single print/flatlay reference slot */
+    .print-slot { display: flex; }
+    .print-slot .thumb, .print-slot .add-tile { width: 84px; height: 84px; aspect-ratio: 1; }
+    .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
+
     /* Add product button */
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
@@ -293,7 +298,7 @@
   <div class="container">
     <div class="header">
       <h1>TC Embroidery</h1>
-      <p>Each product row: Product URL + Print ID + upload images. 1 image = 1 ad.</p>
+      <p>Each product row: Print ID + Product URL + Print/Flatlay (optional, for AI copy) + ad images. 1 image = 1 ad.</p>
     </div>
 
     <div class="card">
@@ -330,7 +335,8 @@
     // ============================================================
 
     let rowSeq = 0;
-    const filesByRow = {};   // rowId -> [File, ...]
+    const filesByRow = {};   // rowId -> [File, ...]  (ad images)
+    const printByRow = {};   // rowId -> File (single print/flatlay reference) | undefined
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -380,7 +386,12 @@
           </div>
         </div>
         <div class="field">
-          <label>Images</label>
+          <label>Print Image or Flatlay Image</label>
+          <input type="file" class="row-print-file" accept="image/*" style="display:none" />
+          <div class="print-slot" data-row-id="${id}"></div>
+        </div>
+        <div class="field">
+          <label>Ad images</label>
           <input type="file" class="row-file" multiple accept="image/*" style="display:none" />
           <div class="thumbs" data-row-id="${id}"></div>
           <div class="row-img-count"></div>
@@ -399,13 +410,18 @@
       });
       fi.addEventListener('change', () => { addImages(id, fi.files); fi.value = ''; });
 
+      const pfi = div.querySelector('.row-print-file');
+      pfi.addEventListener('change', () => { setPrintImage(id, pfi.files); pfi.value = ''; });
+
       renderThumbs(id);
+      renderPrint(id);
       updateCount();
     }
 
     function removeRow(btn) {
       const el = btn.closest('.prow');
       delete filesByRow[el.dataset.rowId];
+      delete printByRow[el.dataset.rowId];
       el.remove();
       if (document.querySelectorAll('#rowsContainer .prow').length === 0) addRow();
       updateCount();
@@ -468,6 +484,58 @@
       countEl.textContent = arr.length ? `${arr.length} ${arr.length === 1 ? 'image' : 'images'}` : '';
     }
 
+    function setPrintImage(rowId, fileListObj) {
+      const f = fileListObj && fileListObj[0];
+      if (!f || !f.type.startsWith('image/')) return;
+      printByRow[rowId] = f;
+      renderPrint(rowId);
+      updateCount();
+    }
+
+    function removePrintImage(rowId) {
+      delete printByRow[rowId];
+      renderPrint(rowId);
+      updateCount();
+    }
+
+    function renderPrint(rowId) {
+      const row = document.querySelector(`.prow[data-row-id="${rowId}"]`);
+      if (!row) return;
+      const slot = row.querySelector('.print-slot');
+      const f = printByRow[rowId];
+      slot.innerHTML = '';
+
+      if (f) {
+        const t = document.createElement('div');
+        t.className = 'thumb';
+        t.title = f.name;
+
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+
+        const name = document.createElement('div');
+        name.className = 'thumb-name';
+        name.textContent = f.name;
+
+        const rm = document.createElement('button');
+        rm.className = 'thumb-remove';
+        rm.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+        rm.onclick = () => removePrintImage(rowId);
+
+        t.appendChild(img);
+        t.appendChild(name);
+        t.appendChild(rm);
+        slot.appendChild(t);
+      } else {
+        const add = document.createElement('div');
+        add.className = 'add-tile';
+        add.title = 'Add print / flatlay image';
+        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+        add.onclick = () => row.querySelector('.row-print-file').click();
+        slot.appendChild(add);
+      }
+    }
+
     async function submitForm() {
       const submitBtn = document.getElementById('submitBtn');
       const rowEls = [...document.querySelectorAll('#rowsContainer .prow')];
@@ -484,6 +552,8 @@
         if (!url || !print_id || files.length === 0) return;
         meta.push({ index: i, product_url: url, print_id });
         files.forEach((f, j) => fd.append('img_' + i + '_' + j, f, f.name));
+        const printFile = printByRow[id];
+        if (printFile) fd.append('print_' + i, printFile, printFile.name);
         total += files.length;
       });
 

@@ -314,5 +314,149 @@
       el.innerHTML = html;
     }
   </script>
+  <!-- ============ Guide (help panel) ============ -->
+  <style>
+    .guide-fab{position:fixed;right:24px;bottom:24px;width:52px;height:52px;border-radius:50%;
+      background:var(--surface-elevated);color:var(--text-sub);border:1px solid rgba(255,255,255,.14);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:50;
+      transition:transform .12s,background .15s,color .15s,border-color .15s,box-shadow .2s}
+    .guide-fab:hover{background:var(--surface-hover);color:var(--text);border-color:rgba(255,255,255,.3);
+      transform:scale(1.08);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+    .guide-fab:active{transform:scale(.96)}
+    .guide-fab svg{width:24px;height:24px}
+
+    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;visibility:hidden;
+      transition:opacity .25s,visibility .25s;z-index:60}
+    .guide-overlay.open{opacity:1;visibility:visible}
+
+    .guide-panel{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:var(--surface);
+      border-left:1px solid var(--divider);box-shadow:-14px 0 44px rgba(0,0,0,.55);transform:translateX(102%);
+      transition:transform .32s cubic-bezier(.4,0,.2,1);z-index:70;display:flex;flex-direction:column}
+    .guide-panel.open{transform:translateX(0)}
+
+    .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:20px 22px;border-bottom:1px solid var(--divider);flex-shrink:0}
+    .guide-head h2{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+    .guide-close{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--surface-elevated);
+      border:none;color:var(--text-sub);cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s,transform .12s}
+    .guide-close:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
+    .guide-close svg{width:16px;height:16px}
+
+    .guide-body{padding:20px 22px 36px;overflow-y:auto;flex:1}
+    .guide-body::-webkit-scrollbar{width:8px}
+    .guide-body::-webkit-scrollbar-thumb{background:var(--surface-hover);border-radius:8px}
+
+    .guide-intro{font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
+    .guide-sec{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.14em;
+      text-transform:uppercase;margin:26px 0 14px}
+    .guide-step{display:flex;gap:13px;margin-bottom:18px}
+    .guide-num{flex-shrink:0;width:25px;height:25px;border-radius:50%;background:var(--accent-soft);
+      color:var(--accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+    .guide-sb{flex:1;min-width:0}
+    .guide-sb h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
+    .guide-sb p{font-size:12.5px;color:var(--text-sub);line-height:1.55}
+    .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:600;
+      font-size:11.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--divider);white-space:nowrap}
+    .guide-eg{display:block;margin-top:5px;font-size:11.5px;color:var(--text-muted)}
+    .guide-eg code,.guide-note code{background:var(--surface-elevated);padding:2px 6px;border-radius:4px;
+      color:var(--accent);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
+    .guide-note{background:var(--accent-soft);border-radius:9px;padding:12px 14px;font-size:12px;
+      color:var(--text-sub);line-height:1.6;margin:18px 0 0}
+    .guide-note strong{color:var(--accent);font-weight:700}
+    .guide-note.warn{background:var(--error-soft)}
+    .guide-note.warn strong{color:var(--error)}
+    .guide-note + .guide-note{margin-top:10px}
+    .guide-note ul{margin:6px 0 0;padding-left:18px}
+    .guide-note li{margin-bottom:4px}
+  </style>
+
+  <button class="guide-fab" id="guideFab" title="Hướng dẫn điền form" aria-label="Hướng dẫn điền form" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>📋 Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Form này tạo quảng cáo tự động từ một thư mục ảnh trên Google Drive. Bạn chỉ cần dán link thư mục, nhưng quan trọng nhất là <strong>đặt tên file ảnh đúng chuẩn</strong> trước khi dán.</p>
+
+      <div class="guide-sec">Các bước điền</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4>Đặt tên file ảnh đúng chuẩn (quan trọng nhất)</h4>
+          <p>Trong thư mục Google Drive, mỗi file ảnh phải đặt tên đúng theo mẫu:</p>
+          <p style="margin-top:7px"><code>[PrintID-TypeID_MockupID].jpg</code></p>
+          <p style="margin-top:7px">Trong đó:</p>
+          <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in (ví dụ <code>Abc1234</code>).<br>
+          b) <strong>TypeID</strong>: mã loại sản phẩm (ví dụ <code>QBL</code>, <code>SZR</code>).<br>
+          c) <strong>MockupID</strong>: mã hoặc số của mockup (ví dụ <code>1</code>).</p>
+          <p style="margin-top:7px">Giữ đúng dấu ngoặc vuông, gạch ngang giữa PrintID và TypeID, gạch dưới giữa TypeID và MockupID, và đuôi .jpg.<span class="guide-eg">Ví dụ tên đúng: <code>[Abc1234-QBL_1].jpg</code></span></p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4>Lấy link thư mục Google Drive</h4>
+          <p>Mở thư mục chứa các ảnh đã đặt tên đúng, rồi copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link).</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4>Dán vào ô <span class="g-field">Google Drive folder url</span></h4>
+          <p>Dán link vừa copy vào ô này. Dán nguyên link kiểu nào cũng được, hệ thống sẽ tự lấy ra mã thư mục.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Gửi form</h4>
+          <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Cần nhớ</div>
+
+      <div class="guide-note warn">
+        <strong>Tên file sai chuẩn là lỗi hay gặp nhất.</strong> Ảnh đặt tên không đúng mẫu sẽ không được nhận hoặc tạo ad sai. Trước khi dán link, hãy kiểm tra lại tên của tất cả ảnh trong thư mục.
+      </div>
+
+      <div class="guide-note">
+        <strong>Link dán kiểu nào cũng được:</strong> dạng <code>.../folders/...</code>, <code>...?id=...</code>, <code>.../drive/u/0/folders/...</code>, hoặc dán thẳng mã folder ID.
+      </div>
+
+      <div class="guide-note">
+        <strong>Quyền truy cập:</strong> thư mục phải ở nơi hệ thống đọc được ảnh (Drive của team hoặc đã chia sẻ). Nếu báo lỗi không đọc được ảnh, hãy kiểm tra lại quyền chia sẻ của thư mục.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    function openGuide(){
+      document.getElementById('guidePanel').classList.add('open');
+      document.getElementById('guideOverlay').classList.add('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','false');
+    }
+    function closeGuide(){
+      document.getElementById('guidePanel').classList.remove('open');
+      document.getElementById('guideOverlay').classList.remove('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','true');
+    }
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeGuide(); });
+  </script>
+  <!-- ============ /Guide ============ -->
 </body>
 </html>

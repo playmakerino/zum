@@ -870,55 +870,60 @@
   </script>
   <!-- ============ Guide (help panel) ============ -->
   <style>
-    .guide-fab{position:fixed;right:24px;bottom:24px;width:52px;height:52px;border-radius:50%;
-      background:var(--surface-elevated);color:var(--text-sub);border:1px solid rgba(255,255,255,.14);
+    /* Floating help trigger: neutral icon button (Spotify reserves green for the primary submit CTA) */
+    .guide-fab{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;
+      background:var(--surface-elevated);color:var(--text-sub);border:none;
       cursor:pointer;display:flex;align-items:center;justify-content:center;
-      box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:50;
-      transition:transform .12s,background .15s,color .15s,border-color .15s,box-shadow .2s}
-    .guide-fab:hover{background:var(--surface-hover);color:var(--text);border-color:rgba(255,255,255,.3);
-      transform:scale(1.08);box-shadow:0 10px 30px rgba(0,0,0,.5)}
-    .guide-fab:active{transform:scale(.96)}
-    .guide-fab svg{width:24px;height:24px}
+      box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
+      transition:transform .15s cubic-bezier(.3,0,0,1),background .15s,color .15s}
+    .guide-fab:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
+    .guide-fab:active{transform:scale(1)}
+    .guide-fab svg{width:22px;height:22px}
 
-    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;visibility:hidden;
-      transition:opacity .25s,visibility .25s;z-index:60}
+    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;
+      transition:opacity .3s,visibility .3s;z-index:60}
     .guide-overlay.open{opacity:1;visibility:visible}
 
-    .guide-panel{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:var(--surface);
-      border-left:1px solid var(--divider);box-shadow:-14px 0 44px rgba(0,0,0,.55);transform:translateX(102%);
-      transition:transform .32s cubic-bezier(.4,0,.2,1);z-index:70;display:flex;flex-direction:column}
+    /* Right panel modelled on Spotify's Now Playing view: floating rounded card with a gap from the edges */
+    .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
+      background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);
+      transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
+      z-index:70;display:flex;flex-direction:column;overflow:hidden}
     .guide-panel.open{transform:translateX(0)}
 
     .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
-      padding:20px 22px;border-bottom:1px solid var(--divider);flex-shrink:0}
-    .guide-head h2{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
-    .guide-close{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--surface-elevated);
-      border:none;color:var(--text-sub);cursor:pointer;display:flex;align-items:center;justify-content:center;
-      transition:background .15s,color .15s,transform .12s}
-    .guide-close:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
-    .guide-close svg{width:16px;height:16px}
+      padding:20px 20px 14px;flex-shrink:0}
+    .guide-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+    /* Plain icon close, no background circle: like the Spotify panel close */
+    .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--text-sub);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
+    .guide-close:hover{color:var(--text);transform:scale(1.06)}
+    .guide-close svg{width:18px;height:18px}
 
-    .guide-body{padding:20px 22px 36px;overflow-y:auto;flex:1}
-    .guide-body::-webkit-scrollbar{width:8px}
-    .guide-body::-webkit-scrollbar-thumb{background:var(--surface-hover);border-radius:8px}
+    .guide-body{padding:6px 20px 32px;overflow-y:auto;flex:1}
+    .guide-body::-webkit-scrollbar{width:12px}
+    .guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:8px;
+      border:3px solid transparent;background-clip:padding-box}
+    .guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.5);
+      border:3px solid transparent;background-clip:padding-box}
 
     .guide-intro{font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
-    .guide-sec{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.14em;
-      text-transform:uppercase;margin:26px 0 14px}
+    .guide-sec{font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.04em;margin:26px 0 14px}
     .guide-step{display:flex;gap:13px;margin-bottom:18px}
-    .guide-num{flex-shrink:0;width:25px;height:25px;border-radius:50%;background:var(--accent-soft);
-      color:var(--accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+    /* Neutral step markers, no green */
+    .guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);
+      color:var(--text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
     .guide-sb{flex:1;min-width:0}
     .guide-sb h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
     .guide-sb p{font-size:12.5px;color:var(--text-sub);line-height:1.55}
     .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:600;
-      font-size:11.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--divider);white-space:nowrap}
+      font-size:11.5px;padding:1px 7px;border-radius:5px;white-space:nowrap}
     .guide-eg{display:block;margin-top:5px;font-size:11.5px;color:var(--text-muted)}
-    .guide-eg code,.guide-note code{background:var(--surface-elevated);padding:2px 6px;border-radius:4px;
-      color:var(--accent);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
-    .guide-note{background:var(--accent-soft);border-radius:9px;padding:12px 14px;font-size:12px;
+    .guide-eg code,.guide-note code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;
+      color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
+    .guide-note{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;font-size:12px;
       color:var(--text-sub);line-height:1.6;margin:18px 0 0}
-    .guide-note strong{color:var(--accent);font-weight:700}
+    .guide-note strong{color:var(--text);font-weight:700}
     .guide-note.warn{background:var(--error-soft)}
     .guide-note.warn strong{color:var(--error)}
     .guide-note + .guide-note{margin-top:10px}
@@ -934,7 +939,7 @@
   <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
   <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
     <div class="guide-head">
-      <h2>📋 Hướng dẫn điền form</h2>
+      <h2>Hướng dẫn điền form</h2>
       <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>

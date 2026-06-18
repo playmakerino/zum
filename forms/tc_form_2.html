@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test print theme</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #181818;
+      --surface-hover: #282828;
+      --surface-elevated: #242424;
+      --accent: #1DB954;
+      --accent-hover: #1ed760;
+      --accent-soft: rgba(29,185,84,0.12);
+      --accent-glow: rgba(29,185,84,0.30);
+      --text: #FFFFFF;
+      --text-sub: #B3B3B3;
+      --text-muted: #6A6A6A;
+      --success: #1DB954;
+      --success-soft: rgba(29,185,84,0.10);
+      --error: #F15E6C;
+      --error-soft: rgba(241,94,108,0.10);
+      --divider: rgba(255,255,255,0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 56px 16px 80px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 380px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { margin-bottom: 32px; text-align: center; }
+    .header h1 {
+      font-size: 48px; font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
+
+    .card { background: var(--surface); border-radius: 13px; padding: 32px 28px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin: 28px 0 14px;
+      padding-top: 22px;
+      border-top: 1px solid var(--divider);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section:first-child .section-label {
+      margin-top: 0; padding-top: 0; border-top: none;
+    }
+    .section-label .count {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: none;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--text-sub); margin-bottom: 8px; letter-spacing: 0.01em;
+    }
+
+    .field input[type="text"],
+    .field select {
+      width: 100%; height: 48px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 6px;
+      padding: 0 16px;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+      appearance: none;
+    }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    .field input[type="text"]::placeholder { color: var(--text-muted); }
+    .field input[type="text"]:hover,
+    .field select:hover { background-color: #2a2a2a; }
+    .field input[type="text"]:focus,
+    .field select:focus {
+      background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 170px 1fr 36px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .row-header { margin-bottom: 6px; }
+    .row-col-label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-sub);
+      letter-spacing: 0.01em;
+    }
+    .row input[type="text"] {
+      height: 42px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 6px;
+      padding: 0 12px;
+      font-family: var(--font);
+      font-size: 13px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .row input[type="text"]:hover { background: #2a2a2a; }
+    .row input[type="text"]:focus {
+      background: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
+    }
+    .row .remove-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .row .remove-btn:hover {
+      color: var(--error); border-color: var(--error); background: var(--error-soft);
+    }
+
+    .add-row-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 6px; flex-wrap: wrap;
+    }
+    .paste-tip {
+      font-size: 11px; color: var(--text-muted); line-height: 1.4;
+    }
+
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.20);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px; font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+      flex-shrink: 0;
+    }
+    .add-btn:hover {
+      border-color: var(--text);
+      background: rgba(255,255,255,0.06);
+      transform: scale(1.04);
+    }
+
+    .submit-wrap { margin-top: 32px; }
+    .submit-btn {
+      width: 100%; max-width: 280px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto;
+      background: var(--accent); border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 700;
+      padding: 16px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status {
+      margin-top: 14px; padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      display: none; line-height: 1.5;
+    }
+    .status.success { display: block; background: var(--success-soft); color: var(--success); }
+    .status.error { display: block; background: var(--error-soft); color: var(--error); }
+    .status.loading { display: block; background: var(--accent-soft); color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #payloadPreview {
+      font-family: 'SF Mono', 'Fira Code', monospace !important;
+      font-size: 11px !important;
+    }
+
+    @media (max-width: 640px) {
+      .field-row { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr 36px; }
+      .row .row-print { grid-column: 1; }
+      .row .remove-btn { grid-column: 2; grid-row: 1; }
+      .row .row-url { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Test print theme</h1>
+      <p>Each image on the product page becomes one ad.</p>
+    </div>
+
+    <div class="card">
+
+      <div class="section">
+        <div class="field-row">
+          <div class="field">
+            <label>Print theme</label>
+            <input type="text" id="ad_set_name" placeholder="Sea turtle" />
+          </div>
+          <div class="field">
+            <label>Product type</label>
+            <select id="product_type">
+              <option value="quilt_blanket">Quilt blanket</option>
+              <option value="quilt_bedding_set">Quilt bedding set</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">
+          <span>Products</span>
+          <span class="count" id="rowCount"></span>
+        </div>
+        <div class="row row-header">
+          <label class="row-col-label">Print ID</label>
+          <label class="row-col-label">Product url</label>
+          <span></span>
+        </div>
+        <div id="rowsContainer"></div>
+        <div class="add-row-wrap">
+          <button class="add-btn" onclick="addRow()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add product
+          </button>
+          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID.</span>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          Create ad set
+        </button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:11px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
+
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    //   CONFIG
+    // ============================================================
+    const WEBHOOK_URLS = {
+      quilt_blanket: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54",
+      quilt_bedding_set: "https://playmakerino.app.n8n.cloud/webhook/c1a0d163-6422-4487-b657-5db4f7e5fa9b"
+    };
+
+    function getWebhookUrl() {
+      return WEBHOOK_URLS[document.getElementById('product_type').value];
+    }
+    // ============================================================
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    function updateCount() {
+      const n = document.querySelectorAll('#rowsContainer .row').length;
+      document.getElementById('rowCount').textContent = n === 1 ? '1 row' : `${n} rows`;
+    }
+
+    function addRow(print_id = '', product_url = '') {
+      const container = document.getElementById('rowsContainer');
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.innerHTML = `
+        <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
+        <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/bamboo-quilted-blanket" value="${escapeHtml(product_url)}" />
+        <button class="remove-btn" title="Remove" onclick="removeRow(this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+      updateCount();
+    }
+
+    function removeRow(btn) {
+      btn.closest('.row').remove();
+      updateCount();
+    }
+
+    function cleanProductUrl(url) {
+      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
+    }
+
+    function collectRows() {
+      const rows = [];
+      document.querySelectorAll('#rowsContainer .row').forEach(r => {
+        const print_id = r.querySelector('.row-print').value.trim();
+        const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
+        if (print_id && product_url) {
+          rows.push({ Print_ID: print_id, Product_url: product_url });
+        }
+      });
+      return rows;
+    }
+
+    async function submitForm() {
+      const ad_set_name = document.getElementById('ad_set_name').value.trim();
+      const rows = collectRows();
+
+      if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
+      if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
+
+      const payload = { ad_set_name, rows };
+
+      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
+      document.getElementById('submitBtn').disabled = true;
+
+      try {
+        const res = await fetch(getWebhookUrl(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showStatus('success', '✅ Successfully sent! n8n workflow is running.');
+          const preview = document.getElementById('payloadPreview');
+          preview.style.display = 'block';
+          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
+        } else {
+          const errText = await res.text();
+          showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);
+        }
+      } catch (err) {
+        showStatus('error', `❌ Cannot connect to n8n: ${err.message}`);
+      } finally {
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function showStatus(type, html) {
+      const el = document.getElementById('statusMsg');
+      el.className = `status ${type}`;
+      el.innerHTML = html;
+    }
+
+    document.getElementById('rowsContainer').addEventListener('paste', function(e) {
+      const target = e.target;
+      const isPrint = target.classList.contains('row-print');
+      const isUrl = target.classList.contains('row-url');
+      if (!isPrint && !isUrl) return;
+
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2 && !lines.some(l => l.includes('\t'))) return;
+
+      const parsed = lines.map(line => line.split('\t'));
+      const isMultiCol = parsed.some(cols => cols.length >= 2);
+
+      if (lines.length < 2 && !isMultiCol) return;
+
+      e.preventDefault();
+
+      if (isMultiCol) {
+        const currentRow = target.closest('.row');
+        currentRow.remove();
+        parsed.forEach(cols => {
+          const printId = (cols[0] || '').trim();
+          const productUrl = (cols[1] || '').trim();
+          if (printId || productUrl) addRow(printId, productUrl);
+        });
+      } else {
+        const container = document.getElementById('rowsContainer');
+        const allRows = Array.from(container.querySelectorAll('.row'));
+        const startIndex = allRows.indexOf(target.closest('.row'));
+        const fieldClass = isPrint ? '.row-print' : '.row-url';
+
+        parsed.forEach((cols, i) => {
+          const val = (cols[0] || '').trim();
+          if (!val) return;
+          const rowIndex = startIndex + i;
+          if (rowIndex < allRows.length) {
+            allRows[rowIndex].querySelector(fieldClass).value = val;
+          } else {
+            if (isPrint) addRow(val, '');
+            else addRow('', val);
+          }
+        });
+      }
+
+      updateCount();
+    });
+
+    addRow();
+  </script>
+</body>
+</html>

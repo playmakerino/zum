@@ -145,6 +145,17 @@
       color: var(--text-sub);
       letter-spacing: 0.01em;
     }
+    .row-cell { min-width: 0; }
+    .row-cell input[type="text"] { width: 100%; display: block; }
+    /* Per-row labels: hidden on desktop (the shared header row provides them),
+       shown on mobile where the shared header is hidden. */
+    .row-inline-label {
+      display: none;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
     .row input[type="text"] {
       height: 42px;
       background: var(--surface-elevated);
@@ -254,10 +265,29 @@
 
     @media (max-width: 640px) {
       .field-row { grid-template-columns: 1fr; }
-      .row { grid-template-columns: 1fr 36px; }
-      .row .row-print { grid-column: 1; }
-      .row .remove-btn { grid-column: 2; grid-row: 1; }
-      .row .row-url { grid-column: 1 / -1; }
+
+      /* Products: drop the shared column header; each row carries its own labels */
+      .row-header { display: none; }
+      .row-inline-label { display: block; }
+
+      .row {
+        grid-template-columns: 1fr 36px;
+        grid-template-areas:
+          "print btn"
+          "url   url";
+        column-gap: 10px;
+        row-gap: 12px;
+        margin-bottom: 18px;
+      }
+      .row-cell-print { grid-area: print; }
+      .row-cell-url   { grid-area: url; }
+      .row .remove-btn { grid-area: btn; align-self: end; }
+
+      /* Light divider between products so multiple rows stay readable */
+      #rowsContainer .row + .row {
+        border-top: 1px solid var(--divider);
+        padding-top: 18px;
+      }
     }
   </style>
 </head>
@@ -346,8 +376,14 @@
       const div = document.createElement('div');
       div.className = 'row';
       div.innerHTML = `
-        <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
-        <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/bamboo-quilted-blanket" value="${escapeHtml(product_url)}" />
+        <div class="row-cell row-cell-print">
+          <label class="row-inline-label">Print ID</label>
+          <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
+        </div>
+        <div class="row-cell row-cell-url">
+          <label class="row-inline-label">Product url</label>
+          <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/bamboo-quilted-blanket" value="${escapeHtml(product_url)}" />
+        </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

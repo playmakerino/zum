@@ -324,9 +324,11 @@
     // ============================================================
     //   CONFIG
     // ============================================================
+    // Merged into one workflow "TC form 2" — both product types post to the same webhook.
+    // Product type (blanket/bedding) is auto-detected in n8n from the Shopify product.
     const WEBHOOK_URLS = {
       quilt_blanket: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54",
-      quilt_bedding_set: "https://playmakerino.app.n8n.cloud/webhook/c1a0d163-6422-4487-b657-5db4f7e5fa9b"
+      quilt_bedding_set: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54"
     };
 
     function getWebhookUrl() {

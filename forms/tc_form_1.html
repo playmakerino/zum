@@ -303,18 +303,33 @@
     <div class="card">
 
       <div class="section-label">
-        <span>Products</span>
-        <span class="count" id="rowCount"></span>
+        <span>Product</span>
+        <span class="count" id="adCount"></span>
       </div>
 
-      <div id="rowsContainer"></div>
-
-      <button class="add-btn" onclick="addRow()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Add product
-      </button>
+      <div class="prow">
+        <div class="field-row">
+          <div class="field">
+            <label>Print ID</label>
+            <input type="text" id="printId" placeholder="xua1234" />
+          </div>
+          <div class="field">
+            <label>Product URL</label>
+            <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
+          </div>
+        </div>
+        <div class="field">
+          <label>Print Image or Flatlay Image</label>
+          <input type="file" id="printFileInput" accept="image/*" style="display:none" />
+          <div class="print-slot" id="printSlot"></div>
+        </div>
+        <div class="field">
+          <label>Ad images</label>
+          <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
+          <div class="thumbs" id="thumbs"></div>
+          <div class="row-img-count" id="imgCount"></div>
+        </div>
+      </div>
 
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
@@ -333,125 +348,41 @@
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-embroidery-form";
     // ============================================================
 
-    let rowSeq = 0;
-    const filesByRow = {};   // rowId -> [File, ...]  (ad images)
-    const printByRow = {};   // rowId -> File (single print/flatlay reference) | undefined
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    }
+    let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
+    let printFile = null;  // single print/flatlay reference | null
 
     function cleanProductUrl(url) {
       return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
     }
 
     function updateCount() {
-      const rows = document.querySelectorAll('#rowsContainer .prow').length;
-      const imgs = Object.values(filesByRow).reduce((s, a) => s + a.length, 0);
-      document.getElementById('rowCount').textContent =
-        `${rows} ${rows === 1 ? 'product' : 'products'} · ${imgs} ${imgs === 1 ? 'ad' : 'ads'}`;
-      renumberRows();
+      const n = adFiles.length;
+      document.getElementById('adCount').textContent = `${n} ${n === 1 ? 'ad' : 'ads'}`;
     }
 
-    function renumberRows() {
-      const rows = document.querySelectorAll('#rowsContainer .prow');
-      rows.forEach((el, i) => {
-        el.querySelector('.prow-title').textContent = 'Product ' + (i + 1);
-        // Hide Remove when there's only one product (can't drop the last row)
-        el.querySelector('.remove-row').style.display = rows.length === 1 ? 'none' : '';
-      });
-    }
-
-    function addRow(product_url = '', print_id = '') {
-      const id = 'r' + (rowSeq++);
-      filesByRow[id] = [];
-
-      const div = document.createElement('div');
-      div.className = 'prow';
-      div.dataset.rowId = id;
-      div.innerHTML = `
-        <div class="prow-head">
-          <span class="prow-title">Product</span>
-          <button class="remove-row" onclick="removeRow(this)">Remove</button>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Print ID</label>
-            <input type="text" class="row-print" placeholder="xua1234" value="${escapeHtml(print_id)}" />
-          </div>
-          <div class="field">
-            <label>Product URL</label>
-            <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
-          </div>
-        </div>
-        <div class="field">
-          <label>Print Image or Flatlay Image</label>
-          <input type="file" class="row-print-file" accept="image/*" style="display:none" />
-          <div class="print-slot" data-row-id="${id}"></div>
-        </div>
-        <div class="field">
-          <label>Ad images</label>
-          <input type="file" class="row-file" multiple accept="image/*" style="display:none" />
-          <div class="thumbs" data-row-id="${id}"></div>
-          <div class="row-img-count"></div>
-        </div>
-      `;
-      document.getElementById('rowsContainer').appendChild(div);
-
-      const thumbs = div.querySelector('.thumbs');
-      const fi = div.querySelector('.row-file');
-      thumbs.addEventListener('click', e => { if (e.target.closest('.add-tile')) fi.click(); });
-      thumbs.addEventListener('dragover', e => { e.preventDefault(); thumbs.classList.add('drag-over'); });
-      thumbs.addEventListener('dragleave', e => { if (!thumbs.contains(e.relatedTarget)) thumbs.classList.remove('drag-over'); });
-      thumbs.addEventListener('drop', e => {
-        e.preventDefault(); thumbs.classList.remove('drag-over');
-        addImages(id, e.dataTransfer.files);
-      });
-      fi.addEventListener('change', () => { addImages(id, fi.files); fi.value = ''; });
-
-      const pfi = div.querySelector('.row-print-file');
-      pfi.addEventListener('change', () => { setPrintImage(id, pfi.files); pfi.value = ''; });
-
-      renderThumbs(id);
-      renderPrint(id);
-      updateCount();
-    }
-
-    function removeRow(btn) {
-      const el = btn.closest('.prow');
-      delete filesByRow[el.dataset.rowId];
-      delete printByRow[el.dataset.rowId];
-      el.remove();
-      if (document.querySelectorAll('#rowsContainer .prow').length === 0) addRow();
-      updateCount();
-    }
-
-    function addImages(rowId, fileListObj) {
-      const arr = filesByRow[rowId];
+    // ---------- Ad images ----------
+    function addImages(fileListObj) {
       for (const f of fileListObj) {
         if (!f.type.startsWith('image/')) continue;
-        if (arr.some(s => s.name === f.name && s.size === f.size)) continue;
-        arr.push(f);
+        if (adFiles.some(s => s.name === f.name && s.size === f.size)) continue;
+        adFiles.push(f);
       }
-      renderThumbs(rowId);
+      renderThumbs();
       updateCount();
     }
 
-    function removeImage(rowId, idx) {
-      filesByRow[rowId].splice(idx, 1);
-      renderThumbs(rowId);
+    function removeImage(idx) {
+      adFiles.splice(idx, 1);
+      renderThumbs();
       updateCount();
     }
 
-    function renderThumbs(rowId) {
-      const row = document.querySelector(`.prow[data-row-id="${rowId}"]`);
-      if (!row) return;
-      const thumbs = row.querySelector('.thumbs');
-      const countEl = row.querySelector('.row-img-count');
-      const arr = filesByRow[rowId];
+    function renderThumbs() {
+      const thumbs = document.getElementById('thumbs');
+      const countEl = document.getElementById('imgCount');
 
       thumbs.innerHTML = '';
-      arr.forEach((f, idx) => {
+      adFiles.forEach((f, idx) => {
         const t = document.createElement('div');
         t.className = 'thumb';
         t.title = f.name;
@@ -466,7 +397,7 @@
         const rm = document.createElement('button');
         rm.className = 'thumb-remove';
         rm.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-        rm.onclick = () => removeImage(rowId, idx);
+        rm.onclick = () => removeImage(idx);
 
         t.appendChild(img);
         t.appendChild(name);
@@ -480,46 +411,42 @@
       add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
       thumbs.appendChild(add);
 
-      countEl.textContent = arr.length ? `${arr.length} ${arr.length === 1 ? 'image' : 'images'}` : '';
+      countEl.textContent = adFiles.length ? `${adFiles.length} ${adFiles.length === 1 ? 'image' : 'images'}` : '';
     }
 
-    function setPrintImage(rowId, fileListObj) {
+    // ---------- Print / flatlay reference ----------
+    function setPrintImage(fileListObj) {
       const f = fileListObj && fileListObj[0];
       if (!f || !f.type.startsWith('image/')) return;
-      printByRow[rowId] = f;
-      renderPrint(rowId);
-      updateCount();
+      printFile = f;
+      renderPrint();
     }
 
-    function removePrintImage(rowId) {
-      delete printByRow[rowId];
-      renderPrint(rowId);
-      updateCount();
+    function removePrintImage() {
+      printFile = null;
+      renderPrint();
     }
 
-    function renderPrint(rowId) {
-      const row = document.querySelector(`.prow[data-row-id="${rowId}"]`);
-      if (!row) return;
-      const slot = row.querySelector('.print-slot');
-      const f = printByRow[rowId];
+    function renderPrint() {
+      const slot = document.getElementById('printSlot');
       slot.innerHTML = '';
 
-      if (f) {
+      if (printFile) {
         const t = document.createElement('div');
         t.className = 'thumb';
-        t.title = f.name;
+        t.title = printFile.name;
 
         const img = document.createElement('img');
-        img.src = URL.createObjectURL(f);
+        img.src = URL.createObjectURL(printFile);
 
         const name = document.createElement('div');
         name.className = 'thumb-name';
-        name.textContent = f.name;
+        name.textContent = printFile.name;
 
         const rm = document.createElement('button');
         rm.className = 'thumb-remove';
         rm.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-        rm.onclick = () => removePrintImage(rowId);
+        rm.onclick = () => removePrintImage();
 
         t.appendChild(img);
         t.appendChild(name);
@@ -530,54 +457,43 @@
         add.className = 'add-tile';
         add.title = 'Add print / flatlay image';
         add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-        add.onclick = () => row.querySelector('.row-print-file').click();
+        add.onclick = () => document.getElementById('printFileInput').click();
         slot.appendChild(add);
       }
     }
 
     async function submitForm() {
       const submitBtn = document.getElementById('submitBtn');
-      const rowEls = [...document.querySelectorAll('#rowsContainer .prow')];
+      const url = cleanProductUrl(document.getElementById('productUrl').value.trim());
+      const print_id = document.getElementById('printId').value.trim();
 
-      const meta = [];
-      const fd = new FormData();
-      let total = 0;
-
-      rowEls.forEach((el, i) => {
-        const id = el.dataset.rowId;
-        const url = cleanProductUrl(el.querySelector('.row-url').value.trim());
-        const print_id = el.querySelector('.row-print').value.trim();
-        const files = filesByRow[id] || [];
-        if (!url || !print_id || files.length === 0) return;
-        meta.push({ index: i, product_url: url, print_id });
-        files.forEach((f, j) => fd.append('img_' + i + '_' + j, f, f.name));
-        const printFile = printByRow[id];
-        if (printFile) fd.append('print_' + i, printFile, printFile.name);
-        total += files.length;
-      });
-
-      if (total === 0) {
-        return showStatus('error', '&#9888; Each product needs a Product URL, a Print ID, and at least one image.');
+      if (!url || !print_id || adFiles.length === 0) {
+        return showStatus('error', '&#9888; Need a Product URL, a Print ID, and at least one ad image.');
       }
+
+      const fd = new FormData();
+      const meta = [{ index: 0, product_url: url, print_id }];
+      adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name));
+      if (printFile) fd.append('print_0', printFile, printFile.name);
       fd.append('meta', JSON.stringify(meta));
+
+      const total = adFiles.length;
+      const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (printFile ? printFile.size : 0)) / (1024 * 1024);
 
       showStatus('loading', '<span class="spinner"></span> Uploading ' + total + ' images...');
       submitBtn.disabled = true;
-
-      const totalMB = rowEls.reduce((s, el) =>
-        s + (filesByRow[el.dataset.rowId] || []).reduce((a, f) => a + f.size, 0), 0) / (1024 * 1024);
 
       try {
         const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd });
 
         if (res.ok) {
-          showStatus('success', '&#10003; Sent ' + total + ' images across ' + meta.length + ' products — creating ' + total + ' ads.');
+          showStatus('success', '&#10003; Sent ' + total + ' images, creating ' + total + ' ads.');
         } else {
           const errText = await res.text();
           showStatus('error', '&#10007; Error (' + res.status + '): ' + errText.slice(0, 150));
         }
       } catch (err) {
-        showStatus('error', '&#10007; Upload failed (' + totalMB.toFixed(1) + ' MB, ' + total + ' files): ' + err.message + '. Likely too large — try fewer images.');
+        showStatus('error', '&#10007; Upload failed (' + totalMB.toFixed(1) + ' MB, ' + total + ' files): ' + err.message + '. Likely too large. Try fewer images.');
       } finally {
         submitBtn.disabled = false;
       }
@@ -589,8 +505,162 @@
       el.innerHTML = html;
     }
 
-    // Default: 1 row present
-    addRow();
+    // ---------- Wire up the single product block ----------
+    (function init() {
+      const thumbs = document.getElementById('thumbs');
+      const adInput = document.getElementById('adFileInput');
+      thumbs.addEventListener('click', e => { if (e.target.closest('.add-tile')) adInput.click(); });
+      thumbs.addEventListener('dragover', e => { e.preventDefault(); thumbs.classList.add('drag-over'); });
+      thumbs.addEventListener('dragleave', e => { if (!thumbs.contains(e.relatedTarget)) thumbs.classList.remove('drag-over'); });
+      thumbs.addEventListener('drop', e => {
+        e.preventDefault(); thumbs.classList.remove('drag-over');
+        addImages(e.dataTransfer.files);
+      });
+      adInput.addEventListener('change', () => { addImages(adInput.files); adInput.value = ''; });
+
+      const printInput = document.getElementById('printFileInput');
+      printInput.addEventListener('change', () => { setPrintImage(printInput.files); printInput.value = ''; });
+
+      renderThumbs();
+      renderPrint();
+      updateCount();
+    })();
   </script>
+  <!-- ============ Guide (help panel) ============ -->
+  <style>
+    .guide-fab{position:fixed;right:24px;bottom:24px;width:52px;height:52px;border-radius:50%;
+      background:var(--surface-elevated);color:var(--text-sub);border:1px solid rgba(255,255,255,.14);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:50;
+      transition:transform .12s,background .15s,color .15s,border-color .15s,box-shadow .2s}
+    .guide-fab:hover{background:var(--surface-hover);color:var(--text);border-color:rgba(255,255,255,.3);
+      transform:scale(1.08);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+    .guide-fab:active{transform:scale(.96)}
+    .guide-fab svg{width:24px;height:24px}
+
+    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;visibility:hidden;
+      transition:opacity .25s,visibility .25s;z-index:60}
+    .guide-overlay.open{opacity:1;visibility:visible}
+
+    .guide-panel{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:var(--surface);
+      border-left:1px solid var(--divider);box-shadow:-14px 0 44px rgba(0,0,0,.55);transform:translateX(102%);
+      transition:transform .32s cubic-bezier(.4,0,.2,1);z-index:70;display:flex;flex-direction:column}
+    .guide-panel.open{transform:translateX(0)}
+
+    .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:20px 22px;border-bottom:1px solid var(--divider);flex-shrink:0}
+    .guide-head h2{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+    .guide-close{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--surface-elevated);
+      border:none;color:var(--text-sub);cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s,transform .12s}
+    .guide-close:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
+    .guide-close svg{width:16px;height:16px}
+
+    .guide-body{padding:20px 22px 36px;overflow-y:auto;flex:1}
+    .guide-body::-webkit-scrollbar{width:8px}
+    .guide-body::-webkit-scrollbar-thumb{background:var(--surface-hover);border-radius:8px}
+
+    .guide-intro{font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
+    .guide-sec{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.14em;
+      text-transform:uppercase;margin:26px 0 14px}
+    .guide-step{display:flex;gap:13px;margin-bottom:18px}
+    .guide-num{flex-shrink:0;width:25px;height:25px;border-radius:50%;background:var(--accent-soft);
+      color:var(--accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+    .guide-sb{flex:1;min-width:0}
+    .guide-sb h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
+    .guide-sb p{font-size:12.5px;color:var(--text-sub);line-height:1.55}
+    .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:600;
+      font-size:11.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--divider);white-space:nowrap}
+    .guide-eg{display:block;margin-top:5px;font-size:11.5px;color:var(--text-muted)}
+    .guide-eg code,.guide-note code{background:var(--surface-elevated);padding:2px 6px;border-radius:4px;
+      color:var(--accent);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
+    .guide-note{background:var(--accent-soft);border-radius:9px;padding:12px 14px;font-size:12px;
+      color:var(--text-sub);line-height:1.6;margin:18px 0 0}
+    .guide-note strong{color:var(--accent);font-weight:700}
+    .guide-note.warn{background:var(--error-soft)}
+    .guide-note.warn strong{color:var(--error)}
+    .guide-note + .guide-note{margin-top:10px}
+    .guide-note ul{margin:6px 0 0;padding-left:18px}
+    .guide-note li{margin-bottom:4px}
+  </style>
+
+  <button class="guide-fab" id="guideFab" title="Hướng dẫn điền form" aria-label="Hướng dẫn điền form" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>📋 Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Form này tải ảnh quảng cáo trực tiếp từ máy của bạn lên để tạo quảng cáo. Quy tắc quan trọng nhất: <strong>mỗi ảnh quảng cáo sẽ tạo thành 1 quảng cáo riêng</strong>. <strong>Mỗi lần chỉ gửi 1 sản phẩm.</strong></p>
+
+      <div class="guide-sec">Các bước điền (1 sản phẩm mỗi lần)</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Print ID</span> và <span class="g-field">Product URL</span></h4>
+          <p>Nhập 2 ô:</p>
+          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã bản in (ví dụ <code>xua1234</code>).<br>
+          b) <span class="g-field">Product URL</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Print / Flatlay image</span>: ảnh tham chiếu</h4>
+          <p>Bấm vào ô vuông có dấu cộng ở mục này để chọn 1 ảnh từ máy. Đây là ảnh bản in gốc hoặc ảnh flatlay, dùng làm ảnh tham chiếu. Mục này khuyến nghị nên có nhưng không bắt buộc, và chỉ chọn 1 ảnh.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
+          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh thẳng vào khung. Hãy nhớ mỗi ảnh ở đây sẽ tạo ra 1 quảng cáo riêng, nên chỉ chọn những ảnh bạn thật sự muốn chạy. Có thể chọn nhiều ảnh cùng một lúc.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Gửi form</h4>
+          <p>Kiểm tra lại rồi bấm <strong>Upload &amp; Create Ads</strong>. Ảnh cần thời gian để tải lên, hãy chờ đến khi thấy dòng chữ xanh báo thành công. Đừng đóng tab khi đang tải. Gửi xong sản phẩm này, đổi lại thông tin rồi gửi tiếp sản phẩm khác.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Cần nhớ</div>
+
+      <div class="guide-note warn">
+        <strong>Điều kiện để gửi được:</strong> phải có đủ cả 3 thứ là <span class="g-field">Product URL</span>, <span class="g-field">Print ID</span> và ít nhất 1 ảnh trong <span class="g-field">Ad images</span>. Thiếu bất kỳ mục nào, form sẽ không gửi.
+      </div>
+
+      <div class="guide-note">
+        <strong>Tránh lỗi tải lên:</strong> mỗi lần gửi tối đa khoảng <strong>16 MB</strong> ảnh (giới hạn của n8n Cloud, không tăng được). Nếu bị báo lỗi "too large", hãy giảm bớt số ảnh hoặc dùng ảnh nhẹ hơn rồi gửi lại.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    function openGuide(){
+      document.getElementById('guidePanel').classList.add('open');
+      document.getElementById('guideOverlay').classList.add('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','false');
+    }
+    function closeGuide(){
+      document.getElementById('guidePanel').classList.remove('open');
+      document.getElementById('guideOverlay').classList.remove('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','true');
+    }
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeGuide(); });
+  </script>
+  <!-- ============ /Guide ============ -->
 </body>
 </html>

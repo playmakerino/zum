@@ -87,38 +87,6 @@
       text-transform: none;
     }
 
-    /* Product row block */
-    .prow {
-      background: var(--surface-elevated);
-      border-radius: 10px;
-      padding: 16px 16px 14px;
-      margin-bottom: 14px;
-      border: 1px solid var(--divider);
-    }
-    .prow-head {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .prow-title {
-      font-size: 13px; font-weight: 700; color: var(--text);
-      letter-spacing: 0.01em;
-    }
-    .remove-row {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.15);
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 5px 12px;
-      font-family: var(--font);
-      font-size: 11px; font-weight: 700;
-      border-radius: 999px;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-      letter-spacing: 0.01em;
-    }
-    .remove-row:hover {
-      color: var(--error); border-color: var(--error); background: var(--error-soft);
-    }
-
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
 
@@ -139,7 +107,7 @@
     }
     .field input[type="text"] {
       width: 100%; height: 44px;
-      background: var(--surface);
+      background: var(--bg);
       border: none; border-radius: 6px;
       padding: 0 14px;
       font-family: var(--font);
@@ -227,27 +195,6 @@
     .print-slot .thumb, .print-slot .add-tile { width: 84px; height: 84px; aspect-ratio: 1; }
     .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
 
-    /* Add product button */
-    .add-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 12px; font-weight: 700;
-      padding: 9px 16px;
-      border-radius: 18px;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.12s;
-      letter-spacing: 0.01em;
-      margin-top: 4px;
-    }
-    .add-btn:hover {
-      border-color: var(--text);
-      background: rgba(255,255,255,0.06);
-      transform: scale(1.04);
-    }
-
     .submit-wrap { margin-top: 24px; }
     .submit-btn {
       width: 100%; max-width: 300px;
@@ -307,28 +254,26 @@
         <span class="count" id="adCount"></span>
       </div>
 
-      <div class="prow">
-        <div class="field-row">
-          <div class="field">
-            <label>Print ID</label>
-            <input type="text" id="printId" placeholder="xua1234" />
-          </div>
-          <div class="field">
-            <label>Product URL</label>
-            <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
-          </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Print ID</label>
+          <input type="text" id="printId" placeholder="xua1234" />
         </div>
         <div class="field">
-          <label>Print Image or Flatlay Image</label>
-          <input type="file" id="printFileInput" accept="image/*" style="display:none" />
-          <div class="print-slot" id="printSlot"></div>
+          <label>Product URL</label>
+          <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
         </div>
-        <div class="field">
-          <label>Ad images</label>
-          <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
-          <div class="thumbs" id="thumbs"></div>
-          <div class="row-img-count" id="imgCount"></div>
-        </div>
+      </div>
+      <div class="field">
+        <label>Print Image or Flatlay Image</label>
+        <input type="file" id="printFileInput" accept="image/*" style="display:none" />
+        <div class="print-slot" id="printSlot"></div>
+      </div>
+      <div class="field">
+        <label>Ad images</label>
+        <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
+        <div class="thumbs" id="thumbs"></div>
+        <div class="row-img-count" id="imgCount"></div>
       </div>
 
       <div class="submit-wrap">

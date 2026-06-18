@@ -151,7 +151,7 @@
     .thumbs {
       margin-top: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
     }
     .thumb {
@@ -190,9 +190,12 @@
       margin-top: 8px; text-align: right;
     }
 
-    /* Single print/flatlay reference slot */
-    .print-slot { display: flex; }
-    .print-slot .thumb, .print-slot .add-tile { width: 84px; height: 84px; aspect-ratio: 1; }
+    /* Single print/flatlay reference slot — same 1/6-width tile as the ad grid */
+    .print-slot {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
     .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
 
     .submit-wrap { margin-top: 24px; }

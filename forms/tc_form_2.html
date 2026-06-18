@@ -279,8 +279,8 @@
           <div class="field">
             <label>Product type</label>
             <select id="product_type">
-              <option value="quilt_blanket">Quilt blanket</option>
-              <option value="quilt_bedding_set">Quilt bedding set</option>
+              <option value="QBL">Quilt blanket</option>
+              <option value="QBS">Quilt bedding set</option>
             </select>
           </div>
         </div>
@@ -324,15 +324,11 @@
     // ============================================================
     //   CONFIG
     // ============================================================
-    // Merged into one workflow "TC form 2" — both product types post to the same webhook.
-    // Product type (blanket/bedding) is auto-detected in n8n from the Shopify product.
-    const WEBHOOK_URLS = {
-      quilt_blanket: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54",
-      quilt_bedding_set: "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54"
-    };
+    // One workflow "TC form 2" — all product types post here.
+    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/f7d83291-4e6c-4a85-9b1d-3c8e2a6f0d54";
 
     function getWebhookUrl() {
-      return WEBHOOK_URLS[document.getElementById('product_type').value];
+      return WEBHOOK_URL;
     }
     // ============================================================
 
@@ -385,12 +381,13 @@
 
     async function submitForm() {
       const ad_set_name = document.getElementById('ad_set_name').value.trim();
+      const product_type = document.getElementById('product_type').value;
       const rows = collectRows();
 
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
 
-      const payload = { ad_set_name, rows };
+      const payload = { ad_set_name, product_type, rows };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;

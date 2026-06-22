@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test print page</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #181818;
+      --surface-hover: #282828;
+      --surface-elevated: #242424;
+      --accent: #1DB954;
+      --accent-hover: #1ed760;
+      --accent-soft: rgba(29,185,84,0.12);
+      --accent-glow: rgba(29,185,84,0.30);
+      --text: #FFFFFF;
+      --text-sub: #B3B3B3;
+      --text-muted: #6A6A6A;
+      --success: #1DB954;
+      --success-soft: rgba(29,185,84,0.10);
+      --error: #F15E6C;
+      --error-soft: rgba(241,94,108,0.10);
+      --divider: rgba(255,255,255,0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 56px 16px 80px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 380px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { margin-bottom: 32px; text-align: center; }
+    .header h1 {
+      font-size: 48px; font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
+
+    .card { background: var(--surface); border-radius: 13px; padding: 32px 28px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin: 0 0 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-label .count {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: none;
+    }
+
+    /* Products table */
+    .row {
+      display: grid;
+      grid-template-columns: 150px 1fr 48px 36px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .row-header { margin-bottom: 6px; }
+    .row-col-label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-sub);
+      letter-spacing: 0.01em;
+    }
+    .row-cell { min-width: 0; }
+    .row-cell input[type="text"] { width: 100%; display: block; }
+    /* Per-row labels: hidden on desktop (the shared header row provides them),
+       shown on mobile where the shared header is hidden. */
+    .row-inline-label {
+      display: none;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
+    .row input[type="text"] {
+      height: 42px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 6px;
+      padding: 0 12px;
+      font-family: var(--font);
+      font-size: 13px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .row input[type="text"]:hover { background: #2a2a2a; }
+    .row input[type="text"]:focus {
+      background: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
+    }
+    .row .remove-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .row .remove-btn:hover {
+      color: var(--error); border-color: var(--error); background: var(--error-soft);
+    }
+
+    /* Optional per-row print/flatlay image */
+    .row-img { width: 42px; height: 42px; }
+    .row-img .img-add {
+      width: 42px; height: 42px;
+      border: 2px dashed var(--text-muted);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-muted);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .row-img .img-add:hover { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.06); }
+    .row-img .img-add svg { width: 16px; height: 16px; }
+    .row-img .img-thumb { position: relative; width: 42px; height: 42px; border-radius: 6px; overflow: hidden; background: var(--bg); }
+    .row-img .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .row-img .img-thumb .img-rm {
+      position: absolute; top: 1px; right: 1px;
+      width: 16px; height: 16px; border: none;
+      background: rgba(0,0,0,0.72); color: #fff;
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .row-img .img-thumb:hover .img-rm { opacity: 1; }
+
+    .add-row-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 6px; flex-wrap: wrap;
+    }
+    .paste-tip {
+      font-size: 11px; color: var(--text-muted); line-height: 1.4;
+    }
+
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.20);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px; font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+      flex-shrink: 0;
+    }
+    .add-btn:hover {
+      border-color: var(--text);
+      background: rgba(255,255,255,0.06);
+      transform: scale(1.04);
+    }
+
+    .submit-wrap { margin-top: 32px; }
+    .submit-btn {
+      width: 100%; max-width: 300px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 auto;
+      background: var(--accent); border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 700;
+      padding: 16px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status {
+      margin-top: 14px; padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      display: none; line-height: 1.5;
+    }
+    .status.success { display: block; background: var(--success-soft); color: var(--success); }
+    .status.error { display: block; background: var(--error-soft); color: var(--error); }
+    .status.loading { display: block; background: var(--accent-soft); color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      /* Products: drop the shared column header; each row carries its own labels */
+      .row-header { display: none; }
+      .row-inline-label { display: block; }
+
+      .row {
+        grid-template-columns: 1fr 36px;
+        grid-template-areas:
+          "print btn"
+          "url   url"
+          "img   img";
+        column-gap: 10px;
+        row-gap: 12px;
+        margin-bottom: 18px;
+        align-items: end;
+      }
+      .row-cell-print { grid-area: print; }
+      .row-cell-url   { grid-area: url; }
+      .row-cell-img   { grid-area: img; }
+      .row .remove-btn { grid-area: btn; align-self: end; }
+
+      /* Light divider between products so multiple rows stay readable */
+      #rowsContainer .row + .row {
+        border-top: 1px solid var(--divider);
+        padding-top: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Test print page</h1>
+      <p>Mỗi product một ad set, mỗi ảnh trên product page là một ad.</p>
+    </div>
+
+    <div class="card">
+
+      <div class="section">
+        <div class="section-label">
+          <span>Products</span>
+          <span class="count" id="rowCount"></span>
+        </div>
+        <div class="row row-header">
+          <label class="row-col-label">Print ID</label>
+          <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Ảnh</label>
+          <span></span>
+        </div>
+        <div id="rowsContainer"></div>
+        <div class="add-row-wrap">
+          <button class="add-btn" onclick="addRow()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add product
+          </button>
+          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID.</span>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          Create ad sets
+        </button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- shared hidden file input for the per-row optional print/flatlay image -->
+  <input type="file" id="rowImgInput" accept="image/*" style="display:none" />
+
+  <script>
+    // ============================================================
+    //   CONFIG
+    // ============================================================
+    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-3";
+    // ============================================================
+
+    let rowSeq = 0;
+    const rowFiles = {};   // rid -> File (optional print/flatlay reference)
+    let activeRid = null;  // rid waiting for the shared file picker
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    function cleanProductUrl(url) {
+      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
+    }
+
+    function updateCount() {
+      const n = document.querySelectorAll('#rowsContainer .row').length;
+      document.getElementById('rowCount').textContent = n === 1 ? '1 product' : `${n} products`;
+    }
+
+    function addRow(print_id = '', product_url = '') {
+      const container = document.getElementById('rowsContainer');
+      const rid = 'r' + (rowSeq++);
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.dataset.rid = rid;
+      div.innerHTML = `
+        <div class="row-cell row-cell-print">
+          <label class="row-inline-label">Print ID</label>
+          <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
+        </div>
+        <div class="row-cell row-cell-url">
+          <label class="row-inline-label">Product url</label>
+          <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
+        </div>
+        <div class="row-cell row-cell-img">
+          <label class="row-inline-label">Ảnh print / flatlay (tùy chọn)</label>
+          <div class="row-img" data-rid="${rid}"></div>
+        </div>
+        <button class="remove-btn" title="Remove" onclick="removeRow(this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+      renderRowImg(rid);
+      updateCount();
+    }
+
+    function removeRow(btn) {
+      const row = btn.closest('.row');
+      delete rowFiles[row.dataset.rid];
+      row.remove();
+      updateCount();
+    }
+
+    // ---------- Optional per-row print/flatlay image ----------
+    function pickRowImg(rid) {
+      activeRid = rid;
+      document.getElementById('rowImgInput').click();
+    }
+
+    function removeRowImg(rid) {
+      delete rowFiles[rid];
+      renderRowImg(rid);
+    }
+
+    function renderRowImg(rid) {
+      const slot = document.querySelector(`.row-img[data-rid="${rid}"]`);
+      if (!slot) return;
+      slot.innerHTML = '';
+      const f = rowFiles[rid];
+      if (f) {
+        const thumb = document.createElement('div');
+        thumb.className = 'img-thumb';
+        thumb.title = f.name;
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        const rm = document.createElement('button');
+        rm.className = 'img-rm';
+        rm.title = 'Remove image';
+        rm.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+        rm.onclick = () => removeRowImg(rid);
+        thumb.appendChild(img);
+        thumb.appendChild(rm);
+        slot.appendChild(thumb);
+      } else {
+        const add = document.createElement('div');
+        add.className = 'img-add';
+        add.title = 'Thêm ảnh print / flatlay (tùy chọn)';
+        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+        add.onclick = () => pickRowImg(rid);
+        slot.appendChild(add);
+      }
+    }
+
+    document.getElementById('rowImgInput').addEventListener('change', function () {
+      const f = this.files && this.files[0];
+      if (f && f.type.startsWith('image/') && activeRid != null) {
+        rowFiles[activeRid] = f;
+        renderRowImg(activeRid);
+      }
+      this.value = '';
+      activeRid = null;
+    });
+
+    // ---------- Collect + submit ----------
+    function collectRows() {
+      const rows = [];
+      document.querySelectorAll('#rowsContainer .row').forEach(r => {
+        const print_id = r.querySelector('.row-print').value.trim();
+        const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
+        if (print_id && product_url) {
+          rows.push({ print_id, product_url, file: rowFiles[r.dataset.rid] || null });
+        }
+      });
+      return rows;
+    }
+
+    async function submitForm() {
+      const submitBtn = document.getElementById('submitBtn');
+      const rows = collectRows();
+
+      if (rows.length === 0) {
+        return showStatus('error', '&#9888; Cần ít nhất 1 dòng có đủ Print ID và Product url.');
+      }
+
+      const fd = new FormData();
+      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id: row.print_id }));
+      rows.forEach((row, i) => { if (row.file) fd.append('print_' + i, row.file, row.file.name); });
+      fd.append('meta', JSON.stringify(meta));
+
+      const nImg = rows.filter(r => r.file).length;
+      showStatus('loading', '<span class="spinner"></span> Đang gửi ' + rows.length + ' product' + (nImg ? ' (' + nImg + ' ảnh)' : '') + '...');
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', body: fd });
+        if (res.ok) {
+          showStatus('success', '&#10003; Đã gửi ' + rows.length + ' product. n8n đang tạo ad set + ad từ ảnh trên product page.');
+        } else {
+          const errText = await res.text();
+          showStatus('error', '&#10007; Lỗi từ n8n (' + res.status + '): ' + errText.slice(0, 150));
+        }
+      } catch (err) {
+        showStatus('error', '&#10007; Không kết nối được n8n: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function showStatus(type, html) {
+      const el = document.getElementById('statusMsg');
+      el.className = 'status ' + type;
+      el.innerHTML = html;
+    }
+
+    // ---------- Paste from Excel (Print ID / URL columns) ----------
+    document.getElementById('rowsContainer').addEventListener('paste', function (e) {
+      const target = e.target;
+      const isPrint = target.classList.contains('row-print');
+      const isUrl = target.classList.contains('row-url');
+      if (!isPrint && !isUrl) return;
+
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2 && !lines.some(l => l.includes('\t'))) return;
+
+      const parsed = lines.map(line => line.split('\t'));
+      const isMultiCol = parsed.some(cols => cols.length >= 2);
+
+      if (lines.length < 2 && !isMultiCol) return;
+
+      e.preventDefault();
+
+      if (isMultiCol) {
+        const currentRow = target.closest('.row');
+        delete rowFiles[currentRow.dataset.rid];
+        currentRow.remove();
+        parsed.forEach(cols => {
+          const printId = (cols[0] || '').trim();
+          const productUrl = (cols[1] || '').trim();
+          if (printId || productUrl) addRow(printId, productUrl);
+        });
+      } else {
+        const container = document.getElementById('rowsContainer');
+        const allRows = Array.from(container.querySelectorAll('.row'));
+        const startIndex = allRows.indexOf(target.closest('.row'));
+        const fieldClass = isPrint ? '.row-print' : '.row-url';
+
+        parsed.forEach((cols, i) => {
+          const val = (cols[0] || '').trim();
+          if (!val) return;
+          const rowIndex = startIndex + i;
+          if (rowIndex < allRows.length) {
+            allRows[rowIndex].querySelector(fieldClass).value = val;
+          } else {
+            if (isPrint) addRow(val, '');
+            else addRow('', val);
+          }
+        });
+      }
+
+      updateCount();
+    });
+
+    addRow();
+  </script>
+  <!-- ============ Guide (help panel) ============ -->
+  <style>
+    /* Floating help trigger: neutral icon button (Spotify reserves green for the primary submit CTA) */
+    .guide-fab{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;
+      background:var(--surface-elevated);color:var(--text-sub);border:none;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
+      transition:transform .15s cubic-bezier(.3,0,0,1),background .15s,color .15s}
+    .guide-fab:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
+    .guide-fab:active{transform:scale(1)}
+    .guide-fab svg{width:22px;height:22px}
+
+    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;
+      transition:opacity .3s,visibility .3s;z-index:60}
+    .guide-overlay.open{opacity:1;visibility:visible}
+
+    /* Right panel modelled on Spotify's Now Playing view: floating rounded card with a gap from the edges */
+    .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
+      background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);
+      transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
+      z-index:70;display:flex;flex-direction:column;overflow:hidden}
+    .guide-panel.open{transform:translateX(0)}
+
+    .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:20px 20px 14px;flex-shrink:0}
+    .guide-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+    /* Plain icon close, no background circle: like the Spotify panel close */
+    .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--text-sub);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
+    .guide-close:hover{color:var(--text);transform:scale(1.06)}
+    .guide-close svg{width:18px;height:18px}
+
+    .guide-body{padding:6px 20px 32px;overflow-y:auto;flex:1}
+    .guide-body::-webkit-scrollbar{width:12px}
+    .guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:8px;
+      border:3px solid transparent;background-clip:padding-box}
+    .guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.5);
+      border:3px solid transparent;background-clip:padding-box}
+
+    .guide-intro{font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
+    .guide-sec{font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.04em;margin:26px 0 14px}
+    .guide-step{display:flex;gap:13px;margin-bottom:18px}
+    /* Neutral step markers, no green */
+    .guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);
+      color:var(--text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+    .guide-sb{flex:1;min-width:0}
+    .guide-sb h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
+    .guide-sb p{font-size:12.5px;color:var(--text-sub);line-height:1.55}
+    .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:600;
+      font-size:11.5px;padding:1px 7px;border-radius:5px;white-space:nowrap}
+    .guide-eg{display:block;margin-top:5px;font-size:11.5px;color:var(--text-muted)}
+    .guide-eg code,.guide-note code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;
+      color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
+    .guide-note{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;font-size:12px;
+      color:var(--text-sub);line-height:1.6;margin:18px 0 0}
+    .guide-note strong{color:var(--text);font-weight:700}
+    .guide-note.warn{background:var(--error-soft)}
+    .guide-note.warn strong{color:var(--error)}
+    .guide-note + .guide-note{margin-top:10px}
+    .guide-note ul{margin:6px 0 0;padding-left:18px}
+    .guide-note li{margin-bottom:4px}
+  </style>
+
+  <button class="guide-fab" id="guideFab" title="Hướng dẫn điền form" aria-label="Hướng dẫn điền form" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Form này nhận danh sách sản phẩm. Mỗi sản phẩm tạo một ad set riêng, và mỗi ảnh có sẵn trên trang sản phẩm sẽ thành một quảng cáo. Bạn không cần tải ảnh quảng cáo lên, hệ thống tự lấy ảnh từ product page.</p>
+
+      <div class="guide-sec">Các bước điền</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
+          <p>Mỗi dòng là 1 sản phẩm, gồm 2 ô cần điền:</p>
+          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã in của sản phẩm (ví dụ <code>NGT1234</code>).<br>
+          b) <span class="g-field">Product url</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Ảnh print / flatlay</span> (tùy chọn)</h4>
+          <p>Ô vuông dấu cộng ở cuối mỗi dòng để chọn 1 ảnh bản in gốc hoặc ảnh flatlay từ máy. Ảnh này không bắt buộc, dùng để AI viết nội dung quảng cáo sát hơn. Nếu cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu thì nên thêm. Không thêm thì hệ thống vẫn chạy với nội dung mặc định theo loại sản phẩm.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4>Thêm và xóa dòng</h4>
+          <p>Bấm <strong>Add product</strong> để thêm một dòng trống. Bấm nút dấu <strong>X</strong> ở cuối mỗi dòng để xóa dòng đó. Thêm bao nhiêu sản phẩm tùy ý.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Mẹo nhập nhanh từ Excel</h4>
+          <p>Nếu đã có danh sách trong Excel hoặc Google Sheets, copy rồi dán thẳng vào ô <span class="g-field">Print ID</span> đầu tiên:</p>
+          <p style="margin-top:7px">a) Copy <strong>2 cột</strong> (Print ID và URL): hệ thống tự tách thành nhiều dòng đủ cả mã và link.<br>
+          b) Copy <strong>1 cột</strong>: các giá trị được điền lần lượt xuống các dòng.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">5</div>
+        <div class="guide-sb">
+          <h4>Gửi form</h4>
+          <p>Kiểm tra lại rồi bấm <strong>Create ad sets</strong>. Nếu có thêm ảnh thì cần chút thời gian để tải lên, chờ tới khi thấy dòng chữ xanh báo đã gửi, đừng đóng tab khi đang tải.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Lưu ý nhỏ</div>
+
+      <div class="guide-note">
+        Mỗi dòng cần điền đủ cả <span class="g-field">Print ID</span> và <span class="g-field">Product url</span>. Cần có ít nhất 1 dòng đầy đủ.
+      </div>
+
+      <div class="guide-note">
+        Số ad của mỗi sản phẩm bằng số ảnh đang có trên trang sản phẩm đó. Muốn nhiều hoặc ít ad hơn thì sửa ảnh trên product page trước khi gửi.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    function openGuide(){
+      document.getElementById('guidePanel').classList.add('open');
+      document.getElementById('guideOverlay').classList.add('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','false');
+    }
+    function closeGuide(){
+      document.getElementById('guidePanel').classList.remove('open');
+      document.getElementById('guideOverlay').classList.remove('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','true');
+    }
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeGuide(); });
+  </script>
+  <!-- ============ /Guide ============ -->
+</body>
+</html>

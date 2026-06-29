@@ -234,8 +234,13 @@ function groupByMockup(rows) {
   }
   return Object.values(map).map(({ _rows, _printIds, ...entry }) => {
     entry.print_count = _printIds.size;
-    const topAd = _rows.reduce((best, r) => parseFloat(r.spend || 0) > parseFloat(best.spend || 0) ? r : best, _rows[0]);
-    entry.thumbnail_url = topAd?.thumbnail_url || _rows.find(r => r.thumbnail_url)?.thumbnail_url || null;
+    // Pick the thumbnail from the highest-spend ad that actually has an image
+    // (always within this mockup group, so the mockup is always correct; the print may differ).
+    // Falls back to the overall top-spend ad only when no ad in the group has an image.
+    const withThumb = _rows.filter(r => r.thumbnail_url);
+    const pickFrom = withThumb.length ? withThumb : _rows;
+    const topAd = pickFrom.reduce((best, r) => parseFloat(r.spend || 0) > parseFloat(best.spend || 0) ? r : best, pickFrom[0]);
+    entry.thumbnail_url = topAd?.thumbnail_url || null;
     entry.is_catalog = !!topAd?.is_catalog;
     computeMetrics(entry, _rows);
     return entry;

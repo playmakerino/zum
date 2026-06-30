@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Ads Form (Dropbox)</title>
+
+  <script type="text/javascript"
+    src="https://www.dropbox.com/static/api/2/dropins.js"
+    id="dropboxjs"
+    data-app-key="omrmsrosehpy3vi">
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #181818;
+      --surface-hover: #282828;
+      --surface-elevated: #242424;
+      --accent: #1DB954;
+      --accent-hover: #1ed760;
+      --accent-soft: rgba(29,185,84,0.12);
+      --accent-glow: rgba(29,185,84,0.30);
+      --text: #FFFFFF;
+      --text-sub: #B3B3B3;
+      --text-muted: #6A6A6A;
+      --success: #1DB954;
+      --success-soft: rgba(29,185,84,0.10);
+      --error: #F15E6C;
+      --error-soft: rgba(241,94,108,0.10);
+      --divider: rgba(255,255,255,0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 80px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 380px;
+      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 640px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { margin-bottom: 24px; text-align: center; }
+    .header h1 {
+      font-size: 40px; font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
+
+    .card { background: var(--surface); border-radius: 13px; padding: 24px 22px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-label .count {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: none;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    /* Print ID + Product URL: stacked on mobile, side-by-side on desktop */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .field-row .field { margin-bottom: 0; }
+    @media (min-width: 560px) {
+      .field-row { grid-template-columns: minmax(120px, 0.5fr) 1fr; }
+    }
+    .field label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--text-sub); margin-bottom: 7px; letter-spacing: 0.01em;
+    }
+    .field input[type="text"] {
+      width: 100%; height: 48px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 6px;
+      padding: 0 16px;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .field input[type="text"]::placeholder { color: var(--text-muted); }
+    .field input[type="text"]:hover { background: #2a2a2a; }
+    .field input[type="text"]:focus { background: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
+
+    /* Chooser field (Dropbox) */
+    .chooser-field {
+      background: var(--surface-elevated);
+      border-radius: 6px;
+      padding: 8px 10px 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.15s;
+      min-height: 48px;
+    }
+    .chooser-field:hover { background: #2a2a2a; }
+    .chooser-field.has-value { background: rgba(29,185,84,0.10); }
+    .chooser-field .chooser-path {
+      flex: 1;
+      font-size: 13px; font-weight: 400;
+      color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
+
+    .chooser-btn {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.20);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px; font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.06); transform: scale(1.04); }
+    .chooser-btn svg { width: 12px; height: 12px; }
+
+    .clear-btn {
+      flex-shrink: 0;
+      background: none; border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: none;
+      border-radius: 50%;
+      transition: color 0.15s, background 0.15s;
+    }
+    .chooser-field.has-value .clear-btn { display: flex; }
+    .clear-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+
+    /* File tag chips (selected ad images) */
+    .tags-wrap { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .file-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface-hover);
+      color: var(--text-sub);
+      font-size: 12px; font-weight: 500;
+      padding: 5px 8px 5px 12px;
+      border-radius: 18px;
+      max-width: 220px;
+      transition: background 0.15s;
+    }
+    .file-tag:hover { background: #333; }
+    .file-tag span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-tag button {
+      background: none; border: none;
+      color: var(--text-muted);
+      cursor: pointer; padding: 2px;
+      display: flex; flex-shrink: 0;
+      transition: color 0.15s;
+      border-radius: 50%;
+    }
+    .file-tag button:hover { color: var(--error); }
+
+    .submit-wrap { margin-top: 24px; }
+    .submit-btn {
+      width: 100%; max-width: 300px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 auto;
+      background: var(--accent); border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 700;
+      padding: 14px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status {
+      margin-top: 14px; padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      display: none; line-height: 1.5;
+    }
+    .status.success { display: block; background: var(--success-soft); color: var(--success); }
+    .status.error { display: block; background: var(--error-soft); color: var(--error); }
+    .status.loading { display: block; background: var(--accent-soft); color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Test Ads Form</h1>
+    </div>
+
+    <div class="card">
+
+      <div class="section-label">
+        <span>Product</span>
+        <span class="count" id="adCount"></span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Print ID</label>
+          <input type="text" id="printId" placeholder="xua1234" />
+        </div>
+        <div class="field">
+          <label>Product URL</label>
+          <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Print Image or Flatlay Image</label>
+        <div class="chooser-field" id="field_print">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span class="chooser-path" id="path_print"></span>
+          <button class="chooser-btn" type="button" onclick="choosePrint()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Select image
+          </button>
+          <button class="clear-btn" type="button" onclick="clearPrint()" title="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ad images</label>
+        <div class="chooser-field" id="field_ads">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span class="chooser-path" id="path_ads"></span>
+          <button class="chooser-btn" type="button" onclick="chooseAds()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Select images
+          </button>
+          <button class="clear-btn" type="button" onclick="clearAds()" title="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="tags-wrap" id="tags_ads"></div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          Create Ads
+        </button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    //   CONFIG
+    // ============================================================
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-1-dropbox";
+    // ============================================================
+
+    const state = {
+      print: null,   // { name, link } | null
+      ads: []        // [{ name, link }, ...]
+    };
+
+    function cleanProductUrl(url) {
+      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
+    }
+
+    function updateCount() {
+      const n = state.ads.length;
+      document.getElementById('adCount').textContent = n ? `${n} ${n === 1 ? 'ad' : 'ads'}` : '';
+    }
+
+    // ---------- Print / flatlay (single) ----------
+    function choosePrint() {
+      Dropbox.choose({
+        success(files) {
+          const f = files[0];
+          state.print = { name: f.name, link: f.link };
+          const field = document.getElementById('field_print');
+          field.classList.add('has-value');
+          document.getElementById('path_print').textContent = f.name;
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: false,
+        extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+        folderselect: false
+      });
+    }
+
+    function clearPrint() {
+      state.print = null;
+      document.getElementById('field_print').classList.remove('has-value');
+      document.getElementById('path_print').textContent = '';
+    }
+
+    // ---------- Ad images (multi) ----------
+    function chooseAds() {
+      Dropbox.choose({
+        success(files) {
+          files.forEach(f => {
+            if (!state.ads.find(x => x.link === f.link))
+              state.ads.push({ name: f.name, link: f.link });
+          });
+          syncAds();
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+        folderselect: false
+      });
+    }
+
+    function removeAd(index) {
+      state.ads.splice(index, 1);
+      syncAds();
+    }
+
+    function clearAds() {
+      state.ads = [];
+      syncAds();
+    }
+
+    function syncAds() {
+      const field = document.getElementById('field_ads');
+      const pathEl = document.getElementById('path_ads');
+      const tagsEl = document.getElementById('tags_ads');
+
+      if (state.ads.length > 0) {
+        field.classList.add('has-value');
+        pathEl.textContent = `${state.ads.length} ${state.ads.length === 1 ? 'image' : 'images'} selected`;
+      } else {
+        field.classList.remove('has-value');
+        pathEl.textContent = '';
+      }
+
+      tagsEl.innerHTML = state.ads.map((f, i) => `
+        <div class="file-tag">
+          <span title="${f.name}">${f.name}</span>
+          <button onclick="removeAd(${i})" title="Clear">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+
+      updateCount();
+    }
+
+    async function submitForm() {
+      const submitBtn = document.getElementById('submitBtn');
+      const url = cleanProductUrl(document.getElementById('productUrl').value.trim());
+      const print_id = document.getElementById('printId').value.trim();
+
+      if (!url || !print_id || state.ads.length === 0) {
+        return showStatus('error', '&#9888; Need a Product URL, a Print ID, and at least one ad image.');
+      }
+
+      const payload = {
+        meta: [{ index: 0, product_url: url, print_id }],
+        print_images: state.print ? { "0": state.print.link } : {},
+        ad_images: state.ads.map(f => ({ row: 0, url: f.link, file_name: f.name }))
+      };
+
+      const total = state.ads.length;
+      showStatus('loading', '<span class="spinner"></span> Sending ' + total + ' images to n8n...');
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showStatus('success', '&#10003; Sent ' + total + ' images, creating ' + total + ' ads.');
+        } else {
+          const errText = await res.text();
+          showStatus('error', '&#10007; Error (' + res.status + '): ' + errText.slice(0, 150));
+        }
+      } catch (err) {
+        showStatus('error', '&#10007; Cannot connect to n8n: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function showStatus(type, html) {
+      const el = document.getElementById('statusMsg');
+      el.className = 'status ' + type;
+      el.innerHTML = html;
+    }
+  </script>
+  <!-- ============ Guide (help panel) ============ -->
+  <style>
+    /* Floating help trigger: neutral icon button (Spotify reserves green for the primary submit CTA) */
+    .guide-fab{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;
+      background:var(--surface-elevated);color:var(--text-sub);border:none;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
+      transition:transform .15s cubic-bezier(.3,0,0,1),background .15s,color .15s}
+    .guide-fab:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
+    .guide-fab:active{transform:scale(1)}
+    .guide-fab svg{width:22px;height:22px}
+
+    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;
+      transition:opacity .3s,visibility .3s;z-index:60}
+    .guide-overlay.open{opacity:1;visibility:visible}
+
+    /* Right panel modelled on Spotify's Now Playing view: floating rounded card with a gap from the edges */
+    .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
+      background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);
+      transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
+      z-index:70;display:flex;flex-direction:column;overflow:hidden}
+    .guide-panel.open{transform:translateX(0)}
+
+    .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:20px 20px 14px;flex-shrink:0}
+    .guide-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+    /* Plain icon close, no background circle: like the Spotify panel close */
+    .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--text-sub);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
+    .guide-close:hover{color:var(--text);transform:scale(1.06)}
+    .guide-close svg{width:18px;height:18px}
+
+    .guide-body{padding:6px 20px 32px;overflow-y:auto;flex:1}
+    .guide-body::-webkit-scrollbar{width:12px}
+    .guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:8px;
+      border:3px solid transparent;background-clip:padding-box}
+    .guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.5);
+      border:3px solid transparent;background-clip:padding-box}
+
+    .guide-intro{font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
+    .guide-sec{font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.04em;margin:26px 0 14px}
+    .guide-step{display:flex;gap:13px;margin-bottom:18px}
+    /* Neutral step markers, no green */
+    .guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);
+      color:var(--text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+    .guide-sb{flex:1;min-width:0}
+    .guide-sb h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4}
+    .guide-sb p{font-size:12.5px;color:var(--text-sub);line-height:1.55}
+    .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:600;
+      font-size:11.5px;padding:1px 7px;border-radius:5px;white-space:nowrap}
+    .guide-eg{display:block;margin-top:5px;font-size:11.5px;color:var(--text-muted)}
+    .guide-eg code,.guide-note code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;
+      color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:11px}
+    .guide-note{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;font-size:12px;
+      color:var(--text-sub);line-height:1.6;margin:18px 0 0}
+    .guide-note strong{color:var(--text);font-weight:700}
+    .guide-note.warn{background:var(--error-soft)}
+    .guide-note.warn strong{color:var(--error)}
+    .guide-note + .guide-note{margin-top:10px}
+    .guide-note ul{margin:6px 0 0;padding-left:18px}
+    .guide-note li{margin-bottom:4px}
+  </style>
+
+  <button class="guide-fab" id="guideFab" title="Hướng dẫn điền form" aria-label="Hướng dẫn điền form" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Form này chọn ảnh quảng cáo từ <strong>Dropbox</strong>, mỗi lần cho 1 sản phẩm. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng.</p>
+
+      <div class="guide-sec">Các bước điền (mỗi lần 1 sản phẩm)</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Print ID</span> và <span class="g-field">Product URL</span></h4>
+          <p>Điền 2 ô:</p>
+          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã bản in (ví dụ <code>xua1234</code>).<br>
+          b) <span class="g-field">Product URL</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Print / Flatlay image</span>: ảnh tham chiếu</h4>
+          <p>Bấm <strong>Select image</strong>, cửa sổ Dropbox mở ra, chọn 1 ảnh: ảnh bản in gốc hoặc ảnh flatlay, dùng làm tham chiếu để AI viết nội dung. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
+          <p>Bấm <strong>Select images</strong> để mở Dropbox và chọn các ảnh quảng cáo. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng một lúc.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Gửi form</h4>
+          <p>Xem lại rồi bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo thành công nghĩa là đã gửi. Xong sản phẩm này thì đổi thông tin rồi gửi sản phẩm khác.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Lưu ý nhỏ</div>
+
+      <div class="guide-note">
+        Mỗi sản phẩm cần có đủ <span class="g-field">Product URL</span>, <span class="g-field">Print ID</span> và ít nhất 1 ảnh trong <span class="g-field">Ad images</span> thì mới gửi được.
+      </div>
+
+      <div class="guide-note">
+        Ảnh chọn từ Dropbox, định dạng .jpg, .jpeg, .png, .webp hoặc .gif.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    function openGuide(){
+      document.getElementById('guidePanel').classList.add('open');
+      document.getElementById('guideOverlay').classList.add('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','false');
+    }
+    function closeGuide(){
+      document.getElementById('guidePanel').classList.remove('open');
+      document.getElementById('guideOverlay').classList.remove('open');
+      document.getElementById('guidePanel').setAttribute('aria-hidden','true');
+    }
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeGuide(); });
+  </script>
+  <!-- ============ /Guide ============ -->
+</body>
+</html>

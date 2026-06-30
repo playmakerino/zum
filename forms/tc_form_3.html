@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>In theo sản phẩm</title>
+  <title>By product</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -281,11 +281,11 @@
       .form-chip.active{background:var(--text);color:#000;}
       .form-chip.active:hover{background:#fff;transform:none;}
     </style>
-    <nav class="form-switcher" aria-label="Chọn form">
-      <a class="form-chip" href="tc_form_1.html">Ảnh từ máy</a>
-      <a class="form-chip" href="tc_form_2.html">In theo theme</a>
-      <a class="form-chip" href="tc_form_3.html">In theo sản phẩm</a>
-      <a class="form-chip" href="tc_form_4.html">Ảnh từ Dropbox</a>
+    <nav class="form-switcher" aria-label="Choose form">
+      <a class="form-chip" href="tc_form_1.html">From device</a>
+      <a class="form-chip" href="tc_form_2.html">By theme</a>
+      <a class="form-chip" href="tc_form_3.html">By product</a>
+      <a class="form-chip" href="tc_form_4.html">From Dropbox</a>
     </nav>
     <script>
       (function(){var f=(location.pathname.split('/').pop()||'').toLowerCase();
@@ -295,8 +295,8 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <h1>In theo sản phẩm</h1>
-      <p>Danh sách sản phẩm, mỗi sản phẩm một ad set. Ảnh tự lấy từ trang sản phẩm, không cần tải lên.</p>
+      <h1>By product</h1>
+      <p>A list of products, one ad set each. Images are pulled from the product page automatically, no upload needed.</p>
     </div>
 
     <div class="card">
@@ -377,7 +377,7 @@
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-img">
-          <label class="row-inline-label">Print image (tùy chọn)</label>
+          <label class="row-inline-label">Print image (optional)</label>
           <div class="row-img" data-rid="${rid}"></div>
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
@@ -431,7 +431,7 @@
       } else {
         const add = document.createElement('div');
         add.className = 'img-add';
-        add.title = 'Thêm ảnh print / flatlay (tùy chọn)';
+        add.title = 'Add print / flatlay image (optional)';
         add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
         add.onclick = () => pickRowImg(rid);
         slot.appendChild(add);
@@ -466,7 +466,7 @@
       const rows = collectRows();
 
       if (rows.length === 0) {
-        return showStatus('error', '&#9888; Cần ít nhất 1 dòng có đủ Print ID và Product url.');
+        return showStatus('error', '&#9888; Need at least one row with both a Print ID and a Product URL.');
       }
 
       const fd = new FormData();
@@ -475,19 +475,19 @@
       fd.append('meta', JSON.stringify(meta));
 
       const nImg = rows.filter(r => r.file).length;
-      showStatus('loading', '<span class="spinner"></span> Đang gửi ' + rows.length + ' product' + (nImg ? ' (' + nImg + ' ảnh)' : '') + '...');
+      showStatus('loading', '<span class="spinner"></span> Sending ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + (nImg ? ' (' + nImg + ' image' + (nImg === 1 ? '' : 's') + ')' : '') + '...');
       submitBtn.disabled = true;
 
       try {
         const res = await fetch(WEBHOOK_URL, { method: 'POST', body: fd });
         if (res.ok) {
-          showStatus('success', '&#10003; Đã gửi ' + rows.length + ' product. n8n đang tạo ad set + ad từ ảnh trên product page.');
+          showStatus('success', '&#10003; Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '. n8n is creating ad sets + ads from the product page images.');
         } else {
           const errText = await res.text();
-          showStatus('error', '&#10007; Lỗi từ n8n (' + res.status + '): ' + errText.slice(0, 150));
+          showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 150));
         }
       } catch (err) {
-        showStatus('error', '&#10007; Không kết nối được n8n: ' + err.message);
+        showStatus('error', '&#10007; Could not reach n8n: ' + err.message);
       } finally {
         submitBtn.disabled = false;
       }

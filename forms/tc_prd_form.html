@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test new print</title>
+  <title>For pajama</title>
 
   <script type="text/javascript"
     src="https://www.dropbox.com/static/api/2/dropins.js"
@@ -104,6 +104,7 @@
       color: var(--text-sub);
       line-height: 1.5;
       font-weight: 400;
+      min-height: 42px;
     }
 
     /* Card */
@@ -481,8 +482,34 @@
 </head>
 <body>
   <div class="container">
+    <!-- ============ Form switcher ============ -->
+    <style>
+      .form-switcher{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:22px;}
+      .form-chip{flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
+        background:var(--surface-hover);color:var(--text-sub);border:none;border-radius:999px;
+        font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s;}
+      .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
+      .form-chip:active{transform:scale(.98);}
+      .form-chip.active{background:var(--text);color:#000;}
+      .form-chip.active:hover{background:#fff;transform:none;}
+    </style>
+    <nav class="form-switcher" aria-label="Choose form">
+      <a class="form-chip" href="tc_form_1.html">From device</a>
+      <a class="form-chip" href="tc_form_3.html">From Shopify</a>
+      <a class="form-chip" href="tc_form_4.html">From Dropbox</a>
+      <a class="form-chip" href="tc_form_2.html">By theme</a>
+      <a class="form-chip" href="tc_prd_form.html">For pajama</a>
+    </nav>
+    <script>
+      (function(){var f=(location.pathname.split('/').pop()||'').toLowerCase();
+        document.querySelectorAll('.form-switcher .form-chip').forEach(function(a){
+          if(a.getAttribute('href').toLowerCase()===f){a.classList.add('active');a.setAttribute('aria-current','page');}});})();
+    </script>
+    <!-- ============ /Form switcher ============ -->
+
     <div class="header">
-      <h1>Test new print</h1>
+      <h1>Test print</h1>
       <p>Fill in print information and select images from Dropbox to automatically create ads.</p>
     </div>
 

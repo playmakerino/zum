@@ -249,6 +249,31 @@
 </head>
 <body>
   <div class="container">
+    <!-- ============ Form switcher ============ -->
+    <style>
+      .form-switcher{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:22px;}
+      .form-chip{flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
+        background:var(--surface-hover);color:var(--text-sub);border:none;border-radius:999px;
+        font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s;}
+      .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
+      .form-chip:active{transform:scale(.98);}
+      .form-chip.active{background:var(--text);color:#000;}
+      .form-chip.active:hover{background:#fff;transform:none;}
+    </style>
+    <nav class="form-switcher" aria-label="Chọn form">
+      <a class="form-chip" href="tc_form_1.html">1 · Upload</a>
+      <a class="form-chip" href="tc_form_2.html">2 · Theme</a>
+      <a class="form-chip" href="tc_form_3.html">3 · Page</a>
+      <a class="form-chip" href="tc_form_4.html">4 · Dropbox</a>
+    </nav>
+    <script>
+      (function(){var f=(location.pathname.split('/').pop()||'').toLowerCase();
+        document.querySelectorAll('.form-switcher .form-chip').forEach(function(a){
+          if(a.getAttribute('href').toLowerCase()===f){a.classList.add('active');a.setAttribute('aria-current','page');}});})();
+    </script>
+    <!-- ============ /Form switcher ============ -->
+
     <div class="header">
       <h1>Test Ads Form</h1>
     </div>

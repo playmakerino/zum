@@ -39,7 +39,7 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 48px 16px 80px;
+      padding: 56px 16px 80px;
       overflow-x: hidden;
     }
 
@@ -55,20 +55,20 @@
 
     .container {
       width: 100%;
-      max-width: 640px;
+      max-width: 760px;
       position: relative;
       z-index: 1;
     }
 
-    .header { margin-bottom: 24px; text-align: center; }
+    .header { margin-bottom: 32px; text-align: center; }
     .header h1 {
-      font-size: 40px; font-weight: 900;
+      font-size: 48px; font-weight: 900;
       color: var(--text);
       letter-spacing: -0.04em;
       line-height: 1.05;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
-    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
+    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; min-height: 42px; }
 
     .card { background: var(--surface); border-radius: 13px; padding: 24px 22px; }
 
@@ -263,9 +263,9 @@
     </style>
     <nav class="form-switcher" aria-label="Choose form">
       <a class="form-chip" href="tc_form_1.html">From device</a>
-      <a class="form-chip" href="tc_form_2.html">By theme</a>
       <a class="form-chip" href="tc_form_3.html">From Shopify</a>
       <a class="form-chip" href="tc_form_4.html">From Dropbox</a>
+      <a class="form-chip" href="tc_form_2.html">By theme</a>
     </nav>
     <script>
       (function(){var f=(location.pathname.split('/').pop()||'').toLowerCase();
@@ -275,7 +275,7 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <h1>test product</h1>
+      <h1>Test product</h1>
       <p>Upload ad images from your device for one product. Each image becomes its own ad.</p>
     </div>
 

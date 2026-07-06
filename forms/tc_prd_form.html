@@ -613,13 +613,24 @@
   <script>
     const N8N_WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/f156927d-d9f9-4aae-a6b8-01d7e5eeda70';
 
-    // Sample product URLs used as placeholders (product type is resolved from the URL in n8n)
-    const SAMPLE_URLS = [
-      'https://zumbamboo.com/products/convertible-zippered-romper',
-      'https://zumbamboo.com/products/two-piece-pajama-set',
-      'https://zumbamboo.com/products/shorty-zippered-romper',
-      'https://zumbamboo.com/products/two-piece-short-sleeve-pajama-set'
-    ];
+    // Sample product URLs per type group, shown as placeholders (product type is resolved from the URL in n8n).
+    // Each placeholder is used at most once (by block position); extra blocks get no sample.
+    const GROUP_SAMPLE_URLS = {
+      'kid pajama': [
+        'https://zumbamboo.com/products/convertible-zippered-romper',
+        'https://zumbamboo.com/products/two-piece-pajama-set',
+        'https://zumbamboo.com/products/shorty-zippered-romper',
+        'https://zumbamboo.com/products/two-piece-short-sleeve-pajama-set'
+      ],
+      'adult pajama': [
+        'https://zumbamboo.com/products/mens-pajama-set',
+        'https://zumbamboo.com/products/women-pajama-set'
+      ],
+      'kid play': [
+        'https://zumbamboo.com/products/crewneck-t-shirt',
+        'https://zumbamboo.com/products/crewneck-sweatshirt'
+      ]
+    };
 
     const state = {
       dropbox_print_image: null,
@@ -720,7 +731,6 @@
       state.productKeys.push(key);
       state[`dropbox_${key}`] = [];
 
-      const placeholder = SAMPLE_URLS[(productSeq - 1) % SAMPLE_URLS.length];
       const section = document.createElement('div');
       section.className = 'section';
       section.id = `section_${key}`;
@@ -731,7 +741,7 @@
         </div>
         <div class="section-fields">
           <div class="field">
-            <input type="text" id="url_${key}" placeholder="${placeholder}" />
+            <input type="text" id="url_${key}" placeholder="" />
           </div>
           <div class="field">
             <div class="chooser-field" id="field_${key}">
@@ -762,11 +772,15 @@
     }
 
     function renumberProducts() {
+      const group = document.getElementById('product_type_group').value;
+      const urls = GROUP_SAMPLE_URLS[group] || [];
       state.productKeys.forEach((key, i) => {
         const section = document.getElementById(`section_${key}`);
         if (!section) return;
         const label = section.querySelector('.section-label');
         if (label) label.textContent = `Product ${i + 1}`;
+        const input = document.getElementById(`url_${key}`);
+        if (input) input.placeholder = urls[i] || '';
       });
     }
 
@@ -829,6 +843,9 @@
       el.className = `status ${type}`;
       el.innerHTML = html;
     }
+
+    // Update sample placeholders when the type group changes
+    document.getElementById('product_type_group').addEventListener('change', renumberProducts);
 
     // Start with 2 empty product blocks
     addProduct();

@@ -80,6 +80,7 @@
         grid-template-columns: 1fr 1fr;
         column-gap: 32px;
       }
+      .section-fields.print-fields { grid-template-columns: 1fr 1fr 1fr; }
     }
 
     /* Header */
@@ -550,18 +551,18 @@
         <!-- Print -->
         <div class="section">
           <div class="section-label">Print</div>
-          <div class="field">
-            <label>Product type group</label>
-            <select id="product_type_group">
-              <option value="kid pajama">Kid pajama</option>
-              <option value="adult pajama">Adult pajama</option>
-              <option value="kid play">Kid play</option>
-            </select>
-          </div>
-          <div class="section-fields">
+          <div class="section-fields print-fields">
             <div class="field">
               <label>Print ID</label>
               <input type="text" id="ad_set_name" placeholder="Abc1234" />
+            </div>
+            <div class="field">
+              <label>Product type group</label>
+              <select id="product_type_group">
+                <option value="kid pajama">Kid pajama</option>
+                <option value="adult pajama">Adult pajama</option>
+                <option value="kid play">Kid play</option>
+              </select>
             </div>
             <div class="field">
               <label>Print image</label>

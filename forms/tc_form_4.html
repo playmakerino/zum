@@ -265,6 +265,8 @@
       .form-chip:active{transform:scale(.98);}
       .form-chip.active{background:var(--text);color:#000;}
       .form-chip.active:hover{background:#fff;transform:none;}
+      .form-chip.ghost{opacity:.4;}
+      .form-chip.ghost:hover{opacity:1;}
       .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
         transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
         letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.45);
@@ -310,7 +312,8 @@
           if(isActive){a.classList.add('active');a.setAttribute('aria-current','page');return;}
           var s=dim==='source'?val:curSource,g=dim==='group'?val:curGroup;
           var target=FORMS[s+'|'+g];
-          if(!target){for(var key in FORMS){var p=key.split('|');
+          if(!target){a.classList.add('ghost');
+            for(var key in FORMS){var p=key.split('|');
             if((dim==='source'&&p[0]===val)||(dim==='group'&&p[1]===val)){target=FORMS[key];break;}}}
           if(target){a.setAttribute('href',target);}
         });

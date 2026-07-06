@@ -295,27 +295,64 @@
   <div class="container">
     <!-- ============ Form switcher ============ -->
     <style>
-      .form-switcher{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:22px;}
-      .form-chip{flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
+      .form-switcher{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+      .fs-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+      .fs-label{min-width:104px;text-align:right;font-family:var(--font);font-size:11px;font-weight:700;
+        letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+      .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
         background:var(--surface-hover);color:var(--text-sub);border:none;border-radius:999px;
         font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
-        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s;}
+        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s,opacity .15s;}
       .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
       .form-chip:active{transform:scale(.98);}
       .form-chip.active{background:var(--text);color:#000;}
       .form-chip.active:hover{background:#fff;transform:none;}
+      .form-chip.disabled{opacity:.32;pointer-events:none;cursor:default;}
+      .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
+        transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
+        letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.45);
+        opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
+      .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
+        transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
+        opacity:0;transition:opacity .14s;z-index:30;}
+      .form-chip[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0);}
+      .form-chip[data-tip]:hover::before{opacity:1;}
+      @media(max-width:560px){.fs-label{min-width:0;width:100%;text-align:center;}}
     </style>
     <nav class="form-switcher" aria-label="Choose form">
-      <a class="form-chip" href="tc_form_1.html">From device</a>
-      <a class="form-chip" href="tc_form_3.html">From Shopify</a>
-      <a class="form-chip" href="tc_form_4.html">From Dropbox</a>
-      <a class="form-chip" href="tc_form_2.html">By theme</a>
-      <a class="form-chip" href="tc_prd_form.html">Type group</a>
+      <div class="fs-row" data-dim="source">
+        <span class="fs-label">Image source</span>
+        <a class="form-chip" data-val="device" data-tip="Upload product images from your device">Device</a>
+        <a class="form-chip" data-val="dropbox" data-tip="Choose product images from Dropbox">Dropbox</a>
+        <a class="form-chip" data-val="shopify" data-tip="Pull images from the Shopify product page">Shopify</a>
+      </div>
+      <div class="fs-row" data-dim="group">
+        <span class="fs-label">Product group</span>
+        <a class="form-chip" data-val="single" data-tip="Create ads for one product at a time">Single product</a>
+        <a class="form-chip" data-val="theme" data-tip="Apply one print theme across multiple products">By print theme</a>
+        <a class="form-chip" data-val="type" data-tip="Group products by type group with a shared prompt">By type group</a>
+      </div>
     </nav>
     <script>
-      (function(){var f=(location.pathname.split('/').pop()||'').toLowerCase();
+      (function(){
+        var FORMS={
+          'device|single':'tc_form_1.html','dropbox|single':'tc_form_4.html','shopify|single':'tc_form_3.html',
+          'shopify|theme':'tc_form_2.html','dropbox|type':'tc_prd_form.html'
+        };
+        var REV={};for(var k in FORMS){REV[FORMS[k].toLowerCase()]=k.split('|');}
+        var cur=(location.pathname.split('/').pop()||'').toLowerCase();
+        var pair=REV[cur]||[],curSource=pair[0],curGroup=pair[1];
         document.querySelectorAll('.form-switcher .form-chip').forEach(function(a){
-          if(a.getAttribute('href').toLowerCase()===f){a.classList.add('active');a.setAttribute('aria-current','page');}});})();
+          var dim=a.parentNode.getAttribute('data-dim'),val=a.getAttribute('data-val');
+          var isActive=(dim==='source'&&val===curSource)||(dim==='group'&&val===curGroup);
+          if(isActive){a.classList.add('active');a.setAttribute('aria-current','page');return;}
+          var s=dim==='source'?val:curSource,g=dim==='group'?val:curGroup;
+          var target=FORMS[s+'|'+g];
+          if(target){a.setAttribute('href',target);}
+          else{a.classList.add('disabled');a.setAttribute('aria-disabled','true');
+            a.setAttribute('data-tip','No form for this combination yet');}
+        });
+      })();
     </script>
     <!-- ============ /Form switcher ============ -->
 

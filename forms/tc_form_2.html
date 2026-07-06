@@ -308,7 +308,6 @@
       .form-chip:active{transform:scale(.98);}
       .form-chip.active{background:var(--text);color:#000;}
       .form-chip.active:hover{background:#fff;transform:none;}
-      .form-chip.disabled{opacity:.32;pointer-events:none;cursor:default;}
       .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
         transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
         letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.45);
@@ -335,7 +334,7 @@
         <div class="fs-chips">
           <a class="form-chip" data-val="single" data-tip="Create ads for one product at a time">Single product</a>
           <a class="form-chip" data-val="theme" data-tip="Apply one print theme across multiple products">By print theme</a>
-          <a class="form-chip" data-val="type" data-tip="Group products by type group with a shared prompt">By type group</a>
+          <a class="form-chip" data-val="type" data-tip="Group products by their type group">By type group</a>
         </div>
       </div>
     </nav>
@@ -354,9 +353,9 @@
           if(isActive){a.classList.add('active');a.setAttribute('aria-current','page');return;}
           var s=dim==='source'?val:curSource,g=dim==='group'?val:curGroup;
           var target=FORMS[s+'|'+g];
+          if(!target){for(var key in FORMS){var p=key.split('|');
+            if((dim==='source'&&p[0]===val)||(dim==='group'&&p[1]===val)){target=FORMS[key];break;}}}
           if(target){a.setAttribute('href',target);}
-          else{a.classList.add('disabled');a.setAttribute('aria-disabled','true');
-            a.setAttribute('data-tip','No form for this combination yet');}
         });
       })();
     </script>

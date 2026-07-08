@@ -1,5 +1,6 @@
 node_modules/
 *.log
+.env
 .claude/
 .cache-creatives.json
 .cache-insights.json

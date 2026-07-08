@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express   = require('express');
 const cors      = require('cors');
 const axios     = require('axios');
@@ -22,6 +22,10 @@ function saveCacheAsync(filePath, data) {
 // ── File-based cache for creative info (30 day TTL) ─────────────────────────
 const CACHE_FILE = path.join(__dirname, '.cache-creatives.json');
 const CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+// Ads cached with creative:null (e.g. video still encoding at fetch time) must be
+// retried, else a transient null sticks for the full 30-day TTL and the video stays
+// hidden. Retry such entries once this cooldown passes (avoids refetch loops per load).
+const NULL_CREATIVE_RETRY_MS = 60 * 60 * 1000; // 1 hour
 
 function slimCreative(ad) {
   const c = ad.creative;
@@ -322,12 +326,18 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
 }
 
 async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
-  const missingIds = adIds.filter(id => !creativeCache[id]);
+  const now0 = Date.now();
+  const missingIds = adIds.filter(id => {
+    const e = creativeCache[id];
+    if (!e) return true;                                                   // never cached
+    if (!e.creative && (now0 - (e._cachedAt || 0)) > NULL_CREATIVE_RETRY_MS) return true; // stale null → retry
+    return false;
+  });
   if (missingIds.length === 0) {
     progress(`All ${adIds.length} ads already cached [${elapsed()}]`);
     return;
   }
-  progress(`Fetching creative info for ${missingIds.length} new ads... [${elapsed()}]`);
+  progress(`Fetching creative info for ${missingIds.length} ads (new or retried) [${elapsed()}]`);
   const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,object_story_spec{template_data}}');
   const now = Date.now();
   for (const ad of fetched) {

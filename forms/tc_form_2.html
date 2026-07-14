@@ -126,6 +126,50 @@
       background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
     }
 
+    /* Searchable product-type dropdown (custom combobox) */
+    .combo { position: relative; }
+    .combo-input {
+      width: 100%; height: 48px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 6px;
+      padding: 0 40px 0 16px;
+      font-family: var(--font);
+      font-size: 14px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+    }
+    .combo-input::placeholder { color: var(--text-muted); }
+    .combo-input:hover { background-color: #2a2a2a; }
+    .combo.open .combo-input,
+    .combo-input:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
+
+    .combo-menu {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      background: var(--surface-elevated);
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+      padding: 6px;
+      max-height: 260px; overflow-y: auto;
+      z-index: 40;
+      display: none;
+    }
+    .combo.open .combo-menu { display: block; }
+    .combo-opt {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 12px; border-radius: 6px;
+      font-size: 14px; color: var(--text);
+      cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .combo-opt:hover, .combo-opt.active { background: var(--surface-hover); }
+    .combo-opt .opt-code { flex-shrink: 0; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+    .combo-empty { padding: 10px 12px; font-size: 13px; color: var(--text-muted); }
+
     .field-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -379,11 +423,13 @@
           </div>
           <div class="field">
             <label>Product type</label>
-            <select id="product_type">
-              <option value="QBS">Quilt bedding set</option>
-              <option value="QBL">Quilt blanket</option>
-              <option value="QTR">Quilt table runner</option>
-            </select>
+            <div class="combo" id="productTypeCombo">
+              <input type="text" class="combo-input" id="productTypeSearch"
+                     placeholder="Search product type..." autocomplete="off" role="combobox"
+                     aria-expanded="false" aria-controls="productTypeMenu" />
+              <input type="hidden" id="product_type" value="QBS" />
+              <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -446,7 +492,8 @@
     const URL_PLACEHOLDERS = {
       QBS: 'https://zumbamboo.com/products/bamboo-quilt-bedding-set',
       QBL: 'https://zumbamboo.com/products/bamboo-quilted-blanket',
-      QTR: 'https://zumbamboo.com/products/bamboo-quilt-table-runner'
+      QTR: 'https://zumbamboo.com/products/bamboo-quilt-table-runner',
+      CTS: 'https://zumbamboo.com/products/crewneck-t-shirt'
     };
     function currentUrlPlaceholder() {
       return URL_PLACEHOLDERS[document.getElementById('product_type').value] || URL_PLACEHOLDERS.QBS;
@@ -590,6 +637,107 @@
       document.querySelectorAll('#rowsContainer .row-url').forEach(el => { el.placeholder = ph; });
     });
 
+    // ---- Searchable product-type dropdown ----
+    (function () {
+      const PRODUCT_TYPES = [
+        { value: 'QBS', label: 'Quilt bedding set' },
+        { value: 'QBL', label: 'Quilt blanket' },
+        { value: 'QTR', label: 'Quilt table runner' },
+        { value: 'CTS', label: 'Crewneck T-Shirt' }
+      ];
+      const combo  = document.getElementById('productTypeCombo');
+      const input  = document.getElementById('productTypeSearch');
+      const hidden = document.getElementById('product_type');
+      const menu   = document.getElementById('productTypeMenu');
+      let filtered = PRODUCT_TYPES.slice();
+      let activeIndex = -1;
+
+      const labelFor = v => { const o = PRODUCT_TYPES.find(x => x.value === v); return o ? o.label : ''; };
+
+      function render() {
+        if (!filtered.length) { menu.innerHTML = '<div class="combo-empty">No match</div>'; return; }
+        menu.innerHTML = filtered.map((o, i) =>
+          `<div class="combo-opt${i === activeIndex ? ' active' : ''}" role="option" data-val="${escapeHtml(o.value)}">` +
+            `<span>${escapeHtml(o.label)}</span><span class="opt-code">${escapeHtml(o.value)}</span>` +
+          `</div>`
+        ).join('');
+      }
+
+      function openMenu() {
+        combo.classList.add('open');
+        input.setAttribute('aria-expanded', 'true');
+        filtered = PRODUCT_TYPES.slice();
+        activeIndex = filtered.findIndex(o => o.value === hidden.value);
+        render();
+        input.select();
+      }
+
+      function closeMenu() {
+        combo.classList.remove('open');
+        input.setAttribute('aria-expanded', 'false');
+        input.value = labelFor(hidden.value);
+        activeIndex = -1;
+      }
+
+      function selectValue(val) {
+        if (hidden.value !== val) {
+          hidden.value = val;
+          hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        closeMenu();
+      }
+
+      function scrollActive() {
+        const el = menu.querySelector('.combo-opt.active');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+
+      input.addEventListener('focus', openMenu);
+      input.addEventListener('click', openMenu);
+
+      input.addEventListener('input', () => {
+        combo.classList.add('open');
+        input.setAttribute('aria-expanded', 'true');
+        const q = input.value.trim().toLowerCase();
+        filtered = q
+          ? PRODUCT_TYPES.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q))
+          : PRODUCT_TYPES.slice();
+        activeIndex = filtered.length ? 0 : -1;
+        render();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (!combo.classList.contains('open')) return openMenu();
+          activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+          render(); scrollActive();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          render(); scrollActive();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (activeIndex >= 0 && filtered[activeIndex]) selectValue(filtered[activeIndex].value);
+        } else if (e.key === 'Escape') {
+          closeMenu(); input.blur();
+        }
+      });
+
+      menu.addEventListener('mousedown', (e) => {
+        const opt = e.target.closest('.combo-opt');
+        if (!opt) return;
+        e.preventDefault();
+        selectValue(opt.getAttribute('data-val'));
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!combo.contains(e.target)) closeMenu();
+      });
+
+      input.value = labelFor(hidden.value);
+    })();
+
     addRow();
   </script>
   <!-- ============ Guide (help panel) ============ -->
@@ -685,7 +833,7 @@
         <div class="guide-num">2</div>
         <div class="guide-sb">
           <h4><span class="g-field">Product type</span>: loại sản phẩm</h4>
-          <p>Bấm vào ô và chọn loại sản phẩm đang chạy: <strong>Quilt blanket</strong> (chăn) hoặc <strong>Quilt bedding set</strong> (bộ chăn ga).</p>
+          <p>Bấm vào ô, gõ để tìm nhanh rồi chọn loại sản phẩm đang chạy (Quilt bedding set, Quilt blanket, Quilt table runner, Crewneck T-Shirt...).</p>
         </div>
       </div>
 

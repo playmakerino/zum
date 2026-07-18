@@ -6,28 +6,27 @@
   <title>TC Ads (Drive)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root {
       --bg: #121212;
       --surface: #181818;
-      --surface-hover: #2a2a2a;
+      --surface-hover: #282828;
       --surface-elevated: #242424;
-      --accent: #1ED760;
-      --accent-hover: #3BE477;
-      --accent-soft: rgba(30,215,96,0.12);
-      --accent-glow: rgba(30,215,96,0.30);
+      --accent: #1DB954;
+      --accent-hover: #1ed760;
+      --accent-soft: rgba(29,185,84,0.12);
+      --accent-glow: rgba(29,185,84,0.30);
       --text: #FFFFFF;
       --text-sub: #B3B3B3;
       --text-muted: #6A6A6A;
-      --success: #1ED760;
-      --success-soft: rgba(30,215,96,0.10);
+      --success: #1DB954;
+      --success-soft: rgba(29,185,84,0.10);
       --error: #F15E6C;
       --error-soft: rgba(241,94,108,0.10);
       --divider: rgba(255,255,255,0.06);
-      --font: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,7 +48,7 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       height: 380px;
-      background: linear-gradient(180deg, rgba(30,215,96,0.09) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
       pointer-events: none;
       z-index: 0;
     }
@@ -85,7 +84,7 @@
 
     .card {
       background: var(--surface);
-      border-radius: 8px;
+      border-radius: 13px;
       padding: 32px 28px;
     }
 
@@ -95,32 +94,33 @@
 
     .type-toggle {
       display: flex;
-      gap: 8px;
+      gap: 4px;
+      background: var(--surface-elevated);
+      border-radius: 8px;
+      padding: 4px;
     }
 
     .type-toggle button {
-      flex: 0 0 auto;
-      height: 32px;
-      padding: 0 18px;
+      flex: 1;
+      height: 40px;
       border: none;
-      background: var(--surface-hover);
-      color: var(--text);
+      background: transparent;
+      color: var(--text-sub);
       font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
-      border-radius: 999px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s, transform 0.12s;
+      transition: background 0.15s, color 0.15s;
     }
 
     .type-toggle button.active {
-      background: var(--text);
+      background: var(--accent);
       color: #000;
     }
 
     .type-toggle button:not(.active):hover {
-      background: #333;
-      transform: scale(1.03);
+      color: var(--text);
     }
 
     .field label {
@@ -137,7 +137,7 @@
       height: 48px;
       background: var(--surface-elevated);
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       padding: 0 16px;
       font-family: var(--font);
       font-size: 14px;
@@ -157,29 +157,32 @@
 
     .field input[type="text"]:focus {
       background: #2a2a2a;
-      box-shadow: 0 0 0 1px var(--text);
+      box-shadow: 0 0 0 2px var(--text);
     }
 
     .submit-wrap {
-      margin-top: 28px;
-      text-align: center;
+      margin-top: 32px;
     }
 
     .submit-btn {
-      display: inline-flex;
+      width: 100%;
+      max-width: 280px;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      margin: 0 auto;
       background: var(--accent);
       border: none;
       color: #000;
       font-family: var(--font);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
-      padding: 14px 40px;
+      padding: 16px 24px;
       border-radius: 999px;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s ease, filter 0.15s;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
     .submit-btn svg {
@@ -190,10 +193,11 @@
     .submit-btn:hover {
       background: var(--accent-hover);
       transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
     }
 
     .submit-btn:active {
-      transform: scale(0.98);
+      transform: scale(0.99);
     }
 
     .submit-btn:disabled {

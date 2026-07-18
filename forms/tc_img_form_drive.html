@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TC Ads (Drive)</title>
+  <title>TC Image (Drive)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -90,37 +90,6 @@
 
     .field {
       margin-bottom: 14px;
-    }
-
-    .type-toggle {
-      display: flex;
-      gap: 4px;
-      background: var(--surface-elevated);
-      border-radius: 8px;
-      padding: 4px;
-    }
-
-    .type-toggle button {
-      flex: 1;
-      height: 40px;
-      border: none;
-      background: transparent;
-      color: var(--text-sub);
-      font-family: var(--font);
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .type-toggle button.active {
-      background: var(--accent);
-      color: #000;
-    }
-
-    .type-toggle button:not(.active):hover {
-      color: var(--text);
     }
 
     .field label {
@@ -260,20 +229,12 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>TC Ads</h1>
+      <h1>TC Image</h1>
       <p>Paste a Google Drive folder link to auto create ads.</p>
       <p>Image filenames must follow [PrintID-TypeID_MockupID].jpg</p>
     </div>
 
     <div class="card">
-
-      <div class="field">
-        <label>Campaign type</label>
-        <div class="type-toggle" id="typeToggle">
-          <button type="button" data-type="img" class="active" onclick="setType('img')">Image</button>
-          <button type="button" data-type="moc" onclick="setType('moc')">Mockup</button>
-        </div>
-      </div>
 
       <div class="field">
         <label>Google Drive folder url</label>
@@ -294,14 +255,6 @@
 
   <script>
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-img-form-drive";
-    let campaignType = 'img';
-
-    function setType(t) {
-      campaignType = t;
-      document.querySelectorAll('#typeToggle button').forEach(b => {
-        b.classList.toggle('active', b.dataset.type === t);
-      });
-    }
 
     function extractFolderId(input) {
       if (!input) return '';
@@ -327,7 +280,7 @@
         return showStatus('error', '&#9888; Please enter a valid Google Drive folder link or folder ID.');
       }
 
-      const payload = { folder_id, campaign_type: campaignType };
+      const payload = { folder_id };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -438,20 +391,12 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này tạo quảng cáo từ một thư mục ảnh trên Google Drive. Chọn đúng loại campaign, dán link thư mục; lưu ý đặt tên file ảnh đúng mẫu trước khi dán.</p>
+      <p class="guide-intro">Form này tạo quảng cáo từ một thư mục ảnh trên Google Drive. Bạn chỉ cần dán link thư mục; lưu ý đặt tên file ảnh đúng mẫu trước khi dán.</p>
 
       <div class="guide-sec">Các bước điền</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
-        <div class="guide-sb">
-          <h4>Chọn loại campaign</h4>
-          <p>Bấm <span class="g-field">Image</span> nếu chạy camp TC ảnh, hoặc <span class="g-field">Mockup</span> nếu chạy camp TC mockup. Mỗi thư mục Drive chỉ nên chứa <strong>một loại</strong> — chọn loại nào thì toàn bộ ảnh trong thư mục sẽ được đưa vào camp đó.</p>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">2</div>
         <div class="guide-sb">
           <h4>Đặt tên file ảnh theo mẫu</h4>
           <p>Trong thư mục Google Drive, mỗi file ảnh phải đặt tên đúng theo mẫu:</p>
@@ -465,7 +410,7 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">3</div>
+        <div class="guide-num">2</div>
         <div class="guide-sb">
           <h4>Lấy link thư mục Google Drive</h4>
           <p>Mở thư mục chứa các ảnh đã đặt tên đúng, rồi copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link).</p>
@@ -473,7 +418,7 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">4</div>
+        <div class="guide-num">3</div>
         <div class="guide-sb">
           <h4>Dán vào ô <span class="g-field">Google Drive folder url</span></h4>
           <p>Dán link vừa copy vào ô này. Dán nguyên link kiểu nào cũng được, hệ thống sẽ tự lấy ra mã thư mục.</p>
@@ -481,7 +426,7 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">5</div>
+        <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
           <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công.</p>
@@ -492,10 +437,6 @@
 
       <div class="guide-note">
         Ảnh đặt tên không đúng mẫu sẽ không được nhận. Trước khi dán link, xem lại tên của tất cả ảnh trong thư mục.
-      </div>
-
-      <div class="guide-note">
-        <strong>Chọn Mockup:</strong> mỗi file bắt buộc có phần <code>_MockupID</code> trong tên (ví dụ <code>[Abc1234-QBL_1].jpg</code>). File thiếu MockupID sẽ bị bỏ qua ở camp mockup.
       </div>
 
       <div class="guide-note">

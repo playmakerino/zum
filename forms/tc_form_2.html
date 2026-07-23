@@ -499,8 +499,9 @@
       CSS: 'https://zumbamboo.com/products/crewneck-sweatshirt',
       ZFR: 'https://zumbamboo.com/products/zippered-footie-romper'
     };
+    const DEFAULT_URL_PLACEHOLDER = 'https://zumbamboo.com/products/product-handle';
     function currentUrlPlaceholder() {
-      return URL_PLACEHOLDERS[document.getElementById('product_type').value] || URL_PLACEHOLDERS.QBS;
+      return URL_PLACEHOLDERS[document.getElementById('product_type').value] || DEFAULT_URL_PLACEHOLDER;
     }
 
     function addRow(print_id = '', product_url = '') {
@@ -651,7 +652,20 @@
         { value: 'SLB', label: 'Sleep bag' },
         { value: 'BGS', label: 'Baby gift set' },
         { value: 'CSS', label: 'Crewneck sweatshirt' },
-        { value: 'ZFR', label: 'Zippered Footie Romper' }
+        { value: 'ZFR', label: 'Zippered Footie Romper' },
+        { value: 'CZR', label: 'Convertible Zippy' },
+        { value: 'SZR', label: 'Shorty Zippy' },
+        { value: 'TPJ', label: 'Two Piece Long Sleeve Pajama Set' },
+        { value: 'SPJ', label: 'Two Piece Short Sleeve Shorts Pajama Set' },
+        { value: 'MPS', label: 'Men Pajama Set' },
+        { value: 'WPS', label: 'Women Pajama Set' },
+        { value: 'BLK', label: 'Blanket' },
+        { value: 'PLC', label: 'Pillow Case' },
+        { value: 'SBP', label: 'Backpack' },
+        { value: 'ACS', label: 'Adult Crewneck Sweatshirt' },
+        { value: 'DRS', label: 'Twirl Dress' },
+        { value: 'ZHD', label: 'Zip Hoodie' },
+        { value: 'STB', label: 'Soft Toy Bunny' }
       ];
       const combo  = document.getElementById('productTypeCombo');
       const input  = document.getElementById('productTypeSearch');

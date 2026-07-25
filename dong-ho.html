@@ -901,7 +901,9 @@
   const BADGE_HALF = BADGE_H/2;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
+  const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport có hẹp cỡ nào cũng KHÔNG co về 0
   let FACE;
+  let baseFace = 0;        // FACE đo được lúc KHÔNG phóng to (zoom 100%) — mốc để KHÓA khi zoom in
   let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
   let HOUR_BADGE_R = 0, MIN_BADGE_R = 0, HOUR_HALF = 0, lastPm = null;   // bán kính đĩa kính giờ/phút (JS đặt vị trí) + nét nối giờ bám vòng ngày
 
@@ -909,6 +911,22 @@
   // xác nhất; 100dvh/clientHeight trên vài bản Safari trả vùng LỚN -> căn giữa bị lệch.
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
+
+  // ===== NHẬN BIẾT PHÓNG TO (zoom) =====
+  // Zoom của trình duyệt (Ctrl/⌘ +, hoặc "cỡ trang" trên tivi/Android) làm viewport tính
+  // theo CSS px HẸP LẠI -> nếu cứ tính lại bố cục theo viewport mới thì mặt đồng hồ co lại
+  // đúng bằng phần vừa phóng to => nhìn như bị "co rúm". Bắt được zoom thì KHÓA kích thước
+  // mặt ở mức 100%, để trình duyệt tự phóng to đều toàn trang.
+  //   - zoom trang  -> đổi devicePixelRatio (Chrome/Safari/Firefox)
+  //   - pinch-zoom  -> đổi visualViewport.scale (mobile / trackpad)
+  // Mỗi trình duyệt chỉ đổi MỘT trong hai -> lấy tín hiệu MẠNH hơn (không nhân đôi).
+  // Mốc devicePixelRatio lấy lúc mở trang = 100% (mở sẵn ở mức zoom nào thì mức đó là chuẩn).
+  const dprBase = window.devicePixelRatio || 1;
+  function zoomFactor(){
+    const byDpr   = (window.devicePixelRatio || 1) / dprBase;
+    const byPinch = (window.visualViewport && window.visualViewport.scale) || 1;
+    return Math.max(byDpr, byPinch);
+  }
 
   // 2 bố cục theo BỀ RỘNG (khớp media query CSS):
   //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc.
@@ -940,9 +958,14 @@
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
     const desktop = mqDesktop.matches;
 
+    // ĐANG PHÓNG TO? -> khóa kích thước mặt ở mức 100% + cho phép cuộn (xử lý ở cuối hàm).
+    const zoomed = zoomFactor() > 1.01;
+
     // DESKTOP: ghim chiều cao body = vùng nhìn thấy để căn giữa, KHÔNG scroll.
-    // MOBILE: để chiều cao theo NỘI DUNG -> trang cuộn tự nhiên (bỏ logic "không scroll").
-    document.body.style.height = desktop ? vh + 'px' : '';
+    // ĐANG PHÓNG TO: 'auto' (ĐÈ height:100dvh của CSS desktop) -> body CAO BẰNG NỘI DUNG,
+    //   nếu không thì căn giữa theo chiều dọc sẽ đẩy đỉnh đồng hồ ra ngoài mép trên, cuộn không tới.
+    // MOBILE: '' -> theo CSS (min-height:100dvh) và cuộn tự nhiên.
+    document.body.style.height = desktop ? (zoomed ? 'auto' : vh + 'px') : '';
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
@@ -955,12 +978,12 @@
     const marginTop = maxReach - RAISE;
     const marginBottom = Math.max(8, topNeed) + RAISE + GAP_EXTRA;
 
+    const calW = elCalendar?.offsetWidth || 0;   // bề rộng lịch (desktop: nằm bên PHẢI)
+    const GAP  = 24;                             // khe giữa các khối (khớp gap body & .clock)
     let faceByW;
     if(desktop){
       // DESKTOP: vừa khít cả BỀ RỘNG lẫn CHIỀU CAO -> đo cột digital + lịch để chừa chỗ.
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
-      const calW = elCalendar?.offsetWidth || 0;            // lịch bên PHẢI -> chừa bề rộng
-      const GAP = 24;                                       // khe giữa các khối (khớp gap body & .clock)
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
       // [analog/digital] | LỊCH. Chừa thêm ~40px chiều cao (clock căn giữa -> ~28px lề
       // trên & dưới) để DÒNG VĂN NÓI ở đáy cột digital không sát mép dưới màn hình.
@@ -978,6 +1001,15 @@
     // bề ngang khối analog luôn vừa viewport, không gây scroll ngang. (Màn quá thấp
     // thì chấp nhận co theo chiều cao thay vì tràn ngang.)
     FACE = Math.max(FACE, Math.min(70, faceByW));
+    // SÀN CỨNG: faceByW có thể ÂM khi viewport cực hẹp (zoom rất sâu) -> chặn để mặt
+    // KHÔNG BAO GIỜ co về 0 (thà cuộn còn hơn co rúm).
+    FACE = Math.max(FACE, FACE_MIN);
+    // ===== KHÓA KHI PHÓNG TO =====
+    // Zoom in -> giữ NGUYÊN kích thước mặt lúc 100%: trình duyệt tự nhân toàn trang lên nên
+    // đồng hồ to đúng theo mức zoom, không tính lại theo viewport đã hẹp đi => hết "co rúm".
+    // Zoom về 100% -> ghi lại mốc mới (và mọi thay đổi cửa sổ khi không zoom đều cập nhật mốc).
+    if(zoomed && baseFace > 0) FACE = baseFace;
+    else baseFace = FACE;
 
     const D = FACE*2;
     analog.style.width  = D+'px';
@@ -1035,6 +1067,26 @@
     for(const o of userLabelObjs) placeLabel(o);
 
     layoutFace();
+
+    // ===== CUỘN KHI PHÓNG TO =====
+    // Mặt đã KHÓA kích thước nên lúc phóng to nội dung có thể rộng/cao hơn viewport.
+    // CSS mặc định chặn cuộn (html overflow-x:hidden; desktop overflow:hidden) -> mở ra khi
+    // đang zoom để xem được hết, trả về mặc định khi về 100%.
+    const root = document.documentElement;
+    root.style.overflow = zoomed ? 'auto' : '';
+    document.body.style.overflow = zoomed ? 'visible' : '';
+    // Flex CĂN GIỮA đẩy mép TRÁI của nội dung ra NGOÀI vùng cuộn được (cuộn không tới) ->
+    // khi tràn NGANG thì căn từ mép trái để không mất phần nào của đồng hồ.
+    // Bề ngang cần = khối analog (mặt + chỗ cho nhãn hai bên), desktop thêm lịch bên phải.
+    // (Tự tính, KHÔNG đo scrollWidth: dòng "văn nói" đặt tuyệt đối + nowrap có thể thò ra
+    //  ngoài khối mà không phải nội dung cần nhìn thấy hết -> đo sẽ báo tràn nhầm.)
+    const blockW = D + 2*maxReach;
+    const needW  = desktop ? blockW + GAP + calW : Math.max(blockW, calW);
+    const tranNgang = needW > root.clientWidth + 1;
+    // Trục NGANG do thuộc tính nào quyết định: desktop xếp HÀNG -> justify-content; dọc -> align-items.
+    // Chiều DỌC không cần đụng tới: khi phóng to body cao theo nội dung nên không cắt mất gì.
+    document.body.style.justifyContent = (tranNgang &&  desktop) ? 'flex-start' : '';
+    document.body.style.alignItems     = (tranNgang && !desktop) ? 'flex-start' : '';
   }
 
   function place(conn, badge, connStart, len, badgeR){
@@ -1431,6 +1483,8 @@
   // DESKTOP căn vừa khít viewport -> căn lại khi đổi BỀ RỘNG hoặc CHIỀU CAO (>2px).
   // MOBILE trang cuộn tự nhiên, đồng hồ chỉ theo BỀ RỘNG -> CHỈ căn lại khi đổi bề rộng
   // (xoay máy); BỎ QUA đổi chiều cao (thanh công cụ ẩn/hiện, pinch-zoom) nên hết "co dúm".
+  // Zoom TRANG có đổi bề rộng nên vẫn chạy layout(), nhưng layout() nhận ra đang phóng to
+  // và KHÓA kích thước mặt (xem zoomFactor/baseFace ở phần 5) -> analog không co rúm.
   let lastW=-1, lastVh=-1;
   function relayout(){
     const w=window.innerWidth;
@@ -1451,6 +1505,14 @@
   // -> trên mobile pinch-zoom chỉ phóng to đồng đều, không kích relayout giữa cử chỉ.
   window.addEventListener('resize', relayout);
   window.addEventListener('orientationchange', relayout);
+  // Pinch-zoom KHÔNG kích layout (cố ý). Nhưng nếu ĐANG phóng to mà xoay máy thì bố cục bị
+  // KHÓA theo kích thước cũ -> khi người dùng thu về 100% (không có resize cấp window trên
+  // iOS) phải căn lại một lần. Chỉ chạy khi ĐÃ hết phóng to VÀ đang ở trạng thái khóa.
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', ()=>{
+      if(zoomFactor() <= 1.01 && document.documentElement.style.overflow) layout();
+    });
+  }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(layout);

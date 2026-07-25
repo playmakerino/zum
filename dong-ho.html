@@ -630,25 +630,28 @@
   //   days    : chỉ HIỆN vào các thứ này (getDay 0=CN..6=T7); bỏ trống = mọi ngày
   //   inner   : đặt nhãn ở VÒNG TRONG (bán kính nhãn phút) để không đè nhãn cùng góc ở vòng ngoài
   //             (vd 10h sáng & 22h tối đều ở 300°: nhãn sáng nằm trong, tối nằm ngoài)
+  //   noCal   : CHỈ hiện trên mặt đồng hồ, KHÔNG đánh dấu ở lịch (nhãn gần như ngày nào cũng có
+  //             thì đánh dấu chỉ làm rối ô lịch mà không thêm thông tin)
   // Ô LỊCH tự suy ra từ đây (xem DAY_ACTIVITIES ngay dưới) — KHÔNG khai báo riêng, không lệch được.
   const FIXED_LABELS = [
     {emoji:'🔠', hour:8.5,  days:[6]},                            // chữ cái: thứ Bảy 8h30
     {emoji:'🎨', hour:10,   days:[6], inner:true},                // vẽ: thứ Bảy 10h — vòng TRONG, tránh đè 22h
     {emoji:'🏀', hour:18,   days:[2], inner:true},                // bóng rổ: thứ Ba 18h — vòng TRONG (nhường vòng ngoài cho 🙋‍♀️)
     {emoji:'🩰', hour:18,   days:[5], inner:true},                // múa: thứ Sáu 18h — vòng TRONG (nhường vòng ngoài cho 🙋‍♀️)
-    {emoji:'🙋‍♀️', hour:18, days:[1,2,3,4,5]},                    // giơ tay: T2-T6 18h — vòng NGOÀI
+    {emoji:'🙋‍♀️', hour:18, days:[1,2,3,4,5], noCal:true},         // giơ tay: T2-T6 18h — vòng NGOÀI, không lên lịch
     {emoji:'🍲', hour:19.5},                                      // ăn tối: mọi ngày
     {emoji:'😴', hour:22},                                        // đi ngủ: mọi ngày
   ];
   // Emoji hoạt động ở góc ô lịch theo THỨ — SUY THẲNG từ bảng trên, không có cờ khai báo riêng:
   //   nhãn chỉ diễn ra vào MỘT SỐ THỨ (có days) -> đánh dấu đúng các thứ đó (T7 -> ['🔠','🎨']);
-  //   nhãn MỌI NGÀY (không days) -> KHÔNG đánh dấu, vì ngày nào cũng có thì dấu không nói thêm gì.
+  //   nhãn MỌI NGÀY (không days) -> KHÔNG đánh dấu, vì ngày nào cũng có thì dấu không nói thêm gì;
+  //   nhãn có noCal -> chủ động BỎ QUA (chỉ sống trên mặt đồng hồ).
   // => sửa/thêm/bớt nhãn ở FIXED_LABELS là mặt đồng hồ và lịch luôn khớp nhau.
   // Giữ dạng MẢNG (không nối chuỗi) để đếm đúng SỐ nhãn: emoji ghép ZWJ như 🙋‍♀️ dài 3 mã
   // -> nối chuỗi rồi đếm ký tự sẽ tưởng nhầm là nhiều nhãn.
   const DAY_ACTIVITIES = {};
   for(const L of FIXED_LABELS){
-    if(!L.days) continue;
+    if(!L.days || L.noCal) continue;
     for(const d of L.days){
       if(!DAY_ACTIVITIES[d]) DAY_ACTIVITIES[d] = [];
       DAY_ACTIVITIES[d].push(L.emoji);

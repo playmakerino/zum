@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tạo Ad Set</title>
+  <title>Create Ad Set</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -241,8 +241,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Tạo Ad Set</h1>
-      <p>Dán link folder Google Drive chứa video để tự động tạo ads.</p>
+      <h1>Create Ad Set</h1>
+      <p>Paste a Google Drive folder link with the videos to auto create ads.</p>
     </div>
 
     <div class="card">
@@ -257,7 +257,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
           </svg>
-          Tạo Ad Set
+          Create Ad Set
         </button>
         <div class="status" id="statusMsg"></div>
       </div>
@@ -269,7 +269,7 @@
 
   <script>
     // ============================================================
-    // ⚙️  CẤU HÌNH
+    // ⚙️  CONFIG
     // ============================================================
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/01de568d-39af-4f07-a19b-085d1568150a";
     // ============================================================
@@ -295,12 +295,12 @@
       const folder_id = extractFolderId(rawInput);
 
       if (!folder_id) {
-        return showStatus('error', '⚠️ Vui lòng nhập link folder Google Drive hoặc folder ID hợp lệ.');
+        return showStatus('error', '⚠️ Please enter a valid Google Drive folder link or folder ID.');
       }
 
       const payload = { folder_id };
 
-      showStatus('loading', '<span class="spinner"></span> Đang gửi đến n8n...');
+      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
 
       try {
@@ -311,22 +311,22 @@
         });
 
         if (res.status === 401 || res.status === 403) {
-          showStatus('error', '❌ Mật khẩu sai.');
+          showStatus('error', '❌ Wrong password.');
           TC_AUTH_FAIL();
           return;
         }
 
         if (res.ok) {
-          showStatus('success', '✅ Đã gửi thành công! Workflow n8n đang chạy.');
+          showStatus('success', '✅ Sent successfully! The n8n workflow is running.');
           const preview = document.getElementById('payloadPreview');
           preview.style.display = 'block';
-          preview.textContent = '📦 Payload đã gửi:\n' + JSON.stringify(payload, null, 2);
+          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
         } else {
           const errText = await res.text();
-          showStatus('error', `❌ Lỗi từ n8n (${res.status}): ${errText.slice(0,120)}`);
+          showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);
         }
       } catch (err) {
-        showStatus('error', `❌ Không kết nối được n8n: ${err.message}`);
+        showStatus('error', `❌ Cannot connect to n8n: ${err.message}`);
       } finally {
         document.getElementById('submitBtn').disabled = false;
       }

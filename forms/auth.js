@@ -42,12 +42,12 @@
     var css = ''
       /* corner: state only, no green, no input */
       + '#tcAuthChip{position:fixed;top:12px;right:12px;z-index:40;display:flex;gap:8px;'
-      + 'align-items:baseline;background:#181818;border-radius:500px;padding:7px 14px;'
+      + 'align-items:baseline;background:#181818;border-radius:500px;padding:8px 16px;'
       + 'box-shadow:0 4px 16px rgba(0,0,0,0.4);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthChip .tc-state{font-size:13px;color:#a7a7a7}'
+      + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#a7a7a7}'
       + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-family:inherit;'
-      + 'font-size:13px;font-weight:700;color:#a7a7a7;cursor:pointer;transition:color .1s ease}'
+      + 'font-size:14px;font-weight:700;color:#a7a7a7;cursor:pointer;transition:color .1s ease}'
       + '#tcAuthChip .tc-link:hover{color:#fff;text-decoration:underline}'
 
       /* dialog: where the credential is actually typed */
@@ -56,17 +56,17 @@
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#282828;'
       + 'border-radius:8px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.6)}'
-      + '#tcAuthScrim h2{margin:0 0 8px;font-size:20px;line-height:1.3;font-weight:700;'
+      + '#tcAuthScrim h2{margin:0 0 8px;font-size:24px;line-height:1.2;font-weight:700;'
       + 'color:#fff;letter-spacing:-0.02em}'
-      + '#tcAuthScrim .tc-sub{margin:0 0 20px;font-size:14px;line-height:1.5;color:#a7a7a7}'
-      + '#tcAuthScrim input{width:100%;height:48px;padding:0 14px;border-radius:4px;'
+      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;line-height:1.5;color:#a7a7a7}'
+      + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
       + 'border:1px solid #727272;background:#121212;color:#fff;font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
       + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#f15e6c}'
-      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:13px;line-height:1.4;color:#f15e6c}'
-      + '#tcAuthScrim .tc-save{width:100%;height:48px;margin-top:20px;border:none;'
+      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:14px;line-height:1.5;color:#f15e6c}'
+      + '#tcAuthScrim .tc-save{width:100%;height:48px;margin-top:24px;border:none;'
       + 'border-radius:500px;background:#1ED760;color:#000;font-size:16px;font-weight:700;'
       + 'font-family:inherit;cursor:pointer;'
       + 'transition:background-color .1s ease,transform .1s ease}'
@@ -81,8 +81,8 @@
       /* toast: the form's submit button is far from the chip, so failures announce
          themselves at the bottom of the viewport instead */
       + '#tcAuthToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
-      + 'z-index:10000;background:#282828;color:#fff;border-radius:4px;padding:12px 20px;'
-      + 'font-size:14px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.5);'
+      + 'z-index:10000;background:#282828;color:#fff;border-radius:4px;padding:12px 16px;'
+      + 'font-size:14px;line-height:1.5;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 
       + '@media (max-width:560px){#tcAuthChip{top:8px;right:8px}}';

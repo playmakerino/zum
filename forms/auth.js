@@ -1,8 +1,9 @@
-/* Shared password gate for the TC forms.
+/* Shared password field for the TC forms.
+
    The real check is server-side: every webhook node uses Header Auth, so a wrong
-   or missing key gets 403 from n8n before any workflow node runs. This overlay
-   only stops someone from filling a whole form before finding that out, and
-   remembers the key in localStorage so it is typed once per browser.
+   or missing key gets 403 from n8n before any workflow node runs. This panel sits
+   in the corner and does not block the form. It remembers the key in localStorage
+   so it is typed once per browser, and asks again only after a 403.
 
    Usage in a form:
      <script src="auth.js"></script>
@@ -12,7 +13,7 @@
 (function () {
   var STORAGE_KEY = 'tc_form_key';
   var HEADER_NAME = 'x-auth-key';
-  var overlay = null;
+  var panel = null;
 
   function readKey() {
     try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; }
@@ -27,76 +28,110 @@
   function injectStyle() {
     if (document.getElementById('tcAuthStyle')) return;
     /* Spotify Encore conventions: green is reserved for the primary action,
-       primary hover = brighten + scale, text inputs focus to a white border. */
+       primary hover = brighten + scale, secondary text goes grey to white,
+       text inputs focus to a white border. */
     var css = ''
-      + '#tcAuthGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;'
-      + 'justify-content:center;padding:24px;background:#000;'
+      + '#tcAuthPanel{position:fixed;top:12px;right:12px;z-index:9999;'
+      + 'background:#181818;border:1px solid rgba(255,255,255,0.10);border-radius:8px;'
+      + 'padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,0.45);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthGate .tc-card{width:100%;max-width:340px;background:#121212;border-radius:8px;'
-      + 'padding:32px 28px;text-align:center}'
-      + '#tcAuthGate h2{margin:0 0 8px;font-size:24px;line-height:1.2;font-weight:700;color:#fff;'
-      + 'letter-spacing:-0.04em}'
-      + '#tcAuthGate p{margin:0 0 24px;font-size:14px;line-height:1.5;color:#a7a7a7}'
-      + '#tcAuthGate input{width:100%;height:48px;padding:0 14px;border-radius:4px;'
-      + 'border:1px solid #727272;background:#121212;color:#fff;font-size:16px;font-family:inherit;'
-      + 'text-align:center;letter-spacing:0.2em;transition:border-color .1s ease}'
-      + '#tcAuthGate input::placeholder{color:#6a6a6a;letter-spacing:0.2em}'
-      + '#tcAuthGate input:hover{border-color:#fff}'
-      + '#tcAuthGate input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
-      + '#tcAuthGate button{width:100%;height:48px;margin-top:16px;border:none;border-radius:500px;'
-      + 'background:#1ED760;color:#000;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;'
-      + 'transition:background-color .1s ease,transform .1s ease}'
-      + '#tcAuthGate button:hover{background:#3BE477;transform:scale(1.04)}'
-      + '#tcAuthGate button:active{background:#1ED760;transform:scale(1)}'
-      + '#tcAuthGate .tc-err{margin:16px 0 0;font-size:14px;line-height:1.4;color:#f15e6c;min-height:20px}';
+      + '#tcAuthPanel.tc-alert{animation:tcAuthPulse .5s ease-in-out 3}'
+      + '@keyframes tcAuthPulse{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,0.45)}'
+      + '50%{box-shadow:0 0 0 3px rgba(241,94,108,0.55)}}'
+
+      + '#tcAuthPanel label{display:block;margin:0 0 6px;font-size:11px;font-weight:700;'
+      + 'letter-spacing:0.1em;text-transform:uppercase;color:#a7a7a7}'
+      + '#tcAuthPanel .tc-field{display:flex;gap:8px;align-items:center}'
+      + '#tcAuthPanel input{width:124px;height:36px;padding:0 12px;border-radius:4px;'
+      + 'border:1px solid #727272;background:#121212;color:#fff;font-size:14px;'
+      + 'font-family:inherit;letter-spacing:0.16em;transition:border-color .1s ease}'
+      + '#tcAuthPanel input::placeholder{color:#6a6a6a;letter-spacing:0.16em}'
+      + '#tcAuthPanel input:hover{border-color:#fff}'
+      + '#tcAuthPanel input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
+      + '#tcAuthPanel .tc-save{height:36px;padding:0 18px;border:none;border-radius:500px;'
+      + 'background:#1ED760;color:#000;font-size:14px;font-weight:700;font-family:inherit;'
+      + 'cursor:pointer;transition:background-color .1s ease,transform .1s ease}'
+      + '#tcAuthPanel .tc-save:hover{background:#3BE477;transform:scale(1.04)}'
+      + '#tcAuthPanel .tc-save:active{background:#1ED760;transform:scale(1)}'
+      + '#tcAuthPanel .tc-err{margin:8px 0 0;max-width:200px;font-size:12px;line-height:1.4;'
+      + 'color:#f15e6c}'
+
+      + '#tcAuthPanel .tc-row{display:flex;gap:8px;align-items:center}'
+      + '#tcAuthPanel .tc-dot{width:8px;height:8px;border-radius:50%;background:#1ED760;flex:none}'
+      + '#tcAuthPanel .tc-state{font-size:13px;color:#a7a7a7}'
+      + '#tcAuthPanel .tc-link{border:none;background:none;padding:0;margin-left:4px;'
+      + 'font-family:inherit;font-size:13px;font-weight:700;color:#a7a7a7;cursor:pointer;'
+      + 'text-decoration:underline;transition:color .1s ease}'
+      + '#tcAuthPanel .tc-link:hover{color:#fff}'
+
+      + '@media (max-width:560px){#tcAuthPanel{left:12px;right:12px;top:8px}'
+      + '#tcAuthPanel input{flex:1;width:auto}}';
     var el = document.createElement('style');
     el.id = 'tcAuthStyle';
     el.textContent = css;
     document.head.appendChild(el);
   }
 
-  function show(message) {
+  function build() {
     injectStyle();
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'tcAuthGate';
-      overlay.innerHTML = ''
-        + '<div class="tc-card">'
-        + '<h2>Mật khẩu</h2>'
-        + '<p>Nhập mật khẩu để mở form. Máy này chỉ cần nhập một lần.</p>'
-        + '<input type="password" id="tcAuthInput" autocomplete="current-password" '
-        + 'inputmode="numeric" placeholder="••••" aria-label="Mật khẩu">'
-        + '<button type="button" id="tcAuthBtn">Mở form</button>'
-        + '<p class="tc-err" id="tcAuthErr"></p>'
-        + '</div>';
-      document.body.appendChild(overlay);
+    panel = document.createElement('div');
+    panel.id = 'tcAuthPanel';
+    panel.innerHTML = ''
+      + '<div class="tc-row" id="tcAuthSaved" style="display:none">'
+      + '<span class="tc-dot"></span>'
+      + '<span class="tc-state">Đã lưu mật khẩu</span>'
+      + '<button type="button" class="tc-link" id="tcAuthChange">Đổi</button>'
+      + '</div>'
+      + '<div id="tcAuthEntry" style="display:none">'
+      + '<label for="tcAuthInput">Mật khẩu</label>'
+      + '<div class="tc-field">'
+      + '<input type="password" id="tcAuthInput" autocomplete="current-password" '
+      + 'inputmode="numeric" placeholder="••••" aria-label="Mật khẩu">'
+      + '<button type="button" class="tc-save" id="tcAuthBtn">Lưu</button>'
+      + '</div>'
+      + '<p class="tc-err" id="tcAuthErr"></p>'
+      + '</div>';
+    document.body.appendChild(panel);
 
-      var input = overlay.querySelector('#tcAuthInput');
-      var submit = function () {
-        var v = input.value.trim();
-        if (!v) {
-          overlay.querySelector('#tcAuthErr').textContent = 'Chưa nhập gì.';
-          return;
-        }
-        writeKey(v);
-        hide();
-      };
-      overlay.querySelector('#tcAuthBtn').addEventListener('click', submit);
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); submit(); }
-      });
-    }
-    overlay.querySelector('#tcAuthErr').textContent = message || '';
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    var box = overlay.querySelector('#tcAuthInput');
-    box.value = '';
-    setTimeout(function () { box.focus(); }, 50);
+    var input = panel.querySelector('#tcAuthInput');
+    var save = function () {
+      var v = input.value.trim();
+      if (!v) {
+        panel.querySelector('#tcAuthErr').textContent = 'Chưa nhập gì.';
+        return;
+      }
+      writeKey(v);
+      showSaved();
+    };
+    panel.querySelector('#tcAuthBtn').addEventListener('click', save);
+    panel.querySelector('#tcAuthChange').addEventListener('click', function () {
+      showEntry('');
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+    });
   }
 
-  function hide() {
-    if (overlay) overlay.style.display = 'none';
-    document.body.style.overflow = '';
+  function showSaved() {
+    if (!panel) build();
+    panel.classList.remove('tc-alert');
+    panel.querySelector('#tcAuthEntry').style.display = 'none';
+    panel.querySelector('#tcAuthSaved').style.display = 'flex';
+  }
+
+  function showEntry(message) {
+    if (!panel) build();
+    panel.querySelector('#tcAuthSaved').style.display = 'none';
+    panel.querySelector('#tcAuthEntry').style.display = 'block';
+    panel.querySelector('#tcAuthErr').textContent = message || '';
+    var input = panel.querySelector('#tcAuthInput');
+    input.value = '';
+    if (message) {
+      panel.classList.remove('tc-alert');
+      void panel.offsetWidth;
+      panel.classList.add('tc-alert');
+    }
+    setTimeout(function () { input.focus(); }, 50);
   }
 
   /* Headers to attach to every webhook request, including connectivity probes. */
@@ -109,11 +144,11 @@
   /* Call on a 401/403 from the webhook: forget the key and ask again. */
   window.TC_AUTH_FAIL = function () {
     dropKey();
-    show('Mật khẩu sai hoặc đã đổi. Nhập lại rồi gửi lần nữa.');
+    showEntry('Mật khẩu sai hoặc đã đổi. Nhập lại rồi gửi lần nữa.');
   };
 
   function start() {
-    if (!readKey()) show('');
+    if (readKey()) showSaved(); else showEntry('');
   }
 
   if (document.readyState === 'loading') {

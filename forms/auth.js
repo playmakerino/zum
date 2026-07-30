@@ -40,11 +40,16 @@
        brighten + scale, secondary text goes grey to white, inputs focus to a
        white border, an invalid input gets a red border plus red helper text. */
     var css = ''
-      /* corner: state only, no green, no input */
-      + '#tcAuthChip{position:fixed;top:12px;right:12px;z-index:40;display:flex;gap:8px;'
-      + 'align-items:baseline;background:#181818;border-radius:500px;padding:8px 16px;'
-      + 'box-shadow:0 4px 16px rgba(0,0,0,0.4);'
+      /* state only, no green, no input. In flow at the top of the page so it scrolls
+         away: it is needed once per browser, and a failure announces itself with the
+         dialog and the toast rather than waiting to be found. */
+      + '#tcAuthChipRow{display:flex;justify-content:flex-end;margin-bottom:16px}'
+      + '#tcAuthChip{display:inline-flex;gap:8px;align-items:baseline;background:#181818;'
+      + 'border-radius:500px;padding:8px 16px;'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      /* fallback for a page with no .container to sit in */
+      + '#tcAuthChip.tc-floating{position:fixed;top:12px;right:12px;z-index:40;'
+      + 'box-shadow:0 4px 16px rgba(0,0,0,0.4)}'
       + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#a7a7a7}'
       + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-family:inherit;'
       + 'font-size:14px;font-weight:700;color:#a7a7a7;cursor:pointer;transition:color .1s ease}'
@@ -85,7 +90,7 @@
       + 'font-size:14px;line-height:1.5;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 
-      + '@media (max-width:560px){#tcAuthChip{top:8px;right:8px}}';
+      + '@media (max-width:560px){#tcAuthChip.tc-floating{top:8px;right:8px}}';
     var el = document.createElement('style');
     el.id = 'tcAuthStyle';
     el.textContent = css;
@@ -99,7 +104,16 @@
     chip.innerHTML = ''
       + '<span class="tc-state" id="tcAuthState"></span>'
       + '<button type="button" class="tc-link" id="tcAuthOpen"></button>';
-    document.body.appendChild(chip);
+    var container = document.querySelector('.container');
+    if (container) {
+      var row = document.createElement('div');
+      row.id = 'tcAuthChipRow';
+      row.appendChild(chip);
+      container.insertBefore(row, container.firstChild);
+    } else {
+      chip.classList.add('tc-floating');
+      document.body.appendChild(chip);
+    }
     chip.querySelector('#tcAuthOpen').addEventListener('click', function () {
       openDialog('');
     });

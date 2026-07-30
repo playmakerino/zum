@@ -14,15 +14,15 @@
       --surface: #181818;
       --surface-hover: #282828;
       --surface-elevated: #242424;
-      --accent: #1DB954;
-      --accent-hover: #1ed760;
-      --accent-soft: rgba(29,185,84,0.12);
-      --accent-glow: rgba(29,185,84,0.30);
+      --accent: #1ED760;
+      --accent-hover: #3BE477;
+      --accent-soft: rgba(30,215,96,0.12);
+      --accent-glow: rgba(30,215,96,0.30);
       --text: #FFFFFF;
-      --text-sub: #B3B3B3;
+      --text-sub: #a7a7a7;
       --text-muted: #6A6A6A;
-      --success: #1DB954;
-      --success-soft: rgba(29,185,84,0.10);
+      --success: #1ED760;
+      --success-soft: rgba(30,215,96,0.10);
       --error: #F15E6C;
       --error-soft: rgba(241,94,108,0.10);
       --divider: rgba(255,255,255,0.06);
@@ -48,7 +48,7 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       height: 380px;
-      background: linear-gradient(180deg, rgba(29,185,84,0.10) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
       pointer-events: none;
       z-index: 0;
     }
@@ -87,7 +87,7 @@
 
     .card {
       background: var(--surface);
-      border-radius: 13px;
+      border-radius: 8px;
       padding: 32px 28px;
     }
 
@@ -98,7 +98,7 @@
     .field label {
       display: block;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--text-sub);
       margin-bottom: 8px;
       letter-spacing: 0.01em;
@@ -108,7 +108,7 @@
       font-style: normal;
       font-weight: 400;
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 12px;
       margin-left: 4px;
     }
 
@@ -117,10 +117,10 @@
       height: 48px;
       background: var(--surface-elevated);
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       padding: 0 16px;
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 400;
       color: var(--text);
       outline: none;
@@ -156,12 +156,11 @@
       border: none;
       color: #000;
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 700;
       padding: 16px 24px;
-      border-radius: 999px;
+      border-radius: 500px;
       cursor: pointer;
-      letter-spacing: 0.02em;
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
@@ -191,7 +190,7 @@
       margin-top: 14px;
       padding: 12px 16px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 500;
       display: none;
       line-height: 1.5;
@@ -233,7 +232,7 @@
 
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
-      font-size: 11px !important;
+      font-size: 12px !important;
     }
   </style>
   <script src="auth.js"></script>
@@ -262,7 +261,7 @@
         <div class="status" id="statusMsg"></div>
       </div>
 
-      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:11px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:12px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>

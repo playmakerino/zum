@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+  <script src="auth.js"></script>
+
   <style>
     :root {
       --bg: #121212;
@@ -461,9 +463,14 @@
 
       try {
         // Probe: tiny POST to test connectivity & CORS before sending files
-        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData() }).catch(() => null);
+        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData(), headers: TC_AUTH_HEADERS() }).catch(() => null);
         if (!probe) {
           showStatus('error', '&#10007; Cannot reach webhook — check network connection or CORS (file:// origin is blocked).');
+          return;
+        }
+        if (probe.status === 401 || probe.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
           return;
         }
 
@@ -474,8 +481,15 @@
 
         const res = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
-          body: formData
+          body: formData,
+          headers: TC_AUTH_HEADERS()
         });
+
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
 
         if (res.ok) {
           const body = await res.text();

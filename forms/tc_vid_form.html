@@ -236,6 +236,7 @@
       font-size: 11px !important;
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body>
   <div class="container">
@@ -305,9 +306,15 @@
       try {
         const res = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
           body: JSON.stringify(payload)
         });
+
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '❌ Mật khẩu sai.');
+          TC_AUTH_FAIL();
+          return;
+        }
 
         if (res.ok) {
           showStatus('success', '✅ Đã gửi thành công! Workflow n8n đang chạy.');

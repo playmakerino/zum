@@ -334,6 +334,7 @@
       }
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body>
   <div class="container">
@@ -579,9 +580,15 @@
       try {
         const res = await fetch(getWebhookUrl(), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
           body: JSON.stringify(payload)
         });
+
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '❌ Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
 
         if (res.ok) {
           showStatus('success', '✅ Successfully sent! n8n workflow is running.');

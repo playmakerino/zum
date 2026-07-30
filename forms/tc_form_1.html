@@ -246,6 +246,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body>
   <div class="container">
@@ -507,7 +508,13 @@
       submitBtn.disabled = true;
 
       try {
-        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd });
+        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
+
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
 
         if (res.ok) {
           showStatus('success', '&#10003; Sent ' + total + ' images, creating ' + total + ' ads.');

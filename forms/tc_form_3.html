@@ -266,6 +266,7 @@
       }
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body>
   <div class="container">
@@ -525,7 +526,12 @@
       submitBtn.disabled = true;
 
       try {
-        const res = await fetch(WEBHOOK_URL, { method: 'POST', body: fd });
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
         if (res.ok) {
           showStatus('success', '&#10003; Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '. n8n is creating ad sets + ads from the product page images.');
         } else {

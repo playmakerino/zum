@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zum · Pattern → Products</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script src="auth.js"></script>
+
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #181818;
+      --surface-hover: #282828;
+      --surface-elevated: #242424;
+      --accent: #1ED760;
+      --accent-hover: #3BE477;
+      --accent-soft: rgba(30,215,96,0.12);
+      --accent-glow: rgba(30,215,96,0.30);
+      --text: #FFFFFF;
+      --text-sub: #a7a7a7;
+      --text-muted: #6A6A6A;
+      --success: #1ED760;
+      --success-soft: rgba(30,215,96,0.10);
+      --warn: #F5A623;
+      --warn-soft: rgba(245,166,35,0.10);
+      --error: #F15E6C;
+      --error-soft: rgba(241,94,108,0.10);
+      --divider: rgba(255,255,255,0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 64px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 380px;
+      background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 640px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { margin-bottom: 20px; text-align: center; }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--text-muted);
+      border-radius: 8px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .drop-zone svg {
+      width: 28px; height: 28px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .drop-zone.drag-over svg { color: var(--accent); }
+
+    .drop-zone p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+    .drop-zone .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    .preview {
+      display: none;
+      margin-top: 16px;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-elevated);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .preview.on { display: flex; }
+
+    .preview img {
+      width: 64px; height: 64px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--bg);
+      flex: none;
+    }
+
+    .preview .pv-info { min-width: 0; flex: 1; }
+    .preview .pv-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+    .preview button {
+      flex: none;
+      width: 28px; height: 28px;
+      border: none; border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .preview button:hover { background: rgba(0,0,0,0.9); }
+
+    .field { margin-top: 16px; }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .field label .opt {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .field input[type=text],
+    .field select {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 4px;
+      border: 1px solid #727272;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color .1s ease;
+    }
+
+    .field select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a7a7a7' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 36px;
+    }
+
+    .field input[type=text]:hover,
+    .field select:hover { border-color: #fff; }
+
+    .field input[type=text]:focus,
+    .field select:focus { outline: none; border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+
+    .field.invalid input[type=text],
+    .field.invalid input[type=text]:hover { border-color: var(--error); }
+
+    .field .err { margin-top: 6px; font-size: 13px; color: var(--error); display: none; }
+    .field.invalid .err { display: block; }
+
+    .trim-row { display: flex; gap: 10px; }
+    .trim-row input[type=text] { flex: 1; }
+
+    .trim-row input[type=color] {
+      flex: none;
+      width: 44px; height: 44px;
+      padding: 2px;
+      border: 1px solid #727272;
+      border-radius: 4px;
+      background: var(--bg);
+      cursor: pointer;
+    }
+
+    .submit-wrap { margin-top: 20px; }
+
+    .submit-btn {
+      width: 100%;
+      max-width: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto;
+      background: var(--accent);
+      border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 500px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .status.success { display: block; background: var(--success-soft); color: var(--success); }
+    .status.error   { display: block; background: var(--error-soft); color: var(--error); }
+    .status.loading { display: block; background: var(--accent-soft); color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- task list ---- */
+
+    .tasks { margin-top: 28px; }
+
+    .tasks-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+
+    .tasks-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+
+    .tasks-head .poll { font-size: 12px; color: var(--text-muted); }
+
+    .task {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .task .dot {
+      flex: none;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 6px;
+      background: var(--text-muted);
+    }
+
+    .task.running .dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    .task.done .dot    { background: var(--success); }
+    .task.stalled .dot { background: var(--warn); }
+    .task.error .dot   { background: var(--error); }
+
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }
+
+    .task .body { min-width: 0; flex: 1; }
+
+    .task .t-title {
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task .t-sub { font-size: 12px; color: var(--text-sub); margin-top: 3px; line-height: 1.5; }
+    .task.stalled .t-sub { color: var(--warn); }
+    .task.error .t-sub   { color: var(--error); }
+
+    .task .t-tags { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+    .task .t-links { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+
+    .task .t-links a {
+      font-size: 13px;
+      color: var(--text-sub);
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task .t-links a:hover { color: #fff; text-decoration: underline; }
+
+    .task .t-time { flex: none; font-size: 12px; color: var(--text-muted); }
+
+    .tasks-empty {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Pattern → Products</h1>
+      <p>Upload a pattern swatch. Zumbamboo drafts get created with images, product type, design, niche.</p>
+    </div>
+
+    <div class="card">
+
+      <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
+          <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+        </svg>
+        <p>Drop the pattern image here or click to browse</p>
+        <p class="hint">png · jpg · webp</p>
+        <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" style="display:none" />
+      </div>
+
+      <div class="preview" id="preview">
+        <img id="pvImg" alt="">
+        <div class="pv-info">
+          <div class="pv-name" id="pvName"></div>
+          <div class="pv-meta" id="pvMeta"></div>
+        </div>
+        <button type="button" id="pvRemove" title="Remove">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="field" id="fPattern">
+        <label for="patternName">Pattern name</label>
+        <input type="text" id="patternName" placeholder="e.g. Birthday Dachshund" autocomplete="off">
+        <div class="err">Required.</div>
+      </div>
+
+      <div class="field" id="fTrim">
+        <label for="trimColor">Trim color</label>
+        <div class="trim-row">
+          <input type="text" id="trimColor" placeholder="#8fb6d7" autocomplete="off">
+          <input type="color" id="trimPicker" value="#8fb6d7">
+        </div>
+        <div class="err">Use a hex color like #8fb6d7.</div>
+      </div>
+
+      <div class="field" id="fNiche">
+        <label for="niche">Niche</label>
+        <select id="niche"></select>
+        <div class="err">Required.</div>
+      </div>
+
+      <div class="field" id="fSubNiche">
+        <label for="subNiche">Sub niche <span class="opt">— optional</span></label>
+        <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
+        <datalist id="subNicheList"></datalist>
+        <div class="err">No sub niche with that name — pick one from the list or leave it empty.</div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" disabled>Create products</button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+    </div>
+
+    <div class="tasks">
+      <div class="tasks-head">
+        <h2>Tasks</h2>
+        <span class="poll" id="pollInfo"></span>
+      </div>
+      <div id="taskList"></div>
+    </div>
+  </div>
+
+  <script>
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form";
+    const N8N_STATUS_URL  = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-status";
+
+    const POLL_MS    = 4000;
+    const STALL_MS   = 5 * 60 * 1000;   // no update for this long -> flag as stalled
+    const GID_PREFIX = "gid://shopify/Metaobject/";
+
+    // Generated from the live Shopify store. Regenerate with gen-zum-form-data.ps1
+    const NICHES = /*__NICHE_DATA__*/["4 of July","Abstract","Activities & Fun","Animals","Back To School","Birthday","Black History Month","Black Pride","Characters","Christmas","Construction","Easter","Faith","Fall","Father's day","Floral","Food","Halloween","Hanukkah","Happy Three Kings' Day","Hebrews","Hispanic","Jobs","Juneteenth","Mardi Gras","Mother's Day","Nature","New Year","Others","Passover","Pride Month","Ramadan","Rosh Hashanah","Solid","Sports","St. Patrick’s Day","Summer","Thanksgiving","Transportation","Universe","Valentine’s Day"];
+    const SUB_NICHES = /*__SUBNICHE_DATA__*/[["250th America","184522932477"],["Accordion","195078914301"],["Activities","184527749373"],["Affirmations","184524374269"],["Afikoman","184526602493"],["African","195025502461"],["Airplane","184526635261"],["All Colorable","184527782141"],["Alligator","184525259005"],["Aloha","184527814909"],["Alphabet","184523129085"],["Animals","184523751677"],["Apple","184527847677"],["Architect","194729607421"],["Art","184523161853"],["Astronaut","184526668029"],["Autism","184526700797"],["Avocado","184526733565"],["Axolotl","184524112125"],["Ballerina","184527880445"],["Ballet","184527913213"],["Balloon","184525816061"],["Balls","184527945981"],["Bananas","184525848829"],["Baseball","184523456765"],["Basketball","184526766333"],["Beach","184523325693"],["Bear","184522965245"],["Beardie","184527978749"],["Beaver","184528011517"],["Bee","184528044285"],["Beer","184526799101"],["Bicycle","195079471357"],["Bike","184528077053"],["Bird","192927662333"],["Birth Flower","184528109821"],["Bluebonnet","191380357373"],["Boho","201491316989"],["Boot","201253880061"],["Bowling","184528142589"],["Bows","184525881597"],["Bracelet","184528175357"],["Bugs","184528208125"],["Builder","184525914365"],["Bunny","184524669181"],["Butterfly","184524701949"],["Cactus","184528240893"],["Camo","184528273661"],["Camper Van","201919824125"],["Camping","184523784445"],["Candy","184525947133"],["Capybara","184525291773"],["Caravan","195080945917"],["Cardinal","188328870141"],["Cars","184524144893"],["Cartoon","184524734717"],["Cat","184523194621"],["Celestial","184528306429"],["Characters","184525324541"],["Cheerleader","184526831869"],["Cherry","184526864637"],["Chicken","184525979901"],["Christian","184522703101"],["Christmas Lights","184528339197"],["Christmas Tree","184528371965"],["Cinco De Mayo","184524767485"],["Colorable","184523227389"],["Computer","184526012669"],["Construction","184523030781"],["Coquette Bowl","184528404733"],["Cow","192110231805"],["Cowboy","184528437501"],["Cowgirl","184528470269"],["Crawfish","184524177661"],["Crayon","184528503037"],["Crocodile","184524800253"],["Cross","195077669117"],["Crow","195006234877"],["Cupcakes","184528535805"],["Custom Pet Photo","184523620605"],["Custom Photo","184522998013"],["Dachshund","184523981053"],["Daisy","195077538045"],["Deer","184523489533"],["Desert","184528568573"],["Dinosaur","184522834173"],["Disco Ball","184526045437"],["Disney","184526078205"],["Doctor","184528601341"],["Dog","184522866941"],["Donut","184524833021"],["Doodle","184524407037"],["Doodle Letters","184526897405"],["Dragon","184526930173"],["Dragonfly","188307767549"],["Dreamcatcher","195027730685"],["Drinks","184526110973"],["Duck","184526143741"],["Dumpling","184528634109"],["Eagle","201254863101"],["Eggs","184528666877"],["Elephant","184526176509"],["Elf","184528699645"],["Evil Eye","184528732413"],["Fair Isle","184526962941"],["Faith","184525357309"],["Fall","185817465085"],["Family","184526995709"],["Farm","188307931389"],["Farm Animals","184523391229"],["Festival","184527028477"],["Fiesta Navidad","184524865789"],["Firefighters","184528765181"],["Fireflies","184524898557"],["Firework","184525390077"],["First 4th of July","184528797949"],["First Christmas","184523522301"],["First Hanukkah","184528830717"],["First Passover","184528863485"],["Fish","195011346685"],["Fishing","184523063549"],["Flag","196791369981"],["Flamingo","184526209277"],["Floral","184528896253"],["Flower","184522899709"],["Folk Art","201919758589"],["Food","184523423997"],["Football","184524439805"],["Forest","184524472573"],["Fox","188308455677"],["Frog","184525422845"],["Fruits","184523915517"],["Funny","184527061245"],["Galaxy","184528929021"],["Game","184526242045"],["Garden","184523817213"],["Geese","184526274813"],["Gingerbread","184525455613"],["Giraffe","188308553981"],["Gnome","184528961789"],["Golf","184523948285"],["Goose","184523260157"],["Guinea Pigs","184528994557"],["Guitar","195078848765"],["Gummy Bears","184529027325"],["Hat","201253847293"],["Heart","184523686141"],["Hibicus","195077406973"],["Highland Cow","184529060093"],["Hippie","184529092861"],["Hispanic","184529125629"],["Honey","184529158397"],["Horoscope","184529191165"],["Horse","184531157245"],["Hot Dog","184527094013"],["Human Rights","184529223933"],["Hummingbird","184527126781"],["Hunting","184525488381"],["Ice Cream","184524931325"],["Initials","184529256701"],["Insects","188069511421"],["Islam","184524964093"],["Jesus","184523849981"],["Jewish","184529289469"],["Jobs","184525521149"],["Kente","184529322237"],["Kiss","184529355005"],["Koala","184529387773"],["Kwanzaa","184525553917"],["Lady Bugs","184525586685"],["Lake","184526307581"],["Landmark","184527159549"],["Lavender","195077505277"],["Leaves","184527192317"],["Lemons","184526340349"],["Letters","184523718909"],["LGBTQ+","185350684925"],["Lighthouse","188308619517"],["Longhorn Bull","201252962557"],["Louisiana","184529420541"],["Lucky","184529453309"],["Lunar New Year","184527225085"],["Magnolia","191431311613"],["Mahjong","200495431933"],["Mallard Duck","184524210429"],["Map","184523096317"],["Marshmallow","184529486077"],["Medical","184529518845"],["Mermaid","184524243197"],["Mexico Culture","184527257853"],["Milk","184524275965"],["Minecraft","184529551613"],["Monster Truck","184523555069"],["Monsters","184525619453"],["Moon","184524996861"],["Moroccan Arabic","195080290557"],["Motorcycle","184527290621"],["Mountains","184529584381"],["Mushrooms","184529617149"],["Music","201921036541"],["Name Collage","184529649917"],["Native American","188308685053"],["Nautical","201251324157"],["New Year","184529682685"],["Nursery","184527323389"],["Nutcracker","184523358461"],["Ocean","188308881661"],["Ocean Animals","184523292925"],["Old School","184527356157"],["Ornaments","184529715453"],["Otter","184529748221"],["Owl","188218081533"],["Parrot","195006202109"],["Party","184529780989"],["Pasta","184529813757"],["Patchwork","184525652221"],["Patriotic","184529846525"],["Penguin","184529879293"],["Peony","195077603581"],["Pets","184524505341"],["Pickle","184529912061"],["Pigs","184529944829"],["Pilot","184529977597"],["Pizza","184527388925"],["Plaid","184525029629"],["Plane","184530010365"],["Plant","195076948221"],["Police","184530043133"],["Popcorn","184530075901"],["Preppy","184525062397"],["Princess","184526373117"],["Psychedelic","201492300029"],["Pumpkin","184525684989"],["Rabbit","184524538109"],["Racoon","202181574909"],["Rainbow","184523882749"],["Reading","191875350781"],["Reindeer","184527421693"],["Retro","184525717757"],["Robot","184530108669"],["Rockstar","184530141437"],["Rose","195077439741"],["Rugby","184530174205"],["Sailing","184530206973"],["Salamander","184530239741"],["Santa","184524308733"],["School","184526405885"],["School Sport","201220718845"],["School Things","184523587837"],["Science","184530272509"],["Sea Animals","184524013821"],["Seagull","184525095165"],["Seashell","201239101693"],["Sewing","195083075837"],["Shabbat","184530338045"],["Shamrock","184530370813"],["Shapes","184524341501"],["Sharks","184527454461"],["Sheep","184530403581"],["Skeleton","184530436349"],["Sloth","184526438653"],["Snake","201492431101"],["Snow","184527487229"],["Soccer","184522801405"],["Softball","184524570877"],["Solid","184522735869"],["Spaceship","195081011453"],["Spider","184530501885"],["Spooky","184524046589"],["Spring","184530534653"],["Stag","201251848445"],["Star","184530567421"],["Stockings","184530600189"],["Stranger Things","184530632957"],["Strawberry","184526471421"],["Sun","184525127933"],["Sunflower","184527519997"],["Teddy Bear","184527552765"],["Teeth","184524603645"],["Tennis","184525160701"],["Texas","184530665725"],["Text","184524636413"],["Toile","184526504189"],["Toile De Jouy","184527585533"],["Tools","184530698493"],["Tornado","184530731261"],["Toys","184526536957"],["Tractor","184530764029"],["Train","184527618301"],["Treats","184527651069"],["Tree of Life","188309111037"],["Truck","184527683837"],["Turtle","184523653373"],["Unicorn","184525193469"],["Universe","184530796797"],["Van","195079405821"],["Vegetable","184525750525"],["Vehicle","184530829565"],["Veterans","184530862333"],["Viking","184530895101"],["Vintage","184527716605"],["Water Gun","184530927869"],["Watercolor","184530960637"],["Welcome Home","198015582461"],["Western","184524079357"],["Whale","195011117309"],["Wild Animals","184526569725"],["Winnie The Pooh","184530993405"],["Winter Tree","184531026173"],["Wood","184531058941"],["Woodland Animals","195011444989"],["World","184531091709"],["World Cup 2026","184525783293"],["Yeti","184531124477"],["Zodiac","184525226237"]];
+
+    /* ---------------- form ---------------- */
+
+    let selectedFile = null;
+
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('fileInput');
+    const preview    = document.getElementById('preview');
+    const pvImg      = document.getElementById('pvImg');
+    const pvName     = document.getElementById('pvName');
+    const pvMeta     = document.getElementById('pvMeta');
+    const pvRemove   = document.getElementById('pvRemove');
+    const patternName= document.getElementById('patternName');
+    const trimColor  = document.getElementById('trimColor');
+    const trimPicker = document.getElementById('trimPicker');
+    const nicheSel   = document.getElementById('niche');
+    const subNiche   = document.getElementById('subNiche');
+    const submitBtn  = document.getElementById('submitBtn');
+
+    // populate niche + sub niche
+    nicheSel.innerHTML = '<option value="">— choose —</option>' +
+      NICHES.map(n => '<option>' + escapeHtml(n) + '</option>').join('');
+
+    document.getElementById('subNicheList').innerHTML =
+      SUB_NICHES.map(s => '<option value="' + escapeHtml(s[0]) + '"></option>').join('');
+
+    const subNicheByName = new Map(SUB_NICHES.map(s => [s[0].toLowerCase(), GID_PREFIX + s[1]]));
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      setFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { setFile(fileInput.files[0]); fileInput.value = ''; });
+    pvRemove.addEventListener('click', () => setFile(null));
+
+    function setFile(f) {
+      if (f && !f.type.startsWith('image/')) f = null;
+      selectedFile = f || null;
+      if (selectedFile) {
+        pvImg.src = URL.createObjectURL(selectedFile);
+        pvName.textContent = selectedFile.name;
+        pvMeta.textContent = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+        preview.classList.add('on');
+      } else {
+        preview.classList.remove('on');
+        pvImg.removeAttribute('src');
+      }
+      refreshSubmit();
+    }
+
+    trimPicker.addEventListener('input', () => { trimColor.value = trimPicker.value; validate(false); });
+    trimColor.addEventListener('input', () => {
+      const v = normHex(trimColor.value);
+      if (v) trimPicker.value = v;
+      validate(false);
+    });
+
+    [patternName, nicheSel, subNiche].forEach(el => el.addEventListener('input', () => validate(false)));
+    nicheSel.addEventListener('change', () => validate(false));
+
+    function normHex(v) {
+      const m = String(v || '').trim().replace(/^#/, '');
+      return /^[0-9a-fA-F]{6}$/.test(m) ? '#' + m.toLowerCase() : null;
+    }
+
+    function subNicheGid() {
+      const v = subNiche.value.trim();
+      if (!v) return '';
+      return subNicheByName.get(v.toLowerCase()) || null;   // null = typed but unknown
+    }
+
+    function validate(show) {
+      const okName  = patternName.value.trim().length > 0;
+      const okTrim  = !!normHex(trimColor.value);
+      const okNiche = nicheSel.value !== '';
+      const gid     = subNicheGid();
+      const okSub   = gid !== null;
+
+      if (show) {
+        document.getElementById('fPattern').classList.toggle('invalid', !okName);
+        document.getElementById('fTrim').classList.toggle('invalid', !okTrim);
+        document.getElementById('fNiche').classList.toggle('invalid', !okNiche);
+        document.getElementById('fSubNiche').classList.toggle('invalid', !okSub);
+      } else {
+        if (okName)  document.getElementById('fPattern').classList.remove('invalid');
+        if (okTrim)  document.getElementById('fTrim').classList.remove('invalid');
+        if (okNiche) document.getElementById('fNiche').classList.remove('invalid');
+        if (okSub)   document.getElementById('fSubNiche').classList.remove('invalid');
+      }
+
+      refreshSubmit();
+      return okName && okTrim && okNiche && okSub && !!selectedFile;
+    }
+
+    function refreshSubmit() {
+      submitBtn.disabled = !selectedFile;
+    }
+
+    submitBtn.addEventListener('click', submitForm);
+
+    async function submitForm() {
+      if (!validate(true)) {
+        showStatus('error', '&#10007; Fix the highlighted fields first.');
+        return;
+      }
+
+      const taskId = 'zum-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+      showStatus('loading', '<span class="spinner"></span> Sending pattern…');
+      submitBtn.disabled = true;
+
+      try {
+        // Probe: tiny POST to test connectivity, CORS and the key before sending the file
+        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData(), headers: TC_AUTH_HEADERS() }).catch(() => null);
+        if (!probe) {
+          showStatus('error', '&#10007; Cannot reach the webhook — check network or CORS (file:// origin is blocked).');
+          return;
+        }
+        if (probe.status === 401 || probe.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
+
+        const fd = new FormData();
+        fd.append('task_id', taskId);
+        fd.append('pattern_name', patternName.value.trim());
+        fd.append('trim_color', normHex(trimColor.value));
+        fd.append('niche', nicheSel.value);
+        fd.append('sub_niche', subNiche.value.trim());
+        fd.append('sub_niche_gid', subNicheGid() || '');
+        fd.append('pattern', selectedFile, selectedFile.name);
+
+        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
+
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
+
+        if (!res.ok) {
+          const errText = await res.text();
+          showStatus('error', '&#10007; Error (' + res.status + '): ' + errText.slice(0, 150));
+          return;
+        }
+
+        rememberTask({
+          task_id: taskId,
+          pattern_name: patternName.value.trim(),
+          niche: nicheSel.value,
+          sub_niche: subNiche.value.trim(),
+          submitted_at: Date.now(),
+        });
+        renderTasks();
+        pollNow();
+
+        showStatus('success', '&#10003; Queued. Watch the task below — it takes a few minutes.');
+        setFile(null);
+      } catch (err) {
+        showStatus('error', '&#10007; Upload failed: ' + err.message);
+      } finally {
+        refreshSubmit();
+      }
+    }
+
+    function showStatus(type, html) {
+      const el = document.getElementById('statusMsg');
+      el.className = 'status ' + type;
+      el.innerHTML = html;
+    }
+
+    /* ---------------- task list ---------------- */
+
+    const LS_KEY = 'zum_prd_tasks';
+
+    function myTasks() {
+      try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+    }
+
+    function rememberTask(t) {
+      const list = myTasks();
+      list.unshift(t);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0, 40))); } catch (e) {}
+    }
+
+    let serverTasks = new Map();
+
+    async function pollNow() {
+      const mine = myTasks();
+      if (mine.length === 0) { renderTasks(); return; }
+
+      try {
+        const res = await fetch(N8N_STATUS_URL, { headers: TC_AUTH_HEADERS() });
+        if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); return; }
+        if (!res.ok) return;
+        const data = await res.json();
+        serverTasks = new Map((data.tasks || []).map(t => [t.task_id, t]));
+        renderTasks();
+      } catch (e) { /* keep the last render */ }
+    }
+
+    function renderTasks() {
+      const list = myTasks();
+      const el = document.getElementById('taskList');
+
+      if (list.length === 0) {
+        el.innerHTML = '<div class="tasks-empty">No task yet. Submit a pattern above.</div>';
+        document.getElementById('pollInfo').textContent = '';
+        return;
+      }
+
+      el.innerHTML = list.map(local => {
+        const srv = serverTasks.get(local.task_id);
+        const v = view(local, srv);
+
+        const links = v.products.map(p =>
+          '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener">↗ ' + escapeHtml(p.title) + '</a>'
+        ).join('');
+
+        const tags = [local.niche, local.sub_niche].filter(Boolean).join(' · ');
+
+        return '<div class="task ' + v.cls + '">' +
+          '<div class="dot"></div>' +
+          '<div class="body">' +
+            '<div class="t-title">' + escapeHtml(local.pattern_name || '(no name)') + '</div>' +
+            '<div class="t-sub">' + escapeHtml(v.line) + '</div>' +
+            (tags ? '<div class="t-tags">' + escapeHtml(tags) + '</div>' : '') +
+            (links ? '<div class="t-links">' + links + '</div>' : '') +
+          '</div>' +
+          '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
+        '</div>';
+      }).join('');
+
+      const pending = list.some(l => {
+        const s = serverTasks.get(l.task_id);
+        return !s || s.status !== 'done';
+      });
+      document.getElementById('pollInfo').textContent = pending ? 'refreshing every 4s' : '';
+    }
+
+    function view(local, srv) {
+      let products = [];
+      if (srv && srv.products) {
+        try { products = JSON.parse(srv.products) || []; } catch (e) { products = []; }
+      }
+
+      if (!srv) {
+        const waited = Date.now() - (local.submitted_at || 0);
+        if (waited > 90 * 1000) {
+          return { cls: 'stalled', line: 'No task row in n8n after ' + Math.round(waited / 1000) + 's — check the execution log.', products: [] };
+        }
+        return { cls: 'running', line: 'Queued…', products: [] };
+      }
+
+      if (srv.status === 'error') {
+        return { cls: 'error', line: srv.error || 'Failed.', products: products };
+      }
+
+      if (srv.status === 'done') {
+        return { cls: 'done', line: products.length + ' product' + (products.length === 1 ? '' : 's') + ' created as draft.', products: products };
+      }
+
+      const last = Date.parse(srv.updatedAt || srv.createdAt || '') || 0;
+      if (last && Date.now() - last > STALL_MS) {
+        return { cls: 'stalled', line: 'Stuck at "' + (srv.step || '?') + '" for ' + Math.round((Date.now() - last) / 60000) + ' min — check the n8n execution.', products: products };
+      }
+
+      return { cls: 'running', line: srv.step || 'Running…', products: products };
+    }
+
+    function clock(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    renderTasks();
+    pollNow();
+    setInterval(pollNow, POLL_MS);
+  </script>
+</body>
+</html>

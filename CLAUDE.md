@@ -8,4 +8,4 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 
 | Thư mục | Việc |
 |---|---|
-| [`zum-prd/`](zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4` + `forms/zum_prd_form.html`) |
+| [`../zum-prd/`](../zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4`). **Tài liệu nằm ngoài repo này**, nhưng form của nó vẫn ở [`forms/zum_prd_form.html`](forms/zum_prd_form.html) |

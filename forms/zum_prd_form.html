@@ -286,7 +286,20 @@
 
     .tasks-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
 
-    .tasks-head .poll { font-size: 12px; color: var(--text-muted); }
+    .tasks-head .refresh {
+      border: none;
+      background: none;
+      padding: 0;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: color .1s ease;
+    }
+
+    .tasks-head .refresh:hover { color: #fff; text-decoration: underline; }
+    .tasks-head .refresh:disabled { color: var(--text-muted); cursor: default; text-decoration: none; }
 
     .task {
       background: var(--surface);
@@ -358,7 +371,7 @@
   <div class="container">
     <div class="header">
       <h1>Pattern → Products</h1>
-      <p>Upload a pattern swatch. Zumbamboo drafts get created with images, product type, design, niche.</p>
+      <p>Upload a pattern swatch. Zumbamboo drafts get created with images, product type, design, niche. The result lands in Telegram.</p>
     </div>
 
     <div class="card">
@@ -422,7 +435,7 @@
     <div class="tasks">
       <div class="tasks-head">
         <h2>Tasks</h2>
-        <span class="poll" id="pollInfo"></span>
+        <button type="button" class="refresh" id="refreshBtn">Refresh</button>
       </div>
       <div id="taskList"></div>
     </div>
@@ -432,7 +445,10 @@
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form";
     const N8N_STATUS_URL  = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-status";
 
-    const POLL_MS    = 4000;
+    // A browser page has no inbound URL, so n8n cannot push into it - every status
+    // read is one more n8n execution. The run therefore reports itself over Telegram
+    // when it finishes, and this page only reads status when Refresh is pressed.
+    // Budget: submit = 1 execution, each Refresh = 1 more.
     const STALL_MS   = 5 * 60 * 1000;   // no update for this long -> flag as stalled
     const GID_PREFIX = "gid://shopify/Metaobject/";
 
@@ -555,18 +571,6 @@
       submitBtn.disabled = true;
 
       try {
-        // Probe: tiny POST to test connectivity, CORS and the key before sending the file
-        const probe = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: new FormData(), headers: TC_AUTH_HEADERS() }).catch(() => null);
-        if (!probe) {
-          showStatus('error', '&#10007; Cannot reach the webhook — check network or CORS (file:// origin is blocked).');
-          return;
-        }
-        if (probe.status === 401 || probe.status === 403) {
-          showStatus('error', '&#10007; Wrong password.');
-          TC_AUTH_FAIL();
-          return;
-        }
-
         const fd = new FormData();
         fd.append('task_id', taskId);
         fd.append('pattern_name', patternName.value.trim());
@@ -598,12 +602,11 @@
           submitted_at: Date.now(),
         });
         renderTasks();
-        pollNow();
 
-        showStatus('success', '&#10003; Queued. Watch the task below — it takes a few minutes.');
+        showStatus('success', '&#10003; Queued — takes a few minutes. The result comes over Telegram; press Refresh to pull it in here.');
         setFile(null);
       } catch (err) {
-        showStatus('error', '&#10007; Upload failed: ' + err.message);
+        showStatus('error', '&#10007; Upload failed: ' + err.message + ' — check network or CORS (file:// origin is blocked).');
       } finally {
         refreshSubmit();
       }
@@ -631,10 +634,15 @@
 
     let serverTasks = new Map();
 
-    async function pollNow() {
-      const mine = myTasks();
-      if (mine.length === 0) { renderTasks(); return; }
+    const refreshBtn = document.getElementById('refreshBtn');
+    refreshBtn.addEventListener('click', pullStatus);
 
+    // One n8n execution per call. Only ever fired by the Refresh button.
+    async function pullStatus() {
+      if (myTasks().length === 0) return;
+
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing…';
       try {
         const res = await fetch(N8N_STATUS_URL, { headers: TC_AUTH_HEADERS() });
         if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); return; }
@@ -643,15 +651,20 @@
         serverTasks = new Map((data.tasks || []).map(t => [t.task_id, t]));
         renderTasks();
       } catch (e) { /* keep the last render */ }
+      finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+      }
     }
 
     function renderTasks() {
       const list = myTasks();
       const el = document.getElementById('taskList');
 
+      refreshBtn.style.display = list.length ? '' : 'none';
+
       if (list.length === 0) {
         el.innerHTML = '<div class="tasks-empty">No task yet. Submit a pattern above.</div>';
-        document.getElementById('pollInfo').textContent = '';
         return;
       }
 
@@ -676,12 +689,6 @@
           '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
         '</div>';
       }).join('');
-
-      const pending = list.some(l => {
-        const s = serverTasks.get(l.task_id);
-        return !s || s.status !== 'done';
-      });
-      document.getElementById('pollInfo').textContent = pending ? 'refreshing every 4s' : '';
     }
 
     function view(local, srv) {
@@ -691,11 +698,7 @@
       }
 
       if (!srv) {
-        const waited = Date.now() - (local.submitted_at || 0);
-        if (waited > 90 * 1000) {
-          return { cls: 'stalled', line: 'No task row in n8n after ' + Math.round(waited / 1000) + 's — check the execution log.', products: [] };
-        }
-        return { cls: 'running', line: 'Queued…', products: [] };
+        return { cls: 'running', line: 'Sent — result comes over Telegram. Press Refresh to pull the status in.', products: [] };
       }
 
       if (srv.status === 'error') {
@@ -727,8 +730,6 @@
     }
 
     renderTasks();
-    pollNow();
-    setInterval(pollNow, POLL_MS);
   </script>
 </body>
 </html>

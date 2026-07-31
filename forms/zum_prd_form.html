@@ -144,7 +144,22 @@
     }
     .preview button:hover { background: rgba(0,0,0,0.9); }
 
+    /* two fields per row; the error text sits inside the cell so a wrong value in one
+       column never shifts the other */
+    .fields {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 560px) {
+      .fields { grid-template-columns: minmax(0, 1fr); }
+    }
+
     .field { margin-top: 16px; }
+    .fields .field { margin-top: 0; }
 
     .field label {
       display: block;
@@ -358,6 +373,8 @@
         </button>
       </div>
 
+      <div class="fields">
+
       <div class="field" id="fPattern">
         <label for="patternName">Pattern name</label>
         <input type="text" id="patternName" placeholder="e.g. Birthday Dachshund" autocomplete="off">
@@ -384,6 +401,8 @@
         <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
         <datalist id="subNicheList"></datalist>
         <div class="err">No sub niche with that name — pick one from the list or leave it empty.</div>
+      </div>
+
       </div>
 
       <div class="submit-wrap">

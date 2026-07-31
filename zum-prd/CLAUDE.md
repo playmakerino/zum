@@ -73,6 +73,10 @@ Muốn có tiến độ theo từng bước mà vẫn 1 execution thì phải qu
 
 Webhook công khai — ai biết URL đều gọi được, tạo product nháp và đốt quota Gemini. Đây là lựa chọn có ý thức của user (bỏ Header Auth ngày 2026-07-31). Muốn khoá lại: bật `authentication: headerAuth` + credential `TBIa0bvq5y8yQfnj` "TC form auth" ở node Webhook, và trả `auth.js` + `TC_AUTH_HEADERS()` vào form như các form TC khác.
 
-## Memory
+## Memory — KHÔNG ghi vào kho chung
 
-Memory tự động lưu **theo cwd**. Chỉ khi mở Claude Code với chính thư mục này làm cwd thì mới có memory riêng; mở từ `D:\Bamboo\claude` thì memory rơi vào kho chung của workspace. Luật ổn định thì viết thẳng vào file này — CLAUDE.md kế thừa xuống mọi subfolder nên luôn được nạp.
+Mọi thứ về workflow này **viết thẳng vào file này**. Không tạo file memory cho nó.
+
+Cơ chế: memory lưu theo **cwd lúc mở Claude Code**, không theo thư mục đang sửa. Mở từ `D:\Bamboo\claude` thì mọi file memory rơi vào `~/.claude/projects/D--Bamboo-claude/memory/` — kho dùng chung cho cả workspace, không tách riêng được từ đó. Muốn kho riêng thì phải mở Claude Code với chính thư mục này làm cwd (slug thư mục projects suy ra từ đường dẫn cwd).
+
+CLAUDE.md thì được nạp bất kể mở từ đâu, lại nằm trong git nên có lịch sử sửa đổi — đó là chỗ đúng cho mọi thứ ở đây.

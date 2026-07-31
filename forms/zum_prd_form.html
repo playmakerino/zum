@@ -143,10 +143,15 @@
       transition: border-color 0.2s, background 0.2s;
     }
 
-    .drop-zone:hover,
-    .drop-zone.drag-over {
+    .drop-zone:hover {
       border-color: #fff;
       background: rgba(255,255,255,0.04);
+    }
+
+    /* an armed drop target is an active state, so it earns the accent */
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(30,215,96,0.08);
     }
 
     .drop-zone:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -158,8 +163,8 @@
       transition: color 0.2s;
     }
 
-    .drop-zone:hover svg,
-    .drop-zone.drag-over svg { color: #fff; }
+    .drop-zone:hover svg { color: #fff; }
+    .drop-zone.drag-over svg { color: var(--accent); }
 
     .drop-zone p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
     .drop-zone .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
@@ -185,7 +190,16 @@
     }
 
     .preview .pv-info { min-width: 0; flex: 1; }
-    .preview .pv-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* the staged swatch is the active item, the way the playing track goes green */
+    .preview .pv-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .preview .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
 
     .preview button {
@@ -377,11 +391,19 @@
     /* track-list row: transparent, background only on hover — not a card */
     .task {
       display: grid;
-      grid-template-columns: 40px minmax(0, 1fr) auto;
+      grid-template-columns: 40px minmax(0, 1fr) auto auto;
       gap: 12px;
       align-items: center;
       padding: 8px;
       border-radius: 4px;
+    }
+
+    /* accepted by the webhook — the same meaning as the green tick on a saved track.
+       It reports what we actually know, not whether the run finished. */
+    .task .ok {
+      width: 16px; height: 16px;
+      color: var(--accent);
+      flex: none;
     }
 
     .task:hover { background: var(--row-hover); }
@@ -820,6 +842,10 @@
             '<div class="t-title">' + escapeHtml(local.pattern_name || '(no name)') + '</div>' +
             '<div class="t-sub">' + escapeHtml(sub || 'sent') + '</div>' +
           '</div>' +
+          '<svg class="ok" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Accepted">' +
+            '<path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z"/>' +
+            '<path d="M11.748 5.442a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-2-2a.75.75 0 111.06-1.06l1.47 1.47 3.97-3.97a.75.75 0 011.06 0z"/>' +
+          '</svg>' +
           '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
         '</div>';
       }).join('');

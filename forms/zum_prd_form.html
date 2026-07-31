@@ -53,14 +53,21 @@
       z-index: 0;
     }
 
+    /* two columns: form pinned on the left, sent list scrolls on its own on the right */
     .container {
       width: 100%;
-      max-width: 640px;
+      max-width: 1120px;
       position: relative;
       z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
     }
 
-    .header { margin-bottom: 20px; text-align: center; }
+    .col-form { position: sticky; top: 32px; }
+
+    .header { margin-bottom: 20px; }
 
     .header h1 {
       font-size: 32px;
@@ -285,7 +292,27 @@
 
     /* ---- task list ---- */
 
-    .tasks { margin-top: 28px; }
+    .tasks {
+      position: sticky;
+      top: 32px;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 96px);
+      min-height: 0;
+    }
+
+    #taskList {
+      overflow-y: auto;
+      min-height: 0;
+      padding-right: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: #4a4a4a transparent;
+    }
+
+    #taskList::-webkit-scrollbar { width: 8px; }
+    #taskList::-webkit-scrollbar-track { background: transparent; }
+    #taskList::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+    #taskList::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
 
     .tasks-head {
       display: flex;
@@ -343,6 +370,7 @@
 </head>
 <body>
   <div class="container">
+    <div class="col-form">
     <div class="header">
       <h1>Pattern → Products</h1>
       <p>Upload a pattern swatch. Zumbamboo drafts get created with images, product type, design, niche. The result lands in Telegram.</p>
@@ -407,6 +435,7 @@
         <div class="status" id="statusMsg"></div>
       </div>
 
+    </div>
     </div>
 
     <div class="tasks">

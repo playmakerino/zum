@@ -25,8 +25,6 @@
       --text-muted: #6A6A6A;
       --success: #1ED760;
       --success-soft: rgba(30,215,96,0.10);
-      --warn: #F5A623;
-      --warn-soft: rgba(245,166,35,0.10);
       --error: #F15E6C;
       --error-soft: rgba(241,94,108,0.10);
       --divider: rgba(255,255,255,0.06);
@@ -286,20 +284,7 @@
 
     .tasks-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
 
-    .tasks-head .refresh {
-      border: none;
-      background: none;
-      padding: 0;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-sub);
-      cursor: pointer;
-      transition: color .1s ease;
-    }
-
-    .tasks-head .refresh:hover { color: #fff; text-decoration: underline; }
-    .tasks-head .refresh:disabled { color: var(--text-muted); cursor: default; text-decoration: none; }
+    .tasks-head .note { font-size: 12px; color: var(--text-muted); }
 
     .task {
       background: var(--surface);
@@ -316,15 +301,8 @@
       width: 8px; height: 8px;
       border-radius: 50%;
       margin-top: 6px;
-      background: var(--text-muted);
+      background: var(--accent);
     }
-
-    .task.running .dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
-    .task.done .dot    { background: var(--success); }
-    .task.stalled .dot { background: var(--warn); }
-    .task.error .dot   { background: var(--error); }
-
-    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }
 
     .task .body { min-width: 0; flex: 1; }
 
@@ -337,23 +315,6 @@
     }
 
     .task .t-sub { font-size: 12px; color: var(--text-sub); margin-top: 3px; line-height: 1.5; }
-    .task.stalled .t-sub { color: var(--warn); }
-    .task.error .t-sub   { color: var(--error); }
-
-    .task .t-tags { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-
-    .task .t-links { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-
-    .task .t-links a {
-      font-size: 13px;
-      color: var(--text-sub);
-      text-decoration: none;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .task .t-links a:hover { color: #fff; text-decoration: underline; }
 
     .task .t-time { flex: none; font-size: 12px; color: var(--text-muted); }
 
@@ -434,8 +395,8 @@
 
     <div class="tasks">
       <div class="tasks-head">
-        <h2>Tasks</h2>
-        <button type="button" class="refresh" id="refreshBtn">Refresh</button>
+        <h2>Sent</h2>
+        <span class="note">results arrive on Telegram</span>
       </div>
       <div id="taskList"></div>
     </div>
@@ -443,13 +404,11 @@
 
   <script>
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form";
-    const N8N_STATUS_URL  = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-status";
 
-    // A browser page has no inbound URL, so n8n cannot push into it - every status
-    // read is one more n8n execution. The run therefore reports itself over Telegram
-    // when it finishes, and this page only reads status when Refresh is pressed.
-    // Budget: submit = 1 execution, each Refresh = 1 more.
-    const STALL_MS   = 5 * 60 * 1000;   // no update for this long -> flag as stalled
+    // A browser page has no inbound URL, so n8n cannot push into it, and every status
+    // read would be one more n8n execution. So there is no status read at all: the run
+    // reports itself over Telegram, and the list below is only a local record of what
+    // was sent from this browser. Submit costs exactly one execution, nothing else does.
     const GID_PREFIX = "gid://shopify/Metaobject/";
 
     // Generated from the live Shopify store. Regenerate with gen-zum-form-data.ps1
@@ -603,7 +562,7 @@
         });
         renderTasks();
 
-        showStatus('success', '&#10003; Queued — takes a few minutes. The result comes over Telegram; press Refresh to pull it in here.');
+        showStatus('success', '&#10003; Sent — takes a few minutes. The result lands in Telegram.');
         setFile(null);
       } catch (err) {
         showStatus('error', '&#10007; Upload failed: ' + err.message + ' — check network or CORS (file:// origin is blocked).');
@@ -632,89 +591,27 @@
       try { localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0, 40))); } catch (e) {}
     }
 
-    let serverTasks = new Map();
-
-    const refreshBtn = document.getElementById('refreshBtn');
-    refreshBtn.addEventListener('click', pullStatus);
-
-    // One n8n execution per call. Only ever fired by the Refresh button.
-    async function pullStatus() {
-      if (myTasks().length === 0) return;
-
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = 'Refreshing…';
-      try {
-        const res = await fetch(N8N_STATUS_URL, { headers: TC_AUTH_HEADERS() });
-        if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); return; }
-        if (!res.ok) return;
-        const data = await res.json();
-        serverTasks = new Map((data.tasks || []).map(t => [t.task_id, t]));
-        renderTasks();
-      } catch (e) { /* keep the last render */ }
-      finally {
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Refresh';
-      }
-    }
-
     function renderTasks() {
       const list = myTasks();
       const el = document.getElementById('taskList');
 
-      refreshBtn.style.display = list.length ? '' : 'none';
-
       if (list.length === 0) {
-        el.innerHTML = '<div class="tasks-empty">No task yet. Submit a pattern above.</div>';
+        el.innerHTML = '<div class="tasks-empty">Nothing sent yet from this browser.</div>';
         return;
       }
 
       el.innerHTML = list.map(local => {
-        const srv = serverTasks.get(local.task_id);
-        const v = view(local, srv);
+        const sub = [local.niche, local.sub_niche].filter(Boolean).join(' · ');
 
-        const links = v.products.map(p =>
-          '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener">↗ ' + escapeHtml(p.title) + '</a>'
-        ).join('');
-
-        const tags = [local.niche, local.sub_niche].filter(Boolean).join(' · ');
-
-        return '<div class="task ' + v.cls + '">' +
+        return '<div class="task">' +
           '<div class="dot"></div>' +
           '<div class="body">' +
             '<div class="t-title">' + escapeHtml(local.pattern_name || '(no name)') + '</div>' +
-            '<div class="t-sub">' + escapeHtml(v.line) + '</div>' +
-            (tags ? '<div class="t-tags">' + escapeHtml(tags) + '</div>' : '') +
-            (links ? '<div class="t-links">' + links + '</div>' : '') +
+            '<div class="t-sub">' + escapeHtml(sub || 'sent') + '</div>' +
           '</div>' +
           '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
         '</div>';
       }).join('');
-    }
-
-    function view(local, srv) {
-      let products = [];
-      if (srv && srv.products) {
-        try { products = JSON.parse(srv.products) || []; } catch (e) { products = []; }
-      }
-
-      if (!srv) {
-        return { cls: 'running', line: 'Sent — result comes over Telegram. Press Refresh to pull the status in.', products: [] };
-      }
-
-      if (srv.status === 'error') {
-        return { cls: 'error', line: srv.error || 'Failed.', products: products };
-      }
-
-      if (srv.status === 'done') {
-        return { cls: 'done', line: products.length + ' product' + (products.length === 1 ? '' : 's') + ' created as draft.', products: products };
-      }
-
-      const last = Date.parse(srv.updatedAt || srv.createdAt || '') || 0;
-      if (last && Date.now() - last > STALL_MS) {
-        return { cls: 'stalled', line: 'Stuck at "' + (srv.step || '?') + '" for ' + Math.round((Date.now() - last) / 60000) + ' min — check the n8n execution.', products: products };
-      }
-
-      return { cls: 'running', line: srv.step || 'Running…', products: products };
     }
 
     function clock(ts) {

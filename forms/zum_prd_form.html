@@ -486,7 +486,7 @@
           <input type="color" id="trimPicker" value="#8fb6d7">
         </div>
         <div class="err">Use a hex color like #8fb6d7.</div>
-        <div class="auto-hint" id="trimHint">Taken from the swatch — type to override.</div>
+        <div class="auto-hint" id="trimHint">Taken from the swatch.</div>
       </div>
 
       <div class="field" id="fNiche">
@@ -639,11 +639,9 @@
     }
 
     // Same dominant colour, but pulled into a range a garment trim can actually be:
-    // never near-white, never near-black, never fully saturated. Only ever fills a
-    // field the user has not typed in — trim drives the generated images, so a manual
-    // value must win.
+    // never near-white, never near-black, never fully saturated. Every drop rewrites
+    // the field, including over a value typed by hand.
     function suggestTrim(r, g, b) {
-      if (trimTouched) return;
       const hsv = rgbToHsv(r, g, b);
       if (hsv[1] < 0.15 || hsv[2] < 0.10) return;
 
@@ -719,21 +717,14 @@
       img.src = url;
     }
 
-    // once the trim is set by hand, no swatch may overwrite it again
-    let trimTouched = false;
-
-    function markTrimTouched() {
-      trimTouched = true;
-      trimHint.style.display = 'none';
-    }
-
+    // the hint only claims the swatch as the source while the value still comes from it
     trimPicker.addEventListener('input', () => {
-      markTrimTouched();
+      trimHint.style.display = 'none';
       trimColor.value = trimPicker.value;
       validate(false);
     });
     trimColor.addEventListener('input', () => {
-      markTrimTouched();
+      trimHint.style.display = 'none';
       const v = normHex(trimColor.value);
       if (v) trimPicker.value = v;
       validate(false);

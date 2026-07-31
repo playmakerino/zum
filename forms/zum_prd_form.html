@@ -391,9 +391,8 @@
       </div>
 
       <div class="field" id="fNiche">
-        <label for="niche">Niche</label>
+        <label for="niche">Niche <span class="opt">— optional</span></label>
         <select id="niche"></select>
-        <div class="err">Required.</div>
       </div>
 
       <div class="field" id="fSubNiche">
@@ -453,7 +452,7 @@
     const submitBtn  = document.getElementById('submitBtn');
 
     // populate niche + sub niche
-    nicheSel.innerHTML = '<option value="">— choose —</option>' +
+    nicheSel.innerHTML = '<option value="">— none —</option>' +
       NICHES.map(n => '<option>' + escapeHtml(n) + '</option>').join('');
 
     document.getElementById('subNicheList').innerHTML =
@@ -509,26 +508,22 @@
     }
 
     function validate(show) {
-      const okName  = patternName.value.trim().length > 0;
-      const okTrim  = !!normHex(trimColor.value);
-      const okNiche = nicheSel.value !== '';
-      const gid     = subNicheGid();
-      const okSub   = gid !== null;
+      const okName = patternName.value.trim().length > 0;
+      const okTrim = !!normHex(trimColor.value);
+      const okSub  = subNicheGid() !== null;   // null = typed a name that does not exist
 
       if (show) {
         document.getElementById('fPattern').classList.toggle('invalid', !okName);
         document.getElementById('fTrim').classList.toggle('invalid', !okTrim);
-        document.getElementById('fNiche').classList.toggle('invalid', !okNiche);
         document.getElementById('fSubNiche').classList.toggle('invalid', !okSub);
       } else {
-        if (okName)  document.getElementById('fPattern').classList.remove('invalid');
-        if (okTrim)  document.getElementById('fTrim').classList.remove('invalid');
-        if (okNiche) document.getElementById('fNiche').classList.remove('invalid');
-        if (okSub)   document.getElementById('fSubNiche').classList.remove('invalid');
+        if (okName) document.getElementById('fPattern').classList.remove('invalid');
+        if (okTrim) document.getElementById('fTrim').classList.remove('invalid');
+        if (okSub)  document.getElementById('fSubNiche').classList.remove('invalid');
       }
 
       refreshSubmit();
-      return okName && okTrim && okNiche && okSub && !!selectedFile;
+      return okName && okTrim && okSub && !!selectedFile;
     }
 
     function refreshSubmit() {

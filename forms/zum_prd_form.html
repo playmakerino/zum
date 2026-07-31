@@ -8,8 +8,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <script src="auth.js"></script>
-
   <style>
     :root {
       --bg: #121212;
@@ -553,13 +551,8 @@
         fd.append('sub_niche_gid', subNicheGid() || '');
         fd.append('pattern', selectedFile, selectedFile.name);
 
-        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
-
-        if (res.status === 401 || res.status === 403) {
-          showStatus('error', '&#10007; Wrong password.');
-          TC_AUTH_FAIL();
-          return;
-        }
+        // No custom header, so this stays a simple request and never triggers a CORS preflight
+        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd });
 
         if (!res.ok) {
           const errText = await res.text();

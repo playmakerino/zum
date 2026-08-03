@@ -40,10 +40,10 @@
        brighten + scale, secondary text goes grey to white, inputs focus to a
        white border, an invalid input gets a red border plus red helper text. */
     var css = ''
-      /* state only, no green, no input. Pinned to the top right corner of the
-         viewport, so it stays in the same place on every form and never pushes the
-         form content down. */
-      + '#tcAuthChip{position:fixed;top:12px;right:12px;z-index:40;'
+      /* state only, no green, no input. Absolute in the top right corner of the page,
+         so it scrolls away: it is needed once per browser, and a failure announces
+         itself with the dialog and the toast rather than waiting to be found. */
+      + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
       + 'display:inline-flex;gap:8px;align-items:baseline;background:#181818;'
       + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.4);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"

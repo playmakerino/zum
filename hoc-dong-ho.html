@@ -214,7 +214,7 @@
 
   /* ===== CÁCH ĐẶT MỐC: nút ▾ trong câu, mở menu nổi =====
      Một nút nhỏ cho mỗi mốc thay vì cụm 3 nút chen giữa câu -> câu ngắn lại, mobile đỡ chật.
-     Menu chỉ liệt kê lựa chọn còn ý nghĩa (xem menuItems() ở phần 6). */
+     Menu luôn có đủ bốn lựa chọn (xem hằng MENU ở phần 6). */
   .caret{
     min-height:1.9rem;padding:0 .45rem;margin-left:.15rem;
     border:1px solid var(--line);border-radius:8px;
@@ -391,8 +391,8 @@
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
   const CUE_OFF    = ARC_OFF + 10;                      // chữ "từ"/"đến": NGOÀI cung, không đè lên cung
-  const CONN_OFF   = ARC_OFF + 4;                       // nét nối bắt đầu ngoài cung
-  const BADGE_M_OFF= CONN_OFF + 3 + BADGE_HALF;         // tâm nhãn PHÚT
+  const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
+  const BADGE_M_OFF= ARC_OFF + 7 + BADGE_HALF;          // tâm nhãn PHÚT (bám theo cung, KHÔNG theo nét nối)
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + 3;         // tâm nhãn GIỜ (ngoài nhãn phút)
   const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + 4);   // lề quanh mặt = tầm với xa nhất
   let FACE = 150;

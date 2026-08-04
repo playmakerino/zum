@@ -128,26 +128,33 @@
   #badgeH{background:var(--c-hour);}
   #badgeM{background:var(--c-min);}
 
-  /* ===== SỐ THỨ TỰ ① ② — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
-     Tín hiệu KHÔNG dùng màu: mốc "từ" mang số 1, mốc "đến" mang số 2 (đúng thứ tự trước sau).
-     Cùng một hình tròn viền đó xuất hiện HAI NƠI — trong câu ngay trước giá trị, và trên mặt
-     tại đầu cung khoảng — nên nhìn là biết chữ nào ứng với vạch nào. */
-  .ord{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:1.35em;height:1.35em;
-    margin-right:.2em;
-    border:1.5px solid var(--ink);border-radius:50%;
-    font-size:.62em;font-weight:700;line-height:1;
-    vertical-align:.12em;
+  /* ===== CHẤM XUẤT PHÁT / MŨI TÊN ĐIỂM TỚI — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
+     Tín hiệu KHÔNG dùng màu, KHÔNG thêm số: mốc bắt đầu là CHẤM, mốc kết thúc là MŨI TÊN
+     (tự nó mang nghĩa "đi tới", khớp với chữ "đến"). Cùng hai hình đó xuất hiện HAI NƠI —
+     trong câu ngay trước giá trị, và trên mặt tại đúng hai đầu cung khoảng. */
+  .cue{
+    display:inline-block;
+    width:.55em;height:.55em;
+    margin-right:.3em;
+    vertical-align:.04em;
   }
-  .ord-badge{
-    position:absolute;left:50%;top:0;
-    transform:translate(-50%,-50%);
-    width:18px;height:18px;
-    border:1.5px solid var(--ink);border-radius:50%;
-    background:var(--bg);
-    font-size:.62rem;font-weight:700;line-height:1;
-    display:flex;align-items:center;justify-content:center;
+  .cue.from{background:var(--ink);border-radius:50%;}     /* CHẤM = mốc bắt đầu */
+  .cue.to{                                                /* MŨI TÊN = mốc kết thúc */
+    width:0;height:0;background:none;
+    border-left:.6em solid var(--ink);
+    border-top:.33em solid transparent;
+    border-bottom:.33em solid transparent;
+  }
+  .cue-dot{position:absolute;left:50%;top:0;transform:translate(-50%,-50%);}
+  .cue-dot.from{width:10px;height:10px;border-radius:50%;background:var(--ink);}
+  .cue-dot.to{
+    /* Mũi tên CHĨA VÀO TÂM (đầu nhọn nằm dưới trong hệ chưa xoay) -> dời ra ngoài 5px
+       để đúng đầu nhọn chạm bán kính cung, không phải tâm hình. */
+    width:0;height:0;
+    border-top:10px solid var(--ink);
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    transform:translate(-50%,calc(-50% - 5px));
   }
   .orbit.off{display:none;}
 
@@ -288,9 +295,9 @@
       <div class="connector" id="connM"></div>
       <div class="badge" id="badgeM"><span id="textM">0</span></div>
     </div>
-    <!-- Số thứ tự của hai mốc, đặt tại hai đầu cung khoảng -->
-    <div class="orbit off" id="ordFrom"><div class="ord-badge">1</div></div>
-    <div class="orbit off" id="ordTo"><div class="ord-badge">2</div></div>
+    <!-- Dấu hai mốc, đặt tại hai đầu cung khoảng: đặc = bắt đầu, rỗng = kết thúc -->
+    <div class="orbit off" id="cueFrom"><div class="cue-dot from"></div></div>
+    <div class="orbit off" id="cueTo"><div class="cue-dot to"></div></div>
     <div class="center"></div>
   </div>
 
@@ -337,7 +344,7 @@
   const elConnH=$('connH'),   elConnM=$('connM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elTextH=$('textH'),   elTextM=$('textM');
-  const elOrd={from:$('ordFrom'), to:$('ordTo')};
+  const elCue={from:$('cueFrom'), to:$('cueTo')};
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
@@ -397,7 +404,7 @@
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
-  const ORD_OFF    = ARC_OFF + 10;                      // tâm số thứ tự ① ② (ngay ngoài cung)
+  const CUE_OFF    = ARC_OFF;                           // dấu mốc nằm NGAY TRÊN cung, ở hai đầu
   const CONN_OFF   = ARC_OFF + 4;                       // nét nối bắt đầu ngoài cung
   const BADGE_M_OFF= CONN_OFF + 3 + BADGE_HALF;         // tâm nhãn PHÚT
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + 3;         // tâm nhãn GIỜ (ngoài nhãn phút)
@@ -460,7 +467,7 @@
     const rM = FACE + BADGE_M_OFF, rH = FACE + BADGE_H_OFF;
     place(elConnM, elBadgeM, connStart, (rM - BADGE_HALF) - connStart, rM);
     place(elConnH, elBadgeH, connStart, (rH - BADGE_HALF) - connStart, rH);
-    for(const o of Object.values(elOrd)) o.firstChild.style.marginTop = (-(FACE + ORD_OFF))+'px';
+    for(const o of Object.values(elCue)) o.firstChild.style.marginTop = (-(FACE + CUE_OFF))+'px';
 
     layoutFace();
     drawMarks();
@@ -545,14 +552,11 @@
     setMark(mark.fromH, mark.fromM, k.from);
     setMark(mark.toH,   mark.toM,   k.to);
 
-    // Số thứ tự ① ② đặt tại GÓC PHÚT của mốc = đúng hai đầu cung khoảng; đối-xoay cho số đứng thẳng
-    for(const [part,el] of Object.entries(elOrd)){
+    // Dấu mốc đặt tại GÓC PHÚT = đúng hai đầu cung khoảng (hình tròn nên không cần đối-xoay)
+    for(const [part,el] of Object.entries(elCue)){
       const mins = k[part];
       el.classList.toggle('off', mins===null);
-      if(mins===null) continue;
-      const deg = (mins%60)*6;
-      el.style.transform = `rotate(${deg}deg)`;
-      el.firstChild.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;
+      if(mins!==null) el.style.transform = `rotate(${(mins%60)*6}deg)`;
     }
 
     // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
@@ -706,9 +710,9 @@
   const Q_TIME = '<span class="v-h">mấy giờ</span> <span class="v-m">mấy phút</span>';
   const Q_DUR  = `<span class="v-d">bao nhiêu</span> ${W_M}`;
 
-  // Số thứ tự đứng ngay trước giá trị của mốc — cùng hình với ① ② trên mặt đồng hồ
-  const O1 = '<span class="ord">1</span>';
-  const O2 = '<span class="ord">2</span>';
+  // Dấu mốc đứng ngay trước giá trị — cùng hình với dấu trên mặt đồng hồ
+  const O1 = '<span class="cue from"></span>';
+  const O2 = '<span class="cue to"></span>';
 
   // MỘT câu liền mạch cho câu hỏi
   function qHTML(){

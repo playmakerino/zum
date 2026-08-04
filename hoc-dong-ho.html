@@ -813,19 +813,16 @@
   elQSay.addEventListener('input', onInput);
   elASay.addEventListener('input', onInput);
 
-  /* --- MENU ▾ --- "tự nhập" đứng đầu vì đó là mặc định. Luôn đủ lựa chọn để đổi thẳng từ
-       cách này sang cách kia; chỉ GIẤU "bây giờ" khi MỐC KIA đang giữ nó (chỉ một mốc
-       được là bây giờ) — mốc đang giữ thì vẫn thấy để bấm ra. */
-  function menuItems(part){
-    const other = state[part==='from' ? 'to' : 'from'].mode;
-    const mine  = state[part].mode;
-    return [
-      ['input','tự nhập'],
-      ...((other==='now' && mine!=='now') ? [] : [['now','bây giờ']]),
-      ['sharp','giờ đúng'],
-      ['half','rưỡi'],
-    ];
-  }
+  /* --- MENU ▾ --- LUÔN đủ bốn lựa chọn, không bao giờ giấu cái nào: menu mà đổi món theo
+       trạng thái thì người dùng không đoán được lần sau bấm vào sẽ thấy gì. Ràng buộc "chỉ
+       một mốc được là bây giờ" xử lý lúc CHỌN (mốc kia tự về tự nhập), không xử lý bằng
+       cách giấu mục. "tự nhập" đứng đầu vì đó là mặc định. */
+  const MENU = [
+    ['input','tự nhập'],
+    ['now','bây giờ'],
+    ['sharp','giờ đúng'],
+    ['half','rưỡi'],
+  ];
   function closeMenu(){ elMenu.hidden = true; elMenu.dataset.part=''; }
 
   elQSay.addEventListener('click', e=>{
@@ -834,7 +831,7 @@
     const part = c.dataset.menu;
     if(!elMenu.hidden && elMenu.dataset.part===part){ closeMenu(); return; }
     const mode = state[part].mode;
-    elMenu.innerHTML = menuItems(part).map(([o,txt]) =>
+    elMenu.innerHTML = MENU.map(([o,txt]) =>
       `<button type="button" class="${mode===o?'on':''}" data-mi="${o}">${txt}</button>`).join('');
     elMenu.dataset.part = part;
     elMenu.hidden = false;
@@ -847,7 +844,13 @@
   elMenu.addEventListener('click', e=>{
     const b = e.target.closest('[data-mi]');
     if(!b) return;
-    state[elMenu.dataset.part].mode = b.dataset.mi;
+    const part = elMenu.dataset.part, mode = b.dataset.mi;
+    state[part].mode = mode;
+    // Chỉ MỘT mốc được là "bây giờ": chọn ở đây thì mốc kia trả về tự nhập
+    if(mode==='now'){
+      const other = state[part==='from' ? 'to' : 'from'];
+      if(other.mode==='now') other.mode='input';
+    }
     closeMenu();
     frozenNow=null;
     syncQ(); syncA(); autoCheck();

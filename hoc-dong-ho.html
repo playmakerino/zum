@@ -128,6 +128,29 @@
   #badgeH{background:var(--c-hour);}
   #badgeM{background:var(--c-min);}
 
+  /* ===== SỐ THỨ TỰ ① ② — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
+     Tín hiệu KHÔNG dùng màu: mốc "từ" mang số 1, mốc "đến" mang số 2 (đúng thứ tự trước sau).
+     Cùng một hình tròn viền đó xuất hiện HAI NƠI — trong câu ngay trước giá trị, và trên mặt
+     tại đầu cung khoảng — nên nhìn là biết chữ nào ứng với vạch nào. */
+  .ord{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:1.35em;height:1.35em;
+    margin-right:.2em;
+    border:1.5px solid var(--ink);border-radius:50%;
+    font-size:.62em;font-weight:700;line-height:1;
+    vertical-align:.12em;
+  }
+  .ord-badge{
+    position:absolute;left:50%;top:0;
+    transform:translate(-50%,-50%);
+    width:18px;height:18px;
+    border:1.5px solid var(--ink);border-radius:50%;
+    background:var(--bg);
+    font-size:.62rem;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .orbit.off{display:none;}
+
   /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT =====
      Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép:
      mỗi mốc 2 vạch (giờ: đậm xanh · phút: mảnh cam); mốc "đến" mờ đi để phân biệt với "từ". */
@@ -163,8 +186,9 @@
   .say .v-d{color:var(--c-dur);font-weight:700;}
   .say .v-now{color:var(--c-sec);font-weight:700;}
   .say .w-h{color:var(--c-hour);}    /* chữ "giờ" */
+  /* chữ "phút" LUÔN màu phút, kể cả khi đo khoảng — xanh ngọc chỉ dành cho CON SỐ khoảng
+     và cung trên mặt, vì đó mới là thứ "khoảng"; còn đơn vị thì vẫn là phút. */
   .say .w-m{color:var(--c-min);}     /* chữ "phút" / "đúng" / "rưỡi" */
-  .say .w-d{color:var(--c-dur);}     /* chữ "phút" của khoảng */
   .say .todo{color:var(--muted);}
   /* Khối câu hỏi / câu trả lời: chỉ hiện sau khi đã chọn chỗ cần hỏi */
   .block{display:flex;flex-direction:column;gap:var(--sp-2);}
@@ -264,6 +288,9 @@
       <div class="connector" id="connM"></div>
       <div class="badge" id="badgeM"><span id="textM">0</span></div>
     </div>
+    <!-- Số thứ tự của hai mốc, đặt tại hai đầu cung khoảng -->
+    <div class="orbit off" id="ordFrom"><div class="ord-badge">1</div></div>
+    <div class="orbit off" id="ordTo"><div class="ord-badge">2</div></div>
     <div class="center"></div>
   </div>
 
@@ -310,6 +337,7 @@
   const elConnH=$('connH'),   elConnM=$('connM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elTextH=$('textH'),   elTextM=$('textM');
+  const elOrd={from:$('ordFrom'), to:$('ordTo')};
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
@@ -369,6 +397,7 @@
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
+  const ORD_OFF    = ARC_OFF + 10;                      // tâm số thứ tự ① ② (ngay ngoài cung)
   const CONN_OFF   = ARC_OFF + 4;                       // nét nối bắt đầu ngoài cung
   const BADGE_M_OFF= CONN_OFF + 3 + BADGE_HALF;         // tâm nhãn PHÚT
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + 3;         // tâm nhãn GIỜ (ngoài nhãn phút)
@@ -431,6 +460,7 @@
     const rM = FACE + BADGE_M_OFF, rH = FACE + BADGE_H_OFF;
     place(elConnM, elBadgeM, connStart, (rM - BADGE_HALF) - connStart, rM);
     place(elConnH, elBadgeH, connStart, (rH - BADGE_HALF) - connStart, rH);
+    for(const o of Object.values(elOrd)) o.firstChild.style.marginTop = (-(FACE + ORD_OFF))+'px';
 
     layoutFace();
     drawMarks();
@@ -514,6 +544,16 @@
 
     setMark(mark.fromH, mark.fromM, k.from);
     setMark(mark.toH,   mark.toM,   k.to);
+
+    // Số thứ tự ① ② đặt tại GÓC PHÚT của mốc = đúng hai đầu cung khoảng; đối-xoay cho số đứng thẳng
+    for(const [part,el] of Object.entries(elOrd)){
+      const mins = k[part];
+      el.classList.toggle('off', mins===null);
+      if(mins===null) continue;
+      const deg = (mins%60)*6;
+      el.style.transform = `rotate(${deg}deg)`;
+      el.firstChild.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;
+    }
 
     // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
     const showArc = (k.from !== null && k.to !== null);
@@ -631,7 +671,7 @@
   const val = (cls, v) => v===null ? '<span class="todo">…</span>' : `<span class="${cls}">${v}</span>`;
   const W_H = '<span class="w-h">giờ</span>';
   const W_M = '<span class="w-m">phút</span>';
-  const W_D = '<span class="w-d">phút</span>';
+  const W_D = W_M;   // đơn vị của khoảng vẫn là PHÚT -> dùng đúng chữ "phút" màu phút
 
   // CÁCH ĐỌC: giờ đúng thì có chữ "giờ" ("8 giờ đúng"), còn rưỡi thì BỎ chữ "giờ" ("8 rưỡi")
   const W_SHARP = `${W_H} <span class="w-m">đúng</span>`;
@@ -664,24 +704,28 @@
 
   // Chỗ đang hỏi: tô theo ĐÚNG màu của thứ đang hỏi (giờ xanh, phút cam, khoảng xanh ngọc)
   const Q_TIME = '<span class="v-h">mấy giờ</span> <span class="v-m">mấy phút</span>';
-  const Q_DUR  = '<span class="v-d">bao nhiêu phút</span>';
+  const Q_DUR  = `<span class="v-d">bao nhiêu</span> ${W_M}`;
+
+  // Số thứ tự đứng ngay trước giá trị của mốc — cùng hình với ① ② trên mặt đồng hồ
+  const O1 = '<span class="ord">1</span>';
+  const O2 = '<span class="ord">2</span>';
 
   // MỘT câu liền mạch cho câu hỏi
   function qHTML(){
     if(state.unknown==='dur')
-      return `Từ ${timeIn('from')} đến ${timeIn('to')} là còn ${Q_DUR}?`;
+      return `Từ ${O1}${timeIn('from')} đến ${O2}${timeIn('to')} là còn ${Q_DUR}?`;
     if(state.unknown==='to')
-      return `Từ ${timeIn('from')} sau ${durIn()} nữa là ${Q_TIME}?`;
-    return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`;
+      return `Từ ${O1}${timeIn('from')} sau ${durIn()} nữa là ${O2}${Q_TIME}?`;
+    return `Đến ${O2}${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${O1}${Q_TIME}?`;
   }
 
   // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
   function aHTML(){
     if(state.unknown==='dur')
-      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansIn()}.`;
+      return `Từ ${O1}${timeTxt('from')} đến ${O2}${timeTxt('to')} là còn ${ansIn()}.`;
     if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
-    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
+      return `Từ ${O1}${timeTxt('from')} sau ${durTxt()} nữa là ${O2}${ansIn()}.`;
+    return `Đến ${O2}${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${O1}${ansIn()}.`;
   }
 
   // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / đổi cách đặt mốc),

@@ -255,9 +255,10 @@
      Mở ngày mới là ba ngôi sao RỖNG (chỉ nét viền, cùng màu nét với các ô nhập chưa dùng);
      mỗi câu trả lời đúng tô đặc thêm một ngôi. Vàng là màu RIÊNG của phần thưởng: không
      phải màu kim nào (xanh/cam/hồng/xanh ngọc) nên nhìn vào là biết đây không phải dữ kiện. */
-  .stars{display:flex;gap:var(--sp-2);}
+  .stars{display:flex;gap:var(--sp-3);}
   .star{
-    width:1.7rem;height:1.7rem;
+    /* to hẳn cho dễ nhìn, nhưng vẫn co theo bề rộng để ba ngôi không tràn trên màn hẹp */
+    width:clamp(2.6rem,11vw,3.4rem);height:clamp(2.6rem,11vw,3.4rem);
     fill:none;stroke:var(--line);stroke-width:1.6;
     stroke-linejoin:round;
   }
@@ -318,9 +319,12 @@
       <button class="reset" id="btnReset" type="button" hidden>Câu hỏi mới</button>
     </div>
 
-    <!-- Sao hôm nay: LUÔN hiện (kể cả lúc chưa chọn câu hỏi) để thấy ngay còn mấy ngôi
-         chưa tô. Ba ngôi sao dựng bằng JS ở phần 7. -->
-    <div class="stars" id="stars"></div>
+    <!-- LUÔN hiện (kể cả lúc chưa chọn câu hỏi) để thấy ngay còn mấy ngôi chưa tô.
+         Tiêu đề nói rõ "hôm nay" vì sao rỗng lại mỗi ngày. Ba ngôi sao dựng bằng JS ở phần 7. -->
+    <div class="block">
+      <div class="lbl">Sao hôm nay</div>
+      <div class="stars" id="stars"></div>
+    </div>
   </div>
 
   <div class="menu" id="menu" hidden></div>

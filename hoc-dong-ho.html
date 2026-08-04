@@ -538,18 +538,21 @@
     setMark(mark.fromH, mark.fromM, k.from);
     setMark(mark.toH,   mark.toM,   k.to);
 
+    // Cung và hai chữ "từ"/"đến" là phần TỔNG KẾT: chỉ vẽ khi đã trả lời ĐÚNG. Trong lúc
+    // đang làm bài, mặt đồng hồ chỉ có vạch mốc — không bày sẵn quãng cần tìm.
+    const done = state.solved && k.from!==null && k.to!==null;
+
     // Chữ đánh dấu đặt tại GÓC PHÚT = đúng hai đầu cung khoảng; đối-xoay cho chữ đứng thẳng
     for(const [part,el] of Object.entries(elCue)){
       const mins = k[part];
-      el.classList.toggle('off', mins===null);
-      if(mins===null) continue;
+      el.classList.toggle('off', !done);
+      if(!done) continue;
       const deg = (mins%60)*6;
       el.style.transform = `rotate(${deg}deg)`;
       el.firstChild.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;
     }
 
-    // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
-    const showArc = (k.from !== null && k.to !== null);
+    const showArc = done;
     elArc.classList.toggle('off', !showArc);
     if(showArc){
       const dur = (k.to - k.from + HALF_DAY) % HALF_DAY;

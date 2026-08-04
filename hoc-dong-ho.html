@@ -725,7 +725,7 @@
       return `Từ ${timeIn('from')} đến ${timeIn('to')} ${noi} ${Q_DUR}?`;
     }
     if(state.unknown==='to')
-      return `Từ ${timeIn('from')} sau ${durIn()} nữa là ${Q_TIME}?`;
+      return `Từ ${timeIn('from')} sau ${durIn()} nữa là đến ${Q_TIME}?`;
     return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`;
   }
 
@@ -737,7 +737,7 @@
       return `Từ ${timeTxt('from')} đến ${timeTxt('to')} ${noi} ${ansIn()}.`;
     }
     if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
+      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là đến ${ansIn()}.`;
     return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
   }
 

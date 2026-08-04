@@ -172,17 +172,6 @@
   .result.ok{color:var(--ok);}
   .result.no{color:var(--no);}
 
-  .legend{
-    display:flex;gap:.9rem;flex-wrap:wrap;
-    font-size:.78rem;color:var(--muted);
-    margin-top:.4rem;
-  }
-  .legend i{
-    display:inline-block;width:14px;height:3px;border-radius:2px;
-    background:var(--c-hour);vertical-align:middle;margin-right:.3rem;
-  }
-  .legend .g i{opacity:var(--ghost);}
-  .legend .d i{background:var(--c-dur);}
 </style>
 </head>
 <body>
@@ -202,13 +191,12 @@
     <div class="lbl">Câu hỏi</div>
     <div class="pick">
       <span>Hỏi</span>
-      <button class="chip" type="button" data-ask="from">từ mấy giờ</button>
-      <button class="chip" type="button" data-ask="to">đến mấy giờ</button>
+      <button class="chip" type="button" data-ask="from">từ mấy giờ mấy phút</button>
+      <button class="chip" type="button" data-ask="to">đến mấy giờ mấy phút</button>
       <button class="chip" type="button" data-ask="dur">bao nhiêu phút</button>
     </div>
     <div class="say" id="qSay"></div>
     <div class="btns">
-      <button class="btn" id="btnRandom" type="button">🎲</button>
       <button class="btn primary" id="btnAsk" type="button">Tạo câu hỏi</button>
       <button class="btn" id="btnEdit" type="button" hidden>Sửa câu hỏi</button>
     </div>
@@ -217,16 +205,8 @@
     <div class="say" id="aSay"></div>
     <div class="btns">
       <button class="btn primary" id="btnCheck" type="button">Kiểm tra</button>
-      <button class="btn" id="btnShow" type="button">Chỉ đáp án</button>
     </div>
     <div class="result" id="result"></div>
-
-    <div class="legend">
-      <span>Vạch ngoài mép</span>
-      <span><i></i>từ</span>
-      <span class="g"><i></i>đến</span>
-      <span class="d"><i></i>khoảng phút</span>
-    </div>
   </div>
 
 <script>
@@ -243,7 +223,6 @@
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
   const elArc=$('spanArc');
 
-  const pad = n => String(n).padStart(2,'0');
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
 
   // TỌA ĐỘ CỰC quanh tâm mặt: deg đo TỪ 12 GIỜ, theo chiều kim. Trả [dx,dy] px so với tâm.
@@ -460,13 +439,12 @@
   //   solved  : đã biết đáp án (trả lời đúng hoặc bấm "Chỉ đáp án") -> mới vẽ lên đồng hồ
   const state = {
     unknown:'dur', asked:false, solved:false,
-    from:{h:7, m:15}, to:{h:7, m:50}, dur:35,
+    from:{h:null, m:null}, to:{h:null, m:null}, dur:null,
     ans:{h:null, m:null, d:null},
   };
 
   const elQSay=$('qSay'), elASay=$('aSay'), elResult=$('result');
-  const btnAsk=$('btnAsk'), btnEdit=$('btnEdit'), btnCheck=$('btnCheck'),
-        btnShow=$('btnShow'), btnRandom=$('btnRandom');
+  const btnAsk=$('btnAsk'), btnEdit=$('btnEdit'), btnCheck=$('btnCheck');
   const chips=[...document.querySelectorAll('.chip')];
 
   // Giá trị 2 thành phần ĐÃ CHO (phút trong ngày; null = chưa điền đủ)
@@ -510,8 +488,8 @@
     if(state.unknown==='dur')
       return `Từ ${timeIn('from',dis)} đến ${timeIn('to',dis)} là còn <span class="q">bao nhiêu phút</span>?`;
     if(state.unknown==='to')
-      return `Từ ${timeIn('from',dis)} sau ${durIn(dis)} nữa là <span class="q">mấy giờ</span>?`;
-    return `Đến ${timeIn('to',dis)} thì đã qua ${durIn(dis)}, vậy bắt đầu từ <span class="q">mấy giờ</span>?`;
+      return `Từ ${timeIn('from',dis)} sau ${durIn(dis)} nữa là <span class="q">mấy giờ mấy phút</span>?`;
+    return `Đến ${timeIn('to',dis)} thì đã qua ${durIn(dis)}, vậy bắt đầu từ <span class="q">mấy giờ mấy phút</span>?`;
   }
 
   // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
@@ -545,7 +523,6 @@
     btnAsk.hidden   = state.asked;
     btnEdit.hidden  = !state.asked;
     btnCheck.disabled = !state.asked || state.solved;
-    btnShow.disabled  = !state.asked || state.solved;
   }
   function syncAll(){ syncQ(); syncA(); drawMarks(); }
 
@@ -594,7 +571,6 @@
   }
 
   const clearResult = () => { elResult.textContent=''; elResult.className='result'; };
-  const hhmm = mins => `${Math.floor(mins/60)} giờ ${pad(mins%60)} phút`;
 
   // --- Sự kiện ---
   chips.forEach(c=>{
@@ -635,30 +611,6 @@
     }else{
       elResult.textContent='Chưa đúng, thử lại.'; elResult.className='result no';
     }
-  });
-
-  btnShow.addEventListener('click', ()=>{
-    const s = solution();
-    if(s===null) return;
-    elResult.textContent = 'Đáp án đúng là ' + (state.unknown==='dur' ? s+' phút' : hhmm(s));
-    elResult.className='result';
-    reveal();
-  });
-
-  // Bốc ngẫu nhiên: mốc "từ" chẵn 5 phút, khoảng 5..90 phút, mốc "đến" tính cho khớp
-  btnRandom.addEventListener('click', ()=>{
-    const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-    const f = rnd(0,23)*60 + rnd(0,11)*5;
-    const d = rnd(1,18)*5;
-    const t = (f+d)%1440;
-    state.from={h:Math.floor(f/60), m:f%60};
-    state.to  ={h:Math.floor(t/60), m:t%60};
-    state.dur = d;
-    state.unknown = ['from','to','dur'][rnd(0,2)];
-    state.asked=false; state.solved=false;
-    state.ans={h:null,m:null,d:null};
-    clearResult();
-    syncAll();
   });
 
   /* ===== KHỞI ĐỘNG ===== */

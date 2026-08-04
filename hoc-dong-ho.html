@@ -123,8 +123,12 @@
   .say .v-h{color:var(--c-hour);font-weight:700;}
   .say .v-m{color:var(--c-min);font-weight:700;}
   .say .v-d{color:var(--c-dur);font-weight:700;}
+  .say .v-now{color:var(--c-hour);font-weight:700;}
   .say .q{color:var(--accent);font-weight:700;}
   .say .todo{color:var(--muted);}
+  /* Khối câu hỏi / câu trả lời: chỉ hiện sau khi đã chọn chỗ cần hỏi */
+  .block{display:flex;flex-direction:column;gap:.45rem;width:100%;}
+  .block[hidden]{display:none;}
 
   /* Ô nhập nằm TRONG câu: gạch chân, không khung */
   .in{
@@ -154,19 +158,21 @@
     cursor:pointer;
   }
   .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .chip:disabled{cursor:default;opacity:.5;}
 
-  .btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem;}
-  .btn{
-    min-height:2.3rem;padding:0 .9rem;
-    border:1px solid var(--line);border-radius:10px;
-    background:transparent;color:var(--ink);
-    font-family:inherit;font-size:.9rem;font-weight:500;
+  /* Nút "bây giờ" nằm TRONG câu: bật -> lấy giờ thật đang chạy thay cho ô nhập */
+  .now{
+    padding:.16rem .55rem;
+    border:1px dashed var(--line);border-radius:99px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:.8rem;
     cursor:pointer;
+    vertical-align:.08em;
   }
-  .btn.primary{background:var(--c-hour);border-color:var(--c-hour);color:#fff;}
-  .btn:disabled{opacity:.45;cursor:default;}
-  .btn[hidden]{display:none;}
+  .now.on{
+    border-style:solid;border-color:var(--c-hour);
+    background:var(--c-hour);color:#fff;font-weight:500;font-size:1rem;
+    padding:.2rem .7rem;
+  }
 
   .result{font-size:.95rem;font-weight:500;min-height:1.3em;}
   .result.ok{color:var(--ok);}
@@ -188,25 +194,23 @@
   </div>
 
   <div class="panel">
-    <div class="lbl">Câu hỏi</div>
     <div class="pick">
-      <span>Hỏi</span>
       <button class="chip" type="button" data-ask="from">từ mấy giờ mấy phút</button>
       <button class="chip" type="button" data-ask="to">đến mấy giờ mấy phút</button>
       <button class="chip" type="button" data-ask="dur">bao nhiêu phút</button>
     </div>
-    <div class="say" id="qSay"></div>
-    <div class="btns">
-      <button class="btn primary" id="btnAsk" type="button">Tạo câu hỏi</button>
-      <button class="btn" id="btnEdit" type="button" hidden>Sửa câu hỏi</button>
+
+    <!-- Hai khối dưới đây ẩn cho tới khi chọn chỗ cần hỏi (chip ở trên) -->
+    <div class="block" id="qBlock" hidden>
+      <div class="lbl">Câu hỏi</div>
+      <div class="say" id="qSay"></div>
     </div>
 
-    <div class="lbl">Câu trả lời</div>
-    <div class="say" id="aSay"></div>
-    <div class="btns">
-      <button class="btn primary" id="btnCheck" type="button">Kiểm tra</button>
+    <div class="block" id="aBlock" hidden>
+      <div class="lbl">Câu trả lời</div>
+      <div class="say" id="aSay"></div>
+      <div class="result" id="result"></div>
     </div>
-    <div class="result" id="result"></div>
   </div>
 
 <script>
@@ -412,7 +416,7 @@
   }
 
   /* ===== 5. VÒNG LẶP MỖI FRAME — tick() ===== */
-  let lastSec = -1;
+  let lastSec = -1, lastMin = -1;
   function tick(){
     const now=new Date();
     const h=now.getHours(), s=now.getSeconds();
@@ -428,28 +432,47 @@
       lastSec=s;
       const hourNum = (h%12)===0 ? 12 : (h%12);
       numerals.forEach(el => el.classList.toggle('active', +el.dataset.n===hourNum));
+
+      // Mốc chọn "bây giờ" chạy theo giờ thật -> sang phút mới thì vẽ lại vạch mốc
+      const mn = now.getMinutes();
+      if(mn!==lastMin){
+        lastMin=mn;
+        if(usingNow() && frozenNow===null) drawMarks();
+      }
     }
     requestAnimationFrame(tick);
   }
 
   /* ===== 6. CÂU HỎI / CÂU TRẢ LỜI ===== */
   // MỘT nguồn trạng thái (ô nhập dựng lại từ đây nên không giữ giá trị trong DOM).
-  //   unknown : thành phần bị hỏi ở câu hỏi = thành phần phải điền ở câu trả lời
-  //   asked   : đã chốt câu hỏi (khóa ô nhập câu hỏi)
-  //   solved  : đã biết đáp án (trả lời đúng hoặc bấm "Chỉ đáp án") -> mới vẽ lên đồng hồ
+  //   unknown  : thành phần bị hỏi = thành phần phải điền ở câu trả lời (null = chưa chọn)
+  //   from/to  : {h, m, now} — now=true thì mốc đó lấy GIỜ THẬT đang chạy
+  //   solved   : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ
   const state = {
-    unknown:'dur', asked:false, solved:false,
-    from:{h:null, m:null}, to:{h:null, m:null}, dur:null,
+    unknown:null, solved:false,
+    from:{h:null, m:null, now:false},
+    to:  {h:null, m:null, now:false},
+    dur:null,
     ans:{h:null, m:null, d:null},
   };
 
+  const elQBlock=$('qBlock'), elABlock=$('aBlock');
   const elQSay=$('qSay'), elASay=$('aSay'), elResult=$('result');
-  const btnAsk=$('btnAsk'), btnEdit=$('btnEdit'), btnCheck=$('btnCheck');
   const chips=[...document.querySelectorAll('.chip')];
 
+  // "bây giờ" = giờ máy đang chạy. Trả lời ĐÚNG thì ĐÓNG BĂNG mốc này lại (frozenNow), nếu
+  // không thì sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
+  const liveNow = () => { const d=new Date(); return d.getHours()*60 + d.getMinutes(); };
+  let frozenNow = null;
+  const nowMins  = () => frozenNow!==null ? frozenNow : liveNow();
+  const usingNow = () => (state.from.now && state.unknown!=='from')
+                      || (state.to.now   && state.unknown!=='to');
+
   // Giá trị 2 thành phần ĐÃ CHO (phút trong ngày; null = chưa điền đủ)
-  const givenFrom = () => (state.from.h===null||state.from.m===null) ? null : state.from.h*60+state.from.m;
-  const givenTo   = () => (state.to.h===null  ||state.to.m===null)   ? null : state.to.h*60+state.to.m;
+  const givenTime = part => state[part].now ? nowMins()
+        : (state[part].h===null||state[part].m===null) ? null : state[part].h*60+state[part].m;
+  const givenFrom = () => givenTime('from');
+  const givenTo   = () => givenTime('to');
   const givenDur  = () => state.dur;
 
   // Đáp án đúng của thành phần đang hỏi (null nếu 2 thành phần đã cho chưa đủ)
@@ -457,74 +480,95 @@
     const f=givenFrom(), t=givenTo(), d=givenDur();
     if(state.unknown==='dur')  return (f===null||t===null) ? null : (t - f + 1440) % 1440;
     if(state.unknown==='to')   return (f===null||d===null) ? null : (f + d) % 1440;
-    return (t===null||d===null) ? null : (t - d + 2880) % 1440;   // unknown==='from'
+    if(state.unknown==='from') return (t===null||d===null) ? null : (t - d + 2880) % 1440;
+    return null;   // chưa chọn chỗ hỏi
   }
 
   // Những gì ĐANG ĐƯỢC BIẾT để vẽ đồng hồ: 2 thành phần đã cho, cộng đáp án nếu đã lộ
   function knownNow(){
     const out = { from:givenFrom(), to:givenTo(), dur:givenDur() };
-    out[state.unknown] = state.solved ? solution() : null;
+    if(state.unknown) out[state.unknown] = state.solved ? solution() : null;
     return out;
   }
 
-  // --- Mảnh câu: ô nhập / giá trị / chỗ trống ---
-  const inp = (k, cls, val, max, dis) =>
+  // --- Mảnh câu: ô nhập / nút "bây giờ" / giá trị / chỗ trống ---
+  const inp = (k, cls, v, max) =>
     `<input class="in ${cls}" data-k="${k}" type="number" inputmode="numeric" min="0" max="${max}"` +
-    ` value="${val===null?'':val}"${dis?' disabled':''}>`;
+    ` value="${v===null?'':v}">`;
 
   const val = (cls, v) => v===null ? '<span class="todo">…</span>' : `<span class="${cls}">${v}</span>`;
 
-  // "7 giờ 15 phút" — ô nhập (câu hỏi) hoặc chữ (câu trả lời)
-  const timeIn  = (part,dis) => `${inp(part+'H','h',state[part].h,23,dis)} giờ ${inp(part+'M','m',state[part].m,59,dis)} phút`;
-  const timeTxt = part => `${val('v-h',state[part].h)} giờ ${val('v-m',state[part].m)} phút`;
-  const durIn   = dis => `${inp('dur','d',state.dur,1439,dis)} phút`;
+  const nowBtn = (part, on) => `<button class="now${on?' on':''}" type="button" data-now="${part}">bây giờ</button>`;
+
+  // Mốc thời điểm ở CÂU HỎI: ô nhập + nút "bây giờ", hoặc chỉ nút khi đã bật "bây giờ"
+  const timeIn = part => state[part].now ? nowBtn(part,true)
+    : `${inp(part+'H','h',state[part].h,23)} giờ ${inp(part+'M','m',state[part].m,59)} phút ${nowBtn(part,false)}`;
+  // Mốc thời điểm ở CÂU TRẢ LỜI: chỉ chữ
+  const timeTxt = part => state[part].now ? '<span class="v-now">bây giờ</span>'
+    : `${val('v-h',state[part].h)} giờ ${val('v-m',state[part].m)} phút`;
+  const durIn   = () => `${inp('dur','d',state.dur,1439)} phút`;
   const durTxt  = () => `${val('v-d',state.dur)} phút`;
-  const ansTime = dis => `${inp('ansH','h',state.ans.h,23,dis)} giờ ${inp('ansM','m',state.ans.m,59,dis)} phút`;
-  const ansDur  = dis => `${inp('ansD','d',state.ans.d,1439,dis)} phút`;
+  const ansTime = () => `${inp('ansH','h',state.ans.h,23)} giờ ${inp('ansM','m',state.ans.m,59)} phút`;
+  const ansDur  = () => `${inp('ansD','d',state.ans.d,1439)} phút`;
 
   // MỘT câu liền mạch cho câu hỏi (thành phần bị hỏi in màu hồng)
   function qHTML(){
-    const dis = state.asked;
     if(state.unknown==='dur')
-      return `Từ ${timeIn('from',dis)} đến ${timeIn('to',dis)} là còn <span class="q">bao nhiêu phút</span>?`;
+      return `Từ ${timeIn('from')} đến ${timeIn('to')} là còn <span class="q">bao nhiêu phút</span>?`;
     if(state.unknown==='to')
-      return `Từ ${timeIn('from',dis)} sau ${durIn(dis)} nữa là <span class="q">mấy giờ mấy phút</span>?`;
-    return `Đến ${timeIn('to',dis)} thì đã qua ${durIn(dis)}, vậy bắt đầu từ <span class="q">mấy giờ mấy phút</span>?`;
+      return `Từ ${timeIn('from')} sau ${durIn()} nữa là <span class="q">mấy giờ mấy phút</span>?`;
+    return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ <span class="q">mấy giờ mấy phút</span>?`;
   }
 
   // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
   function aHTML(){
-    const dis = !state.asked;
     if(state.unknown==='dur')
-      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansDur(dis)}.`;
+      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansDur()}.`;
     if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansTime(dis)}.`;
-    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansTime(dis)}.`;
+      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansTime()}.`;
+    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansTime()}.`;
   }
 
-  // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / khóa-mở / bốc ngẫu nhiên),
+  // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / bật-tắt "bây giờ"),
   // KHÔNG gọi lúc đang gõ — dựng lại là mất con trỏ trong ô.
   function syncQ(){
-    elQSay.innerHTML = qHTML();
-    chips.forEach(c=>{
-      c.classList.toggle('on', c.dataset.ask===state.unknown);
-      c.disabled = state.asked;
-    });
-    syncBtns();
+    chips.forEach(c => c.classList.toggle('on', c.dataset.ask===state.unknown));
+    elQBlock.hidden = (state.unknown===null);
+    if(state.unknown) elQSay.innerHTML = qHTML();
   }
-  // Dựng lại câu TRẢ LỜI: gọi cả khi đang gõ ở câu hỏi (con trỏ không nằm trong câu này).
+  // Câu TRẢ LỜI chỉ hiện khi câu hỏi đã đủ 2 thành phần. Dựng lại được cả khi đang gõ ở câu
+  // hỏi (con trỏ không nằm trong câu này), nhưng KHÔNG dựng khi đang gõ ở chính ô đáp án.
   function syncA(){
-    elASay.innerHTML = aHTML();
-    syncBtns();
-  }
-  function syncBtns(){
-    const ready = solution()!==null;
-    btnAsk.disabled = !ready || state.asked;
-    btnAsk.hidden   = state.asked;
-    btnEdit.hidden  = !state.asked;
-    btnCheck.disabled = !state.asked || state.solved;
+    const ready = state.unknown!==null && solution()!==null;
+    elABlock.hidden = !ready;
+    if(ready) elASay.innerHTML = aHTML();
   }
   function syncAll(){ syncQ(); syncA(); drawMarks(); }
+
+  const clearResult = () => { elResult.textContent=''; elResult.className='result'; };
+
+  // Đáp án người học điền (phút; null = chưa điền đủ)
+  function readAnswer(){
+    if(state.unknown==='dur') return state.ans.d;
+    return (state.ans.h===null||state.ans.m===null) ? null : state.ans.h*60+state.ans.m;
+  }
+
+  // Không có nút kiểm tra: điền đủ là chấm ngay, đúng thì thành phần đang hỏi hiện lên đồng hồ
+  function autoCheck(){
+    const ans = readAnswer(), sol = solution();
+    if(ans===null || sol===null){
+      state.solved=false; frozenNow=null;
+      clearResult();
+    }else if(ans===sol){
+      if(!state.solved && usingNow()) frozenNow = liveNow();   // đóng băng "bây giờ" đúng lúc trả lời đúng
+      state.solved=true;
+      elResult.textContent='Đúng rồi.'; elResult.className='result ok';
+    }else{
+      state.solved=false; frozenNow=null;
+      elResult.textContent='Chưa đúng, thử lại.'; elResult.className='result no';
+    }
+    drawMarks();
+  }
 
   // Đọc số từ ô nhập -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ)
   function onInput(e){
@@ -539,78 +583,42 @@
       else if(v<0){ v=0; el.value=0; }
     }
     switch(k){
+      // Ô câu trả lời: chỉ ghi state rồi chấm, KHÔNG dựng lại câu (đang gõ trong chính ô này)
+      case 'ansH':  state.ans.h=v;  autoCheck(); return;
+      case 'ansM':  state.ans.m=v;  autoCheck(); return;
+      case 'ansD':  state.ans.d=v;  autoCheck(); return;
       case 'fromH': state.from.h=v; break;
       case 'fromM': state.from.m=v; break;
       case 'toH':   state.to.h=v;   break;
       case 'toM':   state.to.m=v;   break;
       case 'dur':   state.dur=v;    break;
-      // Ô câu trả lời: chỉ ghi state, KHÔNG dựng lại câu (đang gõ trong chính ô này)
-      case 'ansH':  state.ans.h=v;  return;
-      case 'ansM':  state.ans.m=v;  return;
-      case 'ansD':  state.ans.d=v;  return;
     }
-    syncA(); drawMarks();
+    frozenNow=null;      // sửa câu hỏi -> mốc "bây giờ" chạy tiếp
+    syncA(); autoCheck();
   }
   elQSay.addEventListener('input', onInput);
   elASay.addEventListener('input', onInput);
 
-  // Đáp án người học điền (phút; null = chưa điền đủ)
-  function readAnswer(){
-    if(state.unknown==='dur') return state.ans.d;
-    return (state.ans.h===null||state.ans.m===null) ? null : state.ans.h*60+state.ans.m;
-  }
+  // Bật/tắt "bây giờ" cho mốc từ hoặc đến
+  elQSay.addEventListener('click', e=>{
+    const b = e.target.closest('[data-now]');
+    if(!b) return;
+    const part = b.dataset.now;
+    state[part].now = !state[part].now;
+    frozenNow=null;
+    syncQ(); syncA(); autoCheck();
+  });
 
-  // Điền đáp án đúng vào câu trả lời rồi cho hiện lên đồng hồ
-  function reveal(){
-    const s = solution();
-    if(s===null) return;
-    if(state.unknown==='dur') state.ans.d = s;
-    else { state.ans.h = Math.floor(s/60); state.ans.m = s%60; }
-    state.solved = true;
-    syncA(); drawMarks();
-  }
-
-  const clearResult = () => { elResult.textContent=''; elResult.className='result'; };
-
-  // --- Sự kiện ---
+  // Chọn chỗ cần hỏi
   chips.forEach(c=>{
     c.addEventListener('click', ()=>{
-      if(state.asked) return;
       state.unknown = c.dataset.ask;
-      state.solved = false;
+      if(state.unknown!=='dur') state[state.unknown].now = false;   // chỗ đang hỏi thì không "bây giờ" được
+      state.solved = false; frozenNow=null;
       state.ans = {h:null,m:null,d:null};
       clearResult();
       syncAll();
     });
-  });
-
-  btnAsk.addEventListener('click', ()=>{
-    if(solution()===null) return;
-    state.asked = true; state.solved = false;
-    state.ans = {h:null,m:null,d:null};     // xoá đáp án cũ để người học tự điền
-    clearResult();
-    syncAll();
-    elASay.querySelector('.in')?.focus();
-  });
-
-  btnEdit.addEventListener('click', ()=>{
-    state.asked=false; state.solved=false;
-    clearResult();
-    syncAll();
-  });
-
-  btnCheck.addEventListener('click', ()=>{
-    const ans = readAnswer(), sol = solution();
-    if(ans===null || sol===null){
-      elResult.textContent='Chưa điền đủ.'; elResult.className='result no';
-      return;
-    }
-    if(ans===sol){
-      elResult.textContent='Đúng rồi.'; elResult.className='result ok';
-      reveal();
-    }else{
-      elResult.textContent='Chưa đúng, thử lại.'; elResult.className='result no';
-    }
   });
 
   /* ===== KHỞI ĐỘNG ===== */

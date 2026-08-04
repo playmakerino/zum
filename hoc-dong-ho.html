@@ -127,7 +127,8 @@
   /* MỘT CÂU liền mạch: giá trị nằm ngay trong câu, không tách dòng, không dấu hai chấm */
   .say{
     font-size:var(--fs-say);font-weight:400;
-    line-height:2.4;                 /* thoáng vì trong câu có ô nhập + nút */
+    line-height:2.7;                 /* thoáng vì trong câu có ô nhập + cụm nút cao gần 2rem */
+    word-spacing:.06em;
   }
   .say .v-h{color:var(--c-hour);font-weight:700;}
   .say .v-m{color:var(--c-min);font-weight:700;}
@@ -151,6 +152,7 @@
     font-variant-numeric:tabular-nums;
     text-align:center;
     color:var(--ink);
+    margin:0 .12rem;
     -moz-appearance:textfield;
   }
   .in::-webkit-outer-spin-button,.in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
@@ -170,17 +172,19 @@
   }
   .chip.on{background:var(--c-sec);border-color:var(--c-sec);color:#fff;}
 
-  /* ===== 3 CÁCH ĐẶT NHANH MỘT MỐC: bây giờ · đúng · rưỡi =====
+  /* ===== CÁCH ĐẶT NHANH MỘT MỐC: bây giờ · đúng · rưỡi =====
      Gom thành MỘT cụm liền (segmented) bám ngay sau mốc, cỡ nhỏ hơn chữ trong câu để
-     đọc ra ngay là "nút phụ", không lẫn với giá trị. Bật cái nào thì mốc hiển thị theo cái đó. */
+     đọc ra ngay là "nút phụ", không lẫn với giá trị. Bật cái nào thì mốc hiển thị theo cái đó.
+     Cụm CHỈ hiện những lựa chọn còn ý nghĩa (xem opts() ở phần 6) nên trên mobile nó ngắn lại. */
   .opts{
     display:inline-flex;vertical-align:middle;
-    margin:0 .15rem;
+    margin:.15rem .4rem;
     border:1px solid var(--line);border-radius:99px;
     overflow:hidden;
+    white-space:nowrap;
   }
   .opt{
-    min-height:1.85rem;padding:0 .55rem;
+    min-height:2rem;padding:0 .7rem;
     border:none;border-left:1px solid var(--line);
     background:transparent;color:var(--muted);
     font-family:inherit;font-size:var(--fs-opt);line-height:1;
@@ -223,9 +227,9 @@
 
   <div class="panel">
     <div class="pick">
-      <button class="chip" type="button" data-ask="from">từ mấy giờ mấy phút</button>
-      <button class="chip" type="button" data-ask="to">đến mấy giờ mấy phút</button>
-      <button class="chip" type="button" data-ask="dur">bao nhiêu phút</button>
+      <button class="chip" type="button" data-ask="from">từ mấy giờ mấy phút?</button>
+      <button class="chip" type="button" data-ask="to">đến mấy giờ mấy phút?</button>
+      <button class="chip" type="button" data-ask="dur">bao nhiêu phút?</button>
     </div>
 
     <!-- Hai khối dưới đây ẩn cho tới khi chọn chỗ cần hỏi (chip ở trên) -->
@@ -542,11 +546,24 @@
   const W_M = '<span class="w-m">phút</span>';
   const W_D = '<span class="w-d">phút</span>';
 
-  // Cụm 3 nút đặt nhanh của một mốc (bây giờ · đúng · rưỡi)
+  // Cụm nút đặt nhanh của một mốc — CHỈ dựng những lựa chọn còn ý nghĩa lúc này:
+  //   · đang "bây giờ"      -> chỉ còn chính nó (bấm lại để quay về gõ tay); mốc không có
+  //                            giờ để nói "đúng"/"rưỡi" nên hai nút kia là vô nghĩa
+  //   · mốc kia đang "bây giờ" -> giấu nút "bây giờ" ở đây, vì chỉ MỘT mốc được là bây giờ
+  //                            (giấu hẳn thay vì bấm vào rồi âm thầm cướp của mốc kia)
   const opts = part => {
-    const mode = state[part].mode;
-    const b = (o,txt) => `<button class="opt${mode===o?' on':''}" type="button" data-part="${part}" data-opt="${o}">${txt}</button>`;
-    return `<span class="opts">${b('now','bây giờ')}${b('sharp','đúng')}${b('half','rưỡi')}</span>`;
+    const mode  = state[part].mode;
+    const other = state[part==='from' ? 'to' : 'from'].mode;
+    const b = (o,txt,tip) => `<button class="opt${mode===o?' on':''}" type="button"` +
+      ` data-part="${part}" data-opt="${o}" title="${tip}">${txt}</button>`;
+    const list = mode==='now'
+      ? [b('now','bây giờ','Bấm lại để tự nhập giờ')]
+      : [
+          ...(other==='now' ? [] : [b('now','bây giờ','Lấy giờ thật đang chạy')]),
+          b('sharp','đúng','Phút 0'),
+          b('half','rưỡi','Phút 30'),
+        ];
+    return `<span class="opts">${list.join('')}</span>`;
   };
 
   // Mốc thời điểm ở CÂU HỎI: giá trị (tùy mode) + cụm nút đặt nhanh
@@ -663,17 +680,13 @@
   elASay.addEventListener('input', onInput);
 
   // Bấm nút đặt nhanh: bật cái đang tắt, bấm lại cái đang bật -> quay về gõ tay.
-  // "bây giờ" chỉ được có ở MỘT mốc: bật bên này thì bên kia tự về gõ tay.
+  // ("bây giờ" ở mốc kia đã bị opts() giấu đi rồi nên không có chuyện hai mốc cùng bây giờ.)
   elQSay.addEventListener('click', e=>{
     const b = e.target.closest('[data-opt]');
     if(!b) return;
     const part = b.dataset.part, opt = b.dataset.opt;
     const p = state[part];
     p.mode = (p.mode===opt) ? 'input' : opt;
-    if(p.mode==='now'){
-      const other = part==='from' ? state.to : state.from;
-      if(other.mode==='now') other.mode='input';
-    }
     frozenNow=null;
     syncQ(); syncA(); autoCheck();
   });

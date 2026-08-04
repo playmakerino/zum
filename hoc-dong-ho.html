@@ -128,33 +128,17 @@
   #badgeH{background:var(--c-hour);}
   #badgeM{background:var(--c-min);}
 
-  /* ===== CHẤM XUẤT PHÁT / MŨI TÊN ĐIỂM TỚI — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
-     Tín hiệu KHÔNG dùng màu, KHÔNG thêm số: mốc bắt đầu là CHẤM, mốc kết thúc là MŨI TÊN
-     (tự nó mang nghĩa "đi tới", khớp với chữ "đến"). Cùng hai hình đó xuất hiện HAI NƠI —
-     trong câu ngay trước giá trị, và trên mặt tại đúng hai đầu cung khoảng. */
-  .cue{
-    display:inline-block;
-    width:.55em;height:.55em;
-    margin-right:.3em;
-    vertical-align:.04em;
-  }
-  .cue.from{background:var(--ink);border-radius:50%;}     /* CHẤM = mốc bắt đầu */
-  .cue.to{                                                /* MŨI TÊN = mốc kết thúc */
-    width:0;height:0;background:none;
-    border-left:.6em solid var(--ink);
-    border-top:.33em solid transparent;
-    border-bottom:.33em solid transparent;
-  }
-  .cue-dot{position:absolute;left:50%;top:0;transform:translate(-50%,-50%);}
-  .cue-dot.from{width:10px;height:10px;border-radius:50%;background:var(--ink);}
-  .cue-dot.to{
-    /* Mũi tên CHĨA VÀO TÂM (đầu nhọn nằm dưới trong hệ chưa xoay) -> dời ra ngoài 5px
-       để đúng đầu nhọn chạm bán kính cung, không phải tâm hình. */
-    width:0;height:0;
-    border-top:10px solid var(--ink);
-    border-left:6px solid transparent;
-    border-right:6px solid transparent;
-    transform:translate(-50%,calc(-50% - 5px));
+  /* ===== CHỮ "TỪ" / "ĐẾN" TRÊN MẶT — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
+     Không bịa ký hiệu mới (chấm/mũi tên/số đều phải học mới hiểu): chép thẳng HAI CHỮ đã có
+     trong câu ra cạnh hai mốc, đặt tại đúng hai đầu cung khoảng. Chữ nền màu trang nên cắt
+     ngang cung như nhãn trên đường đo kích thước. Màu trung tính, không đụng hệ màu kim. */
+  .cue-lab{
+    position:absolute;left:50%;top:0;
+    transform:translate(-50%,-50%);
+    padding:0 3px;
+    background:var(--bg);color:var(--ink);
+    font-size:.62rem;font-weight:500;line-height:1.4;
+    white-space:nowrap;
   }
   .orbit.off{display:none;}
 
@@ -267,8 +251,9 @@
   .reset{
     align-self:flex-start;
     min-height:2.3rem;padding:0 1rem;
-    border:1px solid var(--c-hour);border-radius:99px;
-    background:var(--c-hour);color:#fff;
+    /* Nút giao diện -> màu TRUNG TÍNH. Màu giờ/phút/giây chỉ dành cho đúng giờ/phút/giây. */
+    border:1px solid var(--ink);border-radius:99px;
+    background:var(--ink);color:#fff;
     font-family:inherit;font-size:var(--fs-chip);font-weight:500;
     cursor:pointer;
   }
@@ -295,9 +280,9 @@
       <div class="connector" id="connM"></div>
       <div class="badge" id="badgeM"><span id="textM">0</span></div>
     </div>
-    <!-- Dấu hai mốc, đặt tại hai đầu cung khoảng: đặc = bắt đầu, rỗng = kết thúc -->
-    <div class="orbit off" id="cueFrom"><div class="cue-dot from"></div></div>
-    <div class="orbit off" id="cueTo"><div class="cue-dot to"></div></div>
+    <!-- Chữ đánh dấu hai mốc, đặt tại hai đầu cung khoảng -->
+    <div class="orbit off" id="cueFrom"><div class="cue-lab">từ</div></div>
+    <div class="orbit off" id="cueTo"><div class="cue-lab">đến</div></div>
     <div class="center"></div>
   </div>
 
@@ -552,11 +537,14 @@
     setMark(mark.fromH, mark.fromM, k.from);
     setMark(mark.toH,   mark.toM,   k.to);
 
-    // Dấu mốc đặt tại GÓC PHÚT = đúng hai đầu cung khoảng (hình tròn nên không cần đối-xoay)
+    // Chữ đánh dấu đặt tại GÓC PHÚT = đúng hai đầu cung khoảng; đối-xoay cho chữ đứng thẳng
     for(const [part,el] of Object.entries(elCue)){
       const mins = k[part];
       el.classList.toggle('off', mins===null);
-      if(mins!==null) el.style.transform = `rotate(${(mins%60)*6}deg)`;
+      if(mins===null) continue;
+      const deg = (mins%60)*6;
+      el.style.transform = `rotate(${deg}deg)`;
+      el.firstChild.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;
     }
 
     // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
@@ -710,26 +698,25 @@
   const Q_TIME = '<span class="v-h">mấy giờ</span> <span class="v-m">mấy phút</span>';
   const Q_DUR  = `<span class="v-d">bao nhiêu</span> ${W_M}`;
 
-  // Dấu mốc đứng ngay trước giá trị — cùng hình với dấu trên mặt đồng hồ
-  const O1 = '<span class="cue from"></span>';
-  const O2 = '<span class="cue to"></span>';
+  // Câu KHÔNG cần dấu riêng cho hai mốc: chính hai chữ "Từ"/"đến" trong câu là dấu, và
+  // đúng hai chữ đó cũng hiện cạnh hai mốc trên mặt đồng hồ (xem drawMarks).
 
   // MỘT câu liền mạch cho câu hỏi
   function qHTML(){
     if(state.unknown==='dur')
-      return `Từ ${O1}${timeIn('from')} đến ${O2}${timeIn('to')} là còn ${Q_DUR}?`;
+      return `Từ ${timeIn('from')} đến ${timeIn('to')} là còn ${Q_DUR}?`;
     if(state.unknown==='to')
-      return `Từ ${O1}${timeIn('from')} sau ${durIn()} nữa là ${O2}${Q_TIME}?`;
-    return `Đến ${O2}${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${O1}${Q_TIME}?`;
+      return `Từ ${timeIn('from')} sau ${durIn()} nữa là ${Q_TIME}?`;
+    return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`;
   }
 
   // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
   function aHTML(){
     if(state.unknown==='dur')
-      return `Từ ${O1}${timeTxt('from')} đến ${O2}${timeTxt('to')} là còn ${ansIn()}.`;
+      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansIn()}.`;
     if(state.unknown==='to')
-      return `Từ ${O1}${timeTxt('from')} sau ${durTxt()} nữa là ${O2}${ansIn()}.`;
-    return `Đến ${O2}${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${O1}${ansIn()}.`;
+      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
+    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
   }
 
   // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / đổi cách đặt mốc),

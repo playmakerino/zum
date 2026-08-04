@@ -258,7 +258,7 @@
   .stars{display:flex;gap:var(--sp-3);}
   .star{
     /* to hẳn cho dễ nhìn, nhưng vẫn co theo bề rộng để ba ngôi không tràn trên màn hẹp */
-    width:clamp(2.6rem,11vw,3.4rem);height:clamp(2.6rem,11vw,3.4rem);
+    width:clamp(3.6rem,16vw,4.8rem);height:clamp(3.6rem,16vw,4.8rem);
     fill:none;stroke:var(--line);stroke-width:1.6;
     stroke-linejoin:round;
   }
@@ -322,7 +322,7 @@
     <!-- LUÔN hiện (kể cả lúc chưa chọn câu hỏi) để thấy ngay còn mấy ngôi chưa tô.
          Tiêu đề nói rõ "hôm nay" vì sao rỗng lại mỗi ngày. Ba ngôi sao dựng bằng JS ở phần 7. -->
     <div class="block">
-      <div class="lbl">Sao hôm nay</div>
+      <div class="lbl">Sao của hôm nay</div>
       <div class="stars" id="stars"></div>
     </div>
   </div>

@@ -9,7 +9,6 @@
   /* ===== BIẾN & KHUNG TRANG ===== */
   :root{
     --bg:#fdf6f0;
-    --card:#fff;
     --ink:#3f3a5c;
     --muted:#a99fb8;
     --line:#e9cdb6;
@@ -17,10 +16,11 @@
     --accent:#ff5d97;
     --c-hour:#5a63d8;        /* giờ */
     --c-min:#f5921b;         /* phút */
-    --c-dur:#1fab95;         /* "bao nhiêu phút" */
+    --c-sec:#ff5d97;         /* giây */
+    --c-dur:#1fab95;         /* khoảng "bao nhiêu phút" */
     --ok:#1fab95;
     --no:#ff5d97;
-    --ghost:.30;             /* độ mờ của kim "đến" (thời điểm sau) */
+    --ghost:.30;             /* độ mờ của mốc "đến" (thời điểm sau) */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{ overflow-x:hidden; }
@@ -54,7 +54,7 @@
     background:#fff;
     border:1px solid var(--neutral);  /* mép đồng hồ: đen trung tính */
     position:relative;
-    margin:16px;
+    margin:24px;
     flex:none;
   }
   .tick{position:absolute;left:50%;top:50%;transform-origin:0 0;}
@@ -81,9 +81,7 @@
   }
   .hour{width:5px;margin-left:-2.5px;background:var(--c-hour);}
   .minute{width:3px;margin-left:-1.5px;background:var(--c-min);}
-  /* Kim của mốc "ĐẾN" = cùng màu nhưng MỜ -> phân biệt với mốc "TỪ" mà không thêm màu mới */
-  .hand.to{opacity:var(--ghost);}
-  .hand.off{display:none;}            /* thành phần chưa biết -> không vẽ (không lộ đáp án) */
+  .second{width:1.5px;margin-left:-.75px;background:var(--c-sec);}
   .center{
     position:absolute;left:50%;top:50%;
     width:9px;height:9px;border-radius:50%;
@@ -91,130 +89,97 @@
     z-index:10;
     box-shadow:0 0 0 4px #fff;
   }
-  /* Cung KHOẢNG THỜI GIAN: vẽ ngoài mặt số, chỉ hiện khi đã biết CẢ hai mốc từ/đến */
+
+  /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT =====
+     Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép:
+     mỗi mốc 2 vạch (giờ: đậm xanh · phút: mảnh cam); mốc "đến" mờ đi để phân biệt với "từ". */
+  .mark{position:absolute;left:50%;top:50%;transform-origin:0 0;z-index:8;}
+  .mark span{position:absolute;display:block;border-radius:99px;}
+  .mk-h span{width:4px;left:-2px;background:var(--c-hour);}
+  .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
+  .mark.ghost{opacity:var(--ghost);}
+  .mark.off{display:none;}          /* thành phần chưa biết -> không vẽ (không lộ đáp án) */
+  /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
   .r-span{fill:none;stroke:var(--c-dur);stroke-width:3.2px;stroke-linecap:butt;}
   .r-span.off{display:none;}
 
   /* ===== CỘT CÂU HỎI / CÂU TRẢ LỜI ===== */
   .panel{
-    width:min(420px,100%);
-    display:flex;flex-direction:column;gap:.8rem;
-    padding-bottom:1rem;
+    width:min(460px,100%);
+    display:flex;flex-direction:column;align-items:flex-start;
+    gap:.5rem;
+    padding:.4rem .3rem 1.2rem;
   }
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:.9rem 1rem 1rem;
+  .lbl{
+    font-size:.78rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);
+    margin-top:.5rem;
   }
-  .card h2{
-    font-size:1rem;font-weight:500;letter-spacing:.02em;
-    color:var(--neutral);
-    margin-bottom:.7rem;
-    display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  .lbl:first-child{margin-top:0;}
+  /* MỘT CÂU liền mạch: giá trị nằm ngay trong câu, không tách dòng, không dấu hai chấm */
+  .say{
+    font-size:1.1rem;font-weight:400;line-height:2.2;
   }
-  .card.locked{opacity:.72;}
+  .say .v-h{color:var(--c-hour);font-weight:700;}
+  .say .v-m{color:var(--c-min);font-weight:700;}
+  .say .v-d{color:var(--c-dur);font-weight:700;}
+  .say .q{color:var(--accent);font-weight:700;}
+  .say .todo{color:var(--muted);}
 
-  /* Một DÒNG THÀNH PHẦN = [nút ?] [nhãn] [ô nhập] */
-  .part{
-    display:flex;align-items:center;gap:.55rem;
-    padding:.32rem 0;
-  }
-  .part-name{
-    font-size:.92rem;font-weight:500;
-    width:5.4rem;flex:none;
-  }
-  .p-from .part-name,.p-to .part-name{color:var(--c-hour);}
-  .p-dur  .part-name{color:var(--c-dur);}
-  /* Nút chọn thành phần nào là ẨN SỐ (câu hỏi sẽ hỏi cái này) */
-  .ask{
-    width:26px;height:26px;flex:none;
-    border-radius:50%;
-    border:1px solid var(--line);
-    background:transparent;color:var(--muted);
-    font-family:inherit;font-size:.85rem;font-weight:700;line-height:1;
-    cursor:pointer;
-  }
-  .part.unknown .ask{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .ask:disabled{cursor:default;}
-  /* Ở CÂU TRẢ LỜI dấu ? chỉ là VẬT ĐÁNH DẤU (không bấm được): chỉ hiện ở dòng đang phải điền */
-  #cardA .ask{visibility:hidden;display:flex;align-items:center;justify-content:center;}
-  #cardA .part.unknown .ask{visibility:visible;}
-
-  .fields{display:flex;align-items:center;gap:.3rem;}
+  /* Ô nhập nằm TRONG câu: gạch chân, không khung */
   .in{
-    width:3.1rem;height:2.2rem;
-    border:1px solid var(--line);border-radius:9px;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:inherit;font-size:1.05rem;font-weight:500;
+    width:2.7rem;height:1.9rem;
+    border:none;border-bottom:2px solid var(--line);
+    border-radius:0;background:transparent;
+    font-family:inherit;font-size:1.1rem;font-weight:700;
     font-variant-numeric:tabular-nums;
     text-align:center;
+    color:var(--ink);
     -moz-appearance:textfield;
   }
   .in::-webkit-outer-spin-button,.in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-  .in:focus{outline:2px solid var(--c-hour);outline-offset:1px;}
-  .in.h{color:var(--c-hour);}
-  .in.m{color:var(--c-min);}
-  .in.d{color:var(--c-dur);width:4rem;}
-  .in:disabled{background:transparent;border-style:dashed;color:var(--muted);}
-  .colon{font-size:1.05rem;font-weight:300;color:var(--line);}
-  .unit{font-size:.85rem;color:var(--muted);}
-  /* Ô của thành phần ẩn: hiện dấu ? thay cho số */
-  .part.unknown .fields{position:relative;}
-  .part.unknown .fields::after{
-    content:"?";
-    position:absolute;left:0;top:0;right:0;bottom:0;
-    display:flex;align-items:center;justify-content:center;
-    background:var(--card);
-    border-radius:9px;
-    font-size:1.3rem;font-weight:700;color:var(--accent);
-    pointer-events:none;
-  }
-  /* Ở CÂU TRẢ LỜI thì thành phần ẩn chính là ô để điền -> bỏ lớp phủ "?" */
-  #cardA .part.unknown .fields::after{display:none;}
+  .in:focus{outline:none;border-bottom-color:var(--accent);}
+  .in.h{color:var(--c-hour);border-bottom-color:var(--c-hour);}
+  .in.m{color:var(--c-min);border-bottom-color:var(--c-min);}
+  .in.d{color:var(--c-dur);border-bottom-color:var(--c-dur);}
+  .in:disabled{opacity:.45;border-bottom-style:dotted;}
 
-  .sentence{
-    margin-top:.7rem;
-    padding-top:.7rem;
-    border-top:1px dashed var(--line);
-    font-size:.95rem;line-height:1.45;
-    min-height:1.4em;
+  /* Chọn thành phần nào bị hỏi */
+  .pick{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);}
+  .chip{
+    padding:.28rem .7rem;
+    border:1px solid var(--line);border-radius:99px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:.85rem;
+    cursor:pointer;
   }
-  .sentence .v-h{color:var(--c-hour);font-weight:500;}
-  .sentence .v-d{color:var(--c-dur);font-weight:500;}
-  .sentence .v-q{color:var(--accent);font-weight:700;}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .chip:disabled{cursor:default;opacity:.5;}
 
-  .btns{display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap;}
+  .btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem;}
   .btn{
-    flex:1 1 auto;
-    min-height:2.4rem;
-    padding:0 .9rem;
+    min-height:2.3rem;padding:0 .9rem;
     border:1px solid var(--line);border-radius:10px;
-    background:var(--bg);color:var(--ink);
-    font-family:inherit;font-size:.92rem;font-weight:500;
+    background:transparent;color:var(--ink);
+    font-family:inherit;font-size:.9rem;font-weight:500;
     cursor:pointer;
   }
   .btn.primary{background:var(--c-hour);border-color:var(--c-hour);color:#fff;}
-  .btn.primary:disabled{background:var(--line);border-color:var(--line);color:#fff;cursor:default;}
-  .btn.ghost{flex:0 0 auto;}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .btn[hidden]{display:none;}
 
-  .result{
-    margin-top:.7rem;
-    font-size:.95rem;font-weight:500;
-    min-height:1.4em;
-  }
+  .result{font-size:.95rem;font-weight:500;min-height:1.3em;}
   .result.ok{color:var(--ok);}
   .result.no{color:var(--no);}
 
   .legend{
-    display:flex;gap:1rem;flex-wrap:wrap;
-    font-size:.8rem;color:var(--muted);
-    margin-top:.6rem;
+    display:flex;gap:.9rem;flex-wrap:wrap;
+    font-size:.78rem;color:var(--muted);
+    margin-top:.4rem;
   }
   .legend i{
     display:inline-block;width:14px;height:3px;border-radius:2px;
-    background:var(--c-hour);vertical-align:middle;margin-right:.35rem;
+    background:var(--c-hour);vertical-align:middle;margin-right:.3rem;
   }
   .legend .g i{opacity:var(--ghost);}
   .legend .d i{background:var(--c-dur);}
@@ -222,120 +187,60 @@
 </head>
 <body>
   <div class="analog" id="analog">
-    <!-- Cung khoảng thời gian (chỉ vẽ khi biết cả hai mốc) -->
+    <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) -->
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <path id="spanArc" class="r-span off"></path>
     </svg>
-    <!-- Mốc TỪ: kim đặc | Mốc ĐẾN: kim mờ -->
-    <div class="hand hour"   id="hFrom"></div>
-    <div class="hand minute" id="mFrom"></div>
-    <div class="hand hour   to" id="hTo"></div>
-    <div class="hand minute to" id="mTo"></div>
+    <!-- Kim GIỜ THẬT chạy liên tục. Vạch mốc từ/đến dựng bằng JS ở phần 2. -->
+    <div class="hand hour"   id="hour"></div>
+    <div class="hand minute" id="minute"></div>
+    <div class="hand second" id="second"></div>
     <div class="center"></div>
   </div>
 
   <div class="panel">
-    <!-- ===== CÂU HỎI: chọn thành phần bị ẩn (?) + điền 2 thành phần còn lại ===== -->
-    <section class="card" id="cardQ">
-      <h2>Câu hỏi <button class="btn ghost" id="btnRandom" type="button">🎲</button></h2>
+    <div class="lbl">Câu hỏi</div>
+    <div class="pick">
+      <span>Hỏi</span>
+      <button class="chip" type="button" data-ask="from">từ mấy giờ</button>
+      <button class="chip" type="button" data-ask="to">đến mấy giờ</button>
+      <button class="chip" type="button" data-ask="dur">bao nhiêu phút</button>
+    </div>
+    <div class="say" id="qSay"></div>
+    <div class="btns">
+      <button class="btn" id="btnRandom" type="button">🎲</button>
+      <button class="btn primary" id="btnAsk" type="button">Tạo câu hỏi</button>
+      <button class="btn" id="btnEdit" type="button" hidden>Sửa câu hỏi</button>
+    </div>
 
-      <div class="part p-from" data-part="from">
-        <button class="ask" type="button" data-ask="from" aria-label="Hỏi thành phần này">?</button>
-        <span class="part-name">Từ</span>
-        <span class="fields">
-          <input class="in h" id="qFromH" type="number" inputmode="numeric" min="0" max="23" value="7">
-          <span class="colon">:</span>
-          <input class="in m" id="qFromM" type="number" inputmode="numeric" min="0" max="59" value="15">
-        </span>
-      </div>
+    <div class="lbl">Câu trả lời</div>
+    <div class="say" id="aSay"></div>
+    <div class="btns">
+      <button class="btn primary" id="btnCheck" type="button">Kiểm tra</button>
+      <button class="btn" id="btnShow" type="button">Chỉ đáp án</button>
+    </div>
+    <div class="result" id="result"></div>
 
-      <div class="part p-to" data-part="to">
-        <button class="ask" type="button" data-ask="to" aria-label="Hỏi thành phần này">?</button>
-        <span class="part-name">Đến</span>
-        <span class="fields">
-          <input class="in h" id="qToH" type="number" inputmode="numeric" min="0" max="23" value="7">
-          <span class="colon">:</span>
-          <input class="in m" id="qToM" type="number" inputmode="numeric" min="0" max="59" value="50">
-        </span>
-      </div>
-
-      <div class="part p-dur unknown" data-part="dur">
-        <button class="ask" type="button" data-ask="dur" aria-label="Hỏi thành phần này">?</button>
-        <span class="part-name">Bao nhiêu</span>
-        <span class="fields">
-          <input class="in d" id="qDur" type="number" inputmode="numeric" min="0" max="1439" value="35">
-          <span class="unit">phút</span>
-        </span>
-      </div>
-
-      <div class="sentence" id="qSentence"></div>
-
-      <div class="btns">
-        <button class="btn primary" id="btnAsk" type="button">Tạo câu hỏi</button>
-        <button class="btn" id="btnEdit" type="button" hidden>Sửa câu hỏi</button>
-      </div>
-    </section>
-
-    <!-- ===== CÂU TRẢ LỜI: cũng 3 thành phần, 2 cái đã cho + 1 cái phải điền ===== -->
-    <section class="card" id="cardA">
-      <h2>Câu trả lời</h2>
-
-      <div class="part p-from" data-part="from">
-        <span class="ask" aria-hidden="true">?</span>
-        <span class="part-name">Từ</span>
-        <span class="fields">
-          <input class="in h" id="aFromH" type="number" inputmode="numeric" min="0" max="23" disabled>
-          <span class="colon">:</span>
-          <input class="in m" id="aFromM" type="number" inputmode="numeric" min="0" max="59" disabled>
-        </span>
-      </div>
-
-      <div class="part p-to" data-part="to">
-        <span class="ask" aria-hidden="true">?</span>
-        <span class="part-name">Đến</span>
-        <span class="fields">
-          <input class="in h" id="aToH" type="number" inputmode="numeric" min="0" max="23" disabled>
-          <span class="colon">:</span>
-          <input class="in m" id="aToM" type="number" inputmode="numeric" min="0" max="59" disabled>
-        </span>
-      </div>
-
-      <div class="part p-dur" data-part="dur">
-        <span class="ask" aria-hidden="true">?</span>
-        <span class="part-name">Bao nhiêu</span>
-        <span class="fields">
-          <input class="in d" id="aDur" type="number" inputmode="numeric" min="0" max="1439" disabled>
-          <span class="unit">phút</span>
-        </span>
-      </div>
-
-      <div class="result" id="result"></div>
-
-      <div class="btns">
-        <button class="btn primary" id="btnCheck" type="button" disabled>Kiểm tra</button>
-        <button class="btn" id="btnShow" type="button" disabled>Chỉ đáp án</button>
-      </div>
-
-      <div class="legend">
-        <span><i></i>Từ</span>
-        <span class="g"><i></i>Đến</span>
-        <span class="d"><i></i>Khoảng phút</span>
-      </div>
-    </section>
+    <div class="legend">
+      <span>Vạch ngoài mép</span>
+      <span><i></i>từ</span>
+      <span class="g"><i></i>đến</span>
+      <span class="d"><i></i>khoảng phút</span>
+    </div>
   </div>
 
 <script>
   /* ============================================================
-     HỌC ĐỒNG HỒ — script chia 5 phần:
-       1. Tiện ích & tham chiếu DOM      4. Vẽ đồng hồ theo trạng thái
-       2. Mặt số: vạch chia + chữ số     5. Câu hỏi / câu trả lời
-       3. Bố cục tự co (layout)
+     HỌC ĐỒNG HỒ — script chia 6 phần:
+       1. Tiện ích & tham chiếu DOM      4. Mốc từ/đến + cung khoảng phút
+       2. Mặt số: vạch, chữ số, vạch mốc 5. Vòng lặp mỗi frame — tick()
+       3. Bố cục tự co (layout)          6. Câu hỏi / câu trả lời
      ============================================================ */
 
   /* ===== 1. TIỆN ÍCH & THAM CHIẾU DOM ===== */
   const $ = id => document.getElementById(id);
   const analog = $('analog');
-  const elHFrom=$('hFrom'), elMFrom=$('mFrom'), elHTo=$('hTo'), elMTo=$('mTo');
+  const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
   const elArc=$('spanArc');
 
   const pad = n => String(n).padStart(2,'0');
@@ -347,15 +252,7 @@
     return [r*Math.cos(a), r*Math.sin(a)];
   }
 
-  // Đọc số từ ô nhập; rỗng/không hợp lệ -> null
-  function readNum(el, lo, hi){
-    if(el.value.trim()==='') return null;
-    const v = parseInt(el.value, 10);
-    if(Number.isNaN(v)) return null;
-    return clamp(v, lo, hi);
-  }
-
-  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ ===== */
+  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ + VẠCH MỐC ===== */
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -376,10 +273,25 @@
     analog.appendChild(el);
   }
 
+  // 4 vạch mốc NGOÀI mép mặt: mốc "từ" (đặc) và mốc "đến" (mờ), mỗi mốc một vạch giờ + một vạch phút
+  function buildMark(cls){
+    const d=document.createElement('div');
+    d.className='mark '+cls;
+    d.appendChild(document.createElement('span'));
+    analog.appendChild(d);
+    return d;
+  }
+  const mark = {
+    fromH: buildMark('mk-h'),       fromM: buildMark('mk-m'),
+    toH:   buildMark('mk-h ghost'), toM:   buildMark('mk-m ghost'),
+  };
+  const markSpans = Object.values(mark).map(d => d.firstChild);
+
   /* ===== 3. BỐ CỤC TỰ CO (layout) ===== */
   const EDGE = 12;         // lề tối thiểu tới cạnh màn hình
-  const MARGIN = 16;       // lề quanh mặt (chừa chỗ cho cung khoảng thời gian)
+  const MARGIN = 24;       // lề quanh mặt (chừa chỗ cho vạch mốc + cung khoảng phút)
   const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport hẹp cỡ nào cũng KHÔNG co về 0
+  const MK_IN = 3, MK_OUT = 13;   // vạch mốc nằm trong dải bán kính [FACE+MK_IN, FACE+MK_OUT]
   let FACE = 150;
   let ARC_R = 0;
   let baseFace = 0;        // FACE đo được lúc KHÔNG phóng to — mốc để KHÓA khi zoom in
@@ -411,7 +323,7 @@
     let faceByW;
     if(desktop){
       // NGANG: đồng hồ | cột câu hỏi -> vừa khít cả bề rộng lẫn chiều cao
-      const panelW = elPanel.offsetWidth || 420;
+      const panelW = elPanel.offsetWidth || 460;
       const GAP = 24;
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
       faceByW = (availW - panelW - GAP - 2*MARGIN) / 2;
@@ -431,16 +343,16 @@
     const D = FACE*2;
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
-    ARC_R = FACE + 8;          // cung khoảng thời gian: ngay ngoài mép mặt
+    ARC_R = FACE + MK_OUT + 5;   // cung khoảng phút: ngoài vạch mốc
 
     layoutFace();
-    render();
+    drawMarks();
 
     // Phóng to -> mặt đã KHÓA kích thước nên nội dung có thể tràn: mở cuộn ra cho xem hết
     document.documentElement.style.overflow = zoomed ? 'auto' : '';
   }
 
-  // Đặt lại vạch chia, chữ số và chiều dài kim theo FACE hiện tại
+  // Đặt lại vạch chia, chữ số, vạch mốc và chiều dài kim theo FACE hiện tại
   function layoutFace(){
     const G_RIM = 5;      // mép -> đầu vạch
     const G_NUM = 2;      // đuôi vạch -> chữ số
@@ -466,18 +378,25 @@
       el.style.top=`calc(50% + ${uy*radius}px)`;
     });
 
+    // Vạch mốc: đầu XA TÂM ở FACE+MK_OUT, dài (MK_OUT - MK_IN)
+    markSpans.forEach(sp=>{
+      sp.style.top    = (-(FACE + MK_OUT)) + 'px';
+      sp.style.height = (MK_OUT - MK_IN) + 'px';
+    });
+
     // Kim ngắn hơn vòng số để không đè lên số
-    const hh=FACE*0.5, mh=FACE*0.72;
-    [elHFrom, elHTo].forEach(el=>{ el.style.height=hh+'px'; el.style.marginTop=(-hh)+'px'; });
-    [elMFrom, elMTo].forEach(el=>{ el.style.height=mh+'px'; el.style.marginTop=(-mh)+'px'; });
+    const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
+    elHour.style.height=hh+'px'; elHour.style.marginTop=(-hh)+'px';
+    elMin.style.height=mh+'px';  elMin.style.marginTop=(-mh)+'px';
+    elSec.style.height=sh+'px';  elSec.style.marginTop=(-sh)+'px';
   }
 
-  /* ===== 4. VẼ ĐỒNG HỒ THEO TRẠNG THÁI ===== */
+  /* ===== 4. MỐC TỪ/ĐẾN + CUNG KHOẢNG PHÚT ===== */
   // Cung tròn từ startDeg đến endDeg (đo từ 12h)
   function arcPath(r, startDeg, endDeg){
     const sweep = endDeg - startDeg;
     if(sweep <= 0) return '';
-    if(sweep >= 359.99){   // >= 1 giờ: vẽ TRỌN vòng bằng 2 nửa cung (1 cung 360° là rỗng)
+    if(sweep >= 359.99){   // >= 1 giờ: vẽ TRỌN vòng bằng 2 nửa cung (một cung 360° là rỗng)
       const [x0,y0]=polar(r,0), [x1,y1]=polar(r,180);
       return `M ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1} A ${r} ${r} 0 0 1 ${x0} ${y0}`;
     }
@@ -485,71 +404,82 @@
     return `M ${x0} ${y0} A ${r} ${r} 0 ${sweep>180?1:0} 1 ${x1} ${y1}`;
   }
 
-  // Đặt cặp kim (giờ + phút) theo số phút trong ngày; null -> ẩn cặp kim đó
-  function setHands(elH, elM, mins){
+  // Đặt cặp vạch (giờ + phút) của một mốc theo số phút trong ngày; null -> ẩn
+  function setMark(mH, mM, mins){
     const off = (mins === null);
-    elH.classList.toggle('off', off);
-    elM.classList.toggle('off', off);
+    mH.classList.toggle('off', off);
+    mM.classList.toggle('off', off);
     if(off) return;
-    const h = mins/60, m = mins%60;
-    elH.style.transform=`rotate(${(h%12)*30}deg)`;   // kim giờ chạy dần theo phút
-    elM.style.transform=`rotate(${m*6}deg)`;
+    mH.style.transform=`rotate(${((mins/60)%12)*30}deg)`;   // vạch giờ nhích dần theo phút
+    mM.style.transform=`rotate(${(mins%60)*6}deg)`;
   }
 
-  // Vẽ lại mặt đồng hồ từ những gì ĐANG ĐƯỢC BIẾT (không lộ thành phần đang hỏi)
-  function render(){
-    const k = knownNow();          // {from, to, dur} — giá trị đã biết, chưa biết = null
+  // Vẽ lại mốc + cung từ những gì ĐANG ĐƯỢC BIẾT (không lộ thành phần đang hỏi)
+  function drawMarks(){
+    const k = knownNow();          // {from, to, dur} — chưa biết = null
 
-    setHands(elHFrom, elMFrom, k.from);
-    setHands(elHTo,   elMTo,   k.to);
+    setMark(mark.fromH, mark.fromM, k.from);
+    setMark(mark.toH,   mark.toM,   k.to);
 
-    // Cung chỉ vẽ khi biết CẢ hai mốc (biết from + dur mà vẽ cung là lộ mốc "đến")
+    // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
     const showArc = (k.from !== null && k.to !== null);
     elArc.classList.toggle('off', !showArc);
     if(showArc){
       const dur = (k.to - k.from + 1440) % 1440;
       const startDeg = (k.from % 60) * 6;
-      const sweep = Math.min(dur, 60) === dur ? dur*6 : 360;   // > 60 phút -> trọn vòng
+      const sweep = dur <= 60 ? dur*6 : 360;      // hơn 1 giờ -> trọn vòng
       elArc.setAttribute('d', arcPath(ARC_R, startDeg, startDeg + sweep));
     }
-
-    // Tô đậm chữ số ứng với GIỜ của mốc "từ" (1-12; 0/12 -> số 12)
-    const hn = (k.from === null) ? -1 : (Math.floor(k.from/60) % 12 === 0 ? 12 : Math.floor(k.from/60) % 12);
-    numerals.forEach(el => el.classList.toggle('active', +el.dataset.n === hn));
   }
 
-  /* ===== 5. CÂU HỎI / CÂU TRẢ LỜI ===== */
-  // MỘT nguồn trạng thái. unknown = thành phần bị ẩn ở câu hỏi (cũng là thành phần phải điền
-  // ở câu trả lời). asked = đã chốt câu hỏi. solved = đã biết đáp án (trả lời đúng / bấm xem).
-  const state = { unknown:'dur', asked:false, solved:false };
+  /* ===== 5. VÒNG LẶP MỖI FRAME — tick() ===== */
+  let lastSec = -1;
+  function tick(){
+    const now=new Date();
+    const h=now.getHours(), s=now.getSeconds();
 
-  const Q = {
-    from:{h:$('qFromH'), m:$('qFromM')},
-    to:  {h:$('qToH'),   m:$('qToM')},
-    dur: {d:$('qDur')},
+    // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
+    const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
+    elSec.style.transform  = `rotate(${totalSec*6}deg)`;
+    elMin.style.transform  = `rotate(${(totalSec/60)*6}deg)`;
+    elHour.style.transform = `rotate(${(totalSec/3600)*30}deg)`;
+
+    // Tô đậm số giờ hiện tại trên mặt (1-12; giờ 0/12 -> số 12)
+    if(s!==lastSec){
+      lastSec=s;
+      const hourNum = (h%12)===0 ? 12 : (h%12);
+      numerals.forEach(el => el.classList.toggle('active', +el.dataset.n===hourNum));
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ===== 6. CÂU HỎI / CÂU TRẢ LỜI ===== */
+  // MỘT nguồn trạng thái (ô nhập dựng lại từ đây nên không giữ giá trị trong DOM).
+  //   unknown : thành phần bị hỏi ở câu hỏi = thành phần phải điền ở câu trả lời
+  //   asked   : đã chốt câu hỏi (khóa ô nhập câu hỏi)
+  //   solved  : đã biết đáp án (trả lời đúng hoặc bấm "Chỉ đáp án") -> mới vẽ lên đồng hồ
+  const state = {
+    unknown:'dur', asked:false, solved:false,
+    from:{h:7, m:15}, to:{h:7, m:50}, dur:35,
+    ans:{h:null, m:null, d:null},
   };
-  const A = {
-    from:{h:$('aFromH'), m:$('aFromM')},
-    to:  {h:$('aToH'),   m:$('aToM')},
-    dur: {d:$('aDur')},
-  };
-  const qParts = [...document.querySelectorAll('#cardQ .part')];
-  const aParts = [...document.querySelectorAll('#cardA .part')];
-  const elQSentence=$('qSentence'), elResult=$('result');
+
+  const elQSay=$('qSay'), elASay=$('aSay'), elResult=$('result');
   const btnAsk=$('btnAsk'), btnEdit=$('btnEdit'), btnCheck=$('btnCheck'),
         btnShow=$('btnShow'), btnRandom=$('btnRandom');
+  const chips=[...document.querySelectorAll('.chip')];
 
-  // Giá trị 2 thành phần ĐÃ CHO trong câu hỏi (phút; null = chưa điền đủ)
-  function givenFrom(){ const h=readNum(Q.from.h,0,23), m=readNum(Q.from.m,0,59); return (h===null||m===null)?null:h*60+m; }
-  function givenTo(){   const h=readNum(Q.to.h,0,23),   m=readNum(Q.to.m,0,59);   return (h===null||m===null)?null:h*60+m; }
-  function givenDur(){  return readNum(Q.dur.d,0,1439); }
+  // Giá trị 2 thành phần ĐÃ CHO (phút trong ngày; null = chưa điền đủ)
+  const givenFrom = () => (state.from.h===null||state.from.m===null) ? null : state.from.h*60+state.from.m;
+  const givenTo   = () => (state.to.h===null  ||state.to.m===null)   ? null : state.to.h*60+state.to.m;
+  const givenDur  = () => state.dur;
 
   // Đáp án đúng của thành phần đang hỏi (null nếu 2 thành phần đã cho chưa đủ)
   function solution(){
     const f=givenFrom(), t=givenTo(), d=givenDur();
     if(state.unknown==='dur')  return (f===null||t===null) ? null : (t - f + 1440) % 1440;
     if(state.unknown==='to')   return (f===null||d===null) ? null : (f + d) % 1440;
-    return (t===null||d===null) ? null : (t - d + 1440*2) % 1440;   // unknown==='from'
+    return (t===null||d===null) ? null : (t - d + 2880) % 1440;   // unknown==='from'
   }
 
   // Những gì ĐANG ĐƯỢC BIẾT để vẽ đồng hồ: 2 thành phần đã cho, cộng đáp án nếu đã lộ
@@ -559,107 +489,138 @@
     return out;
   }
 
-  const hhmm = mins => `${Math.floor(mins/60)}:${pad(mins%60)}`;
+  // --- Mảnh câu: ô nhập / giá trị / chỗ trống ---
+  const inp = (k, cls, val, max, dis) =>
+    `<input class="in ${cls}" data-k="${k}" type="number" inputmode="numeric" min="0" max="${max}"` +
+    ` value="${val===null?'':val}"${dis?' disabled':''}>`;
 
-  // Câu hỏi bằng lời — đổi theo thành phần đang hỏi
-  function sentence(){
-    const f=givenFrom(), t=givenTo(), d=givenDur();
-    const H = v => `<span class="v-h">${v}</span>`;
-    const D = v => `<span class="v-d">${v} phút</span>`;
-    const Qm = '<span class="v-q">?</span>';
+  const val = (cls, v) => v===null ? '<span class="todo">…</span>' : `<span class="${cls}">${v}</span>`;
+
+  // "7 giờ 15 phút" — ô nhập (câu hỏi) hoặc chữ (câu trả lời)
+  const timeIn  = (part,dis) => `${inp(part+'H','h',state[part].h,23,dis)} giờ ${inp(part+'M','m',state[part].m,59,dis)} phút`;
+  const timeTxt = part => `${val('v-h',state[part].h)} giờ ${val('v-m',state[part].m)} phút`;
+  const durIn   = dis => `${inp('dur','d',state.dur,1439,dis)} phút`;
+  const durTxt  = () => `${val('v-d',state.dur)} phút`;
+  const ansTime = dis => `${inp('ansH','h',state.ans.h,23,dis)} giờ ${inp('ansM','m',state.ans.m,59,dis)} phút`;
+  const ansDur  = dis => `${inp('ansD','d',state.ans.d,1439,dis)} phút`;
+
+  // MỘT câu liền mạch cho câu hỏi (thành phần bị hỏi in màu hồng)
+  function qHTML(){
+    const dis = state.asked;
     if(state.unknown==='dur')
-      return (f===null||t===null) ? 'Điền giờ "Từ" và "Đến".'
-        : `Từ ${H(hhmm(f))} đến ${H(hhmm(t))} là bao nhiêu phút ${Qm}`;
+      return `Từ ${timeIn('from',dis)} đến ${timeIn('to',dis)} là còn <span class="q">bao nhiêu phút</span>?`;
     if(state.unknown==='to')
-      return (f===null||d===null) ? 'Điền giờ "Từ" và số phút.'
-        : `Từ ${H(hhmm(f))}, sau ${D(d)} thì đến mấy giờ ${Qm}`;
-    return (t===null||d===null) ? 'Điền giờ "Đến" và số phút.'
-      : `Đến ${H(hhmm(t))}, lùi lại ${D(d)} thì bắt đầu từ mấy giờ ${Qm}`;
+      return `Từ ${timeIn('from',dis)} sau ${durIn(dis)} nữa là <span class="q">mấy giờ</span>?`;
+    return `Đến ${timeIn('to',dis)} thì đã qua ${durIn(dis)}, vậy bắt đầu từ <span class="q">mấy giờ</span>?`;
   }
 
-  // Đồng bộ toàn bộ giao diện theo state (gọi sau MỌI thay đổi)
-  function sync(){
-    // --- Câu hỏi: đánh dấu thành phần bị ẩn, khóa/mở ô nhập ---
-    qParts.forEach(p=>{
-      const isU = p.dataset.part===state.unknown;
-      p.classList.toggle('unknown', isU);
-      p.querySelectorAll('.in').forEach(i => i.disabled = isU || state.asked);
-      p.querySelector('.ask').disabled = state.asked;
-    });
-    $('cardQ').classList.toggle('locked', state.asked);
-    elQSentence.innerHTML = sentence();
+  // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
+  function aHTML(){
+    const dis = !state.asked;
+    if(state.unknown==='dur')
+      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansDur(dis)}.`;
+    if(state.unknown==='to')
+      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansTime(dis)}.`;
+    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansTime(dis)}.`;
+  }
 
+  // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / khóa-mở / bốc ngẫu nhiên),
+  // KHÔNG gọi lúc đang gõ — dựng lại là mất con trỏ trong ô.
+  function syncQ(){
+    elQSay.innerHTML = qHTML();
+    chips.forEach(c=>{
+      c.classList.toggle('on', c.dataset.ask===state.unknown);
+      c.disabled = state.asked;
+    });
+    syncBtns();
+  }
+  // Dựng lại câu TRẢ LỜI: gọi cả khi đang gõ ở câu hỏi (con trỏ không nằm trong câu này).
+  function syncA(){
+    elASay.innerHTML = aHTML();
+    syncBtns();
+  }
+  function syncBtns(){
     const ready = solution()!==null;
     btnAsk.disabled = !ready || state.asked;
     btnAsk.hidden   = state.asked;
     btnEdit.hidden  = !state.asked;
-
-    // --- Câu trả lời: 2 thành phần đã cho chỉ để đọc, thành phần đang hỏi là ô để điền ---
-    aParts.forEach(p=>{
-      const isU = p.dataset.part===state.unknown;
-      p.classList.toggle('unknown', isU);
-      p.querySelectorAll('.in').forEach(i => i.disabled = !(isU && state.asked));
-    });
-    if(state.asked){
-      const f=givenFrom(), t=givenTo(), d=givenDur();
-      if(state.unknown!=='from' && f!==null){ A.from.h.value=Math.floor(f/60); A.from.m.value=pad(f%60); }
-      if(state.unknown!=='to'   && t!==null){ A.to.h.value  =Math.floor(t/60); A.to.m.value  =pad(t%60); }
-      if(state.unknown!=='dur'  && d!==null){ A.dur.d.value =d; }
-    }
     btnCheck.disabled = !state.asked || state.solved;
     btnShow.disabled  = !state.asked || state.solved;
-
-    render();
   }
+  function syncAll(){ syncQ(); syncA(); drawMarks(); }
 
-  // Đọc câu trả lời người học điền (phút; null = chưa điền đủ)
+  // Đọc số từ ô nhập -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ)
+  function onInput(e){
+    const el = e.target;
+    if(!el.classList.contains('in')) return;
+    const k = el.dataset.k;
+    const max = +el.max;
+    let v = el.value.trim()==='' ? null : parseInt(el.value,10);
+    if(v!==null){
+      if(Number.isNaN(v)) v=null;
+      else if(v>max){ v=clamp(v,0,max); el.value=v; }
+      else if(v<0){ v=0; el.value=0; }
+    }
+    switch(k){
+      case 'fromH': state.from.h=v; break;
+      case 'fromM': state.from.m=v; break;
+      case 'toH':   state.to.h=v;   break;
+      case 'toM':   state.to.m=v;   break;
+      case 'dur':   state.dur=v;    break;
+      // Ô câu trả lời: chỉ ghi state, KHÔNG dựng lại câu (đang gõ trong chính ô này)
+      case 'ansH':  state.ans.h=v;  return;
+      case 'ansM':  state.ans.m=v;  return;
+      case 'ansD':  state.ans.d=v;  return;
+    }
+    syncA(); drawMarks();
+  }
+  elQSay.addEventListener('input', onInput);
+  elASay.addEventListener('input', onInput);
+
+  // Đáp án người học điền (phút; null = chưa điền đủ)
   function readAnswer(){
-    if(state.unknown==='dur') return readNum(A.dur.d,0,1439);
-    const g = A[state.unknown];
-    const h=readNum(g.h,0,23), m=readNum(g.m,0,59);
-    return (h===null||m===null) ? null : h*60+m;
+    if(state.unknown==='dur') return state.ans.d;
+    return (state.ans.h===null||state.ans.m===null) ? null : state.ans.h*60+state.ans.m;
   }
 
-  // Điền đáp án đúng vào ô câu trả lời rồi mở khóa hiển thị trên đồng hồ
+  // Điền đáp án đúng vào câu trả lời rồi cho hiện lên đồng hồ
   function reveal(){
     const s = solution();
     if(s===null) return;
-    if(state.unknown==='dur') A.dur.d.value = s;
-    else { A[state.unknown].h.value = Math.floor(s/60); A[state.unknown].m.value = pad(s%60); }
+    if(state.unknown==='dur') state.ans.d = s;
+    else { state.ans.h = Math.floor(s/60); state.ans.m = s%60; }
     state.solved = true;
-    sync();
+    syncA(); drawMarks();
   }
 
+  const clearResult = () => { elResult.textContent=''; elResult.className='result'; };
+  const hhmm = mins => `${Math.floor(mins/60)} giờ ${pad(mins%60)} phút`;
+
   // --- Sự kiện ---
-  qParts.forEach(p=>{
-    p.querySelector('.ask').addEventListener('click', ()=>{
+  chips.forEach(c=>{
+    c.addEventListener('click', ()=>{
       if(state.asked) return;
-      state.unknown = p.dataset.part;
+      state.unknown = c.dataset.ask;
       state.solved = false;
-      elResult.textContent=''; elResult.className='result';
-      sync();
+      state.ans = {h:null,m:null,d:null};
+      clearResult();
+      syncAll();
     });
-  });
-  [...document.querySelectorAll('#cardQ .in')].forEach(i=>{
-    i.addEventListener('input', sync);
   });
 
   btnAsk.addEventListener('click', ()=>{
     if(solution()===null) return;
     state.asked = true; state.solved = false;
-    elResult.textContent=''; elResult.className='result';
-    // Xoá ô đáp án cũ để người học tự điền
-    if(state.unknown==='dur') A.dur.d.value='';
-    else { A[state.unknown].h.value=''; A[state.unknown].m.value=''; }
-    sync();
-    const first = state.unknown==='dur' ? A.dur.d : A[state.unknown].h;
-    first.focus();
+    state.ans = {h:null,m:null,d:null};     // xoá đáp án cũ để người học tự điền
+    clearResult();
+    syncAll();
+    elASay.querySelector('.in')?.focus();
   });
 
   btnEdit.addEventListener('click', ()=>{
     state.asked=false; state.solved=false;
-    elResult.textContent=''; elResult.className='result';
-    sync();
+    clearResult();
+    syncAll();
   });
 
   btnCheck.addEventListener('click', ()=>{
@@ -677,36 +638,37 @@
   });
 
   btnShow.addEventListener('click', ()=>{
-    elResult.textContent = 'Đáp án: ' +
-      (state.unknown==='dur' ? solution()+' phút' : hhmm(solution()));
+    const s = solution();
+    if(s===null) return;
+    elResult.textContent = 'Đáp án đúng là ' + (state.unknown==='dur' ? s+' phút' : hhmm(s));
     elResult.className='result';
     reveal();
   });
 
-  // Bốc ngẫu nhiên: mốc "từ", khoảng phút 5..90 (bội số 5), rồi tính mốc "đến" cho khớp
+  // Bốc ngẫu nhiên: mốc "từ" chẵn 5 phút, khoảng 5..90 phút, mốc "đến" tính cho khớp
   btnRandom.addEventListener('click', ()=>{
     const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
     const f = rnd(0,23)*60 + rnd(0,11)*5;
     const d = rnd(1,18)*5;
     const t = (f+d)%1440;
-    Q.from.h.value=Math.floor(f/60); Q.from.m.value=pad(f%60);
-    Q.to.h.value  =Math.floor(t/60); Q.to.m.value  =pad(t%60);
-    Q.dur.d.value =d;
+    state.from={h:Math.floor(f/60), m:f%60};
+    state.to  ={h:Math.floor(t/60), m:t%60};
+    state.dur = d;
     state.unknown = ['from','to','dur'][rnd(0,2)];
     state.asked=false; state.solved=false;
-    elResult.textContent=''; elResult.className='result';
-    sync();
+    state.ans={h:null,m:null,d:null};
+    clearResult();
+    syncAll();
   });
 
   /* ===== KHỞI ĐỘNG ===== */
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', layout);
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', layout);
-  }
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   document.fonts && document.fonts.ready.then(layout);
-  sync();
+  syncAll();
   layout();
+  tick();
 </script>
 </body>
 </html>

@@ -21,6 +21,7 @@
     --c-min:#f5921b;         /* phút */
     --c-sec:#ff5d97;         /* giây + "bây giờ" + chỗ đang hỏi */
     --c-dur:#1fab95;         /* khoảng "bao nhiêu phút" */
+    --c-star:#f9c22e;        /* sao thưởng — vàng, đứng ngoài hệ màu của kim */
     --ok:#1fab95;
     --badge-dia:26px;        /* đường kính nhãn giờ/phút quay quanh mặt (JS đọc để tính bố cục) */
 
@@ -252,15 +253,15 @@
 
   /* ===== SAO MỖI NGÀY =====
      Mở ngày mới là ba ngôi sao RỖNG (chỉ nét viền, cùng màu nét với các ô nhập chưa dùng);
-     mỗi câu trả lời đúng tô đặc thêm một ngôi. Màu hồng vì đây là chuyện GIAO DIỆN, dùng
-     chung màu với chip đang chọn / nút "Câu hỏi mới" — không đụng ba màu của kim. */
+     mỗi câu trả lời đúng tô đặc thêm một ngôi. Vàng là màu RIÊNG của phần thưởng: không
+     phải màu kim nào (xanh/cam/hồng/xanh ngọc) nên nhìn vào là biết đây không phải dữ kiện. */
   .stars{display:flex;gap:var(--sp-2);}
   .star{
     width:1.7rem;height:1.7rem;
     fill:none;stroke:var(--line);stroke-width:1.6;
     stroke-linejoin:round;
   }
-  .star.on{fill:var(--c-sec);stroke:var(--c-sec);}
+  .star.on{fill:var(--c-star);stroke:var(--c-star);}
 
   /* ===== ẨN — MỘT luật dùng chung, để CUỐI file nên thắng mọi display ở trên =====
        .off     : phần đồng hồ CHƯA BIẾT (không lộ đáp án)

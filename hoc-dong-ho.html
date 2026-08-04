@@ -699,22 +699,46 @@
   // Câu KHÔNG cần dấu riêng cho hai mốc: chính hai chữ "Từ"/"đến" trong câu là dấu, và
   // đúng hai chữ đó cũng hiện cạnh hai mốc trên mặt đồng hồ (xem drawMarks).
 
+  /* CHỌN CỤM TỪ THEO VỊ TRÍ SO VỚI HIỆN TẠI
+     "còn" nói về quãng CHƯA TỚI, "đã qua" nói về quãng ĐÃ TRÔI — không thay nhau được.
+     Mọi mốc ở đây quy về 0..719 trên mặt 12 giờ nên KHÔNG biết sáng hay chiều; chỉ khi một
+     mốc được đặt là "bây giờ" thì mới biết chắc bên nào là quá khứ, bên nào là tương lai:
+       từ = bây giờ  -> mốc đến nằm phía trước  -> CÒN
+       đến = bây giờ -> mốc từ đã trôi qua      -> ĐÃ QUA
+       không mốc nào là bây giờ                 -> nói trung tính, không "còn" cũng không "đã qua" */
+  const rel = () => state.from.mode==='now' ? 'ahead'
+                  : state.to.mode==='now'   ? 'behind' : 'plain';
+
   // MỘT câu liền mạch cho câu hỏi
   function qHTML(){
-    if(state.unknown==='dur')
-      return `Từ ${timeIn('from')} đến ${timeIn('to')} là còn ${Q_DUR}?`;
+    const r = rel();
+    if(state.unknown==='dur'){
+      const noi = r==='ahead' ? 'còn' : r==='behind' ? 'đã qua' : 'là';
+      return `Từ ${timeIn('from')} đến ${timeIn('to')} ${noi} ${Q_DUR}?`;
+    }
     if(state.unknown==='to')
-      return `Từ ${timeIn('from')} sau ${durIn()} nữa là ${Q_TIME}?`;
-    return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`;
+      return r==='ahead'
+        ? `Từ ${timeIn('from')} còn ${durIn()} nữa là ${Q_TIME}?`
+        : `Từ ${timeIn('from')} sau ${durIn()} nữa là ${Q_TIME}?`;
+    return r==='behind'
+      ? `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`
+      : `Đến ${timeIn('to')}, lùi lại ${durIn()} thì bắt đầu từ ${Q_TIME}?`;
   }
 
-  // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
+  // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền) — cùng luật cụm từ
   function aHTML(){
-    if(state.unknown==='dur')
-      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansIn()}.`;
+    const r = rel();
+    if(state.unknown==='dur'){
+      const noi = r==='ahead' ? 'còn' : r==='behind' ? 'đã qua' : 'là';
+      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} ${noi} ${ansIn()}.`;
+    }
     if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
-    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
+      return r==='ahead'
+        ? `Từ ${timeTxt('from')} còn ${durTxt()} nữa là ${ansIn()}.`
+        : `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
+    return r==='behind'
+      ? `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`
+      : `Đến ${timeTxt('to')}, lùi lại ${durTxt()} thì bắt đầu từ ${ansIn()}.`;
   }
 
   // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / đổi cách đặt mốc),

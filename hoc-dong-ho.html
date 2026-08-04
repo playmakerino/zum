@@ -334,7 +334,6 @@
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
-  const pad2  = n => String(n).padStart(2,'0');
   const gio12 = h => (h%12)===0 ? 12 : (h%12);
 
   // TỌA ĐỘ CỰC quanh tâm mặt: deg đo TỪ 12 GIỜ, theo chiều kim. Trả [dx,dy] px so với tâm.
@@ -690,7 +689,7 @@
     if(p.mode==='now')   return '<span class="v-now">bây giờ</span>';
     if(p.mode==='sharp') return `${val('v-h',p.h)} ${W_SHARP}`;
     if(p.mode==='half')  return `${val('v-h',p.h)} ${W_HALF}`;
-    return `${val('v-h',p.h)} ${W_H} ${val('v-m',p.m===null?null:pad2(p.m))} ${W_M}`;
+    return `${val('v-h',p.h)} ${W_H} ${val('v-m',p.m)} ${W_M}`;
   }
   const durIn   = () => `${inp('dur','d',state.dur,0,HALF_DAY-1)} ${W_D}`;
   const durTxt  = () => `${val('v-d',state.dur)} ${W_D}`;

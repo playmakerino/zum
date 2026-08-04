@@ -264,6 +264,17 @@
   }
   .star.on{fill:var(--c-star);stroke:var(--c-star);}
 
+  /* Xoá sao: nút PHỤ nên để mờ (viền + chữ xám, không dùng màu nào của bài) và đẩy ra góc
+     màn hình, xa vùng đang học — bấm nhầm giữa chừng là mất sao cả ngày. */
+  .clear-stars{
+    position:fixed;right:var(--sp-3);bottom:var(--sp-3);z-index:50;
+    min-height:1.8rem;padding:0 .7rem;
+    border:1px solid var(--line);border-radius:99px;
+    background:var(--card);color:var(--muted);
+    font-family:inherit;font-size:.72rem;
+    cursor:pointer;
+  }
+
   /* ===== ẨN — MỘT luật dùng chung, để CUỐI file nên thắng mọi display ở trên =====
        .off     : phần đồng hồ CHƯA BIẾT (không lộ đáp án)
        [hidden] : khối giao diện chưa dùng tới */
@@ -328,6 +339,7 @@
   </div>
 
   <div class="menu" id="menu" hidden></div>
+  <button class="clear-stars" id="btnClearStars" type="button">xoá sao</button>
 
 <script>
   /* ============================================================
@@ -362,6 +374,7 @@
   const elQSay   = $('qSay'),   elASay   = $('aSay');
   const elResult = $('result'), btnReset = $('btnReset');
   const elMenu   = $('menu'),   elStars  = $('stars');
+  const btnClearStars = $('btnClearStars');
   const chips    = [...document.querySelectorAll('.chip')];
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
@@ -806,12 +819,19 @@
   function drawStars(){
     starEls.forEach((el,i) => el.classList.toggle('on', i < starCount));
   }
+  function saveStars(){
+    try{ localStorage.setItem(STAR_KEY, JSON.stringify({d:starDay, n:starCount})); }catch(e){}
+  }
   function awardStar(){
     if(starDay !== today()){ starDay = today(); starCount = 0; }   // qua nửa đêm -> ngày mới
     if(starCount >= STAR_MAX) return;
     starCount++;
-    try{ localStorage.setItem(STAR_KEY, JSON.stringify({d:starDay, n:starCount})); }catch(e){}
-    drawStars();
+    saveStars(); drawStars();
+  }
+  // Xoá sao: về lại ba ngôi rỗng của HÔM NAY (ghi đè cả bản đã lưu, không phải chỉ xoá màn hình)
+  function clearStars(){
+    starDay = today(); starCount = 0;
+    saveStars(); drawStars();
   }
 
   // Không có nút kiểm tra: điền đủ là chấm ngay, đúng thì chỗ đang hỏi hiện lên đồng hồ
@@ -937,6 +957,9 @@
     setResult('');
     syncAll();
   });
+
+  /* --- Xoá sao (nút góc màn hình) --- */
+  btnClearStars.addEventListener('click', clearStars);
 
   /* --- Khởi động --- */
   window.addEventListener('resize', layout);

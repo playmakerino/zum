@@ -250,6 +250,18 @@
     cursor:pointer;
   }
 
+  /* ===== SAO MỖI NGÀY =====
+     Mở ngày mới là ba ngôi sao RỖNG (chỉ nét viền, cùng màu nét với các ô nhập chưa dùng);
+     mỗi câu trả lời đúng tô đặc thêm một ngôi. Màu hồng vì đây là chuyện GIAO DIỆN, dùng
+     chung màu với chip đang chọn / nút "Câu hỏi mới" — không đụng ba màu của kim. */
+  .stars{display:flex;gap:var(--sp-2);}
+  .star{
+    width:1.7rem;height:1.7rem;
+    fill:none;stroke:var(--line);stroke-width:1.6;
+    stroke-linejoin:round;
+  }
+  .star.on{fill:var(--c-sec);stroke:var(--c-sec);}
+
   /* ===== ẨN — MỘT luật dùng chung, để CUỐI file nên thắng mọi display ở trên =====
        .off     : phần đồng hồ CHƯA BIẾT (không lộ đáp án)
        [hidden] : khối giao diện chưa dùng tới */
@@ -304,6 +316,10 @@
       <div class="result" id="result"></div>
       <button class="reset" id="btnReset" type="button" hidden>Câu hỏi mới</button>
     </div>
+
+    <!-- Sao hôm nay: LUÔN hiện (kể cả lúc chưa chọn câu hỏi) để thấy ngay còn mấy ngôi
+         chưa tô. Ba ngôi sao dựng bằng JS ở phần 7. -->
+    <div class="stars" id="stars"></div>
   </div>
 
   <div class="menu" id="menu" hidden></div>
@@ -340,7 +356,7 @@
   const elQBlock = $('qBlock'), elABlock = $('aBlock');
   const elQSay   = $('qSay'),   elASay   = $('aSay');
   const elResult = $('result'), btnReset = $('btnReset');
-  const elMenu   = $('menu');
+  const elMenu   = $('menu'),   elStars  = $('stars');
   const chips    = [...document.querySelectorAll('.chip')];
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
@@ -358,10 +374,12 @@
        unknown : thành phần bị hỏi = thành phần phải điền ở câu trả lời (null = chưa chọn)
        from/to : {h, m, mode} với mode = cách đặt mốc:
            'input' gõ giờ + phút · 'now' lấy giờ thật · 'sharp' giờ ĐÚNG (phút 0) · 'half' RƯỠI (phút 30)
-       solved  : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ */
+       solved  : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ
+       awarded : câu này đã được thưởng sao chưa (MỘT sao cho mỗi câu, xoá rồi gõ lại
+                 đáp án cũ không ăn thêm sao; chỉ "Câu hỏi mới" / đổi chỗ hỏi mới mở lại) */
   const MIN_OF = {sharp:0, half:30};
   const state = {
-    unknown:null, solved:false,
+    unknown:null, solved:false, awarded:false,
     from:{h:null, m:null, mode:'input'},
     to:  {h:null, m:null, mode:'input'},
     dur:null,
@@ -760,6 +778,37 @@
     btnReset.hidden = !state.solved;
   }
 
+  /* --- SAO MỖI NGÀY ---
+     Mỗi ngày ba ngôi sao, bắt đầu rỗng hết; mỗi câu trả lời đúng tô một ngôi, đủ ba thì thôi.
+     Số sao nhớ trong localStorage kèm NGÀY: mở lại trang trong cùng ngày thì giữ nguyên,
+     sang ngày mới là rỗng lại. Không ghi được (trình duyệt chặn) thì vẫn đếm trong phiên. */
+  const STAR_MAX = 3;
+  const STAR_KEY = 'hoc-dong-ho:stars';
+  const STAR_D   = 'M12 2.5 L14.35 8.76 L21.03 9.06 L15.8 13.24 L17.59 19.68 '
+                 + 'L12 16 L6.41 19.68 L8.2 13.24 L2.97 9.06 L9.65 8.76 Z';
+  // Ngày theo giờ máy (không dùng ISO/UTC: qua nửa đêm giờ địa phương là ngày mới)
+  const today = () => { const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
+
+  elStars.innerHTML = `<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR_D}"/></svg>`.repeat(STAR_MAX);
+  const starEls = [...elStars.children];
+
+  let starDay = today(), starCount = 0;
+  try{
+    const saved = JSON.parse(localStorage.getItem(STAR_KEY) || '{}');
+    if(saved.d === starDay) starCount = clamp(+saved.n || 0, 0, STAR_MAX);
+  }catch(e){}
+
+  function drawStars(){
+    starEls.forEach((el,i) => el.classList.toggle('on', i < starCount));
+  }
+  function awardStar(){
+    if(starDay !== today()){ starDay = today(); starCount = 0; }   // qua nửa đêm -> ngày mới
+    if(starCount >= STAR_MAX) return;
+    starCount++;
+    try{ localStorage.setItem(STAR_KEY, JSON.stringify({d:starDay, n:starCount})); }catch(e){}
+    drawStars();
+  }
+
   // Không có nút kiểm tra: điền đủ là chấm ngay, đúng thì chỗ đang hỏi hiện lên đồng hồ
   function autoCheck(){
     const ans = readAnswer(), sol = solution();
@@ -769,6 +818,7 @@
     }else if(ans===sol){
       if(!state.solved && usingNow()) frozenNow = liveNow();   // đóng băng "bây giờ" đúng lúc trả lời đúng
       state.solved=true;
+      if(!state.awarded){ state.awarded=true; awardStar(); }
       setResult('Đúng rồi.','ok');
     }else{
       state.solved=false; frozenNow=null;
@@ -863,7 +913,7 @@
     c.addEventListener('click', ()=>{
       state.unknown = c.dataset.ask;
       if(state.unknown!=='dur') state[state.unknown].mode='input';   // chỗ đang hỏi thì không đặt nhanh được
-      state.solved = false; frozenNow=null;
+      state.solved = false; state.awarded = false; frozenNow=null;
       state.ans = {h:null,m:null,d:null};
       closeMenu();
       setResult('');
@@ -873,7 +923,7 @@
 
   /* --- Xoá sạch, quay về màn chọn chỗ hỏi --- */
   btnReset.addEventListener('click', ()=>{
-    state.unknown=null; state.solved=false; frozenNow=null;
+    state.unknown=null; state.solved=false; state.awarded=false; frozenNow=null;
     state.from={h:null,m:null,mode:'input'};
     state.to  ={h:null,m:null,mode:'input'};
     state.dur=null;
@@ -888,6 +938,7 @@
   window.addEventListener('orientationchange', layout);
   if(window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   document.fonts && document.fonts.ready.then(layout);
+  drawStars();
   syncAll();
   layout();
   tick();

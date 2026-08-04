@@ -130,13 +130,12 @@
 
   /* ===== CHỮ "TỪ" / "ĐẾN" TRÊN MẶT — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
      Không bịa ký hiệu mới (chấm/mũi tên/số đều phải học mới hiểu): chép thẳng HAI CHỮ đã có
-     trong câu ra cạnh hai mốc, đặt tại đúng hai đầu cung khoảng. Chữ nền màu trang nên cắt
-     ngang cung như nhãn trên đường đo kích thước. Màu trung tính, không đụng hệ màu kim. */
+     trong câu ra cạnh hai mốc, đặt NGOÀI cung (không đè lên cung, không cần nền che).
+     Màu trung tính, không đụng hệ màu kim. */
   .cue-lab{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
-    padding:0 3px;
-    background:var(--bg);color:var(--ink);
+    color:var(--ink);
     font-size:.62rem;font-weight:500;line-height:1.4;
     white-space:nowrap;
   }
@@ -251,9 +250,9 @@
   .reset{
     align-self:flex-start;
     min-height:2.3rem;padding:0 1rem;
-    /* Nút giao diện -> màu TRUNG TÍNH. Màu giờ/phút/giây chỉ dành cho đúng giờ/phút/giây. */
-    border:1px solid var(--ink);border-radius:99px;
-    background:var(--ink);color:#fff;
+    /* Nút giao diện -> cùng màu với các trạng thái giao diện khác (chip đang chọn, menu) */
+    border:1px solid var(--c-sec);border-radius:99px;
+    background:var(--c-sec);color:#fff;
     font-family:inherit;font-size:var(--fs-chip);font-weight:500;
     cursor:pointer;
   }
@@ -389,7 +388,7 @@
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
-  const CUE_OFF    = ARC_OFF;                           // dấu mốc nằm NGAY TRÊN cung, ở hai đầu
+  const CUE_OFF    = ARC_OFF + 10;                      // chữ "từ"/"đến": NGOÀI cung, không đè lên cung
   const CONN_OFF   = ARC_OFF + 4;                       // nét nối bắt đầu ngoài cung
   const BADGE_M_OFF= CONN_OFF + 3 + BADGE_HALF;         // tâm nhãn PHÚT
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + 3;         // tâm nhãn GIỜ (ngoài nhãn phút)

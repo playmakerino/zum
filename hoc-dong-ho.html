@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Học Đồng Hồ</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
   /* ===== BIẾN & KHUNG TRANG =====
      BA MÀU CỦA ĐỒNG HỒ dùng thống nhất cả trên mặt số lẫn trong câu chữ:
        xanh = GIỜ · cam = PHÚT · hồng = GIÂY (và mọi thứ chạy theo giờ thật: "bây giờ")
@@ -31,7 +31,6 @@
     --sp-4:clamp(.9rem,3.6vw,1.4rem);
     --fs-say:clamp(1rem,4.2vw,1.12rem);
     --fs-chip:clamp(.8rem,3.4vw,.88rem);
-    --fs-opt:clamp(.72rem,3vw,.78rem);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{ overflow-x:hidden; }
@@ -60,7 +59,8 @@
     }
   }
 
-  /* ===== ANALOG: MẶT SỐ, VẠCH, KIM ===== */
+  /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
+     Kích thước ở đây chỉ là giá trị ban đầu cho lần vẽ đầu; layout() trong JS ghi đè ngay. */
   .analog{
     width:300px;height:300px;border-radius:50%;
     background:#fff;
@@ -103,15 +103,14 @@
 
   /* ===== NHÃN GIỜ / PHÚT HIỆN TẠI QUAY QUANH MẶT (như dong-ho.html) =====
      Mỗi nhãn = một nét nối mảnh từ mép mặt ra một hình tròn mang CON SỐ. Nhãn nằm trong
-     .orbit xoay theo kim, còn bản thân nhãn được đối-xoay lại để số luôn đứng thẳng. */
+     .orbit xoay theo kim, còn bản thân nhãn được đối-xoay lại để số luôn đứng thẳng.
+     .orbit cũng dùng làm khung xoay cho hai chữ "từ"/"đến" ở dưới. */
   .orbit{position:absolute;left:50%;top:50%;width:0;height:0;z-index:9;}
   .connector{
     position:absolute;left:50%;
     width:1.5px;margin-left:-.75px;
     transform-origin:center;
   }
-  #connH{background:var(--c-hour);}
-  #connM{background:var(--c-min);}
   .badge{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
@@ -124,8 +123,8 @@
     display:flex;align-items:center;justify-content:center;
     color:#fff;
   }
-  #badgeH{background:var(--c-hour);}
-  #badgeM{background:var(--c-min);}
+  #connH,#badgeH{background:var(--c-hour);}
+  #connM,#badgeM{background:var(--c-min);}
 
   /* ===== CHỮ "TỪ" / "ĐẾN" TRÊN MẶT — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
      Không bịa ký hiệu mới (chấm/mũi tên/số đều phải học mới hiểu): chép thẳng HAI CHỮ đã có
@@ -138,7 +137,6 @@
     font-size:.62rem;font-weight:500;line-height:1.4;
     white-space:nowrap;
   }
-  .orbit.off{display:none;}
 
   /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT =====
      Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép:
@@ -148,10 +146,8 @@
   .mark span{position:absolute;display:block;border-radius:99px;}
   .mk-h span{width:4px;left:-2px;background:var(--c-hour);}
   .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
-  .mark.off{display:none;}          /* thành phần chưa biết -> không vẽ (không lộ đáp án) */
   /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
   .r-span{fill:none;stroke:var(--c-dur);stroke-width:3.2px;stroke-linecap:butt;}
-  .r-span.off{display:none;}
 
   /* ===== CỘT CÂU HỎI / CÂU TRẢ LỜI ===== */
   .panel{
@@ -170,18 +166,17 @@
     line-height:2.4;
     word-spacing:.06em;
   }
-  .say .v-h{color:var(--c-hour);font-weight:700;}
-  .say .v-m{color:var(--c-min);font-weight:700;}
-  .say .v-d{color:var(--c-dur);font-weight:700;}
-  .say .v-now{color:var(--c-sec);font-weight:700;}
-  .say .w-h{color:var(--c-hour);}    /* chữ "giờ" */
-  /* chữ "phút" LUÔN màu phút, kể cả khi đo khoảng — xanh ngọc chỉ dành cho CON SỐ khoảng
+  /* Màu theo vai trò: v-* là CON SỐ (in đậm), w-* là CHỮ đơn vị (nét thường).
+     Chữ "phút" LUÔN màu phút, kể cả khi đo khoảng — xanh ngọc chỉ dành cho CON SỐ khoảng
      và cung trên mặt, vì đó mới là thứ "khoảng"; còn đơn vị thì vẫn là phút. */
-  .say .w-m{color:var(--c-min);}     /* chữ "phút" / "đúng" / "rưỡi" */
+  .say .v-h,.say .w-h{color:var(--c-hour);}                    /* số giờ · chữ "giờ" */
+  .say .v-m,.say .w-m{color:var(--c-min);}                     /* số phút · chữ "phút"/"đúng"/"rưỡi" */
+  .say .v-d{color:var(--c-dur);}                               /* số của khoảng */
+  .say .v-now{color:var(--c-sec);}                             /* "bây giờ" */
+  .say .v-h,.say .v-m,.say .v-d,.say .v-now{font-weight:700;}
   .say .todo{color:var(--muted);}
   /* Khối câu hỏi / câu trả lời: chỉ hiện sau khi đã chọn chỗ cần hỏi */
   .block{display:flex;flex-direction:column;gap:var(--sp-2);}
-  .block[hidden]{display:none;}
 
   /* Ô nhập nằm TRONG câu: gạch chân, không khung */
   .in{
@@ -214,7 +209,7 @@
 
   /* ===== CÁCH ĐẶT MỐC: nút ▾ trong câu, mở menu nổi =====
      Một nút nhỏ cho mỗi mốc thay vì cụm 3 nút chen giữa câu -> câu ngắn lại, mobile đỡ chật.
-     Menu luôn có đủ bốn lựa chọn (xem hằng MENU ở phần 6). */
+     Menu luôn có đủ bốn lựa chọn (xem hằng MENU trong JS). */
   .caret{
     min-height:1.9rem;padding:0 .45rem;margin-left:.15rem;
     border:1px solid var(--line);border-radius:8px;
@@ -232,7 +227,6 @@
     padding:.25rem;
     display:flex;flex-direction:column;
   }
-  .menu[hidden]{display:none;}
   .menu button{
     text-align:left;
     min-height:2.4rem;padding:0 .7rem;
@@ -255,7 +249,11 @@
     font-family:inherit;font-size:var(--fs-chip);font-weight:500;
     cursor:pointer;
   }
-  .reset[hidden]{display:none;}
+
+  /* ===== ẨN — MỘT luật dùng chung, để CUỐI file nên thắng mọi display ở trên =====
+       .off     : phần đồng hồ CHƯA BIẾT (không lộ đáp án)
+       [hidden] : khối giao diện chưa dùng tới */
+  .off,[hidden]{display:none;}
 </style>
 </head>
 <body>
@@ -264,7 +262,7 @@
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <path id="spanArc" class="r-span off"></path>
     </svg>
-    <!-- Kim GIỜ THẬT chạy liên tục. Vạch mốc từ/đến dựng bằng JS ở phần 2. -->
+    <!-- Kim GIỜ THẬT chạy liên tục. Vạch mốc từ/đến dựng bằng JS ở phần 3. -->
     <div class="hand hour"   id="hour"></div>
     <div class="hand minute" id="minute"></div>
     <div class="hand second" id="second"></div>
@@ -312,10 +310,13 @@
 
 <script>
   /* ============================================================
-     HỌC ĐỒNG HỒ — script chia 6 phần:
-       1. Tiện ích & tham chiếu DOM      4. Mốc từ/đến + cung khoảng phút
-       2. Mặt số: vạch, chữ số, vạch mốc 5. Vòng lặp mỗi frame — tick()
-       3. Bố cục tự co (layout)          6. Câu hỏi / câu trả lời
+     HỌC ĐỒNG HỒ — script chia 8 phần, xếp theo dòng dữ liệu
+     (trạng thái -> vẽ -> câu chữ -> tương tác):
+
+       1. Tiện ích & tham chiếu DOM      5. Mốc từ/đến + cung khoảng phút
+       2. Trạng thái bài tập             6. Vòng lặp mỗi frame — tick()
+       3. Mặt số: vạch, chữ số, vạch mốc 7. Câu chữ & chấm bài
+       4. Bố cục tự co (layout)          8. Tương tác & khởi động
 
      QUY ƯỚC THỜI GIAN: mặt đồng hồ 12 GIỜ nên mọi mốc quy về SỐ PHÚT TRONG 12 TIẾNG,
      0..719 (12 giờ đúng = 0). Giờ nhập/hiện là 1..12. Mọi phép cộng trừ lấy dư 720.
@@ -323,6 +324,8 @@
 
   /* ===== 1. TIỆN ÍCH & THAM CHIẾU DOM ===== */
   const $ = id => document.getElementById(id);
+
+  // Mặt đồng hồ
   const analog = $('analog');
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
   const elArc=$('spanArc');
@@ -331,6 +334,14 @@
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elTextH=$('textH'),   elTextM=$('textM');
   const elCue={from:$('cueFrom'), to:$('cueTo')};
+
+  // Cột câu hỏi / câu trả lời
+  const elPanel  = document.querySelector('.panel');
+  const elQBlock = $('qBlock'), elABlock = $('aBlock');
+  const elQSay   = $('qSay'),   elASay   = $('aSay');
+  const elResult = $('result'), btnReset = $('btnReset');
+  const elMenu   = $('menu');
+  const chips    = [...document.querySelectorAll('.chip')];
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
@@ -342,7 +353,64 @@
     return [r*Math.cos(a), r*Math.sin(a)];
   }
 
-  /* ===== 2. MẶT SỐ: VẠCH CHIA + CHỮ SỐ + VẠCH MỐC ===== */
+  /* ===== 2. TRẠNG THÁI BÀI TẬP =====
+     MỘT nguồn trạng thái duy nhất (ô nhập dựng lại từ đây nên không giữ giá trị trong DOM).
+       unknown : thành phần bị hỏi = thành phần phải điền ở câu trả lời (null = chưa chọn)
+       from/to : {h, m, mode} với mode = cách đặt mốc:
+           'input' gõ giờ + phút · 'now' lấy giờ thật · 'sharp' giờ ĐÚNG (phút 0) · 'half' RƯỠI (phút 30)
+       solved  : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ */
+  const MIN_OF = {sharp:0, half:30};
+  const state = {
+    unknown:null, solved:false,
+    from:{h:null, m:null, mode:'input'},
+    to:  {h:null, m:null, mode:'input'},
+    dur:null,
+    ans:{h:null, m:null, d:null},
+  };
+
+  // "bây giờ" = giờ máy đang chạy (quy về 0..719). Trả lời ĐÚNG thì ĐÓNG BĂNG mốc này lại
+  // (frozenNow), nếu không thì sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
+  const liveNow = () => { const d=new Date(); return (d.getHours()%12)*60 + d.getMinutes(); };
+  let frozenNow = null;
+  const nowMins  = () => frozenNow!==null ? frozenNow : liveNow();
+  const usingNow = () => (state.from.mode==='now' && state.unknown!=='from')
+                      || (state.to.mode==='now'   && state.unknown!=='to');
+
+  // Giá trị một mốc (0..719; null = chưa đủ dữ kiện)
+  function givenTime(part){
+    const p = state[part];
+    if(p.mode==='now') return nowMins();
+    if(p.h===null) return null;
+    const hh = (p.h % 12) * 60;
+    if(p.mode==='input') return p.m===null ? null : hh + p.m;
+    return hh + MIN_OF[p.mode];
+  }
+
+  // Đáp án đúng của thành phần đang hỏi (null nếu 2 thành phần đã cho chưa đủ)
+  function solution(){
+    const f=givenTime('from'), t=givenTime('to'), d=state.dur;
+    switch(state.unknown){
+      case 'dur':  return (f===null||t===null) ? null : (t - f + HALF_DAY) % HALF_DAY;
+      case 'to':   return (f===null||d===null) ? null : (f + d) % HALF_DAY;
+      case 'from': return (t===null||d===null) ? null : (t - d + HALF_DAY*2) % HALF_DAY;
+      default:     return null;   // chưa chọn chỗ hỏi
+    }
+  }
+
+  // Đáp án người học điền (0..719; null = chưa điền đủ)
+  function readAnswer(){
+    if(state.unknown==='dur') return state.ans.d;
+    return (state.ans.h===null||state.ans.m===null) ? null : (state.ans.h%12)*60 + state.ans.m;
+  }
+
+  // Những gì ĐANG ĐƯỢC BIẾT để vẽ đồng hồ: 2 thành phần đã cho, cộng đáp án nếu đã lộ
+  function knownNow(){
+    const out = { from:givenTime('from'), to:givenTime('to'), dur:state.dur };
+    if(state.unknown) out[state.unknown] = state.solved ? solution() : null;
+    return out;
+  }
+
+  /* ===== 3. MẶT SỐ: VẠCH CHIA + CHỮ SỐ + VẠCH MỐC ===== */
   const tickSpans=[];
   for(let i=0;i<60;i++){
     const t=document.createElement('div');
@@ -377,7 +445,7 @@
   };
   const markSpans = Object.values(mark).map(d => d.firstChild);
 
-  /* ===== 3. BỐ CỤC TỰ CO (layout) ===== */
+  /* ===== 4. BỐ CỤC TỰ CO (layout) ===== */
   const EDGE = 12;         // lề tối thiểu tới cạnh màn hình
   const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport hẹp cỡ nào cũng KHÔNG co về 0
   const MK_IN = 3, MK_OUT = 13;   // vạch mốc nằm trong dải bán kính [FACE+MK_IN, FACE+MK_OUT]
@@ -414,7 +482,6 @@
   }
 
   const mqDesktop = window.matchMedia('(min-width:768px)');
-  const elPanel = document.querySelector('.panel');
 
   function layout(){
     const desktop = mqDesktop.matches;
@@ -507,7 +574,7 @@
     elSec.style.height=sh+'px';  elSec.style.marginTop=(-sh)+'px';
   }
 
-  /* ===== 4. MỐC TỪ/ĐẾN + CUNG KHOẢNG PHÚT ===== */
+  /* ===== 5. MỐC TỪ/ĐẾN + CUNG KHOẢNG PHÚT ===== */
   // Cung tròn từ startDeg đến endDeg (đo từ 12h)
   function arcPath(r, startDeg, endDeg){
     const sweep = endDeg - startDeg;
@@ -543,17 +610,15 @@
 
     // Chữ đánh dấu đặt tại GÓC PHÚT = đúng hai đầu cung khoảng; đối-xoay cho chữ đứng thẳng
     for(const [part,el] of Object.entries(elCue)){
-      const mins = k[part];
       el.classList.toggle('off', !done);
       if(!done) continue;
-      const deg = (mins%60)*6;
+      const deg = (k[part]%60)*6;
       el.style.transform = `rotate(${deg}deg)`;
       el.firstChild.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;
     }
 
-    const showArc = done;
-    elArc.classList.toggle('off', !showArc);
-    if(showArc){
+    elArc.classList.toggle('off', !done);
+    if(done){
       const dur = (k.to - k.from + HALF_DAY) % HALF_DAY;
       const startDeg = (k.from % 60) * 6;
       const sweep = dur <= 60 ? dur*6 : 360;      // hơn 1 giờ -> trọn vòng
@@ -561,7 +626,7 @@
     }
   }
 
-  /* ===== 5. VÒNG LẶP MỖI FRAME — tick() ===== */
+  /* ===== 6. VÒNG LẶP MỖI FRAME — tick() ===== */
   let lastSec = -1, lastMin = -1;
   function tick(){
     const now=new Date();
@@ -602,63 +667,7 @@
     requestAnimationFrame(tick);
   }
 
-  /* ===== 6. CÂU HỎI / CÂU TRẢ LỜI ===== */
-  // MỘT nguồn trạng thái (ô nhập dựng lại từ đây nên không giữ giá trị trong DOM).
-  //   unknown : thành phần bị hỏi = thành phần phải điền ở câu trả lời (null = chưa chọn)
-  //   from/to : {h, m, mode} với mode = cách đặt mốc:
-  //       'input' gõ giờ + phút · 'now' lấy giờ thật · 'sharp' giờ ĐÚNG (phút 0) · 'half' RƯỠI (phút 30)
-  //   solved  : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ
-  const MIN_OF = {sharp:0, half:30};
-  const state = {
-    unknown:null, solved:false,
-    from:{h:null, m:null, mode:'input'},
-    to:  {h:null, m:null, mode:'input'},
-    dur:null,
-    ans:{h:null, m:null, d:null},
-  };
-
-  const elQBlock=$('qBlock'), elABlock=$('aBlock');
-  const elQSay=$('qSay'), elASay=$('aSay'), elResult=$('result'), btnReset=$('btnReset');
-  const elMenu=$('menu');
-  const chips=[...document.querySelectorAll('.chip')];
-
-  // "bây giờ" = giờ máy đang chạy (quy về 0..719). Trả lời ĐÚNG thì ĐÓNG BĂNG mốc này lại
-  // (frozenNow), nếu không thì sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
-  const liveNow = () => { const d=new Date(); return (d.getHours()%12)*60 + d.getMinutes(); };
-  let frozenNow = null;
-  const nowMins  = () => frozenNow!==null ? frozenNow : liveNow();
-  const usingNow = () => (state.from.mode==='now' && state.unknown!=='from')
-                      || (state.to.mode==='now'   && state.unknown!=='to');
-
-  // Giá trị một mốc (0..719; null = chưa đủ dữ kiện)
-  function givenTime(part){
-    const p = state[part];
-    if(p.mode==='now') return nowMins();
-    if(p.h===null) return null;
-    const hh = (p.h % 12) * 60;
-    if(p.mode==='input') return p.m===null ? null : hh + p.m;
-    return hh + MIN_OF[p.mode];
-  }
-  const givenFrom = () => givenTime('from');
-  const givenTo   = () => givenTime('to');
-  const givenDur  = () => state.dur;
-
-  // Đáp án đúng của thành phần đang hỏi (null nếu 2 thành phần đã cho chưa đủ)
-  function solution(){
-    const f=givenFrom(), t=givenTo(), d=givenDur();
-    if(state.unknown==='dur')  return (f===null||t===null) ? null : (t - f + HALF_DAY) % HALF_DAY;
-    if(state.unknown==='to')   return (f===null||d===null) ? null : (f + d) % HALF_DAY;
-    if(state.unknown==='from') return (t===null||d===null) ? null : (t - d + HALF_DAY*2) % HALF_DAY;
-    return null;   // chưa chọn chỗ hỏi
-  }
-
-  // Những gì ĐANG ĐƯỢC BIẾT để vẽ đồng hồ: 2 thành phần đã cho, cộng đáp án nếu đã lộ
-  function knownNow(){
-    const out = { from:givenFrom(), to:givenTo(), dur:givenDur() };
-    if(state.unknown) out[state.unknown] = state.solved ? solution() : null;
-    return out;
-  }
-
+  /* ===== 7. CÂU CHỮ & CHẤM BÀI ===== */
   /* --- Mảnh câu: ô nhập / giá trị / chữ --- */
   const inp = (k, cls, v, min, max) =>
     `<input class="in ${cls}" data-k="${k}" type="number" inputmode="numeric" min="${min}" max="${max}"` +
@@ -667,42 +676,38 @@
   const W_H = '<span class="w-h">giờ</span>';
   const W_M = '<span class="w-m">phút</span>';
   const W_D = W_M;   // đơn vị của khoảng vẫn là PHÚT -> dùng đúng chữ "phút" màu phút
+  const NOW = '<span class="v-now">bây giờ</span>';
 
   // CÁCH ĐỌC: giờ đúng thì có chữ "giờ" ("8 giờ đúng"), còn rưỡi thì BỎ chữ "giờ" ("8 rưỡi")
   const W_SHARP = `${W_H} <span class="w-m">đúng</span>`;
   const W_HALF  = '<span class="w-m">rưỡi</span>';
 
-  // Mốc thời điểm ở CÂU HỎI: ô nhập (tùy mode) + nút ▾
-  function timeIn(part){
-    const p = state[part];
-    const h = inp(part+'H','h',p.h,1,12);
-    const body = p.mode==='now'   ? '<span class="v-now">bây giờ</span>'
-               : p.mode==='sharp' ? `${h} ${W_SHARP}`
-               : p.mode==='half'  ? `${h} ${W_HALF}`
-               : `${h} ${W_H} ${inp(part+'M','m',p.m,0,59)} ${W_M}`;
-    const set = p.mode!=='input' ? ' set' : '';
-    return `${body}<button class="caret${set}" type="button" data-menu="${part}" aria-label="Cách đặt mốc">▾</button>`;
-  }
-  // Mốc thời điểm ở CÂU TRẢ LỜI: chỉ chữ
-  function timeTxt(part){
-    const p = state[part];
-    if(p.mode==='now')   return '<span class="v-now">bây giờ</span>';
-    if(p.mode==='sharp') return `${val('v-h',p.h)} ${W_SHARP}`;
-    if(p.mode==='half')  return `${val('v-h',p.h)} ${W_HALF}`;
-    return `${val('v-h',p.h)} ${W_H} ${val('v-m',p.m)} ${W_M}`;
-  }
-  const durIn   = () => `${inp('dur','d',state.dur,0,HALF_DAY-1)} ${W_D}`;
-  const durTxt  = () => `${val('v-d',state.dur)} ${W_D}`;
-  const ansIn   = () => state.unknown==='dur'
-      ? `${inp('ansD','d',state.ans.d,0,HALF_DAY-1)} ${W_D}`
-      : `${inp('ansH','h',state.ans.h,1,12)} ${W_H} ${inp('ansM','m',state.ans.m,0,59)} ${W_M}`;
-
   // Chỗ đang hỏi: tô theo ĐÚNG màu của thứ đang hỏi (giờ xanh, phút cam, khoảng xanh ngọc)
   const Q_TIME = '<span class="v-h">mấy giờ</span> <span class="v-m">mấy phút</span>';
   const Q_DUR  = `<span class="v-d">bao nhiêu</span> ${W_M}`;
 
-  // Câu KHÔNG cần dấu riêng cho hai mốc: chính hai chữ "Từ"/"đến" trong câu là dấu, và
-  // đúng hai chữ đó cũng hiện cạnh hai mốc trên mặt đồng hồ (xem drawMarks).
+  // MỘT mốc thời điểm. edit=true (trong CÂU HỎI): ô nhập + nút ▾ đổi cách đặt mốc.
+  //                    edit=false (trong CÂU TRẢ LỜI): chỉ chữ.
+  function timePart(part, edit){
+    const p = state[part];
+    const h = edit ? inp(part+'H','h',p.h,1,12) : val('v-h',p.h);
+    let body;
+    switch(p.mode){
+      case 'now':   body = NOW; break;
+      case 'sharp': body = `${h} ${W_SHARP}`; break;
+      case 'half':  body = `${h} ${W_HALF}`; break;
+      default:      body = `${h} ${W_H} ${edit ? inp(part+'M','m',p.m,0,59) : val('v-m',p.m)} ${W_M}`;
+    }
+    if(!edit) return body;
+    const set = p.mode!=='input' ? ' set' : '';
+    return `${body}<button class="caret${set}" type="button" data-menu="${part}" aria-label="Cách đặt mốc">▾</button>`;
+  }
+
+  // Khoảng đã cho, và ô để điền đáp án
+  const durPart = edit => `${edit ? inp('dur','d',state.dur,0,HALF_DAY-1) : val('v-d',state.dur)} ${W_D}`;
+  const ansIn   = () => state.unknown==='dur'
+      ? `${inp('ansD','d',state.ans.d,0,HALF_DAY-1)} ${W_D}`
+      : `${inp('ansH','h',state.ans.h,1,12)} ${W_H} ${inp('ansM','m',state.ans.m,0,59)} ${W_M}`;
 
   /* CỤM NỐI CỦA CÂU "BAO NHIÊU PHÚT" — chọn theo vị trí so với HIỆN TẠI.
      "còn" nói về quãng CHƯA TỚI, "đã qua" nói về quãng ĐÃ TRÔI — không thay nhau được.
@@ -713,31 +718,24 @@
        không mốc nào là bây giờ                 -> nói trung tính, không "còn" cũng không "đã qua"
      Hai câu hỏi mốc thì KHÔNG dùng luật này: hỏi mốc đến luôn "sau … nữa", hỏi mốc từ luôn
      "đã qua", vì chúng nói về chiều tính toán chứ không nói về quá khứ hay tương lai. */
-  const rel = () => state.from.mode==='now' ? 'ahead'
-                  : state.to.mode==='now'   ? 'behind' : 'plain';
+  const noiTu = () => state.from.mode==='now' ? 'còn'
+                    : state.to.mode==='now'   ? 'đã qua' : 'là';
 
-  // MỘT câu liền mạch cho câu hỏi
-  function qHTML(){
-    if(state.unknown==='dur'){
-      const r = rel();
-      const noi = r==='ahead' ? 'còn' : r==='behind' ? 'đã qua' : 'là';
-      return `Từ ${timeIn('from')} đến ${timeIn('to')} ${noi} ${Q_DUR}?`;
-    }
+  /* MỘT câu liền mạch, dùng chung cho câu hỏi và câu trả lời — chỉ khác nhau ở hai điểm:
+       q=true  (CÂU HỎI)     : dữ kiện là ô nhập, chỗ đang hỏi là chữ "mấy giờ mấy phút", kết bằng ?
+       q=false (CÂU TRẢ LỜI) : dữ kiện là chữ,   chỗ đang hỏi là ô để điền,               kết bằng .
+     Câu KHÔNG cần dấu riêng cho hai mốc: chính hai chữ "Từ"/"đến" trong câu là dấu, và
+     đúng hai chữ đó cũng hiện cạnh hai mốc trên mặt đồng hồ (xem drawMarks). */
+  function sayHTML(q){
+    const T   = part => timePart(part, q);
+    const D   = durPart(q);
+    const end = q ? '?' : '.';
+    if(state.unknown==='dur')
+      return `Từ ${T('from')} đến ${T('to')} ${noiTu()} ${q ? Q_DUR : ansIn()}${end}`;
+    const slot = q ? Q_TIME : ansIn();
     if(state.unknown==='to')
-      return `Từ ${timeIn('from')} sau ${durIn()} nữa là đến ${Q_TIME}?`;
-    return `Đến ${timeIn('to')} thì đã qua ${durIn()}, vậy bắt đầu từ ${Q_TIME}?`;
-  }
-
-  // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền) — cùng luật cụm từ
-  function aHTML(){
-    if(state.unknown==='dur'){
-      const r = rel();
-      const noi = r==='ahead' ? 'còn' : r==='behind' ? 'đã qua' : 'là';
-      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} ${noi} ${ansIn()}.`;
-    }
-    if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là đến ${ansIn()}.`;
-    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
+      return `Từ ${T('from')} sau ${D} nữa là đến ${slot}${end}`;
+    return `Đến ${T('to')} thì đã qua ${D}, vậy bắt đầu từ ${slot}${end}`;
   }
 
   // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / đổi cách đặt mốc),
@@ -745,14 +743,14 @@
   function syncQ(){
     chips.forEach(c => c.classList.toggle('on', c.dataset.ask===state.unknown));
     elQBlock.hidden = (state.unknown===null);
-    if(state.unknown) elQSay.innerHTML = qHTML();
+    if(state.unknown) elQSay.innerHTML = sayHTML(true);
   }
   // Câu TRẢ LỜI chỉ hiện khi câu hỏi đã đủ 2 thành phần. Dựng lại được cả khi đang gõ ở câu
   // hỏi (con trỏ không nằm trong câu này), nhưng KHÔNG dựng khi đang gõ ở chính ô đáp án.
   function syncA(){
     const ready = state.unknown!==null && solution()!==null;
     elABlock.hidden = !ready;
-    if(ready) elASay.innerHTML = aHTML();
+    if(ready) elASay.innerHTML = sayHTML(false);
   }
   function syncAll(){ syncQ(); syncA(); drawMarks(); }
 
@@ -760,12 +758,6 @@
     elResult.textContent = txt;
     elResult.className = 'result' + (cls?' '+cls:'');
     btnReset.hidden = !state.solved;
-  }
-
-  // Đáp án người học điền (0..719; null = chưa điền đủ)
-  function readAnswer(){
-    if(state.unknown==='dur') return state.ans.d;
-    return (state.ans.h===null||state.ans.m===null) ? null : (state.ans.h%12)*60 + state.ans.m;
   }
 
   // Không có nút kiểm tra: điền đủ là chấm ngay, đúng thì chỗ đang hỏi hiện lên đồng hồ
@@ -785,27 +777,32 @@
     drawMarks();
   }
 
-  // Đọc số từ ô nhập -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ)
+  /* ===== 8. TƯƠNG TÁC & KHỞI ĐỘNG ===== */
+  /* --- Ô nhập: đọc số -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ) --- */
+  // data-k của ô nhập -> chỗ cất trong state; nhánh null nghĩa là nằm thẳng trên state
+  const SLOT = {
+    ansH:['ans','h'],   ansM:['ans','m'],  ansD:['ans','d'],
+    fromH:['from','h'], fromM:['from','m'],
+    toH:['to','h'],     toM:['to','m'],
+    dur:[null,'dur'],
+  };
   function onInput(e){
     const el = e.target;
     if(!el.classList.contains('in')) return;
+    const slot = SLOT[el.dataset.k];
+    if(!slot) return;
+
     const lo = +el.min, hi = +el.max;
     let v = el.value.trim()==='' ? null : parseInt(el.value,10);
     if(v!==null){
       if(Number.isNaN(v)) v=null;
       else if(v>hi || v<lo){ v=clamp(v,lo,hi); el.value=v; }
     }
-    switch(el.dataset.k){
-      // Ô câu trả lời: chỉ ghi state rồi chấm, KHÔNG dựng lại câu (đang gõ trong chính ô này)
-      case 'ansH':  state.ans.h=v;  autoCheck(); return;
-      case 'ansM':  state.ans.m=v;  autoCheck(); return;
-      case 'ansD':  state.ans.d=v;  autoCheck(); return;
-      case 'fromH': state.from.h=v; break;
-      case 'fromM': state.from.m=v; break;
-      case 'toH':   state.to.h=v;   break;
-      case 'toM':   state.to.m=v;   break;
-      case 'dur':   state.dur=v;    break;
-    }
+    const [obj,key] = slot;
+    (obj ? state[obj] : state)[key] = v;
+
+    // Ô câu trả lời: chỉ ghi state rồi chấm, KHÔNG dựng lại câu (đang gõ trong chính ô này)
+    if(obj==='ans'){ autoCheck(); return; }
     frozenNow=null;      // sửa câu hỏi -> mốc "bây giờ" chạy tiếp
     syncA(); autoCheck();
   }
@@ -886,7 +883,7 @@
     syncAll();
   });
 
-  /* ===== KHỞI ĐỘNG ===== */
+  /* --- Khởi động --- */
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', layout);
   if(window.visualViewport) window.visualViewport.addEventListener('resize', layout);

@@ -12,6 +12,7 @@
      Xanh ngọc chỉ dành cho KHOẢNG (bao nhiêu phút) — khái niệm thứ tư, không phải kim nào. */
   :root{
     --bg:#fdf6f0;
+    --card:#fff;
     --ink:#3f3a5c;
     --muted:#a99fb8;
     --line:#e9cdb6;
@@ -100,16 +101,13 @@
     box-shadow:0 0 0 4px #fff;
   }
 
-  /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT =====
-     Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép:
-     mỗi mốc 2 vạch (giờ: đậm xanh · phút: mảnh cam); mốc "đến" mờ đi để phân biệt với "từ". */
+  /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT ===== */
   .mark{position:absolute;left:50%;top:50%;transform-origin:0 0;z-index:8;}
   .mark span{position:absolute;display:block;border-radius:99px;}
   .mk-h span{width:4px;left:-2px;background:var(--c-hour);}
   .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
   .mark.ghost{opacity:var(--ghost);}
   .mark.off{display:none;}          /* thành phần chưa biết -> không vẽ (không lộ đáp án) */
-  /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
   .r-span{fill:none;stroke:var(--c-dur);stroke-width:3.2px;stroke-linecap:butt;}
   .r-span.off{display:none;}
 
@@ -124,10 +122,9 @@
     font-size:.75rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
     color:var(--muted);
   }
-  /* MỘT CÂU liền mạch: giá trị nằm ngay trong câu, không tách dòng, không dấu hai chấm */
   .say{
     font-size:var(--fs-say);font-weight:400;
-    line-height:2.7;                 /* thoáng vì trong câu có ô nhập + cụm nút cao gần 2rem */
+    line-height:2.4;
     word-spacing:.06em;
   }
   .say .v-h{color:var(--c-hour);font-weight:700;}
@@ -139,11 +136,10 @@
   .say .w-d{color:var(--c-dur);}     /* chữ "phút" của khoảng */
   .say .q{color:var(--c-sec);font-weight:700;}     /* chỗ đang hỏi */
   .say .todo{color:var(--muted);}
-  /* Khối câu hỏi / câu trả lời: chỉ hiện sau khi đã chọn chỗ cần hỏi */
   .block{display:flex;flex-direction:column;gap:var(--sp-2);}
   .block[hidden]{display:none;}
 
-  /* Ô nhập nằm TRONG câu: gạch chân, không khung */
+  /* Ô nhập nằm TRONG câu (kiểu B và C) */
   .in{
     width:2.9rem;height:2.1rem;
     border:none;border-bottom:2px solid var(--line);
@@ -172,13 +168,63 @@
   }
   .chip.on{background:var(--c-sec);border-color:var(--c-sec);color:#fff;}
 
-  /* ===== CÁCH ĐẶT NHANH MỘT MỐC: bây giờ · đúng · rưỡi =====
-     Gom thành MỘT cụm liền (segmented) bám ngay sau mốc, cỡ nhỏ hơn chữ trong câu để
-     đọc ra ngay là "nút phụ", không lẫn với giá trị. Bật cái nào thì mốc hiển thị theo cái đó.
-     Cụm CHỈ hiện những lựa chọn còn ý nghĩa (xem opts() ở phần 6) nên trên mobile nó ngắn lại. */
+  /* ===== KIỂU A: VIÊN GIÁ TRỊ + BẢNG CHỈNH ===== */
+  .pill{
+    display:inline-flex;align-items:center;
+    min-height:2.2rem;padding:.15rem .7rem;margin:0 .12rem;
+    border:1.5px solid var(--line);border-radius:99px;
+    background:var(--card);
+    font-family:inherit;font-size:var(--fs-say);
+    color:var(--ink);
+    cursor:pointer;
+    vertical-align:middle;
+  }
+  .pill.empty{border-style:dashed;color:var(--muted);}
+  .pill.open{border-color:var(--c-sec);box-shadow:0 0 0 3px rgba(255,93,151,.15);}
+  .picker{
+    border:1px solid var(--line);border-radius:14px;
+    background:var(--card);
+    padding:var(--sp-3);
+    display:flex;flex-direction:column;gap:var(--sp-2);
+  }
+  .picker[hidden]{display:none;}
+  .pk-row{display:flex;align-items:center;gap:var(--sp-2);}
+  .pk-name{
+    font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);
+    width:3.1rem;flex:none;
+  }
+  .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--sp-1);flex:1;}
+  .cell{
+    min-height:2.3rem;
+    border:1px solid var(--line);border-radius:9px;
+    background:transparent;color:var(--ink);
+    font-family:inherit;font-size:var(--fs-chip);font-weight:500;
+    font-variant-numeric:tabular-nums;
+    cursor:pointer;
+  }
+  .cell.h.on{background:var(--c-hour);border-color:var(--c-hour);color:#fff;}
+  .cell.m.on{background:var(--c-min);border-color:var(--c-min);color:#fff;}
+  .cell.d.on{background:var(--c-dur);border-color:var(--c-dur);color:#fff;}
+  .nudge{
+    min-height:2.3rem;padding:0 .6rem;
+    border:1px solid var(--line);border-radius:9px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:var(--fs-chip);
+    cursor:pointer;flex:none;
+  }
+  .pk-done{
+    align-self:flex-end;
+    min-height:2.2rem;padding:0 1rem;
+    border:1px solid var(--line);border-radius:99px;
+    background:transparent;color:var(--ink);
+    font-family:inherit;font-size:var(--fs-chip);
+    cursor:pointer;
+  }
+
+  /* ===== CỤM ĐẶT NHANH (dùng chung cho A trong bảng chỉnh, B ở hàng phụ) ===== */
   .opts{
     display:inline-flex;vertical-align:middle;
-    margin:.15rem .4rem;
     border:1px solid var(--line);border-radius:99px;
     overflow:hidden;
     white-space:nowrap;
@@ -188,14 +234,45 @@
     border:none;border-left:1px solid var(--line);
     background:transparent;color:var(--muted);
     font-family:inherit;font-size:var(--fs-opt);line-height:1;
-    cursor:pointer;
-    white-space:nowrap;
+    cursor:pointer;white-space:nowrap;
   }
   .opt:first-child{border-left:none;}
   .opt.on{color:#fff;font-weight:500;}
   .opt.on[data-opt="now"]{background:var(--c-sec);}      /* chạy theo giờ thật -> màu GIÂY */
   .opt.on[data-opt="sharp"],
   .opt.on[data-opt="half"]{background:var(--c-min);}     /* đặt PHÚT -> màu PHÚT */
+
+  /* ===== KIỂU B: HÀNG PHỤ DƯỚI CÂU ===== */
+  .acc{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;font-size:var(--fs-opt);color:var(--muted);}
+  .acc[hidden]{display:none;}
+  .acc-name{font-size:var(--fs-opt);}
+
+  /* ===== KIỂU C: NÚT ▾ + MENU NỔI ===== */
+  .caret{
+    min-height:1.8rem;padding:0 .4rem;margin-left:.1rem;
+    border:1px solid var(--line);border-radius:7px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:.8rem;line-height:1;
+    cursor:pointer;vertical-align:middle;
+  }
+  .menu{
+    position:fixed;z-index:60;
+    min-width:9.5rem;
+    border:1px solid var(--line);border-radius:12px;
+    background:var(--card);
+    box-shadow:0 8px 24px rgba(63,58,92,.14);
+    padding:.25rem;
+    display:flex;flex-direction:column;
+  }
+  .menu[hidden]{display:none;}
+  .menu button{
+    text-align:left;
+    min-height:2.4rem;padding:0 .7rem;
+    border:none;border-radius:8px;background:transparent;
+    font-family:inherit;font-size:var(--fs-chip);color:var(--ink);
+    cursor:pointer;
+  }
+  .menu button.on{color:#fff;background:var(--c-sec);}
 
   .result{font-size:var(--fs-chip);font-weight:500;min-height:1.3em;}
   .result.ok{color:var(--ok);}
@@ -210,11 +287,24 @@
     cursor:pointer;
   }
   .reset[hidden]{display:none;}
+
+  /* Nút chuyển KIỂU NHẬP — chỉ để thử 3 phương án, bỏ khi đã chốt */
+  .uiswitch{
+    display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;
+    font-size:var(--fs-opt);color:var(--muted);
+  }
+  .ui-b{
+    min-height:1.9rem;padding:0 .6rem;
+    border:1px solid var(--line);border-radius:99px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:var(--fs-opt);
+    cursor:pointer;
+  }
+  .ui-b.on{background:var(--ink);border-color:var(--ink);color:#fff;}
 </style>
 </head>
 <body>
   <div class="analog" id="analog">
-    <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) -->
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
       <path id="spanArc" class="r-span off"></path>
     </svg>
@@ -226,6 +316,14 @@
   </div>
 
   <div class="panel">
+    <!-- TẠM: chuyển giữa 3 kiểu nhập để thử -->
+    <div class="uiswitch" id="uiSwitch">
+      <span>Kiểu nhập</span>
+      <button class="ui-b" type="button" data-ui="A">A · viên + bảng</button>
+      <button class="ui-b" type="button" data-ui="B">B · hàng phụ</button>
+      <button class="ui-b" type="button" data-ui="C">C · menu ▾</button>
+    </div>
+
     <div class="pick">
       <button class="chip" type="button" data-ask="from">từ mấy giờ mấy phút?</button>
       <button class="chip" type="button" data-ask="to">đến mấy giờ mấy phút?</button>
@@ -236,15 +334,20 @@
     <div class="block" id="qBlock" hidden>
       <div class="lbl">Câu hỏi</div>
       <div class="say" id="qSay"></div>
+      <div class="acc" id="qAcc" hidden></div>
+      <div class="picker" id="qPicker" hidden></div>
     </div>
 
     <div class="block" id="aBlock" hidden>
       <div class="lbl">Câu trả lời</div>
       <div class="say" id="aSay"></div>
+      <div class="picker" id="aPicker" hidden></div>
       <div class="result" id="result"></div>
       <button class="reset" id="btnReset" type="button" hidden>Câu hỏi mới</button>
     </div>
   </div>
+
+  <div class="menu" id="menu" hidden></div>
 
 <script>
   /* ============================================================
@@ -265,6 +368,7 @@
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
+  const pad2  = n => String(n).padStart(2,'0');
 
   // TỌA ĐỘ CỰC quanh tâm mặt: deg đo TỪ 12 GIỜ, theo chiều kim. Trả [dx,dy] px so với tâm.
   function polar(r, deg){
@@ -316,14 +420,12 @@
   let ARC_R = 0;
   let baseFace = 0;        // FACE đo được lúc KHÔNG phóng to — mốc để KHÓA khi zoom in
 
-  // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari)
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
   // ===== NHẬN BIẾT PHÓNG TO (zoom) =====
   // Zoom làm viewport tính theo CSS px HẸP LẠI -> tính lại bố cục theo viewport mới thì mặt
-  // co đúng bằng phần vừa phóng to (nhìn như "co rúm"). Bắt được zoom thì KHÓA kích thước
-  // mặt ở mức 100%, để trình duyệt tự phóng to đều toàn trang.
+  // co đúng bằng phần vừa phóng to. Bắt được zoom thì KHÓA kích thước mặt ở mức 100%.
   const dprBase = window.devicePixelRatio || 1;
   function zoomFactor(){
     const byDpr   = (window.devicePixelRatio || 1) / dprBase;
@@ -341,7 +443,6 @@
 
     let faceByW;
     if(desktop){
-      // NGANG: đồng hồ | cột câu hỏi -> vừa khít cả bề rộng lẫn chiều cao
       const panelW = elPanel.offsetWidth || 460;
       const GAP = 24;
       const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
@@ -349,7 +450,6 @@
       const faceByH = (vh - 2*EDGE - 2*MARGIN) / 2;
       FACE = Math.min(faceByW, faceByH);
     } else {
-      // DỌC: đồng hồ chỉ co theo BỀ RỘNG, nội dung dài hơn màn thì cuộn
       const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
       faceByW = halfW - MARGIN;
       FACE = faceByW;
@@ -366,16 +466,12 @@
 
     layoutFace();
     drawMarks();
-
-    // Phóng to -> mặt đã KHÓA kích thước nên nội dung có thể tràn: mở cuộn ra cho xem hết
     document.documentElement.style.overflow = zoomed ? 'auto' : '';
   }
 
   // Đặt lại vạch chia, chữ số, vạch mốc và chiều dài kim theo FACE hiện tại
   function layoutFace(){
-    const G_RIM = 5;      // mép -> đầu vạch
-    const G_NUM = 2;      // đuôi vạch -> chữ số
-    const majorLen = 8, minorLen = 4;
+    const G_RIM = 5, G_NUM = 2, majorLen = 8, minorLen = 4;
     const tickOuter = FACE - G_RIM;
     const tickInner = tickOuter - majorLen;
 
@@ -397,13 +493,11 @@
       el.style.top=`calc(50% + ${uy*radius}px)`;
     });
 
-    // Vạch mốc: đầu XA TÂM ở FACE+MK_OUT, dài (MK_OUT - MK_IN)
     markSpans.forEach(sp=>{
       sp.style.top    = (-(FACE + MK_OUT)) + 'px';
       sp.style.height = (MK_OUT - MK_IN) + 'px';
     });
 
-    // Kim ngắn hơn vòng số để không đè lên số
     const hh=FACE*0.34, mh=FACE*0.55, sh=FACE*0.62;
     elHour.style.height=hh+'px'; elHour.style.marginTop=(-hh)+'px';
     elMin.style.height=mh+'px';  elMin.style.marginTop=(-mh)+'px';
@@ -411,7 +505,6 @@
   }
 
   /* ===== 4. MỐC TỪ/ĐẾN + CUNG KHOẢNG PHÚT ===== */
-  // Cung tròn từ startDeg đến endDeg (đo từ 12h)
   function arcPath(r, startDeg, endDeg){
     const sweep = endDeg - startDeg;
     if(sweep <= 0) return '';
@@ -423,7 +516,6 @@
     return `M ${x0} ${y0} A ${r} ${r} 0 ${sweep>180?1:0} 1 ${x1} ${y1}`;
   }
 
-  // Đặt cặp vạch (giờ + phút) của một mốc theo số phút 0..719; null -> ẩn
   function setMark(mH, mM, mins){
     const off = (mins === null);
     mH.classList.toggle('off', off);
@@ -435,12 +527,10 @@
 
   // Vẽ lại mốc + cung từ những gì ĐANG ĐƯỢC BIẾT (không lộ thành phần đang hỏi)
   function drawMarks(){
-    const k = knownNow();          // {from, to, dur} — chưa biết = null
-
+    const k = knownNow();
     setMark(mark.fromH, mark.fromM, k.from);
     setMark(mark.toH,   mark.toM,   k.to);
 
-    // Cung chỉ vẽ khi biết CẢ hai mốc (biết "từ" + số phút mà vẽ cung là lộ mốc "đến")
     const showArc = (k.from !== null && k.to !== null);
     elArc.classList.toggle('off', !showArc);
     if(showArc){
@@ -457,7 +547,6 @@
     const now=new Date();
     const h=now.getHours(), s=now.getSeconds();
 
-    // Kim: góc tăng liên tục, cập nhật MỖI FRAME cho mượt
     const totalSec = now.getTime()/1000 - now.getTimezoneOffset()*60;
     elSec.style.transform  = `rotate(${totalSec*6}deg)`;
     elMin.style.transform  = `rotate(${(totalSec/60)*6}deg)`;
@@ -465,7 +554,6 @@
 
     if(s!==lastSec){
       lastSec=s;
-      // Tô đậm số giờ hiện tại trên mặt (1-12)
       const hourNum = (h%12)===0 ? 12 : (h%12);
       numerals.forEach(el => el.classList.toggle('active', +el.dataset.n===hourNum));
 
@@ -473,6 +561,7 @@
       const mn = now.getMinutes();
       if(mn!==lastMin){
         lastMin=mn;
+        // chỉ vẽ lại vạch mốc; câu chữ ghi "bây giờ" (không có số) nên không cần dựng lại
         if(usingNow() && frozenNow===null) drawMarks();
       }
     }
@@ -480,11 +569,13 @@
   }
 
   /* ===== 6. CÂU HỎI / CÂU TRẢ LỜI ===== */
-  // MỘT nguồn trạng thái (ô nhập dựng lại từ đây nên không giữ giá trị trong DOM).
+  // MỘT nguồn trạng thái (ô nhập/viên dựng lại từ đây nên không giữ giá trị trong DOM).
   //   unknown : thành phần bị hỏi = thành phần phải điền ở câu trả lời (null = chưa chọn)
   //   from/to : {h, m, mode} với mode = cách đặt mốc:
-  //       'input' gõ giờ + phút · 'now' lấy giờ thật · 'sharp' giờ ĐÚNG (phút 0) · 'half' giờ RƯỠI (phút 30)
+  //       'input' gõ/chọn giờ + phút · 'now' lấy giờ thật · 'sharp' giờ ĐÚNG (phút 0) · 'half' giờ RƯỠI (phút 30)
   //   solved  : đáp án điền đã đúng -> mới vẽ thành phần đó lên đồng hồ
+  //   ui      : KIỂU NHẬP đang thử — 'A' viên + bảng chỉnh · 'B' ô trong câu + hàng phụ · 'C' ô trong câu + menu ▾
+  //   edit    : {where:'q'|'a', part} — bảng chỉnh (kiểu A) đang mở cho ô nào
   const MIN_OF = {sharp:0, half:30};
   const state = {
     unknown:null, solved:false,
@@ -492,14 +583,19 @@
     to:  {h:null, m:null, mode:'input'},
     dur:null,
     ans:{h:null, m:null, d:null},
+    ui: localStorage.getItem('hdh-ui') || 'A',
+    edit:null,
+    accPart:null,        // kiểu B: mốc đang được hàng phụ phục vụ
   };
 
   const elQBlock=$('qBlock'), elABlock=$('aBlock');
   const elQSay=$('qSay'), elASay=$('aSay'), elResult=$('result'), btnReset=$('btnReset');
+  const elQAcc=$('qAcc'), elQPicker=$('qPicker'), elAPicker=$('aPicker'), elMenu=$('menu');
   const chips=[...document.querySelectorAll('.chip')];
+  const uiBtns=[...document.querySelectorAll('.ui-b')];
 
   // "bây giờ" = giờ máy đang chạy (quy về 0..719). Trả lời ĐÚNG thì ĐÓNG BĂNG mốc này lại
-  // (frozenNow), nếu không thì sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
+  // (frozenNow), nếu không sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
   const liveNow = () => { const d=new Date(); return (d.getHours()%12)*60 + d.getMinutes(); };
   let frozenNow = null;
   const nowMins  = () => frozenNow!==null ? frozenNow : liveNow();
@@ -535,59 +631,89 @@
     return out;
   }
 
-  // --- Mảnh câu: ô nhập / cụm nút / giá trị ---
+  /* --- Mảnh câu dùng chung --- */
   const inp = (k, cls, v, min, max) =>
     `<input class="in ${cls}" data-k="${k}" type="number" inputmode="numeric" min="${min}" max="${max}"` +
     ` value="${v===null?'':v}">`;
-
   const val = (cls, v) => v===null ? '<span class="todo">…</span>' : `<span class="${cls}">${v}</span>`;
-
   const W_H = '<span class="w-h">giờ</span>';
   const W_M = '<span class="w-m">phút</span>';
   const W_D = '<span class="w-d">phút</span>';
 
-  // Cụm nút đặt nhanh của một mốc — CHỈ dựng những lựa chọn còn ý nghĩa lúc này:
-  //   · đang "bây giờ"      -> chỉ còn chính nó (bấm lại để quay về gõ tay); mốc không có
-  //                            giờ để nói "đúng"/"rưỡi" nên hai nút kia là vô nghĩa
-  //   · mốc kia đang "bây giờ" -> giấu nút "bây giờ" ở đây, vì chỉ MỘT mốc được là bây giờ
-  //                            (giấu hẳn thay vì bấm vào rồi âm thầm cướp của mốc kia)
-  const opts = part => {
-    const mode  = state[part].mode;
-    const other = state[part==='from' ? 'to' : 'from'].mode;
-    const b = (o,txt,tip) => `<button class="opt${mode===o?' on':''}" type="button"` +
-      ` data-part="${part}" data-opt="${o}" title="${tip}">${txt}</button>`;
-    const list = mode==='now'
-      ? [b('now','bây giờ','Bấm lại để tự nhập giờ')]
-      : [
-          ...(other==='now' ? [] : [b('now','bây giờ','Lấy giờ thật đang chạy')]),
-          b('sharp','đúng','Phút 0'),
-          b('half','rưỡi','Phút 30'),
-        ];
-    return `<span class="opts">${list.join('')}</span>`;
-  };
-
-  // Mốc thời điểm ở CÂU HỎI: giá trị (tùy mode) + cụm nút đặt nhanh
-  function timeIn(part){
-    const p = state[part];
-    const h = inp(part+'H','h',p.h,1,12);
-    const body = p.mode==='now'   ? '<span class="v-now">bây giờ</span>'
-               : p.mode==='sharp' ? `${h} ${W_H} <span class="w-m">đúng</span>`
-               : p.mode==='half'  ? `${h} ${W_H} <span class="w-m">rưỡi</span>`
-               : `${h} ${W_H} ${inp(part+'M','m',p.m,0,59)} ${W_M}`;
-    return `${body} ${opts(part)}`;
-  }
-  // Mốc thời điểm ở CÂU TRẢ LỜI: chỉ chữ
+  // Chữ đọc của một mốc (dùng cho câu trả lời và cho VIÊN ở kiểu A)
   function timeTxt(part){
     const p = state[part];
     if(p.mode==='now')   return '<span class="v-now">bây giờ</span>';
     if(p.mode==='sharp') return `${val('v-h',p.h)} ${W_H} <span class="w-m">đúng</span>`;
     if(p.mode==='half')  return `${val('v-h',p.h)} ${W_H} <span class="w-m">rưỡi</span>`;
-    return `${val('v-h',p.h)} ${W_H} ${val('v-m',p.m)} ${W_M}`;
+    return `${val('v-h',p.h)} ${W_H} ${val('v-m',p.m===null?null:pad2(p.m))} ${W_M}`;
   }
-  const durIn   = () => `${inp('dur','d',state.dur,0,HALF_DAY-1)} ${W_D}`;
-  const durTxt  = () => `${val('v-d',state.dur)} ${W_D}`;
-  const ansTime = () => `${inp('ansH','h',state.ans.h,1,12)} ${W_H} ${inp('ansM','m',state.ans.m,0,59)} ${W_M}`;
-  const ansDur  = () => `${inp('ansD','d',state.ans.d,0,HALF_DAY-1)} ${W_D}`;
+  const durTxt = () => `${val('v-d',state.dur)} ${W_D}`;
+
+  // Mốc còn thiếu dữ kiện? (để viên hiện kiểu "chưa chọn")
+  const timeEmpty = part => givenTime(part)===null;
+
+  /* --- Ô nhập mốc trong câu (kiểu B, C) --- */
+  function timeFields(part){
+    const p = state[part];
+    const h = inp(part+'H','h',p.h,1,12);
+    if(p.mode==='now')   return '<span class="v-now">bây giờ</span>';
+    if(p.mode==='sharp') return `${h} ${W_H} <span class="w-m">đúng</span>`;
+    if(p.mode==='half')  return `${h} ${W_H} <span class="w-m">rưỡi</span>`;
+    return `${h} ${W_H} ${inp(part+'M','m',p.m,0,59)} ${W_M}`;
+  }
+
+  /* --- Lựa chọn đặt nhanh: chỉ những cái còn ý nghĩa --- */
+  //   · đang "bây giờ"        -> chỉ còn chính nó (bấm lại để quay về tự nhập)
+  //   · mốc kia đang "bây giờ" -> giấu "bây giờ" ở đây (chỉ MỘT mốc được là bây giờ)
+  function optList(part){
+    const mode  = state[part].mode;
+    const other = state[part==='from' ? 'to' : 'from'].mode;
+    if(mode==='now') return [['now','bây giờ','Bấm lại để tự nhập giờ']];
+    return [
+      ...(other==='now' ? [] : [['now','bây giờ','Lấy giờ thật đang chạy']]),
+      ['sharp','đúng','Phút 0'],
+      ['half','rưỡi','Phút 30'],
+    ];
+  }
+  function optsHTML(part){
+    const mode = state[part].mode;
+    const b = ([o,txt,tip]) => `<button class="opt${mode===o?' on':''}" type="button"` +
+      ` data-part="${part}" data-opt="${o}" title="${tip}">${txt}</button>`;
+    return `<span class="opts">${optList(part).map(b).join('')}</span>`;
+  }
+
+  /* --- KIỂU A: viên giá trị --- */
+  const pillTime = part => `<button class="pill${timeEmpty(part)?' empty':''}` +
+    `${state.edit && state.edit.where==='q' && state.edit.part===part ? ' open':''}"` +
+    ` type="button" data-pill="q:${part}">${timeEmpty(part) ? 'chọn giờ' : timeTxt(part)}</button>`;
+  const pillDur = () => `<button class="pill${state.dur===null?' empty':''}` +
+    `${state.edit && state.edit.where==='q' && state.edit.part==='dur' ? ' open':''}"` +
+    ` type="button" data-pill="q:dur">${state.dur===null ? 'chọn số phút' : durTxt()}</button>`;
+  const pillAns = () => {
+    const t = state.unknown==='dur'
+      ? (state.ans.d===null ? 'chọn số phút' : `${val('v-d',state.ans.d)} ${W_D}`)
+      : (state.ans.h===null||state.ans.m===null ? 'chọn giờ'
+         : `${val('v-h',state.ans.h)} ${W_H} ${val('v-m',pad2(state.ans.m))} ${W_M}`);
+    const empty = state.unknown==='dur' ? state.ans.d===null : (state.ans.h===null||state.ans.m===null);
+    return `<button class="pill${empty?' empty':''}${state.edit && state.edit.where==='a' ? ' open':''}"` +
+      ` type="button" data-pill="a:ans">${t}</button>`;
+  };
+
+  /* --- Một mốc trong CÂU HỎI, tùy kiểu nhập --- */
+  function timeIn(part){
+    if(state.ui==='A') return pillTime(part);
+    if(state.ui==='B') return timeFields(part);                       // nút nằm ở hàng phụ
+    return `${timeFields(part)}<button class="caret" type="button" data-menu="${part}" aria-label="Cách đặt mốc">▾</button>`;
+  }
+  const durIn = () => state.ui==='A' ? pillDur()
+      : `${inp('dur','d',state.dur,0,HALF_DAY-1)} ${W_D}`;
+  const ansIn = () => {
+    if(state.ui==='A') return pillAns();
+    return state.unknown==='dur'
+      ? `${inp('ansD','d',state.ans.d,0,HALF_DAY-1)} ${W_D}`
+      : `${inp('ansH','h',state.ans.h,1,12)} ${W_H} ${inp('ansM','m',state.ans.m,0,59)} ${W_M}`;
+  };
 
   // MỘT câu liền mạch cho câu hỏi (chỗ đang hỏi in màu hồng)
   function qHTML(){
@@ -601,25 +727,83 @@
   // MỘT câu liền mạch cho câu trả lời (chỗ bị hỏi là ô để điền)
   function aHTML(){
     if(state.unknown==='dur')
-      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansDur()}.`;
+      return `Từ ${timeTxt('from')} đến ${timeTxt('to')} là còn ${ansIn()}.`;
     if(state.unknown==='to')
-      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansTime()}.`;
-    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansTime()}.`;
+      return `Từ ${timeTxt('from')} sau ${durTxt()} nữa là ${ansIn()}.`;
+    return `Đến ${timeTxt('to')} thì đã qua ${durTxt()}, vậy bắt đầu từ ${ansIn()}.`;
   }
 
-  // Dựng lại câu HỎI: chỉ gọi khi CẤU TRÚC đổi (đổi chỗ hỏi / bấm nút đặt nhanh),
-  // KHÔNG gọi lúc đang gõ — dựng lại là mất con trỏ trong ô.
+  /* --- KIỂU A: BẢNG CHỈNH (lưới giờ / lưới phút / đặt nhanh) --- */
+  const cells = (cls, list, cur, act) => list.map(v =>
+    `<button class="cell ${cls}${v===cur?' on':''}" type="button" data-act="${act}" data-v="${v}">${v}</button>`
+  ).join('');
+  const HOURS = Array.from({length:12},(_,i)=>i+1);
+  const MINS  = Array.from({length:12},(_,i)=>i*5);
+  const DURS  = [5,10,15,20,25,30,35,40,45,50,55,60,75,90,105,120];
+
+  function pickerHTML(){
+    const e = state.edit;
+    if(!e) return '';
+    const isDur = (e.where==='q' && e.part==='dur') || (e.where==='a' && state.unknown==='dur');
+    if(isDur){
+      const cur = e.where==='q' ? state.dur : state.ans.d;
+      return `<div class="pk-row"><span class="pk-name">Phút</span>
+          <span class="grid">${cells('d',DURS,cur,'dur')}</span></div>
+        <div class="pk-row"><span class="pk-name"></span>
+          <button class="nudge" type="button" data-act="nudge-d" data-v="-1">−1</button>
+          <button class="nudge" type="button" data-act="nudge-d" data-v="1">+1</button>
+          <button class="pk-done" type="button" data-act="done">Xong</button></div>`;
+    }
+    const p = (e.where==='q') ? state[e.part] : state.ans;
+    const isNow = (e.where==='q') && p.mode==='now';
+    const mCur = (e.where==='q' && p.mode==='sharp') ? 0
+               : (e.where==='q' && p.mode==='half')  ? 30 : p.m;
+    return `<div class="pk-row"><span class="pk-name">Giờ</span>
+        <span class="grid">${cells('h',HOURS,isNow?null:p.h,'hour')}</span></div>
+      <div class="pk-row"><span class="pk-name">Phút</span>
+        <span class="grid">${cells('m',MINS,isNow?null:mCur,'min')}</span></div>
+      <div class="pk-row"><span class="pk-name"></span>
+        <button class="nudge" type="button" data-act="nudge-m" data-v="-1">−1</button>
+        <button class="nudge" type="button" data-act="nudge-m" data-v="1">+1</button>
+        ${e.where==='q' ? optsHTML(e.part) : ''}
+        <button class="pk-done" type="button" data-act="done">Xong</button></div>`;
+  }
+
+  function syncPicker(){
+    const e = state.edit;
+    elQPicker.hidden = !(e && e.where==='q');
+    elAPicker.hidden = !(e && e.where==='a');
+    if(e) (e.where==='q' ? elQPicker : elAPicker).innerHTML = pickerHTML();
+  }
+
+  /* --- KIỂU B: hàng phụ dưới câu --- */
+  function syncAcc(){
+    if(state.ui!=='B' || !state.unknown){ elQAcc.hidden = true; return; }
+    // Mốc được phục vụ: cái vừa chạm, mặc định là mốc đầu tiên có trong câu
+    let part = state.accPart;
+    if(!part || part===state.unknown) part = (state.unknown==='from') ? 'to' : 'from';
+    state.accPart = part;
+    elQAcc.hidden = false;
+    elQAcc.innerHTML = `<span class="acc-name">mốc “${part==='from'?'từ':'đến'}”</span>${optsHTML(part)}`;
+  }
+
+  /* --- Dựng lại giao diện --- */
+  // Câu HỎI dựng lại khi CẤU TRÚC đổi (đổi chỗ hỏi / đặt nhanh / đổi kiểu nhập / mở bảng),
+  // KHÔNG gọi lúc đang gõ trong ô — dựng lại là mất con trỏ.
   function syncQ(){
     chips.forEach(c => c.classList.toggle('on', c.dataset.ask===state.unknown));
+    uiBtns.forEach(b => b.classList.toggle('on', b.dataset.ui===state.ui));
     elQBlock.hidden = (state.unknown===null);
     if(state.unknown) elQSay.innerHTML = qHTML();
+    syncAcc();
+    syncPicker();
   }
-  // Câu TRẢ LỜI chỉ hiện khi câu hỏi đã đủ 2 thành phần. Dựng lại được cả khi đang gõ ở câu
-  // hỏi (con trỏ không nằm trong câu này), nhưng KHÔNG dựng khi đang gõ ở chính ô đáp án.
+  // Câu TRẢ LỜI chỉ hiện khi câu hỏi đã đủ 2 thành phần.
   function syncA(){
     const ready = state.unknown!==null && solution()!==null;
     elABlock.hidden = !ready;
     if(ready) elASay.innerHTML = aHTML();
+    if(!ready && state.edit && state.edit.where==='a'){ state.edit=null; syncPicker(); }
   }
   function syncAll(){ syncQ(); syncA(); drawMarks(); }
 
@@ -652,7 +836,7 @@
     drawMarks();
   }
 
-  // Đọc số từ ô nhập -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ)
+  /* --- Ô nhập (kiểu B, C) --- */
   function onInput(e){
     const el = e.target;
     if(!el.classList.contains('in')) return;
@@ -679,39 +863,145 @@
   elQSay.addEventListener('input', onInput);
   elASay.addEventListener('input', onInput);
 
-  // Bấm nút đặt nhanh: bật cái đang tắt, bấm lại cái đang bật -> quay về gõ tay.
-  // ("bây giờ" ở mốc kia đã bị opts() giấu đi rồi nên không có chuyện hai mốc cùng bây giờ.)
-  elQSay.addEventListener('click', e=>{
-    const b = e.target.closest('[data-opt]');
-    if(!b) return;
-    const part = b.dataset.part, opt = b.dataset.opt;
+  // Kiểu B: chạm vào ô nào thì hàng phụ phục vụ mốc đó
+  elQSay.addEventListener('focusin', e=>{
+    const k = e.target.dataset && e.target.dataset.k;
+    if(!k) return;
+    const part = k.startsWith('from') ? 'from' : k.startsWith('to') ? 'to' : null;
+    if(part && part!==state.accPart){ state.accPart=part; syncAcc(); }
+  });
+
+  /* --- Đặt nhanh (dùng chung cả 3 kiểu) --- */
+  function setMode(part, opt){
     const p = state[part];
     p.mode = (p.mode===opt) ? 'input' : opt;
     frozenNow=null;
     syncQ(); syncA(); autoCheck();
+  }
+  document.addEventListener('click', e=>{
+    const b = e.target.closest('[data-opt]');
+    if(!b) return;
+    setMode(b.dataset.part, b.dataset.opt);
   });
 
-  // Chọn chỗ cần hỏi
+  /* --- KIỂU A: mở/đóng bảng chỉnh + các ô trong bảng --- */
+  elPanel.addEventListener('click', e=>{
+    const pill = e.target.closest('[data-pill]');
+    if(pill){
+      const [where, part] = pill.dataset.pill.split(':');
+      const same = state.edit && state.edit.where===where && state.edit.part===part;
+      state.edit = same ? null : {where, part};
+      syncQ(); syncA();
+      return;
+    }
+    const act = e.target.closest('[data-act]');
+    if(!act || !state.edit) return;
+    const v = +act.dataset.v;
+    const e2 = state.edit;
+    const isAns = e2.where==='a';
+    const tgt = isAns ? state.ans : state[e2.part];
+
+    switch(act.dataset.act){
+      case 'hour':
+        if(!isAns && tgt.mode==='now') tgt.mode='input';
+        tgt.h = v;
+        if(isAns && tgt.m===null) tgt.m = 0;
+        break;
+      case 'min':
+        if(!isAns){ tgt.mode='input'; }
+        tgt.m = v;
+        break;
+      case 'nudge-m':
+        if(!isAns){ if(tgt.mode!=='input'){ tgt.m = MIN_OF[tgt.mode] ?? tgt.m; tgt.mode='input'; } }
+        tgt.m = ((tgt.m ?? 0) + v + 60) % 60;
+        break;
+      case 'dur':
+        if(isAns) state.ans.d = v; else state.dur = v;
+        break;
+      case 'nudge-d': {
+        const cur = isAns ? state.ans.d : state.dur;
+        const nv = clamp((cur ?? 0) + v, 0, HALF_DAY-1);
+        if(isAns) state.ans.d = nv; else state.dur = nv;
+        break;
+      }
+      case 'done':
+        state.edit = null;
+        break;
+    }
+    frozenNow=null;
+    syncQ(); syncA(); autoCheck();
+  });
+
+  /* --- KIỂU C: menu ▾ --- */
+  function closeMenu(){ elMenu.hidden = true; elMenu.dataset.part=''; }
+  elQSay.addEventListener('click', e=>{
+    const c = e.target.closest('[data-menu]');
+    if(!c) return;
+    const part = c.dataset.menu;
+    if(!elMenu.hidden && elMenu.dataset.part===part){ closeMenu(); return; }
+    const mode = state[part].mode;
+    const items = [
+      ...optList(part).map(([o,txt]) => [o, o==='now'?'bây giờ':o==='sharp'?'giờ đúng':'giờ rưỡi']),
+      ['input','tự nhập'],
+    ];
+    elMenu.innerHTML = items.map(([o,txt]) =>
+      `<button type="button" class="${mode===o?'on':''}" data-mi="${o}">${txt}</button>`).join('');
+    elMenu.dataset.part = part;
+    elMenu.hidden = false;
+    const r = c.getBoundingClientRect();
+    const w = elMenu.offsetWidth, h = elMenu.offsetHeight;
+    elMenu.style.left = Math.min(r.left, window.innerWidth - w - 8) + 'px';
+    elMenu.style.top  = (r.bottom + h + 8 > window.innerHeight ? r.top - h - 4 : r.bottom + 4) + 'px';
+  });
+  elMenu.addEventListener('click', e=>{
+    const b = e.target.closest('[data-mi]');
+    if(!b) return;
+    const part = elMenu.dataset.part;
+    state[part].mode = b.dataset.mi;
+    closeMenu();
+    frozenNow=null;
+    syncQ(); syncA(); autoCheck();
+  });
+  document.addEventListener('click', e=>{
+    if(elMenu.hidden) return;
+    if(e.target.closest('#menu') || e.target.closest('[data-menu]')) return;
+    closeMenu();
+  });
+  window.addEventListener('scroll', closeMenu, true);
+
+  /* --- Chọn chỗ cần hỏi --- */
   chips.forEach(c=>{
     c.addEventListener('click', ()=>{
       state.unknown = c.dataset.ask;
       if(state.unknown!=='dur') state[state.unknown].mode='input';   // chỗ đang hỏi thì không đặt nhanh được
       state.solved = false; frozenNow=null;
       state.ans = {h:null,m:null,d:null};
+      state.edit = null; state.accPart = null;
       setResult('');
       syncAll();
     });
   });
 
-  // Xoá sạch, quay về màn chọn chỗ hỏi
+  /* --- Xoá sạch, quay về màn chọn chỗ hỏi --- */
   btnReset.addEventListener('click', ()=>{
     state.unknown=null; state.solved=false; frozenNow=null;
     state.from={h:null,m:null,mode:'input'};
     state.to  ={h:null,m:null,mode:'input'};
     state.dur=null;
     state.ans={h:null,m:null,d:null};
+    state.edit=null; state.accPart=null;
     setResult('');
     syncAll();
+  });
+
+  /* --- Đổi kiểu nhập (tạm, để thử) --- */
+  uiBtns.forEach(b=>{
+    b.addEventListener('click', ()=>{
+      state.ui = b.dataset.ui;
+      localStorage.setItem('hdh-ui', state.ui);
+      state.edit=null; closeMenu();
+      syncAll();
+    });
   });
 
   /* ===== KHỞI ĐỘNG ===== */

@@ -561,8 +561,10 @@
     layoutFace();
     drawMarks();
 
-    // Phóng to -> mặt đã KHÓA kích thước nên nội dung có thể tràn: mở cuộn ra cho xem hết
+    // Phóng to -> mặt giữ nguyên cỡ nên nội dung tràn ra ngoài viewport: mở cuộn cả 2 chiều
+    // (CSS mặc định overflow-x:hidden sẽ cắt mất mép phải đồng hồ).
     document.documentElement.style.overflow = zoomed ? 'auto' : '';
+    document.body.style.overflow = zoomed ? 'visible' : '';
   }
 
   // Nét nối + nhãn: nét nối kéo từ connStart ra dài len; tâm nhãn cách tâm mặt badgeR
@@ -963,9 +965,22 @@
   btnClearStars.addEventListener('click', clearStars);
 
   /* --- Khởi động --- */
-  window.addEventListener('resize', layout);
-  window.addEventListener('orientationchange', layout);
-  if(window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+  // MOBILE: mặt đồng hồ chỉ tính theo BỀ RỘNG -> chỉ căn lại khi bề rộng đổi (xoay máy).
+  // BỎ QUA đổi chiều cao: thanh công cụ ẩn/hiện và pinch-zoom làm chiều cao vùng nhìn thấy
+  // co lại liên tục, căn lại theo đó thì đồng hồ co rúm giữa cử chỉ.
+  // DESKTOP: mặt còn phụ thuộc chiều cao nên vẫn căn lại khi chiều cao đổi (>2px).
+  let lastW = -1, lastVh = -1;
+  function relayout(){
+    const w = window.innerWidth;
+    if(mqDesktop.matches){
+      const vh = viewportH();
+      if(w === lastW && Math.abs(vh - lastVh) < 2) return;
+      lastVh = vh;
+    } else if(w === lastW) return;
+    lastW = w; layout();
+  }
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', relayout);
   document.fonts && document.fonts.ready.then(layout);
   drawStars();
   syncAll();

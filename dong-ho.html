@@ -916,7 +916,6 @@
 
   const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport có hẹp cỡ nào cũng KHÔNG co về 0
   let FACE;
-  let baseFace = 0;        // FACE đo được lúc KHÔNG phóng to (zoom 100%) — mốc để KHÓA khi zoom in
   let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
   let HOUR_BADGE_R = 0, MIN_BADGE_R = 0, HOUR_HALF = 0, lastPm = null;   // bán kính đĩa kính giờ/phút (JS đặt vị trí) + nét nối giờ bám vòng ngày
 
@@ -925,20 +924,19 @@
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
-  // ===== NHẬN BIẾT PHÓNG TO (zoom) =====
-  // Zoom của trình duyệt (Ctrl/⌘ +, hoặc "cỡ trang" trên tivi/Android) làm viewport tính
-  // theo CSS px HẸP LẠI -> nếu cứ tính lại bố cục theo viewport mới thì mặt đồng hồ co lại
-  // đúng bằng phần vừa phóng to => nhìn như bị "co rúm". Bắt được zoom thì KHÓA kích thước
-  // mặt ở mức 100%, để trình duyệt tự phóng to đều toàn trang.
-  //   - zoom trang  -> đổi devicePixelRatio (Chrome/Safari/Firefox)
-  //   - pinch-zoom  -> đổi visualViewport.scale (mobile / trackpad)
-  // Mỗi trình duyệt chỉ đổi MỘT trong hai -> lấy tín hiệu MẠNH hơn (không nhân đôi).
+  // ===== PHÓNG TO (zoom) =====
+  // Zoom của trình duyệt (Ctrl/⌘ +, hoặc "cỡ trang" trên tivi/Android) làm viewport tính theo
+  // CSS px HẸP LẠI. Cứ lấy viewport đó mà chia thì mặt đồng hồ co lại đúng bằng phần vừa phóng
+  // to -> chữ to lên mà đồng hồ vẫn bé ("co rúm").
+  // Xử lý: đo hệ số zoom rồi QUY viewport về mức 100% TRƯỚC khi tính. Mặt giữ nguyên số CSS px,
+  // trình duyệt tự phóng to nó cùng nhịp với chữ; phần tràn ra thì cuộn.
+  // devicePixelRatio đổi đúng bằng hệ số zoom. KHÔNG dùng visualViewport.scale: pinch zoom
+  // không đổi layout viewport, bù vào là nhân đôi.
   // Mốc devicePixelRatio lấy lúc mở trang = 100% (mở sẵn ở mức zoom nào thì mức đó là chuẩn).
   const dprBase = window.devicePixelRatio || 1;
   function zoomFactor(){
-    const byDpr   = (window.devicePixelRatio || 1) / dprBase;
-    const byPinch = (window.visualViewport && window.visualViewport.scale) || 1;
-    return Math.max(byDpr, byPinch);
+    const z = (window.devicePixelRatio || 1) / dprBase;
+    return Math.min(Math.max(z, 1), 5);   // chỉ bù khi PHÓNG TO; zoom out để bố cục co giãn như thường
   }
 
   // 2 bố cục theo BỀ RỘNG (khớp media query CSS):
@@ -966,19 +964,23 @@
     // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
     const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
-    const vh = viewportH();
+    const vhReal = viewportH();
 
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
     const desktop = mqDesktop.matches;
 
-    // ĐANG PHÓNG TO? -> khóa kích thước mặt ở mức 100% + cho phép cuộn (xử lý ở cuối hàm).
-    const zoomed = zoomFactor() > 1.01;
+    // ĐANG PHÓNG TO? -> cho phép cuộn (xử lý ở cuối hàm).
+    const zoom   = zoomFactor();
+    const zoomed = zoom > 1.01;
+    // Viewport QUY VỀ mức 100% -> mọi phép chia dưới đây không còn phụ thuộc mức zoom
+    const vw = window.innerWidth * zoom;
+    const vh = vhReal * zoom;
 
     // DESKTOP: ghim chiều cao body = vùng nhìn thấy để căn giữa, KHÔNG scroll.
     // ĐANG PHÓNG TO: 'auto' (ĐÈ height:100dvh của CSS desktop) -> body CAO BẰNG NỘI DUNG,
     //   nếu không thì căn giữa theo chiều dọc sẽ đẩy đỉnh đồng hồ ra ngoài mép trên, cuộn không tới.
     // MOBILE: '' -> theo CSS (min-height:100dvh) và cuộn tự nhiên.
-    document.body.style.height = desktop ? (zoomed ? 'auto' : vh + 'px') : '';
+    document.body.style.height = desktop ? (zoomed ? 'auto' : vhReal + 'px') : '';
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
@@ -997,7 +999,7 @@
     if(desktop){
       // DESKTOP: vừa khít cả BỀ RỘNG lẫn CHIỀU CAO -> đo cột digital + lịch để chừa chỗ.
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
-      const availW = Math.min(window.innerWidth, 1600) - EDGE*2;
+      const availW = Math.min(vw, 1600) - EDGE*2;
       // [analog/digital] | LỊCH. Chừa thêm ~40px chiều cao (clock căn giữa -> ~28px lề
       // trên & dưới) để DÒNG VĂN NÓI ở đáy cột digital không sát mép dưới màn hình.
       const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
@@ -1006,7 +1008,7 @@
     } else {
       // MOBILE DỌC: đồng hồ chỉ co theo BỀ RỘNG (cao hơn màn thì cuộn) -> không cần đo
       // chiều cao digital/lịch hay tính theo viewport-height.
-      const halfW = (Math.min(window.innerWidth, 900) / 2) - EDGE;
+      const halfW = (Math.min(vw, 900) / 2) - EDGE;
       faceByW = halfW - maxReach;
       FACE = faceByW;
     }
@@ -1017,12 +1019,6 @@
     // SÀN CỨNG: faceByW có thể ÂM khi viewport cực hẹp (zoom rất sâu) -> chặn để mặt
     // KHÔNG BAO GIỜ co về 0 (thà cuộn còn hơn co rúm).
     FACE = Math.max(FACE, FACE_MIN);
-    // ===== KHÓA KHI PHÓNG TO =====
-    // Zoom in -> giữ NGUYÊN kích thước mặt lúc 100%: trình duyệt tự nhân toàn trang lên nên
-    // đồng hồ to đúng theo mức zoom, không tính lại theo viewport đã hẹp đi => hết "co rúm".
-    // Zoom về 100% -> ghi lại mốc mới (và mọi thay đổi cửa sổ khi không zoom đều cập nhật mốc).
-    if(zoomed && baseFace > 0) FACE = baseFace;
-    else baseFace = FACE;
 
     const D = FACE*2;
     analog.style.width  = D+'px';
@@ -1497,8 +1493,8 @@
   // DESKTOP căn vừa khít viewport -> căn lại khi đổi BỀ RỘNG hoặc CHIỀU CAO (>2px).
   // MOBILE trang cuộn tự nhiên, đồng hồ chỉ theo BỀ RỘNG -> CHỈ căn lại khi đổi bề rộng
   // (xoay máy); BỎ QUA đổi chiều cao (thanh công cụ ẩn/hiện, pinch-zoom) nên hết "co dúm".
-  // Zoom TRANG có đổi bề rộng nên vẫn chạy layout(), nhưng layout() nhận ra đang phóng to
-  // và KHÓA kích thước mặt (xem zoomFactor/baseFace ở phần 5) -> analog không co rúm.
+  // Zoom TRANG có đổi bề rộng nên vẫn chạy layout(), nhưng layout() quy viewport về mức 100%
+  // trước khi tính (xem zoomFactor ở phần 5) -> mặt giữ nguyên cỡ, không co rúm.
   let lastW=-1, lastVh=-1;
   function relayout(){
     const w=window.innerWidth;
@@ -1519,14 +1515,6 @@
   // -> trên mobile pinch-zoom chỉ phóng to đồng đều, không kích relayout giữa cử chỉ.
   window.addEventListener('resize', relayout);
   window.addEventListener('orientationchange', relayout);
-  // Pinch-zoom KHÔNG kích layout (cố ý). Nhưng nếu ĐANG phóng to mà xoay máy thì bố cục bị
-  // KHÓA theo kích thước cũ -> khi người dùng thu về 100% (không có resize cấp window trên
-  // iOS) phải căn lại một lần. Chỉ chạy khi ĐÃ hết phóng to VÀ đang ở trạng thái khóa.
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', ()=>{
-      if(zoomFactor() <= 1.01 && document.documentElement.style.overflow) layout();
-    });
-  }
   // Căn lại sau khi font thật (Space Grotesk) tải xong — tránh căn theo font dự phòng
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(layout);

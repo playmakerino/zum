@@ -1106,9 +1106,15 @@
 
   /* KHUNG MỘT BÀN, đo trong hệ toạ độ gốc của icon (viewBox 512×512 của bộ icon):
        x 180..388  = bề ngang thật của tay (icon chừa rất nhiều lề trống hai bên)
-       y -95..345  = 95 đơn vị phía trên cho NHÃN, rồi tới tay, cắt ngang ở cổ tay
-                     (bỏ phần cẳng tay bên dưới, nếu giữ thì hai hàng cao gấp rưỡi) */
-  const CELL = {x0:180, y0:-95, w:208, h:440};
+       y -64..345  = chỗ cho NHÃN, rồi tới tay, cắt ngang ở cổ tay
+                     (bỏ phần cẳng tay bên dưới, nếu giữ thì hai hàng cao gấp rưỡi)
+     ĐỈNH KHUNG chừa VỪA ĐỦ nhãn, không dư: đầu ngón cao nhất ở y=31, nhãn bắt đầu dưới nó
+     LAB_UP=14 (tức y=17) rồi dựng đứng chạy ngược lên. Nhãn dài nhất là 5 ký tự kiểu "12:35"
+     cỡ 26 — chữ số Space Grotesk rộng ~0.6em, dấu hai chấm ~0.28em nên ~70 đơn vị, cộng 3
+     cho viền nền -> đỉnh nhãn ~-56. Lấy -64 là vừa khít còn dư chút cho font dự phòng.
+     Trước để -95: phần trống thừa đó nằm HẲN ở phía trên hình, làm khe từ dòng "từ" xuống
+     bàn tay nhìn xa hơn hẳn khe từ bàn tay xuống dòng "đến", dù CSS cho gap bằng nhau. */
+  const CELL = {x0:180, y0:-64, w:208, h:409};
   const COL_GAP = 16, ROW_GAP = 20;
   const ROW_W = CELL.w*2 + COL_GAP;           // 432
   const MIRROR_AX = 2 * (CELL.x0 + CELL.w/2); // lật quanh tâm ngang của khung: x -> 568 - x

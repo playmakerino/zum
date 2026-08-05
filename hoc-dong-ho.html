@@ -640,7 +640,9 @@
 
   function layout(){
     const desktop = mqDesktop.matches;
-    const vw = window.innerWidth;
+    // clientWidth = LAYOUT viewport: Safari iOS cho window.innerWidth bám VISUAL viewport,
+    // pinch-zoom xong đổi giá trị -> layout() co mặt lại (số rem cố định không co nên "số to ra").
+    const vw = document.documentElement.clientWidth;
     const vh = viewportH();
 
     let faceByW;
@@ -1299,7 +1301,9 @@
   // DESKTOP: mặt còn phụ thuộc chiều cao nên vẫn căn lại khi chiều cao đổi (>2px).
   let lastW = -1, lastVh = -1;
   function relayout(){
-    const w = window.innerWidth;
+    // clientWidth (layout viewport) thay vì innerWidth: Safari iOS đổi innerWidth theo
+    // pinch-zoom -> relayout chạy oan giữa cử chỉ, mặt tự co còn số thì không.
+    const w = document.documentElement.clientWidth;
     if(mqDesktop.matches){
       const vh = viewportH();
       if(w === lastW && Math.abs(vh - lastVh) < 2) return;

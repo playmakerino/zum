@@ -644,9 +644,6 @@
   /* ===== 4. BỐ CỤC TỰ CO (layout) ===== */
   const EDGE = 12;         // lề tối thiểu tới cạnh màn hình
   const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport hẹp cỡ nào cũng KHÔNG co về 0
-  // Vạch mốc từ/đến là một GẠCH NGẮN nằm ĐÈ lên cung của chính nó (vạch giờ trên cung giờ,
-  // vạch phút trên cung phút), lấy bán kính cung làm tâm — KHÔNG kéo về mép mặt.
-  const MK_LEN = 8;               // dài một vạch mốc (cung dày 3.2px -> vạch thò ra ~2.4px mỗi bên)
 
   // ===== BÁN KÍNH CÁC LỚP NGOÀI MẶT (đều là ĐỘ LỆCH so với FACE, không phụ thuộc FACE) =====
   // Nhãn là hình tròn đều -> nửa bề ngang = nửa bề cao = bán kính; đường kính đọc từ
@@ -654,24 +651,28 @@
   // nhau đúng một đường kính nhãn nên hai nhãn không chạm nhau khi hai kim trùng.
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
-  // BA CUNG lấy đúng bán kính của dong-ho.html: vòng GIỜ ở 18 là mốc, vòng PHÚT nằm CHÍNH
-  // GIỮA mép mặt và vòng giờ nên khe mép->phút bằng khe phút->giờ. Cung khoảng teal dùng
-  // CHUNG LÀN với cung phút (cùng thang phút); path phút đứng SAU spanArc trong DOM nên vẽ
-  // ĐÈ lên teal. Vạch mốc từ/đến không còn chiếm vành riêng nữa mà nằm ngay trên hai cung này.
-  const NOW_H_OFF  = 18;                                // vòng GIỜ hiện tại (= R_D1_OFF bên dong-ho)
-  const NOW_M_OFF  = NOW_H_OFF/2;                       // vòng PHÚT hiện tại
+  // Vành ngoài dùng ĐÚNG mô hình khe của dong-ho.html, đo MÉP tới MÉP (không phải tâm tới tâm):
+  //     mép mặt -> cung phút -> cung giờ -> nhãn phút -> nhãn giờ
+  // mọi khe đều bằng CLEAR. (Bên dong-ho còn vòng nửa ngày thứ hai cách vòng đầu NỬA khe;
+  // ở đây quy ước mặt 12 giờ nên chỉ có MỘT cung giờ, không có khe đó.)
+  // Cung khoảng teal dùng CHUNG LÀN với cung phút — cùng thang phút; path phút đứng SAU
+  // spanArc trong DOM nên vẽ ĐÈ lên teal.
+  const STREAK_HALF= 2;                                 // nửa bề rộng nét đậm (--ring-bold 3.2 -> ~1.6, làm tròn lên cho dư)
+  const CLEAR      = 3;                                 // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
+  const STEP       = STREAK_HALF + CLEAR + STREAK_HALF; // tâm->tâm hai cung cách nhau một khe CHUNG
+  const NOW_M_OFF  = CLEAR + STREAK_HALF;               // cung PHÚT: mép trong cách MÉP MẶT đúng CLEAR
+  const NOW_H_OFF  = NOW_M_OFF + STEP;                  // cung GIỜ
   const ARC_OFF    = NOW_M_OFF;                         // cung khoảng phút — chung làn cung phút
   const CUE_OFF    = NOW_H_OFF + 10;                    // chữ "từ"/"đến": NGOÀI cụm cung, không đè lên cung
   const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
-  // Hai khe NHÌN THẤY hai bên nhãn phút bằng nhau (giống dong-ho.html): khe từ MÉP cung giờ
-  // tới mép nhãn phút, và khe từ mép nhãn phút tới mép nhãn giờ, đều đúng bằng CLEAR.
-  // Phải trừ theo MÉP nét cung (RING_OUT) chứ không phải TÂM nét, không thì khe trong hụt
-  // đúng bằng STREAK_HALF.
-  const STREAK_HALF= 2;                                 // nửa bề rộng nét đậm (--ring-bold 3.2 -> ~1.6, làm tròn lên cho dư)
   const RING_OUT   = NOW_H_OFF + STREAK_HALF;           // mép NGOÀI của cung ngoài cùng
-  const CLEAR      = 3;                                 // khe hở dùng CHUNG cho cả hai bên nhãn phút
   const BADGE_M_OFF= RING_OUT + CLEAR + BADGE_HALF;     // tâm nhãn PHÚT (bám theo MÉP cung ngoài cùng)
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + CLEAR;     // tâm nhãn GIỜ (ngoài nhãn phút)
+  // Vạch mốc từ/đến: gạch NGẮN nằm ĐÈ lên cung của chính nó (vạch giờ trên cung giờ, vạch
+  // phút trên cung phút), lấy bán kính cung làm TÂM — không kéo về mép mặt. Hai cung cách
+  // nhau STEP nên vạch phải ngắn hơn ngần ấy, chừa 1px để vạch giờ và vạch phút không dính
+  // vào nhau thành một nét dài.
+  const MK_LEN     = STEP - 1;                          // dài một vạch mốc
   const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + 4);   // lề quanh mặt = tầm với xa nhất
   let FACE = 150;
   let ARC_R = 0;

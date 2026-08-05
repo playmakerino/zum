@@ -936,18 +936,20 @@
     const ARC_GAP = 8;
 
     // ===== Bán kính VÒNG & NHÃN (đều là độ lệch so với FACE, KHÔNG phụ thuộc FACE) =====
-    const R_D1_OFF = 18;                       // vòng nửa ngày 1
-    const R_D2_OFF = 23;                       // vòng nửa ngày 2 (NGOÀI cùng)
-    // Vòng PHÚT đặt ĐÚNG GIỮA mép mặt và vòng giờ trong cùng: khe mép->phút bằng khe
-    // phút->giờ. Suy từ R_D1_OFF nên đổi vòng giờ thì vòng phút tự đi theo, không lệch.
-    const R_M_OFF = R_D1_OFF/2;                // vòng phút (60')
+    // MỘT khe hở duy nhất cho cả vành ngoài, đo MÉP tới MÉP (không phải tâm tới tâm):
+    //     mép mặt -> vòng phút -> vòng ngày TRONG -> vòng ngày NGOÀI -> nhãn phút -> nhãn giờ
+    // Mọi khe đều bằng CLEAR, RIÊNG khe giữa hai vòng ngày bằng NỬA CLEAR vì hai vòng đó là
+    // một nhóm. Đo theo mép nên mỗi bước phải cộng thêm nửa bề rộng của thứ nằm hai bên khe.
     const STREAK_HALF = 2;                     // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2 -> ~1.6, làm tròn lên 2 cho dư)
+    const CLEAR = 3;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
+    const STEP  = STREAK_HALF + CLEAR + STREAK_HALF;       // tâm->tâm hai vòng cách nhau một khe CHUNG
+    const R_M_OFF  = CLEAR + STREAK_HALF;      // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
+    const R_D1_OFF = R_M_OFF + STEP;           // vòng nửa ngày 1 (TRONG)
+    const R_D2_OFF = R_D1_OFF + STEP - CLEAR/2;// vòng nửa ngày 2 (NGOÀI) — chỉ cách vòng 1 nửa khe
     const RING_OUT = R_D2_OFF + STREAK_HALF;   // mép NGOÀI của cả cụm vòng
 
     // Nhãn quay quanh mặt: khi ở 3/9 giờ, điểm GẦN TÂM NHẤT của nhãn = tâm_nhãn - BADGE_HALF.
-    // Phải tính cả 2 vòng ngày mới: điểm đó cách mép cụm vòng (RING_OUT) ít nhất CLEAR
-    //   => tâm nhãn phút = RING_OUT + CLEAR + BADGE_HALF (xa hơn công thức cũ dựa vòng phút).
-    const CLEAR = 3;
+    // Điểm đó cách mép cụm vòng (RING_OUT) đúng CLEAR => tâm nhãn phút = RING_OUT + CLEAR + BADGE_HALF.
     const badgeM_off = RING_OUT + CLEAR + BADGE_HALF;   // khoảng cách tâm -> nhãn PHÚT
     // Nhãn GIỜ: khe mép nhãn phút -> mép nhãn giờ cũng ĐÚNG BẰNG CLEAR => hai khe NHÌN THẤY
     // hai bên nhãn phút (vào vòng ngày ngoài, ra nhãn giờ) bằng nhau.

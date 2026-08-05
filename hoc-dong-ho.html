@@ -1027,8 +1027,11 @@
     return {g:cell, use, labs, mirror};
   }
 
+  // Vùng cắt chỉ để CẮT NGANG ở cổ tay (bỏ cẳng tay), không cần cắt hai bên -> nới ra 8 đơn vị
+  // mỗi bên cho nhãn ngón cái (nằm sát mép khung) không bị xén mất viền. Khe giữa hai bàn là
+  // 16 nên nới 8 vẫn không chồng sang bàn bên cạnh, và vẫn đối xứng qua tâm nên bàn lật dùng chung.
   elLimbs.appendChild(mk('clipPath', {id:'cellClip'})).appendChild(
-    mk('rect', {x:CELL.x0, y:CELL.y0, width:CELL.w, height:CELL.h}));
+    mk('rect', {x:CELL.x0 - 8, y:CELL.y0, width:CELL.w + 16, height:CELL.h}));
 
   // Thứ tự trong mảng = thứ tự đếm: 1-5, 6-10 (hàng trên) rồi 11-15, 16-20 (hàng dưới)
   // ox,oy là vị trí GÓC TRÊN-TRÁI của khung trong viewBox, không phải toạ độ gốc của icon

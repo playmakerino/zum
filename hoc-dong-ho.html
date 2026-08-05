@@ -644,10 +644,11 @@
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
-  // Hai cung GIỜ THẬT nằm NGOÀI cung khoảng, mỗi cung một làn riêng cách nhau 5px (đủ hở
-  // giữa hai nét đậm 3.2px). Thứ tự từ trong ra: PHÚT rồi GIỜ — giống dong-ho.html.
-  const NOW_M_OFF  = ARC_OFF + 5;                       // vòng PHÚT hiện tại
-  const NOW_H_OFF  = NOW_M_OFF + 5;                     // vòng GIỜ hiện tại (ngoài cùng của cụm cung)
+  // Hai cung GIỜ THẬT. Cung PHÚT dùng CHUNG LÀN với cung khoảng — cùng thang phút nên nằm
+  // chồng nhau; path phút đứng SAU trong DOM nên vẽ ĐÈ lên teal. Cung GIỜ ra xa GẤP ĐÔI để
+  // khe mép mặt -> phút bằng khe phút -> giờ (giống dong-ho.html).
+  const NOW_M_OFF  = ARC_OFF;                           // vòng PHÚT hiện tại — chung làn cung khoảng
+  const NOW_H_OFF  = NOW_M_OFF*2;                       // vòng GIỜ hiện tại (ngoài cùng của cụm cung)
   const CUE_OFF    = NOW_H_OFF + 10;                    // chữ "từ"/"đến": NGOÀI cụm cung, không đè lên cung
   const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
   const BADGE_M_OFF= NOW_H_OFF + 7 + BADGE_HALF;        // tâm nhãn PHÚT (bám theo cung NGOÀI CÙNG, KHÔNG theo nét nối)

@@ -938,6 +938,9 @@
     // ===== Bán kính VÒNG & NHÃN (đều là độ lệch so với FACE, KHÔNG phụ thuộc FACE) =====
     const R_D1_OFF = 18;                       // vòng nửa ngày 1
     const R_D2_OFF = 23;                       // vòng nửa ngày 2 (NGOÀI cùng)
+    // Vòng PHÚT đặt ĐÚNG GIỮA mép mặt và vòng giờ trong cùng: khe mép->phút bằng khe
+    // phút->giờ. Suy từ R_D1_OFF nên đổi vòng giờ thì vòng phút tự đi theo, không lệch.
+    const R_M_OFF = R_D1_OFF/2;                // vòng phút (60')
     const STREAK_HALF = 2;                     // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2 -> ~1.6, làm tròn lên 2 cho dư)
     const RING_OUT = R_D2_OFF + STREAK_HALF;   // mép NGOÀI của cả cụm vòng
 
@@ -1012,7 +1015,7 @@
 
     // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
     // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng vẫn không đè nhau.)
-    ARC_R_M  = FACE + ARC_GAP;        // vòng phút (60') — nhóm trong, sát mặt
+    ARC_R_M  = FACE + R_M_OFF;        // vòng phút (60') — nhóm trong, giữa mép mặt và vòng ngày
     ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
     ARC_R_D2 = FACE + R_D2_OFF;       // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
 

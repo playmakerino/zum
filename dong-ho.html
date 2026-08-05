@@ -941,22 +941,21 @@
     // Mọi khe đều bằng CLEAR, RIÊNG khe giữa hai vòng ngày bằng NỬA CLEAR vì hai vòng đó là
     // một nhóm. Đo theo mép nên mỗi bước phải cộng thêm nửa bề rộng của thứ nằm hai bên khe.
     //
-    // MỖI VÒNG CÓ HAI LOẠI NÉT CHỒNG LÊN NHAU -> phải dùng đúng loại cho đúng việc:
-    //   RING_HALF = nửa nét MẢNH (--ring-thin). Nét mảnh (track/arc) vẽ TRỌN vòng nên nó là
-    //     đường liên tục mắt nhìn thấy => KHOẢNG CÁCH GIỮA CÁC VÒNG phải đo theo nó.
-    //   BOLD_HALF = nửa nét ĐẬM (--ring-bold). Nét đậm (act/live) chỉ phủ Ô HIỆN TẠI (6° phút
-    //     / 30° giờ) nên không tạo cảm giác khoảng cách, nhưng là chỗ cụm vòng thò ra XA NHẤT
-    //     => chỉ dùng để chừa chỗ cho nhãn.
-    //   Lấy nhầm BOLD_HALF đi đo khe giữa các vòng thì khe MÉP MẶT -> vòng phút (chỉ có MỘT
-    //   mép vòng) hụt hơn khe vòng-tới-vòng (có HAI mép) đúng BOLD_HALF - RING_HALF = 1.1px.
-    const RING_HALF = 0.5;                     // nửa --ring-thin (1px)
-    const BOLD_HALF = 1.6;                     // nửa --ring-bold (3.2px)
+    // MỖI VÒNG CÓ HAI LỚP NÉT CHỒNG LÊN NHAU: track/arc nét MẢNH (--ring-thin 1px) vẽ TRỌN
+    // vòng, còn act/live nét ĐẬM (--ring-bold 3.2px) chỉ phủ Ô HIỆN TẠI (6° phút / 30° giờ).
+    // Đường liên tục mắt nhìn thấy là nét MẢNH nên MỌI khe đo theo nó — kể cả khe ra nhãn.
+    //   Đo nhầm theo nét đậm thì khe MÉP MẶT -> vòng phút (chỉ có MỘT mép vòng) hụt hơn khe
+    //   vòng-tới-vòng (có HAI mép) đúng 1.1px, nhìn ra ngay.
+    //   Đánh đổi đã cân nhắc: ngay tại ô hiện tại, nét đậm thò thêm 1.1px mỗi bên nên khe ở
+    //   đúng chỗ đó hẹp lại (vd vòng ngày ngoài -> nhãn phút còn ~3.9px). Chấp nhận để cả
+    //   vành có MỘT nhịp đều, thay vì để riêng khe ra nhãn rộng hơn mọi khe khác 1.1px.
+    const RING_HALF = 0.5;                     // nửa --ring-thin (1px) — MỌI khe đo theo số này
     const CLEAR = 5;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
     const STEP  = RING_HALF + CLEAR + RING_HALF;   // tâm->tâm hai vòng cách nhau một khe CHUNG
     const R_M_OFF  = CLEAR + RING_HALF;        // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
     const R_D1_OFF = R_M_OFF + STEP;           // vòng nửa ngày 1 (TRONG)
     const R_D2_OFF = R_D1_OFF + STEP - CLEAR/2;// vòng nửa ngày 2 (NGOÀI) — chỉ cách vòng 1 nửa khe
-    const RING_OUT = R_D2_OFF + BOLD_HALF;     // mép NGOÀI cụm vòng, tính cả nét ĐẬM thò ra
+    const RING_OUT = R_D2_OFF + RING_HALF;     // mép NGOÀI cụm vòng, theo NÉT MẢNH như mọi khe khác
 
     // Nhãn quay quanh mặt: khi ở 3/9 giờ, điểm GẦN TÂM NHẤT của nhãn = tâm_nhãn - BADGE_HALF.
     // Điểm đó cách mép cụm vòng (RING_OUT) đúng CLEAR => tâm nhãn phút = RING_OUT + CLEAR + BADGE_HALF.

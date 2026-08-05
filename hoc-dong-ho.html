@@ -165,11 +165,16 @@
     white-space:nowrap;
   }
 
-  /* ===== MỐC TỪ / ĐẾN = VẠCH NGOÀI MÉP MẶT =====
-     Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép:
-     mỗi mốc 2 vạch (giờ: đậm xanh · phút: mảnh cam). Hai mốc phân biệt nhau bằng CHỮ
-     "từ"/"đến" ở trên, nên vạch của hai mốc vẽ y hệt nhau. */
-  .mark{position:absolute;left:50%;top:50%;transform-origin:0 0;z-index:8;}
+  /* ===== MỐC TỪ / ĐẾN = VẠCH NGẮN NẰM TRÊN CUNG =====
+     Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép, mỗi mốc 2
+     vạch (giờ: đậm xanh · phút: mảnh cam). Mỗi vạch là một gạch NGẮN cắt ngang chính cung
+     đo nó — vạch giờ trên cung giờ, vạch phút trên cung phút — chứ không kéo dài về mép
+     mặt: cung đã chỉ ra thang đo, vạch chỉ cần chỉ ĐIỂM trên thang đó. JS đặt top/height
+     theo bán kính từng cung. Hai mốc phân biệt nhau bằng CHỮ "từ"/"đến" ở trên, nên vạch
+     của hai mốc vẽ y hệt nhau. */
+  /* z-index 10 = TRÊN lớp SVG cung (z9): vạch phải nhìn thấy trọn vẹn khi cắt ngang cung,
+     nếu nằm dưới thì cung phủ mất khúc giữa, chỉ còn hai mẩu thò ra hai bên. */
+  .mark{position:absolute;left:50%;top:50%;transform-origin:0 0;z-index:10;}
   .mark span{position:absolute;display:block;border-radius:99px;}
   .mk-h span{width:4px;left:-2px;background:var(--c-hour);}
   .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
@@ -630,12 +635,16 @@
     fromH: buildMark('mk-h'),       fromM: buildMark('mk-m'),
     toH:   buildMark('mk-h'),       toM:   buildMark('mk-m'),
   };
-  const markSpans = Object.values(mark).map(d => d.firstChild);
+  // Giữ kèm "vạch này thuộc GIỜ hay PHÚT": mỗi loại nằm trên MỘT cung khác nhau nên
+  // layoutFace phải biết để lấy đúng bán kính.
+  const markSpans = Object.entries(mark).map(([k,d]) => ({sp:d.firstChild, hour:k.endsWith('H')}));
 
   /* ===== 4. BỐ CỤC TỰ CO (layout) ===== */
   const EDGE = 12;         // lề tối thiểu tới cạnh màn hình
   const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport hẹp cỡ nào cũng KHÔNG co về 0
-  const MK_IN = 3, MK_OUT = 13;   // vạch mốc nằm trong dải bán kính [FACE+MK_IN, FACE+MK_OUT]
+  // Vạch mốc từ/đến là một GẠCH NGẮN nằm ĐÈ lên cung của chính nó (vạch giờ trên cung giờ,
+  // vạch phút trên cung phút), lấy bán kính cung làm tâm — KHÔNG kéo về mép mặt.
+  const MK_LEN = 8;               // dài một vạch mốc (cung dày 3.2px -> vạch thò ra ~2.4px mỗi bên)
 
   // ===== BÁN KÍNH CÁC LỚP NGOÀI MẶT (đều là ĐỘ LỆCH so với FACE, không phụ thuộc FACE) =====
   // Nhãn là hình tròn đều -> nửa bề ngang = nửa bề cao = bán kính; đường kính đọc từ
@@ -643,12 +652,13 @@
   // nhau đúng một đường kính nhãn nên hai nhãn không chạm nhau khi hai kim trùng.
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
-  const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
-  // Hai cung GIỜ THẬT. Cung PHÚT dùng CHUNG LÀN với cung khoảng — cùng thang phút nên nằm
-  // chồng nhau; path phút đứng SAU trong DOM nên vẽ ĐÈ lên teal. Cung GIỜ ra xa GẤP ĐÔI để
-  // khe mép mặt -> phút bằng khe phút -> giờ (giống dong-ho.html).
-  const NOW_M_OFF  = ARC_OFF;                           // vòng PHÚT hiện tại — chung làn cung khoảng
-  const NOW_H_OFF  = NOW_M_OFF*2;                       // vòng GIỜ hiện tại (ngoài cùng của cụm cung)
+  // BA CUNG lấy đúng bán kính của dong-ho.html: vòng GIỜ ở 18 là mốc, vòng PHÚT nằm CHÍNH
+  // GIỮA mép mặt và vòng giờ nên khe mép->phút bằng khe phút->giờ. Cung khoảng teal dùng
+  // CHUNG LÀN với cung phút (cùng thang phút); path phút đứng SAU spanArc trong DOM nên vẽ
+  // ĐÈ lên teal. Vạch mốc từ/đến không còn chiếm vành riêng nữa mà nằm ngay trên hai cung này.
+  const NOW_H_OFF  = 18;                                // vòng GIỜ hiện tại (= R_D1_OFF bên dong-ho)
+  const NOW_M_OFF  = NOW_H_OFF/2;                       // vòng PHÚT hiện tại
+  const ARC_OFF    = NOW_M_OFF;                         // cung khoảng phút — chung làn cung phút
   const CUE_OFF    = NOW_H_OFF + 10;                    // chữ "từ"/"đến": NGOÀI cụm cung, không đè lên cung
   const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
   const BADGE_M_OFF= NOW_H_OFF + 7 + BADGE_HALF;        // tâm nhãn PHÚT (bám theo cung NGOÀI CÙNG, KHÔNG theo nét nối)
@@ -700,7 +710,7 @@
     // Khoá hộp .stage theo mặt kim -> đổi tab không làm hộp co giãn, tab đứng yên
     elStage.style.width     = (D + 2*MARGIN)+'px';
     elStage.style.minHeight = (D + 2*MARGIN + elTabs.offsetHeight)+'px';
-    ARC_R = FACE + ARC_OFF;      // cung khoảng phút: ngoài vạch mốc
+    ARC_R = FACE + ARC_OFF;      // cung khoảng phút: chung làn với cung PHÚT
     ARC_R_M = FACE + NOW_M_OFF;  // cung PHÚT hiện tại
     ARC_R_H = FACE + NOW_H_OFF;  // cung GIỜ hiện tại
 
@@ -751,10 +761,12 @@
       el.style.top=`calc(50% + ${uy*radius}px)`;
     });
 
-    // Vạch mốc: đầu XA TÂM ở FACE+MK_OUT, dài (MK_OUT - MK_IN)
-    markSpans.forEach(sp=>{
-      sp.style.top    = (-(FACE + MK_OUT)) + 'px';
-      sp.style.height = (MK_OUT - MK_IN) + 'px';
+    // Vạch mốc: TÂM vạch = bán kính cung của chính nó (vạch giờ -> cung giờ, vạch phút ->
+    // cung phút), thò đều hai bên nên vạch cắt ngang giữa cung, không nối về mép mặt.
+    markSpans.forEach(m=>{
+      const r = FACE + (m.hour ? NOW_H_OFF : NOW_M_OFF);
+      m.sp.style.top    = (-(r + MK_LEN/2)) + 'px';
+      m.sp.style.height = MK_LEN + 'px';
     });
 
     // Kim ngắn hơn vòng số để không đè lên số

@@ -256,8 +256,8 @@
   /* Kho hình: giấu bằng kích thước 0 chứ không display:none — cách này là pattern sprite
      chuẩn, chắc chắn <use> vẫn lấy được symbol trên mọi trình duyệt. */
   .sprite{position:absolute;width:0;height:0;overflow:hidden;}
-  .limbs{width:100%;height:auto;display:block;}
-  .limbs text{
+  .hands{width:100%;height:auto;display:block;}
+  .hands text{
     font-family:inherit;font-size:26px;font-weight:700;
     /* text-anchor:start = neo ở ĐẦU chữ, mà chữ xoay -90° nên đầu chữ nằm phía DƯỚI, sát đầu
        ngón. Nhờ vậy khe từ đầu ngón tới nhãn là HẰNG SỐ (LAB_UP), không co giãn theo độ dài
@@ -266,9 +266,9 @@
     /* viền cùng màu nền: ngón cái nằm thấp nên nhãn của nó có thể chạm hình, vẫn đọc được */
     paint-order:stroke;stroke:var(--bg);stroke-width:6px;stroke-linejoin:round;
   }
-  .limbs .lh{fill:var(--c-hour);}
-  .limbs .lm{fill:var(--c-min);}
-  .limbs .ls{fill:var(--muted);}
+  .hands .lh{fill:var(--c-hour);}
+  .hands .lm{fill:var(--c-min);}
+  .hands .ls{fill:var(--muted);}
 
   /* ===== CỘT CÂU HỎI / CÂU TRẢ LỜI ===== */
   .panel{
@@ -478,7 +478,7 @@
     <div class="dwork" id="dWork" hidden>
       <div class="drow"><span class="dlab">từ</span><span class="dtime" id="dFromT"></span></div>
       <!-- viewBox chỉ là giá trị trước lần vẽ đầu; drawDigital ghi đè theo CELL và số hàng -->
-      <svg class="limbs" id="limbs" viewBox="0 0 432 409" aria-hidden="true"></svg>
+      <svg class="hands" id="hands" viewBox="0 0 432 409" aria-hidden="true"></svg>
       <div class="drow"><span class="dlab">đến</span><span class="dtime" id="dToT"></span></div>
     </div>
   </div>
@@ -557,7 +557,7 @@
   const elCue={from:$('cueFrom'), to:$('cueTo')};
 
   // Tab đổi kiểu đồng hồ + khối "kiểu số"
-  const elStage=$('stage'), elTabs=$('tabs'), elDigital=$('digital'), elLimbs=$('limbs');
+  const elStage=$('stage'), elTabs=$('tabs'), elDigital=$('digital'), elHands=$('hands');
   const elDWork=$('dWork'), elWarn=$('warn'), elDNow=$('dNow');
   const elDNowT=$('dNowT'), elDFromT=$('dFromT'), elDToT=$('dToT');
   const tabs = [...elTabs.children];
@@ -715,7 +715,6 @@
   const STEP       = STREAK_HALF + CLEAR + STREAK_HALF; // tâm->tâm hai cung cách nhau một khe CHUNG
   const NOW_M_OFF  = CLEAR + STREAK_HALF;               // cung PHÚT: mép trong cách MÉP MẶT đúng CLEAR
   const NOW_H_OFF  = NOW_M_OFF + STEP;                  // cung GIỜ
-  const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
   const RING_OUT   = NOW_H_OFF + STREAK_HALF;           // mép NGOÀI của cung ngoài cùng
   const BADGE_M_OFF= RING_OUT + CLEAR + BADGE_HALF;     // tâm nhãn PHÚT (bám theo MÉP cung ngoài cùng)
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + CLEAR;     // tâm nhãn GIỜ (ngoài nhãn phút)
@@ -777,11 +776,12 @@
     ARC_R_M = FACE + NOW_M_OFF;  // cung PHÚT hiện tại (+ cung khoảng teal thang phút)
     ARC_R_H = FACE + NOW_H_OFF;  // cung GIỜ hiện tại
 
-    // Nhãn giờ/phút: nét nối chạy từ FACE+CONN_OFF tới đúng mép trong của nhãn
-    const connStart = FACE + CONN_OFF;
+    // Nét nối bắt đầu ĐÚNG TẠI cung của chính nó (nhãn phút -> cung phút, nhãn giờ -> cung
+    // giờ) rồi chạy ra mép trong nhãn. Nó là thứ NỐI CUNG VỚI NHÃN, nên bắt đầu lửng lơ ở
+    // khoảng trống sát mép mặt thì đầu trong chẳng chạm vào cái gì.
     const rM = FACE + BADGE_M_OFF, rH = FACE + BADGE_H_OFF;
-    place(elConnM, elBadgeM, connStart, (rM - BADGE_HALF) - connStart, rM);
-    place(elConnH, elBadgeH, connStart, (rH - BADGE_HALF) - connStart, rH);
+    place(elConnM, elBadgeM, ARC_R_M, rM, BADGE_HALF);
+    place(elConnH, elBadgeH, ARC_R_H, rH, BADGE_HALF);
     // Chữ "từ"/"đến" không cần đặt ở đây: drawMarks đặt nó theo bán kính ARC_R_M,
     // mà layout() gọi redraw() ở cuối nên đổi FACE là chữ tự chạy lại.
 
@@ -792,9 +792,11 @@
     redraw();
   }
 
-  // Nét nối + nhãn: nét nối kéo từ connStart ra dài len; tâm nhãn cách tâm mặt badgeR
-  function place(conn, badge, connStart, len, badgeR){
-    conn.style.top    = (-(connStart+len))+'px';   // điểm xa tâm nhất của nét nối
+  // Nét nối + nhãn của cùng một cặp: nét nối chạy TỪ vòng ringR ra tới đúng MÉP TRONG của
+  // nhãn, tâm nhãn cách tâm mặt badgeR. len tính trong đây vì không chỗ gọi nào cần khác.
+  function place(conn, badge, ringR, badgeR, badgeHalf){
+    const len = (badgeR - badgeHalf) - ringR;
+    conn.style.top    = (-(ringR + len))+'px';   // điểm xa tâm nhất của nét nối
     conn.style.height = len+'px';
     badge.style.marginTop = (-badgeR)+'px';
   }
@@ -1173,7 +1175,7 @@
     [[304, 41], [268, 31], [236, 38], [204, 78], [372, 167]],
   ];
   // KHE từ đầu ngón tới mép dưới nhãn (nhãn dựng đứng, đọc từ dưới lên). Là khe THẬT và
-  // bằng nhau ở mọi nhãn nhờ text-anchor:start — xem chú thích ở .limbs text.
+  // bằng nhau ở mọi nhãn nhờ text-anchor:start — xem chú thích ở .hands text.
   const LAB_UP = 14;
 
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1203,21 +1205,21 @@
   // Vùng cắt chỉ để CẮT NGANG ở cổ tay (bỏ cẳng tay), không cần cắt hai bên -> nới mỗi bên
   // NỬA KHE giữa hai bàn, cho nhãn ngón cái (nằm sát mép khung) không bị xén mất viền mà vẫn
   // không lấn sang bàn kế bên. Nới đúng nửa khe nên vẫn đối xứng qua tâm -> bàn lật dùng chung.
-  elLimbs.appendChild(mk('clipPath', {id:'cellClip'})).appendChild(
+  elHands.appendChild(mk('clipPath', {id:'cellClip'})).appendChild(
     mk('rect', {x:CELL.x0 - COL_GAP/2, y:CELL.y0, width:CELL.w + COL_GAP, height:CELL.h}));
 
   // Thứ tự trong mảng = thứ tự đếm: 1-5, 6-10 (hàng trên) rồi 11-15, 16-20 (hàng dưới)
   // ox,oy là vị trí GÓC TRÊN-TRÁI của khung trong viewBox, không phải toạ độ gốc của icon
   const rowTop = mk('g', {}), rowBot = mk('g', {class:'off'});
   const OX2 = CELL.w + COL_GAP;
-  const hands = [
+  const handCells = [
     buildHand(0, 0, true), buildHand(OX2, 0, false),
     buildHand(0, 0, true), buildHand(OX2, 0, false),
   ];
-  hands.slice(0,2).forEach(h => rowTop.appendChild(h.g));
-  hands.slice(2).forEach(h => rowBot.appendChild(h.g));   // vị trí hàng này do drawDigital đặt
-  elLimbs.appendChild(rowTop);
-  elLimbs.appendChild(rowBot);
+  handCells.slice(0,2).forEach(h => rowTop.appendChild(h.g));
+  handCells.slice(2).forEach(h => rowBot.appendChild(h.g));   // vị trí hàng này do drawDigital đặt
+  elHands.appendChild(rowTop);
+  elHands.appendChild(rowBot);
 
   /* Mốc 0..719 -> "8:05" tô đúng màu giờ/phút; null -> dấu … như trong câu.
      Truyền thêm secs thì ghi luôn giây: CHỈ mốc "bây giờ" mới có giây, vì chỉ nó chạy theo
@@ -1231,7 +1233,7 @@
       : hm + `<span class="sep">:</span><span class="v-s">${String(secs).padStart(2,'0')}</span>`;
   }
   // Nhãn trên ngón: cùng cách đọc, nhưng trong SVG tô màu bằng fill nên phải dùng lớp riêng
-  function fmtLimb(mins){
+  function fmtHandLabel(mins){
     const h = Math.floor(mins/60), m = mins%60;
     return `<tspan class="lh">${gio12(h)}</tspan><tspan class="ls">:</tspan>`
          + `<tspan class="lm">${String(m).padStart(2,'0')}</tspan>`;
@@ -1282,7 +1284,7 @@
 
     // Quá tầm đếm thì bỏ hẳn hình, chỉ còn lời báo. Dùng class chứ KHÔNG dùng .hidden:
     // thuộc tính hidden chỉ có ở HTMLElement, gán cho <svg> là gán vào hư không.
-    elLimbs.classList.toggle('off', over);
+    elHands.classList.toggle('off', over);
 
     // Hàng dưới (phút 11-20) chỉ dựng khi thật sự đếm quá 10; khung cao theo số hàng đang hiện
     /* BỐN BÀN TAY xếp thế nào: desktop cho cả bốn lên MỘT hàng ngang (màn rộng, mà xếp dọc
@@ -1296,11 +1298,11 @@
     rowBot.setAttribute('transform', oneLine ? `translate(${ROW_W + COL_GAP},0)`
                                              : `translate(0,${CELL.h + ROW_GAP})`);
     elDigital.classList.toggle('wide', oneLine);
-    elLimbs.setAttribute('viewBox', oneLine
+    elHands.setAttribute('viewBox', oneLine
       ? `0 0 ${ROW_W*2 + COL_GAP} ${CELL.h}`
       : `0 0 ${ROW_W} ${twoRows ? CELL.h*2 + ROW_GAP : CELL.h}`);
 
-    hands.forEach((hand, hi)=>{
+    handCells.forEach((hand, hi)=>{
       const base  = hi * HAND_MAX;                       // 0, 5, 10, 15
       const count = clamp(n - base, 0, HAND_MAX);
       hand.use.setAttribute('href', '#tay' + count);
@@ -1311,7 +1313,7 @@
         .sort((a, b) => a[0] - b[0])
         .forEach(([x, y], i)=>{
           hand.labs[i].setAttribute('transform', `translate(${x},${y - LAB_UP}) rotate(-90)`);
-          hand.labs[i].innerHTML = fmtLimb((k.from + base + i + 1) % HALF_DAY);
+          hand.labs[i].innerHTML = fmtHandLabel((k.from + base + i + 1) % HALF_DAY);
           hand.labs[i].classList.remove('off');
         });
       for(let i=count;i<HAND_MAX;i++) hand.labs[i].classList.add('off');

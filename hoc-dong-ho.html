@@ -531,7 +531,8 @@
   // "bây giờ" = giờ máy đang chạy (quy về 0..719). Trả lời ĐÚNG thì ĐÓNG BĂNG mốc này lại
   // (frozenNow), nếu không thì sang phút sau đáp án vừa đúng sẽ thành sai. Sửa gì đó là chạy tiếp.
   const liveNow = () => { const d=new Date(); return (d.getHours()%12)*60 + d.getMinutes(); };
-  let frozenNow = null;
+  // frozenSec chỉ có nghĩa khi frozenNow!==null nên không cần xoá ở các chỗ thôi đóng băng
+  let frozenNow = null, frozenSec = 0;
   const nowMins  = () => frozenNow!==null ? frozenNow : liveNow();
   const usingNow = () => (state.from.mode==='now' && state.unknown!=='from')
                       || (state.to.mode==='now'   && state.unknown!=='to');
@@ -810,9 +811,16 @@
       // Tô đậm số giờ hiện tại trên mặt (1-12)
       numerals.forEach(el => el.classList.toggle('active', +el.dataset.n===hourNum));
 
-      // Mốc chọn "bây giờ" chạy theo giờ thật -> sang phút mới thì vẽ lại vạch mốc.
-      // Chỉ vẽ lại vạch; câu chữ ghi "bây giờ" (không có số) nên không cần dựng lại.
-      if(view==='digital' && !elDNow.hidden) elDNowT.innerHTML = fmtNow();
+      // Ở kiểu số, phần GIÂY phải nhích mỗi giây: dòng giờ thật ở trên, và mốc nào trong
+      // câu đặt là "bây giờ" (chưa bị đóng băng). Chỉ đụng đúng ô chữ đó, không dựng lại cả khối.
+      if(view==='digital'){
+        if(!elDNow.hidden) elDNowT.innerHTML = fmtNow();
+        else if(frozenNow===null){
+          const k = knownNow();
+          if(state.from.mode==='now') elDFromT.innerHTML = fmtTime(k.from, nowSecs());
+          if(state.to.mode==='now')   elDToT.innerHTML   = fmtTime(k.to,   nowSecs());
+        }
+      }
 
       const mn = now.getMinutes();
       if(mn!==lastMin){
@@ -965,7 +973,8 @@
       state.solved=false; frozenNow=null;
       setResult('');
     }else if(ans===sol){
-      if(!state.solved && usingNow()) frozenNow = liveNow();   // đóng băng "bây giờ" đúng lúc trả lời đúng
+      // đóng băng "bây giờ" đúng lúc trả lời đúng — cả phút lẫn giây
+      if(!state.solved && usingNow()){ frozenNow = liveNow(); frozenSec = new Date().getSeconds(); }
       state.solved=true;
       if(!state.awarded){ state.awarded=true; awardStar(); }
       setResult('Đúng rồi.','ok');
@@ -1055,12 +1064,16 @@
   elLimbs.appendChild(rowTop);
   elLimbs.appendChild(rowBot);
 
-  // Mốc 0..719 -> "8:05" tô đúng màu giờ/phút; null -> dấu … như trong câu
-  function fmtTime(mins){
+  /* Mốc 0..719 -> "8:05" tô đúng màu giờ/phút; null -> dấu … như trong câu.
+     Truyền thêm secs thì ghi luôn giây: CHỈ mốc "bây giờ" mới có giây, vì chỉ nó chạy theo
+     đồng hồ máy; mốc gõ tay hay giờ đúng/rưỡi thì không có khái niệm giây. */
+  function fmtTime(mins, secs){
     if(mins===null) return '<span class="todo">…</span>';
     const h = Math.floor(mins/60), m = mins%60;
-    return `<span class="v-h">${h===0?12:h}</span><span class="sep">:</span>`
-         + `<span class="v-m">${String(m).padStart(2,'0')}</span>`;
+    const hm = `<span class="v-h">${h===0?12:h}</span><span class="sep">:</span>`
+             + `<span class="v-m">${String(m).padStart(2,'0')}</span>`;
+    return secs==null ? hm
+      : hm + `<span class="sep">:</span><span class="v-s">${String(secs).padStart(2,'0')}</span>`;
   }
   // Nhãn trên ngón: cùng cách đọc, nhưng trong SVG tô màu bằng fill nên phải dùng lớp riêng
   function fmtLimb(mins){
@@ -1068,14 +1081,17 @@
     return `<tspan class="lh">${h===0?12:h}</tspan><tspan class="ls">:</tspan>`
          + `<tspan class="lm">${String(m).padStart(2,'0')}</tspan>`;
   }
-  // "bây giờ" ở kiểu số chạy tới từng GIÂY (kiểu kim có kim giây, kiểu số thì phải ghi ra),
-  // nên nó đọc thẳng đồng hồ máy chứ không qua nowMins() — cái đó bị đóng băng khi trả lời đúng.
+  // Dòng giờ thật ở trên cùng: đọc thẳng đồng hồ máy chứ không qua nowMins() — cái đó bị đóng
+  // băng khi trả lời đúng. Lấy MỘT lần new Date() để phút và giây không rơi vào hai giây khác nhau.
   function fmtNow(){
-    const d = new Date(), h = d.getHours()%12;
-    return `<span class="v-h">${h===0?12:h}</span><span class="sep">:</span>`
-         + `<span class="v-m">${String(d.getMinutes()).padStart(2,'0')}</span>`
-         + `<span class="sep">:</span><span class="v-s">${String(d.getSeconds()).padStart(2,'0')}</span>`;
+    const d = new Date();
+    return fmtTime((d.getHours()%12)*60 + d.getMinutes(), d.getSeconds());
   }
+  // Giây của mốc "bây giờ" trong câu: cũng phải ĐÓNG BĂNG cùng lúc với phút, không thì đáp án
+  // vừa đúng xong mà con số trên màn vẫn chạy tiếp, nhìn như đề bài tự đổi.
+  const nowSecs = () => frozenNow!==null ? frozenSec : new Date().getSeconds();
+  // Mốc nào đặt là "bây giờ" thì ghi kèm giây, mốc còn lại không
+  const partSecs = part => state[part].mode==='now' ? nowSecs() : null;
 
   let view = 'analog';
 
@@ -1095,17 +1111,15 @@
     // Giống kiểu kim: chỉ hiện khi câu hỏi đã đủ dữ kiện, và KHÔNG lộ thành phần đang hỏi
     const ready = state.unknown!==null && solution()!==null;
 
-    // "bây giờ" chỉ ẩn khi câu hỏi đã XONG mà không dùng tới nó. Lúc còn đang đặt câu hỏi
-    // thì vẫn hiện, vì đó là lúc người học cần nhìn giờ thật để chọn mốc.
-    elDNow.hidden = ready && !(state.from.mode==='now' || state.to.mode==='now');
-    if(!elDNow.hidden) elDNowT.innerHTML = fmtNow();
+    // Dòng giờ thật chỉ để tra cứu lúc ĐANG đặt câu hỏi. Câu hỏi xong là bỏ hẳn: nếu câu hỏi
+    // có dùng mốc "bây giờ" thì mốc đó đã nằm sẵn ở dòng "từ"/"đến" rồi, giữ lại là ghi hai lần.
+    elDNow.hidden = ready;
+    if(!ready){ elDNowT.innerHTML = fmtNow(); elDWork.hidden = true; return; }
 
-    elDWork.hidden = !ready;
-    if(!ready) return;
-
+    elDWork.hidden = false;
     const k = knownNow();
-    elDFromT.innerHTML = fmtTime(k.from);
-    elDToT.innerHTML   = fmtTime(k.to);
+    elDFromT.innerHTML = fmtTime(k.from, partSecs('from'));
+    elDToT.innerHTML   = fmtTime(k.to,   partSecs('to'));
 
     const over = overDigits();
     const done = state.solved && k.from!==null && k.to!==null;

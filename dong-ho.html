@@ -940,14 +940,23 @@
     //     mép mặt -> vòng phút -> vòng ngày TRONG -> vòng ngày NGOÀI -> nhãn phút -> nhãn giờ
     // Mọi khe đều bằng CLEAR, RIÊNG khe giữa hai vòng ngày bằng NỬA CLEAR vì hai vòng đó là
     // một nhóm. Đo theo mép nên mỗi bước phải cộng thêm nửa bề rộng của thứ nằm hai bên khe.
-    const STREAK_HALF = 1.6;                   // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2px). Phải là số THẬT,
-                                               // làm tròn lên 2 thì mọi khe có cung dôi thêm 0.4-0.8px so với CLEAR.
+    //
+    // MỖI VÒNG CÓ HAI LOẠI NÉT CHỒNG LÊN NHAU -> phải dùng đúng loại cho đúng việc:
+    //   RING_HALF = nửa nét MẢNH (--ring-thin). Nét mảnh (track/arc) vẽ TRỌN vòng nên nó là
+    //     đường liên tục mắt nhìn thấy => KHOẢNG CÁCH GIỮA CÁC VÒNG phải đo theo nó.
+    //   BOLD_HALF = nửa nét ĐẬM (--ring-bold). Nét đậm (act/live) chỉ phủ Ô HIỆN TẠI (6° phút
+    //     / 30° giờ) nên không tạo cảm giác khoảng cách, nhưng là chỗ cụm vòng thò ra XA NHẤT
+    //     => chỉ dùng để chừa chỗ cho nhãn.
+    //   Lấy nhầm BOLD_HALF đi đo khe giữa các vòng thì khe MÉP MẶT -> vòng phút (chỉ có MỘT
+    //   mép vòng) hụt hơn khe vòng-tới-vòng (có HAI mép) đúng BOLD_HALF - RING_HALF = 1.1px.
+    const RING_HALF = 0.5;                     // nửa --ring-thin (1px)
+    const BOLD_HALF = 1.6;                     // nửa --ring-bold (3.2px)
     const CLEAR = 3;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
-    const STEP  = STREAK_HALF + CLEAR + STREAK_HALF;       // tâm->tâm hai vòng cách nhau một khe CHUNG
-    const R_M_OFF  = CLEAR + STREAK_HALF;      // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
+    const STEP  = RING_HALF + CLEAR + RING_HALF;   // tâm->tâm hai vòng cách nhau một khe CHUNG
+    const R_M_OFF  = CLEAR + RING_HALF;        // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
     const R_D1_OFF = R_M_OFF + STEP;           // vòng nửa ngày 1 (TRONG)
     const R_D2_OFF = R_D1_OFF + STEP - CLEAR/2;// vòng nửa ngày 2 (NGOÀI) — chỉ cách vòng 1 nửa khe
-    const RING_OUT = R_D2_OFF + STREAK_HALF;   // mép NGOÀI của cả cụm vòng
+    const RING_OUT = R_D2_OFF + BOLD_HALF;     // mép NGOÀI cụm vòng, tính cả nét ĐẬM thò ra
 
     // Nhãn quay quanh mặt: khi ở 3/9 giờ, điểm GẦN TÂM NHẤT của nhãn = tâm_nhãn - BADGE_HALF.
     // Điểm đó cách mép cụm vòng (RING_OUT) đúng CLEAR => tâm nhãn phút = RING_OUT + CLEAR + BADGE_HALF.

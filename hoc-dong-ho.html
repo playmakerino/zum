@@ -657,8 +657,11 @@
   // ở đây quy ước mặt 12 giờ nên chỉ có MỘT cung giờ, không có khe đó.)
   // Cung khoảng teal dùng CHUNG LÀN với cung phút — cùng thang phút; path phút đứng SAU
   // spanArc trong DOM nên vẽ ĐÈ lên teal.
-  const STREAK_HALF= 1.6;                               // nửa bề rộng nét đậm (--ring-bold 3.2px). Phải là số THẬT,
-                                                        // làm tròn lên 2 thì mọi khe có cung dôi thêm 0.4-0.8px so với CLEAR.
+  // 1.6 = nửa --ring-bold. Ở ĐÂY mọi cung đều là nét ĐẬM (act/live/teal, không có lớp mảnh
+  // track/arc như dong-ho) nên nét đậm CHÍNH LÀ đường mắt nhìn thấy => đo khe theo nó.
+  // Vì vậy bán kính các cung ở file này KHÔNG trùng số với dong-ho (bên đó đo theo nét mảnh
+  // 1px vẽ trọn vòng) — nhưng KHE NHÌN THẤY thì bằng nhau, cùng là CLEAR. Đừng đồng bộ số.
+  const STREAK_HALF= 1.6;                               // nửa bề rộng nét đậm (--ring-bold 3.2px)
   const CLEAR      = 3;                                 // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
   const STEP       = STREAK_HALF + CLEAR + STREAK_HALF; // tâm->tâm hai cung cách nhau một khe CHUNG
   const NOW_M_OFF  = CLEAR + STREAK_HALF;               // cung PHÚT: mép trong cách MÉP MẶT đúng CLEAR

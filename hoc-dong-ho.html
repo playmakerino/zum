@@ -192,8 +192,10 @@
     font-size:clamp(1.4rem,7vw,1.9rem);font-weight:700;line-height:1.1;
     font-variant-numeric:tabular-nums;
   }
-  /* Giờ thật dùng CHUNG một cỡ với "từ"/"đến" — không phóng to thu nhỏ theo trạng thái,
-     chữ đổi cỡ giữa chừng thì mắt phải bám lại từ đầu mỗi lần. */
+  /* Giờ thật to hơn hẳn "từ"/"đến". MỘT cỡ duy nhất, không đổi theo trạng thái — chữ đổi cỡ
+     giữa chừng thì mắt phải bám lại từ đầu mỗi lần. Có thêm phần giây nên dài 7 ký tự;
+     13vw giữ cho nó không tràn khỏi cột 340px trên màn hẹp. */
+  .dnow .dtime{font-size:clamp(2.4rem,13vw,3.6rem);}
   .dtime .v-h{color:var(--c-hour);}
   .dtime .v-m{color:var(--c-min);}
   .dtime .v-s{color:var(--c-sec);}   /* giây — cùng màu kim giây bên mặt kim */

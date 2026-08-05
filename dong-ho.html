@@ -924,20 +924,9 @@
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
         || document.documentElement.clientHeight || window.innerHeight;
 
-  // ===== PHÓNG TO (zoom) =====
-  // Zoom của trình duyệt (Ctrl/⌘ +, hoặc "cỡ trang" trên tivi/Android) làm viewport tính theo
-  // CSS px HẸP LẠI. Cứ lấy viewport đó mà chia thì mặt đồng hồ co lại đúng bằng phần vừa phóng
-  // to -> chữ to lên mà đồng hồ vẫn bé ("co rúm").
-  // Xử lý: đo hệ số zoom rồi QUY viewport về mức 100% TRƯỚC khi tính. Mặt giữ nguyên số CSS px,
-  // trình duyệt tự phóng to nó cùng nhịp với chữ; phần tràn ra thì cuộn.
-  // devicePixelRatio đổi đúng bằng hệ số zoom. KHÔNG dùng visualViewport.scale: pinch zoom
-  // không đổi layout viewport, bù vào là nhân đôi.
-  // Mốc devicePixelRatio lấy lúc mở trang = 100% (mở sẵn ở mức zoom nào thì mức đó là chuẩn).
-  const dprBase = window.devicePixelRatio || 1;
-  function zoomFactor(){
-    const z = (window.devicePixelRatio || 1) / dprBase;
-    return Math.min(Math.max(z, 1), 5);   // chỉ bù khi PHÓNG TO; zoom out để bố cục co giãn như thường
-  }
+  // KHÔNG đo zoom ở đây. devicePixelRatio đổi vì nhiều lý do (màn hình khác mức scale, máy có
+  // dpr 2/3) chứ không riêng zoom -> lấy nó làm hệ số zoom là có lúc thổi phồng mặt đồng hồ ra
+  // ngoài màn. Chống co rúm làm ở chỗ NGHE SỰ KIỆN: mobile không căn lại theo chiều cao.
 
   // 2 bố cục theo BỀ RỘNG (khớp media query CSS):
   //   >=768px: đồng hồ trái + lịch phải | <768px: xếp dọc.
@@ -964,23 +953,15 @@
     // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
     const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
-    const vhReal = viewportH();
+    const vw = window.innerWidth;
+    const vh = viewportH();
 
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
     const desktop = mqDesktop.matches;
 
-    // ĐANG PHÓNG TO? -> cho phép cuộn (xử lý ở cuối hàm).
-    const zoom   = zoomFactor();
-    const zoomed = zoom > 1.01;
-    // Viewport QUY VỀ mức 100% -> mọi phép chia dưới đây không còn phụ thuộc mức zoom
-    const vw = window.innerWidth * zoom;
-    const vh = vhReal * zoom;
-
     // DESKTOP: ghim chiều cao body = vùng nhìn thấy để căn giữa, KHÔNG scroll.
-    // ĐANG PHÓNG TO: 'auto' (ĐÈ height:100dvh của CSS desktop) -> body CAO BẰNG NỘI DUNG,
-    //   nếu không thì căn giữa theo chiều dọc sẽ đẩy đỉnh đồng hồ ra ngoài mép trên, cuộn không tới.
     // MOBILE: '' -> theo CSS (min-height:100dvh) và cuộn tự nhiên.
-    document.body.style.height = desktop ? (zoomed ? 'auto' : vhReal + 'px') : '';
+    document.body.style.height = desktop ? vh + 'px' : '';
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
@@ -1077,21 +1058,20 @@
 
     layoutFace();
 
-    // ===== CUỘN KHI PHÓNG TO =====
-    // Mặt đã KHÓA kích thước nên lúc phóng to nội dung có thể rộng/cao hơn viewport.
-    // CSS mặc định chặn cuộn (html overflow-x:hidden; desktop overflow:hidden) -> mở ra khi
-    // đang zoom để xem được hết, trả về mặc định khi về 100%.
-    const root = document.documentElement;
-    root.style.overflow = zoomed ? 'auto' : '';
-    document.body.style.overflow = zoomed ? 'visible' : '';
-    // Flex CĂN GIỮA đẩy mép TRÁI của nội dung ra NGOÀI vùng cuộn được (cuộn không tới) ->
-    // khi tràn NGANG thì căn từ mép trái để không mất phần nào của đồng hồ.
+    // ===== CUỘN KHI NỘI DUNG TRÀN =====
+    // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.
+    // CSS mặc định chặn cuộn (html overflow-x:hidden; desktop overflow:hidden) -> mở ra khi tràn.
     // Bề ngang cần = khối analog (mặt + chỗ cho nhãn hai bên), desktop thêm lịch bên phải.
     // (Tự tính, KHÔNG đo scrollWidth: dòng "văn nói" đặt tuyệt đối + nowrap có thể thò ra
     //  ngoài khối mà không phải nội dung cần nhìn thấy hết -> đo sẽ báo tràn nhầm.)
+    const root = document.documentElement;
     const blockW = D + 2*maxReach;
     const needW  = desktop ? blockW + GAP + calW : Math.max(blockW, calW);
     const tranNgang = needW > root.clientWidth + 1;
+    root.style.overflow = tranNgang ? 'auto' : '';
+    document.body.style.overflow = tranNgang ? 'visible' : '';
+    // Flex CĂN GIỮA đẩy mép TRÁI của nội dung ra NGOÀI vùng cuộn được (cuộn không tới) ->
+    // khi tràn NGANG thì căn từ mép trái để không mất phần nào của đồng hồ.
     // Trục NGANG do thuộc tính nào quyết định: desktop xếp HÀNG -> justify-content; dọc -> align-items.
     // Chiều DỌC không cần đụng tới: khi phóng to body cao theo nội dung nên không cắt mất gì.
     document.body.style.justifyContent = (tranNgang &&  desktop) ? 'flex-start' : '';
@@ -1493,8 +1473,7 @@
   // DESKTOP căn vừa khít viewport -> căn lại khi đổi BỀ RỘNG hoặc CHIỀU CAO (>2px).
   // MOBILE trang cuộn tự nhiên, đồng hồ chỉ theo BỀ RỘNG -> CHỈ căn lại khi đổi bề rộng
   // (xoay máy); BỎ QUA đổi chiều cao (thanh công cụ ẩn/hiện, pinch-zoom) nên hết "co dúm".
-  // Zoom TRANG có đổi bề rộng nên vẫn chạy layout(), nhưng layout() quy viewport về mức 100%
-  // trước khi tính (xem zoomFactor ở phần 5) -> mặt giữ nguyên cỡ, không co rúm.
+  // Zoom TRANG trên desktop có đổi bề rộng nên vẫn chạy layout() và mặt vẫn co theo — chấp nhận.
   let lastW=-1, lastVh=-1;
   function relayout(){
     const w=window.innerWidth;

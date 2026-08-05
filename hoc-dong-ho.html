@@ -28,6 +28,10 @@
        độ mờ chung để "ô hiện tại" nhạt hơn "phần đã trôi" mà vẫn đúng một màu. */
     --ring-bold:3.2px;
     --faint:.25;
+    /* Bề rộng vạch mốc từ/đến — MỘT cỡ cho cả vạch giờ lẫn vạch phút. Không cần đậm nhạt để
+       phân biệt vì hai vạch đã nằm trên hai cung khác bán kính. JS đọc lại biến này để tính
+       khe từ vạch sang chữ "từ"/"đến", nên đây là nguồn DUY NHẤT — đừng chép số sang JS. */
+    --mk-w:1.5px;
 
     /* Spacing: một thang chung, co theo bề rộng màn (mobile nhỏ lại, desktop nở ra) */
     --sp-1:clamp(.25rem,1vw,.4rem);
@@ -173,18 +177,22 @@
   /* ===== MỐC TỪ / ĐẾN = VẠCH NGẮN NẰM TRÊN CUNG =====
      Kim bên trong mặt vẫn là GIỜ THẬT đang chạy. Mốc của bài tập vẽ NGOÀI mép, mỗi mốc 2
      vạch. Cả hai vạch màu TEAL như cung khoảng: teal là màu của DỮ KIỆN BÀI TẬP, tách hẳn
-     khỏi xanh/cam của giờ thật đang chạy. Phân biệt vạch giờ với vạch phút bằng bán kính
-     (nằm trên cung nào) và bề rộng (đậm 4px / mảnh 2.5px). Mỗi vạch là gạch NGẮN cắt ngang cung
-     đo nó — vạch giờ trên cung giờ, vạch phút trên cung phút — chứ không kéo dài về mép
-     mặt: cung đã chỉ ra thang đo, vạch chỉ cần chỉ ĐIỂM trên thang đó. JS đặt top/height
-     theo bán kính từng cung. Hai mốc phân biệt nhau bằng CHỮ "từ"/"đến" ở trên, nên vạch
-     của hai mốc vẽ y hệt nhau. */
+     khỏi xanh/cam của giờ thật đang chạy. Cả bốn vạch VẼ Y HỆT NHAU — cùng màu, cùng bề rộng
+     --mk-w; thứ phân biệt vạch giờ với vạch phút là BÁN KÍNH (nằm trên cung nào), còn thứ
+     phân biệt mốc từ với mốc đến là CHỮ "từ"/"đến" đứng cạnh. Mỗi vạch là gạch NGẮN cắt ngang
+     đúng cung đo nó — vạch giờ trên cung giờ, vạch phút trên cung phút — chứ không kéo dài về
+     mép mặt: cung đã chỉ ra thang đo, vạch chỉ cần chỉ ĐIỂM trên thang đó. JS đặt top/height
+     theo bán kính từng cung. */
   /* z-index 10 = TRÊN lớp SVG cung (z9): vạch phải nhìn thấy trọn vẹn khi cắt ngang cung,
      nếu nằm dưới thì cung phủ mất khúc giữa, chỉ còn hai mẩu thò ra hai bên. */
   .mark{position:absolute;left:50%;top:50%;transform-origin:0 0;z-index:10;}
-  .mark span{position:absolute;display:block;border-radius:99px;}
-  .mk-h span{width:4px;left:-2px;background:var(--c-dur);}
-  .mk-m span{width:2.5px;left:-1.25px;background:var(--c-dur);}
+  /* Bốn vạch vẽ y hệt nhau -> một rule duy nhất, không cần class riêng cho giờ và phút:
+     cái phân biệt chúng là BÁN KÍNH (layoutFace đặt), không phải kiểu dáng. */
+  .mark span{
+    position:absolute;display:block;border-radius:99px;
+    width:var(--mk-w);left:calc(var(--mk-w)/-2);
+    background:var(--c-dur);
+  }
   /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
   .r-span{fill:none;stroke:var(--c-dur);stroke-width:var(--ring-bold);stroke-linecap:butt;}
 
@@ -639,17 +647,18 @@
     analog.appendChild(el);
   }
 
-  // 4 vạch mốc NGOÀI mép mặt: mỗi mốc một vạch giờ + một vạch phút, hai mốc vẽ giống hệt nhau
-  function buildMark(cls){
+  // 4 vạch mốc NGOÀI mép mặt: mỗi mốc một vạch giờ + một vạch phút. Cả bốn vẽ y hệt nhau nên
+  // không cần class riêng — KHOÁ tên trong object `mark` mới là thứ nói vạch nào của ai.
+  function buildMark(){
     const d=document.createElement('div');
-    d.className='mark '+cls;
+    d.className='mark';
     d.appendChild(document.createElement('span'));
     analog.appendChild(d);
     return d;
   }
   const mark = {
-    fromH: buildMark('mk-h'),       fromM: buildMark('mk-m'),
-    toH:   buildMark('mk-h'),       toM:   buildMark('mk-m'),
+    fromH: buildMark(),       fromM: buildMark(),
+    toH:   buildMark(),       toM:   buildMark(),
   };
   // Giữ kèm "vạch này thuộc GIỜ hay PHÚT": mỗi loại nằm trên MỘT cung khác nhau nên
   // layoutFace phải biết để lấy đúng bán kính.
@@ -663,8 +672,11 @@
   // Nhãn là hình tròn đều -> nửa bề ngang = nửa bề cao = bán kính; đường kính đọc từ
   // --badge-dia (MỘT nguồn với CSS). Nhãn PHÚT ở vòng trong, nhãn GIỜ ở vòng ngoài, cách
   // nhau đúng một đường kính nhãn nên hai nhãn không chạm nhau khi hai kim trùng.
-  const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
+  const cssVar = (name, fallback) =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || fallback;
+  const BADGE_D    = cssVar('--badge-dia', 26);
   const BADGE_HALF = BADGE_D/2;
+  const MK_HALF    = cssVar('--mk-w', 1.5) / 2;   // nửa bề rộng vạch mốc (đo khe sang chữ từ/đến)
   // Vành ngoài dùng ĐÚNG mô hình khe của dong-ho.html, đo MÉP tới MÉP (không phải tâm tới tâm):
   //     mép mặt -> cung phút -> cung giờ -> nhãn phút -> nhãn giờ
   // mọi khe đều bằng CLEAR. (Bên dong-ho còn vòng nửa ngày thứ hai cách vòng đầu NỬA khe;
@@ -868,14 +880,13 @@
     // Chữ "từ"/"đến" nằm NGAY TRÊN vòng phút, lệch sang cạnh vạch mốc của nó ("từ" lùi ngược
     // chiều kim, "đến" tiến xuôi chiều kim) nên không đè lên cung khoảng. Mép chữ cách mép
     // vạch mốc phút đúng CLEAR: đo theo CUNG rồi đổi ra GÓC (góc = độ dài cung / bán kính).
-    const MK_M_HALF = 1.25;                        // nửa bề rộng vạch mốc phút (.mk-m span 2.5px)
     for(const [part,el] of Object.entries(elCue)){
       const lab = el.firstChild;
       lab.style.marginTop = (-ARC_R_M)+'px';       // đặt chữ lên đúng vòng phút
       const away = part==='from' ? -1 : 1;         // chiều rời khỏi mốc
       const halfW = lab.offsetWidth/2 || 8;        // đọc SAU khi đã gỡ .off, không thì bằng 0
       const deg = (k[part]%60)*6
-                + away * (MK_M_HALF + CLEAR + halfW) / ARC_R_M * 180/Math.PI;
+                + away * (MK_HALF + CLEAR + halfW) / ARC_R_M * 180/Math.PI;
       el.style.transform = `rotate(${deg}deg)`;
       // KHÔNG đối-xoay: chữ ăn theo góc của orbit nên nằm TIẾP TUYẾN với vòng, ôm theo vòng
       // như một khối thẳng (không bẻ cong từng chữ cái). Nửa DƯỚI mặt thì tiếp tuyến quay chữ

@@ -24,8 +24,9 @@
     --c-star:#f9c22e;        /* sao thưởng — vàng, đứng ngoài hệ màu của kim */
     --ok:#1fab95;
     --badge-dia:26px;        /* đường kính nhãn giờ/phút quay quanh mặt (JS đọc để tính bố cục) */
-    /* Cung ngoài mặt (giống dong-ho.html): nét ĐẬM dùng cho cả 4 trạng thái đậm, --faint là
-       độ mờ chung để "ô hiện tại" nhạt hơn "phần đã trôi" mà vẫn đúng một màu. */
+    /* Cung ngoài mặt (giống dong-ho.html): MỌI cung ở file này đều dùng nét ĐẬM — cung giờ
+       thật (act/live) lẫn cung khoảng teal. --faint là độ mờ chung để "ô hiện tại" nhạt hơn
+       "phần đã trôi" mà vẫn đúng một màu. */
     --ring-bold:3.2px;
     --faint:.25;
     /* Bề rộng vạch mốc từ/đến — MỘT cỡ cho cả vạch giờ lẫn vạch phút. Không cần đậm nhạt để
@@ -47,6 +48,9 @@
     min-height:100dvh;
     overflow-x:hidden;
     overscroll-behavior:none;
+    /* Mốc neo cho nút "xoá sao" (position:absolute). Không có nó thì absolute rơi về khung
+       chứa ban đầu — cao đúng một màn hình — nên nút dính đáy MÀN thay vì đáy TRANG. */
+    position:relative;
     background:var(--bg);
     color:var(--ink);
     display:flex;
@@ -99,17 +103,18 @@
     background:#fff;
     border:1px solid var(--neutral);  /* mép đồng hồ: đen trung tính */
     position:relative;
-    margin:24px;                      /* = hằng MARGIN trong JS (chỗ cho vạch mốc + cung) */
+    margin:24px;                      /* chỉ là giá trị khung hình đầu; layout() ghi đè bằng MARGIN (~83px) */
     flex:none;
   }
+  /* CHỈ bề rộng và màu đặt ở đây. top với height là của layoutFace() — nó tính theo FACE nên
+     mọi con số viết vào đây đều bị ghi đè ngay khung hình sau, đừng chỉnh chiều dài vạch ở CSS. */
   .tick{position:absolute;left:50%;top:50%;transform-origin:0 0;}
   .tick span{
     position:absolute;
-    width:1px;height:6px;
+    width:1px;left:-0.5px;
     background:var(--c-min);          /* vạch phút: màu PHÚT */
-    left:-0.5px;top:-118px;
   }
-  .tick.major span{height:12px;width:1.5px;left:-0.75px;background:var(--c-hour);}   /* vạch giờ: màu GIỜ */
+  .tick.major span{width:1.5px;left:-0.75px;background:var(--c-hour);}   /* vạch giờ: màu GIỜ */
   .numeral{
     position:absolute;
     font-size:.95rem;font-weight:400;line-height:1;
@@ -166,6 +171,10 @@
      vòng nên nó ôm theo vòng (JS lo cả góc lẫn cú lật 180° ở nửa dưới mặt, xem drawMarks).
      Xoay cả khối chữ chứ KHÔNG bẻ cong từng chữ cái: đã thử <textPath> rồi bỏ, vì chữ bé quá
      nên cong hay không nhìn không ra, đổi lại phải gánh thêm việc bù nửa chiều cao chữ. */
+  /* TRÊN CÙNG trên mặt đồng hồ: cao hơn nét nối và nhãn giờ/phút (.orbit z9), vạch mốc và
+     chấm tâm (z10). Chữ này bé, bị che mất một góc là đọc nhầm ngay, mà nó lại nằm ở vành
+     trong nơi kim và nhãn quét qua liên tục. */
+  #cueFrom,#cueTo{z-index:12;}
   .cue-lab{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
@@ -377,9 +386,13 @@
   .star.on{fill:var(--c-star);stroke:var(--c-star);}
 
   /* Xoá sao: nút PHỤ nên để mờ (viền + chữ xám, không dùng màu nào của bài) và đẩy ra góc
-     màn hình, xa vùng đang học — bấm nhầm giữa chừng là mất sao cả ngày. */
+     dưới-phải, xa vùng đang học — bấm nhầm giữa chừng là mất sao cả ngày.
+     absolute (neo vào body) chứ KHÔNG fixed: fixed thì nút dán cứng vào màn hình, cuộn tới
+     đâu cũng che nội dung ở đó. absolute cho nó nằm yên ở góc dưới-phải của TRANG và cuộn
+     đi cùng trang. Cũng vì thế mà không để nút trong luồng được: desktop xếp body theo hàng
+     ngang nên nó sẽ thành cột thứ ba bên cạnh đồng hồ và cột câu hỏi. */
   .clear-stars{
-    position:fixed;right:var(--sp-3);bottom:var(--sp-3);z-index:50;
+    position:absolute;right:var(--sp-3);bottom:var(--sp-3);z-index:50;
     min-height:1.8rem;padding:0 .7rem;
     border:1px solid var(--line);border-radius:99px;
     background:var(--card);color:var(--muted);
@@ -459,12 +472,13 @@
 
   <!-- KIỂU SỐ: đọc dọc từ trên xuống — từ · hai bàn tay · đến.
        Hàng "bây giờ" luôn hiện (kiểu kim cũng luôn chạy giờ thật); khối dưới chỉ hiện khi
-       câu hỏi đã đủ dữ kiện. Hình tay/chân dựng bằng JS ở phần 8. -->
+       câu hỏi đã đủ dữ kiện. Hình bàn tay dựng bằng JS ở phần 8. -->
   <div class="digital" id="digital" hidden>
     <div class="dnow" id="dNow" hidden><span class="dtime" id="dNowT"></span></div>
     <div class="dwork" id="dWork" hidden>
       <div class="drow"><span class="dlab">từ</span><span class="dtime" id="dFromT"></span></div>
-      <svg class="limbs" id="limbs" viewBox="0 0 432 440" aria-hidden="true"></svg>
+      <!-- viewBox chỉ là giá trị trước lần vẽ đầu; drawDigital ghi đè theo CELL và số hàng -->
+      <svg class="limbs" id="limbs" viewBox="0 0 432 409" aria-hidden="true"></svg>
       <div class="drow"><span class="dlab">đến</span><span class="dtime" id="dToT"></span></div>
     </div>
   </div>
@@ -504,6 +518,7 @@
   </div>
 
   <div class="menu" id="menu" hidden></div>
+  <!-- Nằm NGOÀI .panel: nút neo tuyệt đối vào body để ra góc dưới-phải của trang -->
   <button class="clear-stars" id="btnClearStars" type="button">xoá sao</button>
 
 <script>
@@ -558,7 +573,10 @@
 
   const HALF_DAY = 720;                       // số phút của một vòng mặt 12 giờ
   const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
-  const gio12 = h => (h%12)===0 ? 12 : (h%12);
+  const gio12 = h => (h%12)===0 ? 12 : (h%12);   // 0..23 (hoặc 0..11) -> số giờ ĐỌC LÊN 1..12
+  // Quãng từ mốc a tới mốc b theo CHIỀU KIM, luôn 0..719. Cộng HALF_DAY trước khi lấy dư vì
+  // b có thể nhỏ hơn a (quãng vắt qua mốc 12 giờ) mà % của JS giữ nguyên dấu âm.
+  const spanMins = (a, b) => (b - a + HALF_DAY) % HALF_DAY;
 
   // TỌA ĐỘ CỰC quanh tâm mặt: deg đo TỪ 12 GIỜ, theo chiều kim. Trả [dx,dy] px so với tâm.
   function polar(r, deg){
@@ -606,9 +624,9 @@
   function solution(){
     const f=givenTime('from'), t=givenTime('to'), d=state.dur;
     switch(state.unknown){
-      case 'dur':  return (f===null||t===null) ? null : (t - f + HALF_DAY) % HALF_DAY;
-      case 'to':   return (f===null||d===null) ? null : (f + d) % HALF_DAY;
-      case 'from': return (t===null||d===null) ? null : (t - d + HALF_DAY*2) % HALF_DAY;
+      case 'dur':  return (f===null||t===null) ? null : spanMins(f, t);
+      case 'to':   return (f===null||d===null) ? null : (f + d) % HALF_DAY;   // f+d luôn dương, khỏi cộng bù
+      case 'from': return (t===null||d===null) ? null : spanMins(d, t);
       default:     return null;   // chưa chọn chỗ hỏi
     }
   }
@@ -625,6 +643,10 @@
     if(state.unknown) out[state.unknown] = state.solved ? solution() : null;
     return out;
   }
+  // Đã biết CẢ HAI mốc và đã trả lời đúng -> mới được vẽ phần TỔNG KẾT (cung khoảng, chữ
+  // "từ"/"đến", bàn tay đếm ngón). Mặt kim và kiểu số cùng hỏi câu này nên để chung một chỗ,
+  // đừng chép điều kiện sang từng hàm vẽ rồi hai bên lệch nhau.
+  const bothMarksKnown = k => state.solved && k.from!==null && k.to!==null;
 
   /* ===== 3. MẶT SỐ: VẠCH CHIA + CHỮ SỐ + VẠCH MỐC ===== */
   const tickSpans=[];
@@ -670,8 +692,9 @@
 
   // ===== BÁN KÍNH CÁC LỚP NGOÀI MẶT (đều là ĐỘ LỆCH so với FACE, không phụ thuộc FACE) =====
   // Nhãn là hình tròn đều -> nửa bề ngang = nửa bề cao = bán kính; đường kính đọc từ
-  // --badge-dia (MỘT nguồn với CSS). Nhãn PHÚT ở vòng trong, nhãn GIỜ ở vòng ngoài, cách
-  // nhau đúng một đường kính nhãn nên hai nhãn không chạm nhau khi hai kim trùng.
+  // --badge-dia (MỘT nguồn với CSS). Nhãn PHÚT ở vòng trong, nhãn GIỜ ở vòng ngoài, tâm cách
+  // tâm một đường kính CỘNG CLEAR -> khe mép-tới-mép đúng bằng CLEAR như mọi cặp khác, nên
+  // hai nhãn không chạm nhau kể cả khi hai kim trùng.
   const cssVar = (name, fallback) =>
     parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || fallback;
   const BADGE_D    = cssVar('--badge-dia', 26);
@@ -683,11 +706,11 @@
   // ở đây quy ước mặt 12 giờ nên chỉ có MỘT cung giờ, không có khe đó.)
   // Cung khoảng teal dùng CHUNG LÀN với cung phút — cùng thang phút; path phút đứng SAU
   // spanArc trong DOM nên vẽ ĐÈ lên teal.
-  // 1.6 = nửa --ring-bold. Ở ĐÂY mọi cung đều là nét ĐẬM (act/live/teal, không có lớp mảnh
-  // track/arc như dong-ho) nên nét đậm CHÍNH LÀ đường mắt nhìn thấy => đo khe theo nó.
+  // Ở ĐÂY mọi cung đều là nét ĐẬM (act/live/teal, không có lớp mảnh track/arc như dong-ho)
+  // nên nét đậm CHÍNH LÀ đường mắt nhìn thấy => đo khe theo nó.
   // Vì vậy bán kính các cung ở file này KHÔNG trùng số với dong-ho (bên đó đo theo nét mảnh
   // 1px vẽ trọn vòng) — nhưng KHE NHÌN THẤY thì bằng nhau, cùng là CLEAR. Đừng đồng bộ số.
-  const STREAK_HALF= 1.6;                               // nửa bề rộng nét đậm (--ring-bold 3.2px)
+  const STREAK_HALF= cssVar('--ring-bold', 3.2)/2;      // nửa bề rộng nét đậm
   const CLEAR      = 5;                                 // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
   const STEP       = STREAK_HALF + CLEAR + STREAK_HALF; // tâm->tâm hai cung cách nhau một khe CHUNG
   const NOW_M_OFF  = CLEAR + STREAK_HALF;               // cung PHÚT: mép trong cách MÉP MẶT đúng CLEAR
@@ -701,8 +724,10 @@
   // nhau STEP nên vạch phải ngắn hơn ngần ấy, chừa 1px để vạch giờ và vạch phút không dính
   // vào nhau thành một nét dài.
   const MK_LEN     = STEP - 1;                          // dài một vạch mốc
-  const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + 4);   // lề quanh mặt = tầm với xa nhất
-  let FACE = 150;
+  const RIM_PAD    = 4;                                 // đệm mỏng ngoài mép nhãn giờ, cho khỏi sát cạnh màn
+  const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + RIM_PAD);   // lề quanh mặt = tầm với xa nhất
+  const FACE_PREF  = 150;                               // bán kính mặt MONG MUỐN khi màn đủ rộng
+  let FACE = FACE_PREF;
   // Hai làn cung. Cung khoảng teal dùng lại đúng hai bán kính này (phút chung làn với
   // ARC_R_M, giờ chung làn với ARC_R_H) nên không có hằng số riêng cho nó.
   let ARC_R_M = 0, ARC_R_H = 0;
@@ -739,7 +764,7 @@
       faceByW = halfW - MARGIN;
       FACE = faceByW;
     }
-    FACE = Math.max(FACE, Math.min(150, faceByW));
+    FACE = Math.max(FACE, Math.min(FACE_PREF, faceByW));
     FACE = Math.max(FACE, FACE_MIN);
 
     const D = FACE*2;
@@ -757,7 +782,7 @@
     const rM = FACE + BADGE_M_OFF, rH = FACE + BADGE_H_OFF;
     place(elConnM, elBadgeM, connStart, (rM - BADGE_HALF) - connStart, rM);
     place(elConnH, elBadgeH, connStart, (rH - BADGE_HALF) - connStart, rH);
-    // Chữ "từ"/"đến" không cần đặt ở đây: nó bám cung dẫn dựng theo ARC_R_M trong drawMarks,
+    // Chữ "từ"/"đến" không cần đặt ở đây: drawMarks đặt nó theo bán kính ARC_R_M,
     // mà layout() gọi redraw() ở cuối nên đổi FACE là chữ tự chạy lại.
 
     layoutFace();
@@ -862,14 +887,14 @@
 
     // Cung và hai chữ "từ"/"đến" là phần TỔNG KẾT: chỉ vẽ khi đã trả lời ĐÚNG. Trong lúc
     // đang làm bài, mặt đồng hồ chỉ có vạch mốc — không bày sẵn quãng cần tìm.
-    const done = state.solved && k.from!==null && k.to!==null;
+    const done = bothMarksKnown(k);
 
     elArc .classList.toggle('off', !done);
     elArcH.classList.toggle('off', !done);
     for(const el of Object.values(elCue)) el.classList.toggle('off', !done);
     if(!done) return;
 
-    const dur = (k.to - k.from + HALF_DAY) % HALF_DAY;
+    const dur = spanMins(k.from, k.to);
     // Cung khoảng vẽ trên CẢ HAI thang, mỗi thang chung làn với cung giờ thật của thang đó:
     //   PHÚT: 1 phút = 6°, chỉ đọc phần phút của mốc; quá 1 giờ thì kim phút quay trọn vòng.
     //   GIỜ : 1 giờ = 30° và mốc nhích dần theo phút (như vạch mốc giờ) -> góc = số phút / 2.
@@ -1035,9 +1060,9 @@
   // Câu TRẢ LỜI chỉ hiện khi câu hỏi đã đủ 2 thành phần. Dựng lại được cả khi đang gõ ở câu
   // hỏi (con trỏ không nằm trong câu này), nhưng KHÔNG dựng khi đang gõ ở chính ô đáp án.
   function syncA(){
-    // overDigits() > 0: kiểu số không đếm nổi khoảng này -> báo ngay dưới câu hỏi và
-    // khoá phần trả lời lại, vì chỗ phải sửa là câu hỏi chứ không phải câu trả lời
-    const over = overDigits();
+    // Kiểu số không đếm nổi khoảng này -> báo ngay dưới câu hỏi và khoá phần trả lời lại,
+    // vì chỗ phải sửa là câu hỏi chứ không phải câu trả lời
+    const over = tooManyToCount();
     elWarn.hidden = !over;
     const ready = state.unknown!==null && solution()!==null && !over;
     elABlock.hidden = !ready;
@@ -1133,7 +1158,7 @@
      bàn tay nhìn xa hơn hẳn khe từ bàn tay xuống dòng "đến", dù CSS cho gap bằng nhau. */
   const CELL = {x0:180, y0:-64, w:208, h:409};
   const COL_GAP = 16, ROW_GAP = 20;
-  const ROW_W = CELL.w*2 + COL_GAP;           // 432
+  const ROW_W = CELL.w*2 + COL_GAP;           // bề ngang một HÀNG = hai bàn tay kề nhau
   const MIRROR_AX = 2 * (CELL.x0 + CELL.w/2); // lật quanh tâm ngang của khung: x -> 568 - x
 
   /* ĐẦU NGÓN của từng trạng thái, đo thẳng từ path data của 6 file icon (đã căn tay áo).
@@ -1175,11 +1200,11 @@
     return {g:cell, use, labs, mirror};
   }
 
-  // Vùng cắt chỉ để CẮT NGANG ở cổ tay (bỏ cẳng tay), không cần cắt hai bên -> nới ra 8 đơn vị
-  // mỗi bên cho nhãn ngón cái (nằm sát mép khung) không bị xén mất viền. Khe giữa hai bàn là
-  // 16 nên nới 8 vẫn không chồng sang bàn bên cạnh, và vẫn đối xứng qua tâm nên bàn lật dùng chung.
+  // Vùng cắt chỉ để CẮT NGANG ở cổ tay (bỏ cẳng tay), không cần cắt hai bên -> nới mỗi bên
+  // NỬA KHE giữa hai bàn, cho nhãn ngón cái (nằm sát mép khung) không bị xén mất viền mà vẫn
+  // không lấn sang bàn kế bên. Nới đúng nửa khe nên vẫn đối xứng qua tâm -> bàn lật dùng chung.
   elLimbs.appendChild(mk('clipPath', {id:'cellClip'})).appendChild(
-    mk('rect', {x:CELL.x0 - 8, y:CELL.y0, width:CELL.w + 16, height:CELL.h}));
+    mk('rect', {x:CELL.x0 - COL_GAP/2, y:CELL.y0, width:CELL.w + COL_GAP, height:CELL.h}));
 
   // Thứ tự trong mảng = thứ tự đếm: 1-5, 6-10 (hàng trên) rồi 11-15, 16-20 (hàng dưới)
   // ox,oy là vị trí GÓC TRÊN-TRÁI của khung trong viewBox, không phải toạ độ gốc của icon
@@ -1200,7 +1225,7 @@
   function fmtTime(mins, secs){
     if(mins===null) return '<span class="todo">…</span>';
     const h = Math.floor(mins/60), m = mins%60;
-    const hm = `<span class="v-h">${h===0?12:h}</span><span class="sep">:</span>`
+    const hm = `<span class="v-h">${gio12(h)}</span><span class="sep">:</span>`
              + `<span class="v-m">${String(m).padStart(2,'0')}</span>`;
     return secs==null ? hm
       : hm + `<span class="sep">:</span><span class="v-s">${String(secs).padStart(2,'0')}</span>`;
@@ -1208,7 +1233,7 @@
   // Nhãn trên ngón: cùng cách đọc, nhưng trong SVG tô màu bằng fill nên phải dùng lớp riêng
   function fmtLimb(mins){
     const h = Math.floor(mins/60), m = mins%60;
-    return `<tspan class="lh">${h===0?12:h}</tspan><tspan class="ls">:</tspan>`
+    return `<tspan class="lh">${gio12(h)}</tspan><tspan class="ls">:</tspan>`
          + `<tspan class="lm">${String(m).padStart(2,'0')}</tspan>`;
   }
   // Dòng giờ thật ở trên cùng: đọc thẳng đồng hồ máy chứ không qua nowMins() — cái đó bị đóng
@@ -1228,11 +1253,11 @@
   /* KHOẢNG THẬT của câu hỏi — biết được NGAY khi câu hỏi đủ dữ kiện, không cần đợi trả lời:
      hỏi "bao nhiêu phút" thì khoảng chính là đáp án, hai câu còn lại thì khoảng là dữ kiện.
      Quá 20 phút thì kiểu số không đếm nổi -> báo ngay lúc đặt câu hỏi và KHOÁ luôn phần trả
-     lời, thay vì để người học điền xong mới nói là không hiện được. Trả về 0 nghĩa là ổn. */
-  function overDigits(){
-    if(view!=='digital' || state.unknown===null) return 0;
+     lời, thay vì để người học điền xong mới nói là không hiện được. */
+  function tooManyToCount(){
+    if(view!=='digital' || state.unknown===null) return false;
     const d = state.unknown==='dur' ? solution() : state.dur;
-    return (d!==null && d>DIGIT_MAX) ? d : 0;
+    return d!==null && d>DIGIT_MAX;
   }
 
   function drawDigital(){
@@ -1251,13 +1276,13 @@
     elDFromT.innerHTML = fmtTime(k.from, partSecs('from'));
     elDToT.innerHTML   = fmtTime(k.to,   partSecs('to'));
 
-    const over = overDigits();
-    const done = state.solved && k.from!==null && k.to!==null;
-    const n    = (!over && done) ? (k.to - k.from + HALF_DAY) % HALF_DAY : 0;
+    const over = tooManyToCount();
+    const done = bothMarksKnown(k);
+    const n    = (!over && done) ? spanMins(k.from, k.to) : 0;
 
     // Quá tầm đếm thì bỏ hẳn hình, chỉ còn lời báo. Dùng class chứ KHÔNG dùng .hidden:
     // thuộc tính hidden chỉ có ở HTMLElement, gán cho <svg> là gán vào hư không.
-    elLimbs.classList.toggle('off', over>0);
+    elLimbs.classList.toggle('off', over);
 
     // Hàng dưới (phút 11-20) chỉ dựng khi thật sự đếm quá 10; khung cao theo số hàng đang hiện
     /* BỐN BÀN TAY xếp thế nào: desktop cho cả bốn lên MỘT hàng ngang (màn rộng, mà xếp dọc

@@ -953,7 +953,9 @@
     // Lề quanh mặt = mép NGOÀI nhãn giờ lúc nằm ngang (tâm + nửa bề rộng) + 1 ARC_GAP dư.
     const maxReach = badgeH_off + BADGE_HALF + ARC_GAP;
 
-    const vw = window.innerWidth;
+    // clientWidth = LAYOUT viewport: trên Safari iOS window.innerWidth bám VISUAL viewport,
+    // pinch-zoom xong đổi giá trị -> layout() co mặt lại (chỉ số .95rem không co nên "số to ra").
+    const vw = document.documentElement.clientWidth;
     const vh = viewportH();
 
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
@@ -1476,7 +1478,9 @@
   // Zoom TRANG trên desktop có đổi bề rộng nên vẫn chạy layout() và mặt vẫn co theo — chấp nhận.
   let lastW=-1, lastVh=-1;
   function relayout(){
-    const w=window.innerWidth;
+    // clientWidth (layout viewport) thay vì innerWidth: Safari iOS đổi innerWidth theo
+    // pinch-zoom -> relayout chạy oan giữa cử chỉ, mặt tự co còn số thì không.
+    const w=document.documentElement.clientWidth;
     if(mqDesktop.matches){
       const vh=viewportH();
       if(w===lastW && Math.abs(vh-lastVh)<2) return;

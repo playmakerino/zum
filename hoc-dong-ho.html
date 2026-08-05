@@ -158,10 +158,10 @@
   /* ===== CHỮ "TỪ" / "ĐẾN" TRÊN MẶT — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
      Không bịa ký hiệu mới (chấm/mũi tên/số đều phải học mới hiểu): chép thẳng HAI CHỮ đã có
      trong câu ra cạnh hai mốc. Màu trung tính, không đụng hệ màu kim.
-     Chữ đặt NẰM TRÊN vòng phút, lệch sang cạnh vạch mốc của nó (JS lo góc, xem drawMarks).
-     Chữ ĐỨNG THẲNG chứ không bẻ cong theo vòng: đã thử <textPath> và bỏ, vì chữ bé quá nên
-     cong hay không nhìn không ra, đổi lại phải gánh cả đống chuyện lật chiều cung ở nửa dưới
-     mặt và bù nửa chiều cao chữ. */
+     Chữ đặt NẰM TRÊN vòng phút, lệch sang cạnh vạch mốc của nó, và XOAY theo tiếp tuyến của
+     vòng nên nó ôm theo vòng (JS lo cả góc lẫn cú lật 180° ở nửa dưới mặt, xem drawMarks).
+     Xoay cả khối chữ chứ KHÔNG bẻ cong từng chữ cái: đã thử <textPath> rồi bỏ, vì chữ bé quá
+     nên cong hay không nhìn không ra, đổi lại phải gánh thêm việc bù nửa chiều cao chữ. */
   .cue-lab{
     position:absolute;left:50%;top:0;
     transform:translate(-50%,-50%);
@@ -876,8 +876,12 @@
       const halfW = lab.offsetWidth/2 || 8;        // đọc SAU khi đã gỡ .off, không thì bằng 0
       const deg = (k[part]%60)*6
                 + away * (MK_M_HALF + CLEAR + halfW) / ARC_R_M * 180/Math.PI;
-      el.style.transform  = `rotate(${deg}deg)`;
-      lab.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;   // đối-xoay -> chữ đứng thẳng
+      el.style.transform = `rotate(${deg}deg)`;
+      // KHÔNG đối-xoay: chữ ăn theo góc của orbit nên nằm TIẾP TUYẾN với vòng, ôm theo vòng
+      // như một khối thẳng (không bẻ cong từng chữ cái). Nửa DƯỚI mặt thì tiếp tuyến quay chữ
+      // lộn ngược -> xoay thêm 180° cho đọc được; xoay quanh chính tâm chữ nên không xê dịch.
+      const a = ((deg % 360) + 360) % 360;
+      lab.style.transform = `translate(-50%,-50%)${a > 90 && a < 270 ? ' rotate(180deg)' : ''}`;
     }
   }
 

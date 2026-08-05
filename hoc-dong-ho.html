@@ -23,6 +23,8 @@
     --c-dur:#1fab95;         /* khoảng "bao nhiêu phút" */
     --c-star:#f9c22e;        /* sao thưởng — vàng, đứng ngoài hệ màu của kim */
     --ok:#1fab95;
+    --skin:#fbe0c8;          /* bàn tay / bàn chân ở tab digital — trung tính, không phải màu kim nào */
+    --skin-edge:#dfb28a;
     --badge-dia:26px;        /* đường kính nhãn giờ/phút quay quanh mặt (JS đọc để tính bố cục) */
 
     /* Spacing: một thang chung, co theo bề rộng màn (mobile nhỏ lại, desktop nở ra) */
@@ -59,6 +61,21 @@
       gap:24px;
     }
   }
+
+  /* ===== KHUNG CHỨA ĐỒNG HỒ + TAB ĐỔI KIỂU =====
+     .stage đứng đúng chỗ .analog đứng trước đây trong flex của body (dọc: trên; ngang: trái),
+     nên bố cục cũ không đổi; nó chỉ thêm hàng tab ở trên và ôm cả hai kiểu đồng hồ. */
+  .stage{display:flex;flex-direction:column;align-items:center;flex:none;}
+  .tabs{display:flex;gap:var(--sp-2);}
+  /* Tab là nút GIAO DIỆN -> dùng màu giao diện (--c-sec), giống chip chọn câu hỏi */
+  .tab{
+    min-height:2.2rem;padding:.3rem 1.1rem;
+    border:1px solid var(--line);border-radius:99px;
+    background:transparent;color:var(--muted);
+    font-family:inherit;font-size:var(--fs-chip);
+    cursor:pointer;
+  }
+  .tab.on{background:var(--c-sec);border-color:var(--c-sec);color:#fff;}
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
      Kích thước ở đây chỉ là giá trị ban đầu cho lần vẽ đầu; layout() trong JS ghi đè ngay. */
@@ -149,6 +166,42 @@
   .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
   /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
   .r-span{fill:none;stroke:var(--c-dur);stroke-width:3.2px;stroke-linecap:butt;}
+
+  /* ===== DIGITAL: TỪ (trên) · BÀN TAY (giữa) · ĐẾN (dưới) =====
+     Đọc từ trên xuống đúng thứ tự thời gian. Ở giữa là hai bàn tay đang nắm; trả lời đúng
+     thì mỗi PHÚT giơ một ngón, trên ngón ghi mốc giờ:phút mà ngón đó đếm tới.
+     Quá 10 phút thì mượn thêm hai bàn chân (tổng 20 ngón); quá 20 thì báo không đủ ngón. */
+  .digital{
+    /* .stage co theo nội dung -> KHÔNG dùng % (không có mốc để quy ra px), tính thẳng từ vw */
+    width:min(340px,calc(100vw - 2rem));
+    margin:var(--sp-2) var(--sp-3) var(--sp-4);
+    display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
+  }
+  .dnow{font-size:var(--fs-chip);color:var(--c-sec);display:flex;align-items:baseline;gap:.4rem;}
+  .dwork{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);width:100%;}
+  .drow{display:flex;align-items:baseline;gap:.5rem;}
+  .dlab{font-size:var(--fs-say);color:var(--ink);}
+  .dtime{
+    font-size:clamp(1.4rem,7vw,1.9rem);font-weight:700;line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .dnow .dtime{font-size:var(--fs-say);}
+  .dtime .v-h{color:var(--c-hour);}
+  .dtime .v-m{color:var(--c-min);}
+  .dtime .sep{color:var(--muted);}
+  .dtime .todo{color:var(--muted);font-weight:400;}
+  .dnote{font-size:var(--fs-chip);font-weight:500;color:var(--c-sec);text-align:center;}
+
+  /* Hình tay/chân. Các ngón vẽ TRƯỚC lòng bàn tay nên khi cụp lại chúng nấp sau lòng bàn tay
+     (chỉ ló một mẩu đốt) — không cần cắt hình, không cần đổi hình dạng. */
+  .limbs{width:100%;height:auto;display:block;}
+  .limbs .palm,.limbs .digit rect{fill:var(--skin);stroke:var(--skin-edge);stroke-width:2;}
+  .limbs .digit{transform:translateY(var(--fold));transition:transform .45s cubic-bezier(.2,.8,.25,1);}
+  .limbs .digit.up{transform:none;transition-delay:calc(var(--i) * 55ms);}   /* giơ lần lượt từng ngón */
+  .limbs text{font-family:inherit;font-size:11px;font-weight:700;}
+  .limbs .lh{fill:var(--c-hour);}
+  .limbs .lm{fill:var(--c-min);}
+  .limbs .ls{fill:var(--muted);}
 
   /* ===== CỘT CÂU HỎI / CÂU TRẢ LỜI ===== */
   .panel{
@@ -282,6 +335,11 @@
 </style>
 </head>
 <body>
+  <div class="stage">
+  <div class="tabs" id="tabs">
+    <button class="tab on" type="button" data-view="analog">Kim</button>
+    <button class="tab"    type="button" data-view="digital">Số</button>
+  </div>
   <div class="analog" id="analog">
     <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) -->
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
@@ -305,6 +363,20 @@
     <div class="orbit off" id="cueFrom"><div class="cue-lab">từ</div></div>
     <div class="orbit off" id="cueTo"><div class="cue-lab">đến</div></div>
     <div class="center"></div>
+  </div>
+
+  <!-- KIỂU SỐ: đọc dọc từ trên xuống — từ · hai bàn tay · đến.
+       Hàng "bây giờ" luôn hiện (kiểu kim cũng luôn chạy giờ thật); khối dưới chỉ hiện khi
+       câu hỏi đã đủ dữ kiện. Hình tay/chân dựng bằng JS ở phần 8. -->
+  <div class="digital" id="digital" hidden>
+    <div class="dnow">bây giờ <span class="dtime" id="dNowT"></span></div>
+    <div class="dwork" id="dWork" hidden>
+      <div class="drow"><span class="dlab">từ</span><span class="dtime" id="dFromT"></span></div>
+      <svg class="limbs" id="limbs" viewBox="-8 0 336 155" aria-hidden="true"></svg>
+      <div class="dnote" id="dNote" hidden></div>
+      <div class="drow"><span class="dlab">đến</span><span class="dtime" id="dToT"></span></div>
+    </div>
+  </div>
   </div>
 
   <div class="panel">
@@ -342,13 +414,14 @@
 
 <script>
   /* ============================================================
-     HỌC ĐỒNG HỒ — script chia 8 phần, xếp theo dòng dữ liệu
+     HỌC ĐỒNG HỒ — script chia 9 phần, xếp theo dòng dữ liệu
      (trạng thái -> vẽ -> câu chữ -> tương tác):
 
-       1. Tiện ích & tham chiếu DOM      5. Mốc từ/đến + cung khoảng phút
-       2. Trạng thái bài tập             6. Vòng lặp mỗi frame — tick()
-       3. Mặt số: vạch, chữ số, vạch mốc 7. Câu chữ & chấm bài
-       4. Bố cục tự co (layout)          8. Tương tác & khởi động
+       1. Tiện ích & tham chiếu DOM      6. Vòng lặp mỗi frame — tick()
+       2. Trạng thái bài tập             7. Câu chữ & chấm bài
+       3. Mặt số: vạch, chữ số, vạch mốc 8. Kiểu SỐ: từ · bàn tay · đến
+       4. Bố cục tự co (layout)          9. Tương tác & khởi động
+       5. Mốc từ/đến + cung khoảng phút
 
      QUY ƯỚC THỜI GIAN: mặt đồng hồ 12 GIỜ nên mọi mốc quy về SỐ PHÚT TRONG 12 TIẾNG,
      0..719 (12 giờ đúng = 0). Giờ nhập/hiện là 1..12. Mọi phép cộng trừ lấy dư 720.
@@ -366,6 +439,12 @@
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elTextH=$('textH'),   elTextM=$('textM');
   const elCue={from:$('cueFrom'), to:$('cueTo')};
+
+  // Tab đổi kiểu đồng hồ + khối "kiểu số"
+  const elTabs=$('tabs'), elDigital=$('digital'), elLimbs=$('limbs');
+  const elDWork=$('dWork'), elDNote=$('dNote');
+  const elDNowT=$('dNowT'), elDFromT=$('dFromT'), elDToT=$('dToT');
+  const tabs = [...elTabs.children];
 
   // Cột câu hỏi / câu trả lời
   const elPanel  = document.querySelector('.panel');
@@ -521,7 +600,8 @@
       const GAP = 24;
       const availW = Math.min(vw, 1600) - EDGE*2;
       faceByW = (availW - panelW - GAP - 2*MARGIN) / 2;
-      const faceByH = (vh - 2*EDGE - 2*MARGIN) / 2;
+      // Hàng tab nằm TRÊN mặt đồng hồ nên ăn mất phần chiều cao đó
+      const faceByH = (vh - 2*EDGE - 2*MARGIN - elTabs.offsetHeight) / 2;
       FACE = Math.min(faceByW, faceByH);
     } else {
       // DỌC: đồng hồ chỉ co theo BỀ RỘNG, nội dung dài hơn màn thì cuộn
@@ -647,6 +727,10 @@
     }
   }
 
+  // Vẽ lại CẢ HAI kiểu đồng hồ từ cùng một trạng thái (drawDigital ở phần 9 tự bỏ qua
+  // khi đang xem kiểu kim). Mọi chỗ đổi trạng thái gọi hàm này, không gọi thẳng drawMarks.
+  function redraw(){ drawMarks(); drawDigital(); }
+
   /* ===== 6. VÒNG LẶP MỖI FRAME — tick() ===== */
   let lastSec = -1, lastMin = -1;
   function tick(){
@@ -679,10 +763,12 @@
 
       // Mốc chọn "bây giờ" chạy theo giờ thật -> sang phút mới thì vẽ lại vạch mốc.
       // Chỉ vẽ lại vạch; câu chữ ghi "bây giờ" (không có số) nên không cần dựng lại.
+      if(view==='digital') elDNowT.innerHTML = fmtTime(liveNow());
+
       const mn = now.getMinutes();
       if(mn!==lastMin){
         lastMin=mn;
-        if(usingNow() && frozenNow===null) drawMarks();
+        if(usingNow() && frozenNow===null) redraw();
       }
     }
     requestAnimationFrame(tick);
@@ -773,7 +859,7 @@
     elABlock.hidden = !ready;
     if(ready) elASay.innerHTML = sayHTML(false);
   }
-  function syncAll(){ syncQ(); syncA(); drawMarks(); }
+  function syncAll(){ syncQ(); syncA(); redraw(); }
 
   function setResult(txt, cls){
     elResult.textContent = txt;
@@ -834,10 +920,131 @@
       state.solved=false; frozenNow=null;
       setResult('Chưa đúng, thử lại.','no');
     }
-    drawMarks();
+    redraw();
   }
 
-  /* ===== 8. TƯƠNG TÁC & KHỞI ĐỘNG ===== */
+  /* ===== 8. KIỂU SỐ: TỪ · BÀN TAY · ĐẾN =====
+     ĐẾM PHÚT BẰNG NGÓN: mỗi phút một ngón, ngón thứ i ghi mốc (từ + i). Hai bàn tay đủ 10
+     phút; quá 10 thì mượn thêm hai bàn chân (tổng 20 ngón); quá 20 thì không đếm nữa mà báo
+     thẳng "không đủ ngón tay" — thà nói thiếu ngón còn hơn vẽ số ngón sai.
+
+     HÌNH VẼ: mỗi bàn = các NGÓN vẽ trước, LÒNG BÀN vẽ sau đè lên. Ngón cụp = cả ngón trượt
+     dọc theo trục của chính nó xuống dưới, nấp sau lòng bàn, chỉ ló một mẩu đốt -> ra nắm
+     tay. Ngón giơ = trượt về 0. Nhờ vậy giơ/cụp chỉ là MỘT phép translate (CSS chuyển động
+     mượt được), không phải vẽ lại hai hình khác nhau. */
+  const DIGIT_MAX = 20;             // 10 ngón tay + 10 ngón chân
+  const LIMB_W = 150, LIMB_GAP = 20, ROW_Y = 175;   // một bàn rộng 150; hàng chân cách hàng tay 175
+  const FINGER = {len:70, w:17, base:70, fold:56};
+  const THUMB  = {len:54, w:16, base:100, fold:40, x:36, rot:38};
+  const TOE    = {len:56, w:15, base:70, fold:46};
+  const FINGER_X = [43.5, 64.5, 85.5, 106.5];
+  const TOE_X    = [37, 56, 75, 94, 113];
+
+  // Một bàn tay: ngón cái ở phía NGOÀI (tay trái -> mép trái, tay phải -> mép phải), rồi tới
+  // 4 ngón. Mảng trả về xếp theo THỨ TỰ ĐẾM, và cũng đúng thứ tự nhìn từ trái sang phải.
+  function handDigits(mirror){
+    const mx = v => mirror ? LIMB_W - v : v;
+    const thumb = {cx:mx(THUMB.x), cy:THUMB.base, rot:(mirror?1:-1)*THUMB.rot,
+                   len:THUMB.len, w:THUMB.w, fold:THUMB.fold};
+    const fingers = FINGER_X.map(x => ({cx:mx(x), cy:FINGER.base, rot:0,
+                                        len:FINGER.len, w:FINGER.w, fold:FINGER.fold}));
+    return mirror ? [...fingers.reverse(), thumb] : [thumb, ...fingers];
+  }
+  const footDigits = () => TOE_X.map(x => ({cx:x, cy:TOE.base, rot:0,
+                                            len:TOE.len, w:TOE.w, fold:TOE.fold}));
+
+  // Một ngón. Nhãn nằm GIỮA thân ngón và được đối-xoay để luôn đọc dọc từ dưới lên, kể cả
+  // ngón cái (ngón cái nghiêng, nên phải trừ đi đúng góc nghiêng đó).
+  let digitSeq = 0;
+  function digitSVG(s){
+    const i = digitSeq++;
+    return `<g transform="translate(${s.cx},${s.cy}) rotate(${s.rot})">`
+         +   `<g class="digit" style="--fold:${s.fold}px;--i:${i}">`
+         +     `<rect x="${-s.w/2}" y="${-s.len}" width="${s.w}" height="${s.len}" rx="${s.w/2}"/>`
+         +     `<g transform="translate(0,${-s.len/2}) rotate(${-90-s.rot})">`
+         +       `<text text-anchor="middle" dominant-baseline="central"></text>`
+         +     `</g>`
+         +   `</g>`
+         + `</g>`;
+  }
+  // Lòng bàn tay / lòng bàn chân cùng khung, chỉ khác độ bo (bàn chân tròn hơn)
+  const limbSVG = (digits, ox, oy, rx) =>
+    `<g transform="translate(${ox},${oy})">${digits.map(digitSVG).join('')}`
+    + `<rect class="palm" x="28" y="66" width="94" height="84" rx="${rx}"/></g>`;
+
+  digitSeq = 0;
+  elLimbs.innerHTML =
+      limbSVG(handDigits(false), 0, 0, 20)                        // ngón  0- 4: tay trái
+    + limbSVG(handDigits(true),  LIMB_W+LIMB_GAP, 0, 20)          // ngón  5- 9: tay phải
+    + `<g id="feetG" class="off">`
+    +   limbSVG(footDigits(), 0, ROW_Y, 34)                       // ngón 10-14: chân trái
+    +   limbSVG(footDigits(), LIMB_W+LIMB_GAP, ROW_Y, 34)         // ngón 15-19: chân phải
+    + `</g>`;
+  const elFeet   = $('feetG');
+  const digitEls = [...elLimbs.querySelectorAll('.digit')];       // đúng thứ tự đếm 0..19
+
+  // Mốc 0..719 -> "8:05" tô đúng màu giờ/phút; null -> dấu … như trong câu
+  function fmtTime(mins){
+    if(mins===null) return '<span class="todo">…</span>';
+    const h = Math.floor(mins/60), m = mins%60;
+    return `<span class="v-h">${h===0?12:h}</span><span class="sep">:</span>`
+         + `<span class="v-m">${String(m).padStart(2,'0')}</span>`;
+  }
+  // Nhãn trên ngón: cùng cách đọc, nhưng trong SVG tô màu bằng fill nên phải dùng lớp riêng
+  function fmtLimb(mins){
+    const h = Math.floor(mins/60), m = mins%60;
+    return `<tspan class="lh">${h===0?12:h}</tspan><tspan class="ls">:</tspan>`
+         + `<tspan class="lm">${String(m).padStart(2,'0')}</tspan>`;
+  }
+
+  let view = 'analog';
+
+  function drawDigital(){
+    if(view!=='digital') return;               // đang xem kiểu kim thì khỏi tính
+    elDNowT.innerHTML = fmtTime(liveNow());
+
+    // Giống kiểu kim: chỉ hiện khi câu hỏi đã đủ dữ kiện, và KHÔNG lộ thành phần đang hỏi
+    const ready = state.unknown!==null && solution()!==null;
+    elDWork.hidden = !ready;
+    if(!ready) return;
+
+    const k = knownNow();
+    elDFromT.innerHTML = fmtTime(k.from);
+    elDToT.innerHTML   = fmtTime(k.to);
+
+    const done = state.solved && k.from!==null && k.to!==null;
+    const dur  = done ? (k.to - k.from + HALF_DAY) % HALF_DAY : 0;
+    const n    = dur<=DIGIT_MAX ? dur : 0;     // quá 20 phút -> không giơ ngón nào
+
+    elFeet.classList.toggle('off', n<=10);
+    // Có bàn chân thì khung cao gấp đôi; bề ngang chừa -8..328 cho ngón cái chìa ra hai mép
+    elLimbs.setAttribute('viewBox', n>10 ? '-8 0 336 330' : '-8 0 336 155');
+
+    digitEls.forEach((g,i)=>{
+      const up = i<n;
+      g.classList.toggle('up', up);
+      g.querySelector('text').innerHTML = up ? fmtLimb((k.from + i + 1) % HALF_DAY) : '';
+    });
+
+    elDNote.hidden = !(done && dur>DIGIT_MAX);
+    if(!elDNote.hidden) elDNote.textContent = `${dur} phút, nhiều hơn ${DIGIT_MAX} nên không đủ ngón tay.`;
+  }
+
+  /* --- Đổi kiểu đồng hồ --- */
+  function setView(v){
+    view = v;
+    tabs.forEach(t => t.classList.toggle('on', t.dataset.view===v));
+    analog.hidden    = (v!=='analog');
+    elDigital.hidden = (v!=='digital');
+    closeMenu();
+    // Mặt kim đo kích thước bằng offsetWidth nên lúc bị ẩn không đo được -> hiện lại thì
+    // căn lại từ đầu (xoá mốc lastW/lastVh để relayout không bỏ qua).
+    if(v==='analog'){ lastW=-1; lastVh=-1; layout(); }
+    else drawDigital();
+  }
+  tabs.forEach(t => t.addEventListener('click', ()=> setView(t.dataset.view)));
+
+  /* ===== 9. TƯƠNG TÁC & KHỞI ĐỘNG ===== */
   /* --- Ô nhập: đọc số -> state (rỗng = null để câu vẫn hiện dấu … thay vì số cũ) --- */
   // data-k của ô nhập -> chỗ cất trong state; nhánh null nghĩa là nằm thẳng trên state
   const SLOT = {

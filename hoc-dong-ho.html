@@ -499,7 +499,6 @@
   const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + 4);   // lề quanh mặt = tầm với xa nhất
   let FACE = 150;
   let ARC_R = 0;
-  let baseFace = 0;        // FACE đo được lúc KHÔNG phóng to — mốc để KHÓA khi zoom in
 
   // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari)
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
@@ -510,22 +509,11 @@
   // co lại đúng bằng phần vừa phóng to -> chữ to lên mà đồng hồ vẫn bé ("co rúm").
   // Xử lý: đo hệ số zoom rồi QUY viewport về mức 100% TRƯỚC khi tính. Mặt giữ nguyên số CSS px,
   // trình duyệt tự phóng to nó cùng nhịp với chữ; phần tràn ra thì cuộn.
-  //  - Zoom lúc TẢI TRANG: outerWidth (px màn hình, KHÔNG đổi khi zoom) / innerWidth (px CSS).
-  //    Chỉ nhận khi cửa sổ đủ rộng và tỉ lệ rơi đúng một mốc zoom chuẩn — viền cửa sổ + thanh
-  //    cuộn làm tỉ lệ lệch vài %, ở cửa sổ hẹp mức lệch đó đủ để đọc nhầm thành zoom.
-  //  - Zoom ĐỔI khi đang dùng: devicePixelRatio đổi đúng bằng hệ số zoom.
-  //  - KHÔNG dùng visualViewport.scale: pinch zoom không đổi layout viewport, bù vào là nhân đôi.
-  const ZOOM_STEPS = [1,1.1,1.25,1.5,1.75,2,2.5,3,4,5];
+  // devicePixelRatio đổi đúng bằng hệ số zoom. KHÔNG dùng visualViewport.scale: pinch zoom
+  // không đổi layout viewport, bù vào là nhân đôi.
   const dprBase = window.devicePixelRatio || 1;
-  const zoomAtLoad = (function(){
-    const r = window.outerWidth / window.innerWidth;
-    if(!(r > 1.06) || window.innerWidth < 700) return 1;
-    let best = 1, err = Infinity;
-    for(const s of ZOOM_STEPS){ const e = Math.abs(r - s)/s; if(e < err){ err = e; best = s; } }
-    return err <= 0.05 ? best : 1;
-  })();
   function zoomFactor(){
-    const z = zoomAtLoad * ((window.devicePixelRatio || 1) / dprBase);
+    const z = (window.devicePixelRatio || 1) / dprBase;
     return Math.min(Math.max(z, 1), 5);   // chỉ bù khi PHÓNG TO; zoom out để bố cục co giãn như thường
   }
 
@@ -556,9 +544,6 @@
     }
     FACE = Math.max(FACE, Math.min(150, faceByW));
     FACE = Math.max(FACE, FACE_MIN);
-    // Chốt chặn: nếu hệ số zoom đo hụt thì mặt vẫn không được nhỏ hơn lúc 100%
-    if(zoomed && baseFace > 0) FACE = Math.max(FACE, baseFace);
-    else if(!zoomed) baseFace = FACE;
 
     const D = FACE*2;
     analog.style.width  = D+'px';

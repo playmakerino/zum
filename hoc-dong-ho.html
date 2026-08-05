@@ -358,7 +358,11 @@
   }
   .menu button.on{color:#fff;background:var(--c-sec);}
 
-  .result{font-size:var(--fs-chip);font-weight:500;min-height:1.3em;}
+  /* Cùng cỡ với câu hỏi/câu trả lời (--fs-say): đây là câu trả lời cho việc người học vừa
+     làm, không phải chú thích phụ. MỘT cỡ cho cả đúng lẫn sai — đổi cỡ theo trạng thái thì
+     mỗi lần chấm bài mắt lại phải bám lại từ đầu. min-height giữ sẵn chỗ nên lúc chưa chấm
+     khối bên dưới không nhảy. */
+  .result{font-size:var(--fs-say);font-weight:500;min-height:1.3em;}
   .result.ok{color:var(--ok);}
   .result.no{color:var(--c-sec);}
 
@@ -1127,7 +1131,7 @@
       if(!state.solved && usingNow()){ frozenNow = liveNow(); frozenSec = new Date().getSeconds(); }
       state.solved=true;
       if(!state.awarded){ state.awarded=true; awardStar(); }
-      setResult('Đúng rồi.','ok');
+      setResult('Đúng rồi!','ok');
     }else{
       state.solved=false; frozenNow=null;
       setResult('Chưa đúng, thử lại.','no');

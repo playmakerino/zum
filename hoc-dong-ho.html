@@ -24,6 +24,10 @@
     --c-star:#f9c22e;        /* sao thưởng — vàng, đứng ngoài hệ màu của kim */
     --ok:#1fab95;
     --badge-dia:26px;        /* đường kính nhãn giờ/phút quay quanh mặt (JS đọc để tính bố cục) */
+    /* Cung ngoài mặt (giống dong-ho.html): nét ĐẬM dùng cho cả 4 trạng thái đậm, --faint là
+       độ mờ chung để "ô hiện tại" nhạt hơn "phần đã trôi" mà vẫn đúng một màu. */
+    --ring-bold:3.2px;
+    --faint:.25;
 
     /* Spacing: một thang chung, co theo bề rộng màn (mobile nhỏ lại, desktop nở ra) */
     --sp-1:clamp(.25rem,1vw,.4rem);
@@ -170,7 +174,15 @@
   .mk-h span{width:4px;left:-2px;background:var(--c-hour);}
   .mk-m span{width:2.5px;left:-1.25px;background:var(--c-min);}
   /* Cung KHOẢNG PHÚT: chỉ hiện khi đã biết CẢ hai mốc từ/đến */
-  .r-span{fill:none;stroke:var(--c-dur);stroke-width:3.2px;stroke-linecap:butt;}
+  .r-span{fill:none;stroke:var(--c-dur);stroke-width:var(--ring-bold);stroke-linecap:butt;}
+
+  /* ===== CUNG GIỜ / PHÚT HIỆN TẠI (bê từ dong-ho.html) =====
+     Hai trạng thái, cùng nét ĐẬM, khác nhau ở độ mờ:
+       .r-act  ĐẬM MỜ  — trọn ô đang ở trong (1 giờ = 30° · 1 phút = 6°)
+       .r-live ĐẬM ĐẶC — phần đã trôi qua của chính ô đó
+     Màu đặt ở thuộc tính stroke từng path (giờ xanh / phút cam), không đặt ở đây. */
+  .r-act,.r-live{fill:none;stroke-width:var(--ring-bold);stroke-linecap:butt;}
+  .r-act{opacity:var(--faint);}
 
   /* ===== DIGITAL: TỪ (trên) · BÀN TAY (giữa) · ĐẾN (dưới) =====
      Đọc từ trên xuống đúng thứ tự thời gian. Ở giữa là hai bàn tay đang nắm; trả lời đúng
@@ -388,9 +400,15 @@
     </button>
   </div>
   <div class="analog" id="analog">
-    <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) -->
+    <!-- Cung khoảng phút (chỉ vẽ khi biết cả hai mốc) + hai cung GIỜ THẬT đang chạy.
+         Cung giờ thật luôn hiện, không dính gì tới bài tập: vòng trong là PHÚT, vòng ngoài
+         là GIỜ, mỗi vòng một ô mờ (đang ở trong ô nào) và một vệt đặc (đã trôi bao nhiêu). -->
     <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
-      <path id="spanArc" class="r-span off"></path>
+      <path id="spanArc"  class="r-span off"></path>
+      <path id="minAct"   class="r-act"  stroke="var(--c-min)"></path>
+      <path id="minLive"  class="r-live" stroke="var(--c-min)"></path>
+      <path id="hourAct"  class="r-act"  stroke="var(--c-hour)"></path>
+      <path id="hourLive" class="r-live" stroke="var(--c-hour)"></path>
     </svg>
     <!-- Kim GIỜ THẬT chạy liên tục. Vạch mốc từ/đến dựng bằng JS ở phần 3. -->
     <div class="hand hour"   id="hour"></div>
@@ -483,6 +501,11 @@
   const analog = $('analog');
   const elHour=$('hour'), elMin=$('minute'), elSec=$('second');
   const elArc=$('spanArc');
+  // Cung giờ thật: mỗi vòng một cặp (ô đang ở trong · phần đã trôi)
+  const nowRing = {
+    min:  {act:$('minAct'),  live:$('minLive')},
+    hour: {act:$('hourAct'), live:$('hourLive')},
+  };
   const elOrbitH=$('orbitH'), elOrbitM=$('orbitM');
   const elConnH=$('connH'),   elConnM=$('connM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
@@ -621,13 +644,18 @@
   const BADGE_D    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
   const BADGE_HALF = BADGE_D/2;
   const ARC_OFF    = MK_OUT + 5;                        // cung khoảng phút
-  const CUE_OFF    = ARC_OFF + 10;                      // chữ "từ"/"đến": NGOÀI cung, không đè lên cung
+  // Hai cung GIỜ THẬT nằm NGOÀI cung khoảng, mỗi cung một làn riêng cách nhau 5px (đủ hở
+  // giữa hai nét đậm 3.2px). Thứ tự từ trong ra: PHÚT rồi GIỜ — giống dong-ho.html.
+  const NOW_M_OFF  = ARC_OFF + 5;                       // vòng PHÚT hiện tại
+  const NOW_H_OFF  = NOW_M_OFF + 5;                     // vòng GIỜ hiện tại (ngoài cùng của cụm cung)
+  const CUE_OFF    = NOW_H_OFF + 10;                    // chữ "từ"/"đến": NGOÀI cụm cung, không đè lên cung
   const CONN_OFF   = 4;                                 // nét nối bắt đầu sát MÉP MẶT (chạy dài qua vạch mốc + cung)
-  const BADGE_M_OFF= ARC_OFF + 7 + BADGE_HALF;          // tâm nhãn PHÚT (bám theo cung, KHÔNG theo nét nối)
+  const BADGE_M_OFF= NOW_H_OFF + 7 + BADGE_HALF;        // tâm nhãn PHÚT (bám theo cung NGOÀI CÙNG, KHÔNG theo nét nối)
   const BADGE_H_OFF= BADGE_M_OFF + BADGE_D + 3;         // tâm nhãn GIỜ (ngoài nhãn phút)
   const MARGIN     = Math.ceil(BADGE_H_OFF + BADGE_HALF + 4);   // lề quanh mặt = tầm với xa nhất
   let FACE = 150;
   let ARC_R = 0;
+  let ARC_R_M = 0, ARC_R_H = 0;   // bán kính hai cung giờ thật (phút / giờ)
 
   // Chiều cao vùng nhìn thấy THẬT (đã trừ thanh công cụ Safari)
   const viewportH = () => (window.visualViewport && window.visualViewport.height)
@@ -672,6 +700,8 @@
     elStage.style.width     = (D + 2*MARGIN)+'px';
     elStage.style.minHeight = (D + 2*MARGIN + elTabs.offsetHeight)+'px';
     ARC_R = FACE + ARC_OFF;      // cung khoảng phút: ngoài vạch mốc
+    ARC_R_M = FACE + NOW_M_OFF;  // cung PHÚT hiện tại
+    ARC_R_H = FACE + NOW_H_OFF;  // cung GIỜ hiện tại
 
     // Nhãn giờ/phút: nét nối chạy từ FACE+CONN_OFF tới đúng mép trong của nhãn
     const connStart = FACE + CONN_OFF;
@@ -681,6 +711,7 @@
     for(const o of Object.values(elCue)) o.firstChild.style.marginTop = (-(FACE + CUE_OFF))+'px';
 
     layoutFace();
+    drawNowRings();   // bán kính vừa đổi -> vẽ lại ngay, không đợi tới giây kế tiếp
     // redraw chứ không phải drawMarks: qua mốc 768px thì bốn bàn tay đổi giữa một hàng và
     // hai hàng, mà chỗ duy nhất chạy lại khi đổi kích thước màn là hàm này.
     redraw();
@@ -743,6 +774,21 @@
     }
     const [x0,y0]=polar(r,startDeg), [x1,y1]=polar(r,endDeg);
     return `M ${x0} ${y0} A ${r} ${r} 0 ${sweep>180?1:0} 1 ${x1} ${y1}`;
+  }
+
+  // ----- Cung GIỜ THẬT: hai vòng, mỗi vòng một cặp (ô đang ở trong · phần đã trôi) -----
+  // Bê từ dong-ho.html nhưng bỏ hai lớp MẢNH (track cả vòng / arc phần đã qua): mặt này đã
+  // có vạch mốc và cung khoảng, thêm vòng nền mảnh nữa thì rối chỗ cần nhìn.
+  // Không dính gì tới bài tập -> vẽ theo new Date(), không đọc state, không đóng băng.
+  //   doneDeg = hết các ô đã qua · slot = bề rộng MỘT ô (6° phút / 30° giờ) · liveDeg = tiến trình
+  function drawNowRing(g, r, doneDeg, slot, liveDeg){
+    g.act .setAttribute('d', arcPath(r, doneDeg, doneDeg + slot));   // ĐẬM MỜ  — trọn ô hiện tại
+    g.live.setAttribute('d', arcPath(r, doneDeg, liveDeg));          // ĐẬM ĐẶC — đã trôi trong ô
+  }
+  function drawNowRings(){
+    const d = new Date(), h = d.getHours()%12, m = d.getMinutes(), s = d.getSeconds();
+    drawNowRing(nowRing.min,  ARC_R_M, m*6,  6,  (m + s/60)*6);          // ô PHÚT, chạy theo giây
+    drawNowRing(nowRing.hour, ARC_R_H, h*30, 30, (h + m/60 + s/3600)*30); // ô GIỜ, chạy theo phút
   }
 
   // Đặt cặp vạch (giờ + phút) của một mốc theo số phút 0..719; null -> ẩn
@@ -810,6 +856,7 @@
 
     if(s!==lastSec){
       lastSec=s;
+      drawNowRings();   // hai cung giờ thật nhích theo GIÂY -> đủ mỗi giây một lần
       // Số trên nhãn (chỉ đổi mỗi giây, đỡ tải)
       const hourNum = gio12(h);
       const txtH = String(hourNum), txtM = String(now.getMinutes());

@@ -202,7 +202,9 @@
      Quá 10 phút thì thêm HÀNG THỨ HAI gồm hai bàn tay nữa; quá 20 thì báo không đủ ngón. */
   .digital{
     width:min(340px,100%);          /* .stage đã có bề rộng cứng nên % quy ra px được */
-    margin:var(--sp-2) 0 var(--sp-4);
+    /* Lề TRÊN bằng lề dưới: bên mặt kim, .analog cách hàng tab cả MARGIN (~80px) nên khối số
+       chỉ hở --sp-2 là nhìn dính hẳn vào tab so với lúc xem mặt kim. */
+    margin:var(--sp-4) 0;
     /* chiếm nốt chiều cao .stage còn lại rồi canh giữa: lúc chưa có câu hỏi, khối này chỉ có
        mỗi dòng giờ thật, để nó dính mép trên thì trống hoác bên dưới */
     flex:1;

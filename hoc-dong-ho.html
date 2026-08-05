@@ -158,15 +158,16 @@
   /* ===== CHỮ "TỪ" / "ĐẾN" TRÊN MẶT — CẦU NỐI GIỮA CÂU VÀ MẶT ĐỒNG HỒ =====
      Không bịa ký hiệu mới (chấm/mũi tên/số đều phải học mới hiểu): chép thẳng HAI CHỮ đã có
      trong câu ra cạnh hai mốc. Màu trung tính, không đụng hệ màu kim.
-     Chữ là <text><textPath> chạy CONG theo vòng phút (không phải div xoay), nên nó ôm đúng
-     độ cong của vòng. JS lo cung dẫn chữ, xem drawMarks.
-     CĂN DỌC bằng dy=".35em" đặt thẳng trên <textPath>, KHÔNG dùng dominant-baseline: thuộc
-     tính đó WebKit đời cũ hỗ trợ chập chờn, hỏng là chữ lệch hẳn ra khỏi vòng. dy là SVG 1.1
-     thuần, mọi engine đều chạy. Lật chiều cung không phải đổi dấu dy: cung lật thì khung
-     glyph lật theo, nên dy dương vẫn kéo chữ về đúng giữa nét ở cả hai nửa mặt. */
+     Chữ đặt NẰM TRÊN vòng phút, lệch sang cạnh vạch mốc của nó (JS lo góc, xem drawMarks).
+     Chữ ĐỨNG THẲNG chứ không bẻ cong theo vòng: đã thử <textPath> và bỏ, vì chữ bé quá nên
+     cong hay không nhìn không ra, đổi lại phải gánh cả đống chuyện lật chiều cung ở nửa dưới
+     mặt và bù nửa chiều cao chữ. */
   .cue-lab{
-    fill:var(--ink);
-    font-size:.62rem;font-weight:500;
+    position:absolute;left:50%;top:0;
+    transform:translate(-50%,-50%);
+    color:var(--ink);
+    font-size:.62rem;font-weight:500;line-height:1.4;
+    white-space:nowrap;
   }
 
   /* ===== MỐC TỪ / ĐẾN = VẠCH NGẮN NẰM TRÊN CUNG =====
@@ -239,7 +240,10 @@
   .limbs{width:100%;height:auto;display:block;}
   .limbs text{
     font-family:inherit;font-size:26px;font-weight:700;
-    text-anchor:middle;dominant-baseline:central;
+    /* text-anchor:start = neo ở ĐẦU chữ, mà chữ xoay -90° nên đầu chữ nằm phía DƯỚI, sát đầu
+       ngón. Nhờ vậy khe từ đầu ngón tới nhãn là HẰNG SỐ (LAB_UP), không co giãn theo độ dài
+       nhãn như khi neo giữa — "12:35" dài hơn "8:05" nên neo giữa là nó thò xuống gần ngón hơn. */
+    text-anchor:start;dominant-baseline:central;
     /* viền cùng màu nền: ngón cái nằm thấp nên nhãn của nó có thể chạm hình, vẫn đọc được */
     paint-order:stroke;stroke:var(--bg);stroke-width:6px;stroke-linejoin:round;
   }
@@ -310,7 +314,7 @@
      Một nút nhỏ cho mỗi mốc thay vì cụm 3 nút chen giữa câu -> câu ngắn lại, mobile đỡ chật.
      Menu luôn có đủ bốn lựa chọn (xem hằng MENU trong JS). */
   .caret{
-    min-height:1.9rem;padding:0 .45rem;margin-left:.15rem;
+    min-height:1.9rem;padding:0 .45rem;margin-right:.15rem;   /* nút đứng TRƯỚC giá trị */
     border:1px solid var(--line);border-radius:8px;
     background:transparent;color:var(--muted);
     font-family:inherit;font-size:.8rem;line-height:1;
@@ -422,13 +426,6 @@
       <path id="minLive"  class="r-live" stroke="var(--c-min)"></path>
       <path id="hourAct"  class="r-act"  stroke="var(--c-hour)"></path>
       <path id="hourLive" class="r-live" stroke="var(--c-hour)"></path>
-      <!-- Cung DẪN CHỮ (không vẽ ra, chỉ để <textPath> bám) + chữ "từ"/"đến" chạy cong theo
-           vòng phút. Đứng CUỐI svg nên chữ nằm trên mọi cung. Có cả href lẫn xlink:href:
-           WebKit đời cũ chỉ hiểu xlink, bỏ sót là chữ mất hẳn chứ không phải xấu đi. -->
-      <path id="cuePathFrom" fill="none"></path>
-      <path id="cuePathTo"   fill="none"></path>
-      <text class="cue-lab off" id="cueFrom"><textPath href="#cuePathFrom" xlink:href="#cuePathFrom" dy=".35em">từ</textPath></text>
-      <text class="cue-lab off" id="cueTo"><textPath href="#cuePathTo" xlink:href="#cuePathTo" dy=".35em">đến</textPath></text>
     </svg>
     <!-- Kim GIỜ THẬT chạy liên tục. Vạch mốc từ/đến dựng bằng JS ở phần 3. -->
     <div class="hand hour"   id="hour"></div>
@@ -444,6 +441,9 @@
       <div class="connector" id="connM"></div>
       <div class="badge" id="badgeM"><span id="textM">0</span></div>
     </div>
+    <!-- Chữ đánh dấu hai mốc: nằm TRÊN vòng phút, lệch sang cạnh vạch mốc của nó -->
+    <div class="orbit off" id="cueFrom"><div class="cue-lab">từ</div></div>
+    <div class="orbit off" id="cueTo"><div class="cue-lab">đến</div></div>
     <div class="center"></div>
   </div>
 
@@ -529,9 +529,7 @@
   const elConnH=$('connH'),   elConnM=$('connM');
   const elBadgeH=$('badgeH'), elBadgeM=$('badgeM');
   const elTextH=$('textH'),   elTextM=$('textM');
-  // Chữ "từ"/"đến" (SVG <text>) và cung ẩn dẫn chữ tương ứng
   const elCue={from:$('cueFrom'), to:$('cueTo')};
-  const cuePath={from:$('cuePathFrom'), to:$('cuePathTo')};
 
   // Tab đổi kiểu đồng hồ + khối "kiểu số"
   const elStage=$('stage'), elTabs=$('tabs'), elDigital=$('digital'), elLimbs=$('limbs');
@@ -816,15 +814,6 @@
     return `M ${x0} ${y0} A ${r} ${r} 0 ${sweep>180?1:0} 1 ${x1} ${y1}`;
   }
 
-  // Cung ẩn dẫn chữ: KHÁC arcPath ở chỗ vẽ được cả hai chiều (endDeg nhỏ hơn startDeg cũng
-  // được). Chiều của cung quyết định chiều chữ chạy, nên nửa dưới mặt phải vẽ ngược lại thì
-  // chữ mới không lộn đầu. Cờ sweep 1 = xuôi chiều kim, khớp với chiều tăng của deg.
-  function arcPathDir(r, startDeg, endDeg){
-    const sweep = endDeg - startDeg;
-    const [x0,y0]=polar(r,startDeg), [x1,y1]=polar(r,endDeg);
-    return `M ${x0} ${y0} A ${r} ${r} 0 ${Math.abs(sweep)>180?1:0} ${sweep>0?1:0} ${x1} ${y1}`;
-  }
-
   // ----- Cung GIỜ THẬT: hai vòng, mỗi vòng một cặp (ô đang ở trong · phần đã trôi) -----
   // Bê từ dong-ho.html nhưng bỏ hai lớp MẢNH (track cả vòng / arc phần đã qua): mặt này đã
   // có vạch mốc và cung khoảng, thêm vòng nền mảnh nữa thì rối chỗ cần nhìn.
@@ -874,26 +863,19 @@
     elArc .setAttribute('d', arcPath(ARC_R_M, startM,    startM    + (dur <= 60 ? dur*6 : 360)));
     elArcH.setAttribute('d', arcPath(ARC_R_H, k.from/2,  k.from/2  + dur/2));
 
-    // Chữ "từ"/"đến" chạy CONG theo vòng phút và nằm NGOÀI quãng ("từ" lùi ngược chiều kim,
-    // "đến" tiến xuôi chiều kim) nên không đè lên cung khoảng. Mép chữ cách mép vạch mốc phút
-    // đúng CLEAR: đo theo CUNG rồi đổi ra GÓC (góc = độ dài cung / bán kính).
+    // Chữ "từ"/"đến" nằm NGAY TRÊN vòng phút, lệch sang cạnh vạch mốc của nó ("từ" lùi ngược
+    // chiều kim, "đến" tiến xuôi chiều kim) nên không đè lên cung khoảng. Mép chữ cách mép
+    // vạch mốc phút đúng CLEAR: đo theo CUNG rồi đổi ra GÓC (góc = độ dài cung / bán kính).
     const MK_M_HALF = 1.25;                        // nửa bề rộng vạch mốc phút (.mk-m span 2.5px)
-    const gapDeg = (MK_M_HALF + CLEAR) / ARC_R_M * 180/Math.PI;
-    const SPAN = 120;                              // cung dẫn chữ — dư dài hơn mọi nhãn
     for(const [part,el] of Object.entries(elCue)){
+      const lab = el.firstChild;
+      lab.style.marginTop = (-ARC_R_M)+'px';       // đặt chữ lên đúng vòng phút
       const away = part==='from' ? -1 : 1;         // chiều rời khỏi mốc
-      const edge = (k[part]%60)*6 + away*gapDeg;   // mép chữ, phía sát mốc
-      // Nửa DƯỚI mặt (90°..270°): chữ chạy xuôi chiều kim sẽ lộn ngược -> phải đọc ngược lại.
-      const a = ((edge % 360) + 360) % 360;
-      const read = (a > 90 && a < 270) ? -1 : 1;
-      // Cung dẫn LUÔN vẽ theo chiều đọc. Chiều đọc trùng chiều rời mốc -> chữ bám ĐẦU cung;
-      // ngược nhau thì phải bám ĐUÔI, nếu không chữ sẽ nhảy sang phía bên kia mốc.
-      const atStart = (read === away);
-      cuePath[part].setAttribute('d', atStart
-        ? arcPathDir(ARC_R_M, edge, edge + read*SPAN)
-        : arcPathDir(ARC_R_M, edge - read*SPAN, edge));
-      el.setAttribute('text-anchor', atStart ? 'start' : 'end');
-      el.firstChild.setAttribute('startOffset', atStart ? '0' : '100%');
+      const halfW = lab.offsetWidth/2 || 8;        // đọc SAU khi đã gỡ .off, không thì bằng 0
+      const deg = (k[part]%60)*6
+                + away * (MK_M_HALF + CLEAR + halfW) / ARC_R_M * 180/Math.PI;
+      el.style.transform  = `rotate(${deg}deg)`;
+      lab.style.transform = `translate(-50%,-50%) rotate(${-deg}deg)`;   // đối-xoay -> chữ đứng thẳng
     }
   }
 
@@ -963,9 +945,10 @@
   const W_D = W_M;   // đơn vị của khoảng vẫn là PHÚT -> dùng đúng chữ "phút" màu phút
   const NOW = '<span class="v-now">bây giờ</span>';
 
-  // CÁCH ĐỌC: giờ đúng thì có chữ "giờ" ("8 giờ đúng"), còn rưỡi thì BỎ chữ "giờ" ("8 rưỡi")
+  // CÁCH ĐỌC: cả hai đều GIỮ chữ "giờ" -> "8 giờ đúng" và "8 giờ rưỡi", đọc lên trôi hơn
+  // "8 rưỡi" và khớp luôn với tên mục trong menu ▾.
   const W_SHARP = `${W_H} <span class="w-m">đúng</span>`;
-  const W_HALF  = '<span class="w-m">rưỡi</span>';
+  const W_HALF  = `${W_H} <span class="w-m">rưỡi</span>`;
 
   // Chỗ đang hỏi: tô theo ĐÚNG màu của thứ đang hỏi (giờ xanh, phút cam, khoảng xanh ngọc)
   const Q_TIME = '<span class="v-h">mấy giờ</span> <span class="v-m">mấy phút</span>';
@@ -985,7 +968,9 @@
     }
     if(!edit) return body;
     const set = p.mode!=='input' ? ' set' : '';
-    return `${body}<button class="caret${set}" type="button" data-menu="${part}" aria-label="Cách đặt mốc">▾</button>`;
+    // Nút ▾ đứng TRƯỚC giá trị -> trong câu nó nằm ngay sau chữ "Từ"/"Đến", tức sát cái tên
+    // mốc mà nó điều khiển, thay vì lẫn vào đuôi cụm số.
+    return `<button class="caret${set}" type="button" data-menu="${part}" aria-label="Cách đặt mốc">▾</button> ${body}`;
   }
 
   // Khoảng đã cho, và ô để điền đáp án
@@ -1139,7 +1124,9 @@
     [[312, 41], [268, 31], [228, 43], [196, 80]],
     [[304, 41], [268, 31], [236, 38], [204, 78], [372, 167]],
   ];
-  const LAB_UP = 53;      // nhãn đặt cao hơn đầu ngón bấy nhiêu (dựng đứng, đọc từ dưới lên)
+  // KHE từ đầu ngón tới mép dưới nhãn (nhãn dựng đứng, đọc từ dưới lên). Là khe THẬT và
+  // bằng nhau ở mọi nhãn nhờ text-anchor:start — xem chú thích ở .limbs text.
+  const LAB_UP = 14;
 
   const SVGNS = 'http://www.w3.org/2000/svg';
   const mk = (tag, attrs) => {
@@ -1339,7 +1326,7 @@
     ['input','tự nhập'],
     ['now','bây giờ'],
     ['sharp','giờ đúng'],
-    ['half','rưỡi'],
+    ['half','giờ rưỡi'],
   ];
   function closeMenu(){ elMenu.hidden = true; elMenu.dataset.part=''; }
 

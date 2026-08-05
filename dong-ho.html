@@ -66,7 +66,10 @@
     .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
   }
 
-  /* ===== ANALOG: MẶT SỐ, VẠCH, KIM ===== */
+  /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
+     MỌI KÍCH THƯỚC dưới đây (đường kính mặt, lề, chiều dài vạch, chiều dài kim) chỉ là giá
+     trị cho khung hình ĐẦU TIÊN — layout() và layoutFace() ghi đè hết ngay sau đó theo FACE
+     tính từ viewport. Đừng chỉnh ở đây để đổi tỉ lệ mặt, chỉnh trong JS. */
   .analog{
     width:300px;height:300px;border-radius:50%;
     background:#fff;
@@ -723,6 +726,10 @@
   }catch(e){ labelsRef = null; }
   // Thứ tự ổn định (mốc 'at' rồi id) -> mảng cục bộ và snapshot server so JSON được với nhau
   const sortLabels = a => a.sort((x,y) => (x.at - y.at) || (x.id < y.id ? -1 : 1));
+  // MỌI đường sửa userLabels (snapshot server / thêm / xoá / hết hạn) đều kết thúc ở đây.
+  // Gom lại một chỗ để đường thứ năm không thể quên mất layout() — thiếu nó là nhãn mới dựng
+  // xong nhưng chưa được đặt vị trí, nằm chồng ở tâm mặt.
+  function refreshUserLabels(){ saveUserLabels(); buildUserLabels(); layout(); }
   // Nghe server: mọi thay đổi /labels (kể cả echo do chính máy này ghi) đều về qua đây.
   // Dựng lại userLabels từ snapshot; so JSON trước, không đổi thì khỏi dựng lại DOM
   // (echo sau cập-nhật-tại-chỗ cho ra mảng y hệt nhờ sortLabels -> không giật).
@@ -735,7 +742,7 @@
         .filter(u => u.emoji && isFinite(u.hour) && isFinite(u.at)));   // bỏ node dị dạng
       if(JSON.stringify(arr) === JSON.stringify(userLabels)) return;
       userLabels = arr;
-      saveUserLabels(); buildUserLabels(); layout();
+      refreshUserLabels();
     });
   }
   // Mốc tuyệt đối GẦN NHẤT SẮP TỚI của giờ thập phân: hôm nay, hoặc NGÀY MAI nếu hôm nay
@@ -777,12 +784,12 @@
                emoji, hour, at: nextOccurrence(hour)};
     if(labelsRef) labelsRef.child(u.id).set({emoji:u.emoji, hour:u.hour, at:u.at});
     userLabels.push(u); sortLabels(userLabels);
-    saveUserLabels(); buildUserLabels(); layout();
+    refreshUserLabels();
   }
   function removeUserLabel(id){
     if(labelsRef) labelsRef.child(id).remove();
     userLabels = userLabels.filter(u => u.id !== id);
-    saveUserLabels(); buildUserLabels(); layout();
+    refreshUserLabels();
   }
 
   // ĐẾN GIỜ hoạt động -> hiện emoji của nhãn NGAY TRÊN TÂM đồng hồ (x2 cỡ nhãn) trong 5 giây.
@@ -797,8 +804,9 @@
     centerEmojiTimer = setTimeout(()=>elCenterEmoji.classList.remove('show'), CENTER_EMOJI_MS);
   }
 
-  // Bật/tắt 1 nhãn + cập nhật trạng thái upcoming/reached + nhãn phút deadline.
-  //   chưa đến giờ = 'upcoming' (viền + nét mảnh); đã đến/qua = 'reached' (nét đậm).
+  // Bật/tắt 1 nhãn + cập nhật trạng thái chưa-đến-giờ + nhãn phút deadline.
+  //   CHỈ có một class: 'upcoming' = chưa tới giờ (viền + nét MỜ). Đã tới/qua thì GỠ class,
+  //   rơi về kiểu mặc định (viền + nét đặc) — không có class 'reached', đừng thêm vào.
   function applyLabel(L, show, nowH){
     L.orbit.classList.toggle('off', !show);   // ẩn nhãn khi không thỏa điều kiện
     if(!show){ if(L.dline) L.dline.classList.remove('show'); L.wasReached = undefined; return; }
@@ -810,7 +818,6 @@
     //   -> mở trang khi ĐÃ QUA giờ sẽ không bắn lại.
     if(reached && L.wasReached === false) showCenterEmoji(L.emoji);
     L.wasReached = reached;
-    L.orbit.classList.toggle('reached', reached);
     L.orbit.classList.toggle('upcoming', !reached);
     // Nhãn phút deadline: chỉ hiện trong 59 phút TRƯỚC giờ hoạt động (ẩn đúng lúc tới giờ)
     if(L.dline){
@@ -830,7 +837,7 @@
     if(userLabels.some(u => u.at < cutoff)){
       if(labelsRef) for(const u of userLabels) if(u.at < cutoff) labelsRef.child(u.id).remove();
       userLabels = userLabels.filter(u => u.at >= cutoff);
-      saveUserLabels(); buildUserLabels(); layout();
+      refreshUserLabels();
     }
     // Còn hạn -> LUÔN hiện;
     //   pill phút vẫn theo logic 59' của applyLabel (chỉ hiện trong 59' trước giờ).
@@ -907,14 +914,24 @@
      tính trong layout() theo mép ngoài cụm vòng + nửa bề rộng nhãn (lúc nhãn ở 3/9 giờ).
      Khe MÉP nhãn giờ -> mép nhãn phút = khe mép nhãn phút -> vòng ngày ngoài (D2)
      => hai khe nhìn thấy quanh nhãn phút bằng nhau; nhãn không đè khi hai kim trùng. */
-  // Nhãn là HÌNH TRÒN đều -> nửa bề ngang = nửa bề cao = bán kính. Đường kính đọc từ
-  // --badge-dia ở :root (MỘT nguồn với CSS, khỏi lệch khi đổi cỡ nhãn).
-  const BADGE_H    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--badge-dia')) || 26;
-                           // ĐƯỜNG KÍNH nhãn (cũng = khoảng hở dọc tối thiểu giữa 2 vòng nhãn)
+  // Mọi số dùng chung với CSS đều ĐỌC TỪ :root, không chép tay sang đây — đổi một chỗ là cả
+  // hai phía đi theo. (Bề rộng nét vòng đặc biệt quan trọng: mọi bán kính ở vành ngoài đều
+  // suy từ nửa nét, chép tay mà lệch là cả cụm vòng đặt sai chỗ mà không báo lỗi.)
+  const cssVar = (name, fallback) =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || fallback;
+  // Nhãn là HÌNH TRÒN đều -> nửa bề ngang = nửa bề cao = bán kính.
+  const BADGE_H    = cssVar('--badge-dia', 26);   // ĐƯỜNG KÍNH nhãn
   const BADGE_HALF = BADGE_H/2;   // BÁN KÍNH nhãn (điểm gần tâm nhất khi nhãn ở 3/9 giờ = tâm - bán kính)
+  // Bán kính THẬT của một nhãn đã dựng (đo được thì lấy số đo, chưa thì lấy cỡ danh nghĩa):
+  // nhãn emoji có viền nên chiều cao thật lệch chút so với --badge-dia.
+  const halfOf = el => el.offsetHeight/2 || BADGE_HALF;
+  const RING_HALF  = cssVar('--ring-thin', 1)/2;  // nửa nét MẢNH — MỌI khe ở vành ngoài đo theo số này
   const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
-  const FACE_MIN = 50;     // SÀN CỨNG bán kính mặt: viewport có hẹp cỡ nào cũng KHÔNG co về 0
+  // Hai sàn cho bán kính mặt: sàn MỀM là cỡ dễ đọc, chỉ giữ khi bề ngang còn cho phép; sàn
+  // CỨNG là mức không bao giờ xuống dưới, kể cả khi vì thế mà nội dung rộng hơn màn.
+  const FACE_SOFT_MIN = 70;
+  const FACE_MIN = 50;
   let FACE;
   let ARC_R_M = 0, ARC_R_D1 = 0, ARC_R_D2 = 0;
   let HOUR_BADGE_R = 0, MIN_BADGE_R = 0, HOUR_HALF = 0, lastPm = null;   // bán kính đĩa kính giờ/phút (JS đặt vị trí) + nét nối giờ bám vòng ngày
@@ -949,7 +966,7 @@
     //   Đánh đổi đã cân nhắc: ngay tại ô hiện tại, nét đậm thò thêm 1.1px mỗi bên nên khe ở
     //   đúng chỗ đó hẹp lại (vd vòng ngày ngoài -> nhãn phút còn ~3.9px). Chấp nhận để cả
     //   vành có MỘT nhịp đều, thay vì để riêng khe ra nhãn rộng hơn mọi khe khác 1.1px.
-    const RING_HALF = 0.5;                     // nửa --ring-thin (1px) — MỌI khe đo theo số này
+    // RING_HALF đọc từ --ring-thin ở đầu script, không khai báo lại ở đây.
     const CLEAR = 5;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
     const STEP  = RING_HALF + CLEAR + RING_HALF;   // tâm->tâm hai vòng cách nhau một khe CHUNG
     const R_M_OFF  = CLEAR + RING_HALF;        // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
@@ -962,8 +979,8 @@
     const badgeM_off = RING_OUT + CLEAR + BADGE_HALF;   // khoảng cách tâm -> nhãn PHÚT
     // Nhãn GIỜ: khe mép nhãn phút -> mép nhãn giờ cũng ĐÚNG BẰNG CLEAR => hai khe NHÌN THẤY
     // hai bên nhãn phút (vào vòng ngày ngoài, ra nhãn giờ) bằng nhau.
-    //   Bản cũ trừ theo R_D2_OFF (TÂM nét vòng) chứ không phải RING_OUT (MÉP nét) nên khe
-    //   ngoài ra 5 còn khe trong ra 3 — lệch đúng bằng STREAK_HALF.
+    //   Phải trừ theo RING_OUT (MÉP nét vòng) chứ không phải R_D2_OFF (TÂM nét), không thì
+    //   khe trong hụt đúng nửa bề rộng nét.
     // Nhãn hoạt động dùng lại chính hai bán kính này (placeLabel: inner -> badgeM_r,
     // ngoài -> badgeH_r) nên tầng trong/ngoài của chúng tự khớp, không tính riêng.
     const badgeH_off = badgeM_off + BADGE_H + CLEAR;
@@ -985,17 +1002,17 @@
     const bodyPad = 16;                       // padding .5rem hai đầu
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
-    // marginTop=maxReach (tính theo bề NGANG nhãn) dư hơn tầm với THẲNG ĐỨNG (topNeed) ~12px
-    // -> dời phần dư xuống dưới: analog nhích LÊN. GAP_EXTRA lấy thêm từ ĐỆM ĐÁY -> khe hở
-    // tới digital rõ hơn mà FACE giữ nguyên.
-    const topNeed   = badgeH_off + BADGE_H/2;
-    const RAISE     = Math.max(0, maxReach - topNeed);   // dời analog lên (~12px)
+    // Lề NGANG phải bằng maxReach (tầm với của nhãn giờ lúc nó ở 3/9 giờ). Tầm với THẲNG
+    // ĐỨNG nhỏ hơn đúng ARC_GAP, vì maxReach = topNeed + ARC_GAP (BADGE_HALF với BADGE_H/2
+    // là cùng một số). Dồn phần dư đó xuống dưới => analog nhích LÊN đúng ARC_GAP.
+    // GAP_EXTRA lấy thêm từ ĐỆM ĐÁY -> khe hở tới digital rõ hơn mà FACE giữ nguyên.
+    const topNeed   = badgeH_off + BADGE_HALF;           // tầm với THẲNG ĐỨNG của nhãn giờ
     const GAP_EXTRA = desktop ? 24 : 8;                  // khe thêm lấy từ đệm đáy
-    const marginTop = maxReach - RAISE;
-    const marginBottom = Math.max(8, topNeed) + RAISE + GAP_EXTRA;
+    const marginTop    = topNeed;                        // = maxReach - ARC_GAP
+    const marginBottom = topNeed + ARC_GAP + GAP_EXTRA;
 
     const calW = elCalendar?.offsetWidth || 0;   // bề rộng lịch (desktop: nằm bên PHẢI)
-    const GAP  = 24;                             // khe giữa các khối (khớp gap body & .clock)
+    const GAP  = 24;                             // khớp gap:24px của body trong @media (min-width:768px)
     let faceByW;
     if(desktop){
       // DESKTOP: vừa khít cả BỀ RỘNG lẫn CHIỀU CAO -> đo cột digital + lịch để chừa chỗ.
@@ -1013,10 +1030,10 @@
       faceByW = halfW - maxReach;
       FACE = faceByW;
     }
-    // Sàn tối thiểu 70 NHƯNG không bao giờ vượt quá giới hạn BỀ RỘNG (faceByW) ->
+    // Sàn MỀM (FACE_SOFT_MIN) NHƯNG không bao giờ vượt quá giới hạn BỀ RỘNG (faceByW) ->
     // bề ngang khối analog luôn vừa viewport, không gây scroll ngang. (Màn quá thấp
     // thì chấp nhận co theo chiều cao thay vì tràn ngang.)
-    FACE = Math.max(FACE, Math.min(70, faceByW));
+    FACE = Math.max(FACE, Math.min(FACE_SOFT_MIN, faceByW));
     // SÀN CỨNG: faceByW có thể ÂM khi viewport cực hẹp (zoom rất sâu) -> chặn để mặt
     // KHÔNG BAO GIỜ co về 0 (thà cuộn còn hơn co rúm).
     FACE = Math.max(FACE, FACE_MIN);
@@ -1028,10 +1045,10 @@
     //     hai bên = maxReach (đủ chỗ nhãn lúc 3/9 giờ).
     analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
 
-    // Vòng đồng tâm. Hai vòng "ngày" gom SÁT nhau thành một nhóm và đặt CÁCH XA
-    // vòng phút để tách bạch hai nhóm. (Vệt mờ rộng vẫn không đè nhau.)
-    ARC_R_M  = FACE + R_M_OFF;        // vòng phút (60') — nhóm trong, giữa mép mặt và vòng ngày
-    ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h) — xa hẳn vòng phút
+    // Ba vòng đồng tâm, cách đều nhau đúng CLEAR; RIÊNG hai vòng "ngày" chỉ cách nhau NỬA
+    // CLEAR nên đọc thành một nhóm (xem khối hằng số ở đầu hàm).
+    ARC_R_M  = FACE + R_M_OFF;        // vòng phút (60') — trong cùng
+    ARC_R_D1 = FACE + R_D1_OFF;       // vòng nửa ngày 1 (sáng 0-12h)
     ARC_R_D2 = FACE + R_D2_OFF;       // vòng nửa ngày 2 (chiều/tối 12-24h) — sát vòng 1
 
     // Tâm nhãn: nằm NGOÀI cả cụm vòng (đã tính ở trên), không đè vòng ngày khi quay tới 3/9 giờ
@@ -1041,8 +1058,8 @@
     // Nét nối: nhãn PHÚT nối từ VÒNG PHÚT (ARC_R_M). Nhãn GIỜ nối từ vòng ngày ĐANG CHẠY
     //   (sáng -> vòng TRONG D1, chiều/tối -> vòng NGOÀI D2) nên LUÔN chạm vòng hiện hành.
     //   Dùng chiều cao thật của nhãn đo được để nét nối kết thúc đúng tại mép nhãn.
-    const realHalfM = elBadgeM.offsetHeight/2 || BADGE_H/2;
-    const realHalfH = elBadgeH.offsetHeight/2 || BADGE_H/2;
+    const realHalfM = halfOf(elBadgeM);
+    const realHalfH = halfOf(elBadgeH);
     const lenM = (badgeM_r - realHalfM) - ARC_R_M;
     // Nét nối PHÚT + lớp số phút (đĩa kính phút là con .analog, tick() lo vị trí theo MIN_BADGE_R).
     place(elConnM, elBadgeMt, ARC_R_M, lenM, badgeM_r);
@@ -1060,7 +1077,7 @@
       const deg = L.hour * 30;
       const ringR = L.hour < 12 ? ARC_R_D1 : ARC_R_D2;   // SÁNG -> vòng TRONG (AM); CHIỀU/TỐI -> vòng NGOÀI (PM)
       const badgeR = L.inner ? badgeM_r : badgeH_r;       // tầng nhãn: trong (badgeM_r) / ngoài (badgeH_r)
-      const realHalf = L.badge.offsetHeight/2 || BADGE_H/2;
+      const realHalf = halfOf(L.badge);
       const len = (badgeR - realHalf) - ringR;
       place(L.conn, L.badge, ringR, len, badgeR);                          // nét nối CHẠM đúng vòng AM/PM
       L.orbit.style.transform = `rotate(${deg}deg)`;                       // hướng nhãn ra đúng giờ
@@ -1069,7 +1086,7 @@
       //   orbit(+deg)·badge(-deg)=0 nên offset (px,py) hiện đúng màn hình; hướng xa tâm = (sin, -cos).
       if(L.dline){
         // Đẩy chấm phút RA NGOÀI mép nhãn thêm chút nữa -> bớt đè lên emoji
-        const R = ((L.badge.offsetHeight/2) || (BADGE_H/2)) + 4;
+        const R = halfOf(L.badge) + 4;
         L.dline.style.transform = `translate(-50%,-50%) ${polarTranslate(R, deg)}`;
       }
     };
@@ -1106,9 +1123,10 @@
   // Nét nối nhãn GIỜ: bám vòng ngày đang chạy (pm -> vòng NGOÀI D2, sáng -> vòng TRONG D1).
   //   Đầu xa (mép nhãn) cố định ở HOUR_BADGE_R - HOUR_HALF; chỉ đổi điểm đầu trong theo vòng.
   function placeHourConn(pm){
-    const ring = pm ? ARC_R_D2 : ARC_R_D1;
-    const len  = (HOUR_BADGE_R - HOUR_HALF) - ring;
-    elConnH.style.top    = (-(ring + len)) + 'px';
+    // ringR, KHÔNG đặt tên 'ring': ở phạm vi ngoài đã có object `ring` chứa các path SVG.
+    const ringR = pm ? ARC_R_D2 : ARC_R_D1;
+    const len   = (HOUR_BADGE_R - HOUR_HALF) - ringR;
+    elConnH.style.top    = (-(ringR + len)) + 'px';
     elConnH.style.height = len + 'px';
   }
 
@@ -1150,6 +1168,8 @@
   }
 
   /* ===== 6. VÒNG TIẾN TRÌNH (SVG) ===== */
+  // TRỌN vòng nhưng thiếu một tí: cung 360° có hai đầu trùng nhau nên SVG vẽ ra rỗng.
+  const FULL_DEG = 359.999;
   // Cung tròn từ startDeg đến endDeg (đo từ 12h) — dựa trên polar() ở phần 1
   function arcPath(r, startDeg, endDeg){
     const sweep=endDeg-startDeg;
@@ -1164,7 +1184,7 @@
   //   doneDeg = hết các đơn vị đã qua; slot = bề rộng 1 đơn vị (6° phút / 30° giờ); liveDeg = tiến trình.
   //   slot=0 -> không có ô hiện tại (dùng cho nửa ngày KHÔNG diễn ra).
   function drawRing(g, r, doneDeg, slot, liveDeg){
-    setD(g.track, arcPath(r, 0, 359.999));                         // cả vòng: MẢNH MỜ (chưa tới)
+    setD(g.track, arcPath(r, 0, FULL_DEG));                        // cả vòng: MẢNH MỜ (chưa tới)
     setD(g.arc,   arcPath(r, 0, doneDeg));                         // đã qua: MẢNH ĐẶC
     setD(g.act,   slot ? arcPath(r, doneDeg, doneDeg+slot) : ''); // ô hiện tại: ĐẬM MỜ
     setD(g.live,  slot ? arcPath(r, doneDeg, liveDeg) : '');      // đã trôi trong ô: ĐẬM ĐẶC
@@ -1178,7 +1198,7 @@
   function drawDayRings(g1, g2, r1, r2, h, m, s){
     const H = h % 12, doneDeg = H*30, liveDeg = (H + m/60 + s/3600)*30, pm = h >= 12;
     drawRing(pm ? g2 : g1, pm ? r2 : r1, doneDeg, 30, liveDeg);   // nửa đang chạy: đủ 4 trạng thái
-    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? 359.999 : 0, 0, 0); // nửa kia: đầy nếu đã qua / mờ nếu chưa tới
+    drawRing(pm ? g1 : g2, pm ? r1 : r2, pm ? FULL_DEG : 0, 0, 0); // nửa kia: đầy nếu đã qua / mờ nếu chưa tới
   }
   function updateDayArcs(h, m, s){
     drawDayRings(ring.day1, ring.day2, ARC_R_D1, ARC_R_D2, h, m, s);
@@ -1301,7 +1321,7 @@
     const tNow=performance.now();
     const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
 
-    // Nhãn mốc: lọc theo thứ hôm nay + bật/tắt trạng thái 'reached'/'upcoming' theo giờ hiện tại
+    // Nhãn mốc: lọc theo thứ hôm nay + bật/tắt class 'upcoming' theo giờ hiện tại
     updateLabelStates(h + m/60 + s/3600, now.getDay());
 
     // Nét nối nhãn giờ đổi vòng khi qua trưa/nửa đêm (sáng: vòng trong, chiều/tối: vòng ngoài)

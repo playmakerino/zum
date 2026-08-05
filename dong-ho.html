@@ -940,7 +940,8 @@
     //     mép mặt -> vòng phút -> vòng ngày TRONG -> vòng ngày NGOÀI -> nhãn phút -> nhãn giờ
     // Mọi khe đều bằng CLEAR, RIÊNG khe giữa hai vòng ngày bằng NỬA CLEAR vì hai vòng đó là
     // một nhóm. Đo theo mép nên mỗi bước phải cộng thêm nửa bề rộng của thứ nằm hai bên khe.
-    const STREAK_HALF = 2;                     // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2 -> ~1.6, làm tròn lên 2 cho dư)
+    const STREAK_HALF = 1.6;                   // nửa bề rộng nét ĐẬM nhất (--ring-bold 3.2px). Phải là số THẬT,
+                                               // làm tròn lên 2 thì mọi khe có cung dôi thêm 0.4-0.8px so với CLEAR.
     const CLEAR = 3;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
     const STEP  = STREAK_HALF + CLEAR + STREAK_HALF;       // tâm->tâm hai vòng cách nhau một khe CHUNG
     const R_M_OFF  = CLEAR + STREAK_HALF;      // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR

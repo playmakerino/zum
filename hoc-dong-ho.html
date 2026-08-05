@@ -184,6 +184,9 @@
     flex:1;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-2);
   }
+  /* Bốn bàn tay trên MỘT hàng (desktop) cần gấp đôi bề ngang -> lấy hết bề ngang .stage,
+     vốn đã bị khoá cứng theo mặt kim nên vẫn không làm tab nhúc nhích. */
+  .digital.wide{width:100%;}
   .dnow{display:flex;align-items:baseline;}
   .dwork{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);width:100%;}
   .drow{display:flex;align-items:baseline;gap:.5rem;}
@@ -676,7 +679,9 @@
     for(const o of Object.values(elCue)) o.firstChild.style.marginTop = (-(FACE + CUE_OFF))+'px';
 
     layoutFace();
-    drawMarks();
+    // redraw chứ không phải drawMarks: qua mốc 768px thì bốn bàn tay đổi giữa một hàng và
+    // hai hàng, mà chỗ duy nhất chạy lại khi đổi kích thước màn là hàm này.
+    redraw();
   }
 
   // Nét nối + nhãn: nét nối kéo từ connStart ra dài len; tâm nhãn cách tâm mặt badgeR
@@ -1059,8 +1064,7 @@
     buildHand(0, 0, true), buildHand(OX2, 0, false),
   ];
   hands.slice(0,2).forEach(h => rowTop.appendChild(h.g));
-  hands.slice(2).forEach(h => rowBot.appendChild(h.g));
-  rowBot.setAttribute('transform', `translate(0,${CELL.h + ROW_GAP})`);
+  hands.slice(2).forEach(h => rowBot.appendChild(h.g));   // vị trí hàng này do drawDigital đặt
   elLimbs.appendChild(rowTop);
   elLimbs.appendChild(rowBot);
 
@@ -1130,10 +1134,20 @@
     elLimbs.classList.toggle('off', over>0);
 
     // Hàng dưới (phút 11-20) chỉ dựng khi thật sự đếm quá 10; khung cao theo số hàng đang hiện
+    /* BỐN BÀN TAY xếp thế nào: desktop cho cả bốn lên MỘT hàng ngang (màn rộng, mà xếp dọc
+       thì phải cuộn mới thấy hết); mobile giữ hai hàng (nhét bốn bàn vào bề ngang điện thoại
+       thì mỗi bàn còn một nửa, nhãn giờ:phút không đọc nổi).
+       Một hàng thì khối số nới ra hết bề ngang .stage, nhờ vậy mỗi bàn vẫn to xấp xỉ lúc
+       chỉ có hai bàn — không thì bốn bàn nhồi vào 340px sẽ bé lại một nửa. */
     const twoRows = n > HAND_MAX*2;
+    const oneLine = twoRows && mqDesktop.matches;
     rowBot.classList.toggle('off', !twoRows);
-    elLimbs.setAttribute('viewBox',
-      `0 0 ${ROW_W} ${twoRows ? CELL.h*2 + ROW_GAP : CELL.h}`);
+    rowBot.setAttribute('transform', oneLine ? `translate(${ROW_W + COL_GAP},0)`
+                                             : `translate(0,${CELL.h + ROW_GAP})`);
+    elDigital.classList.toggle('wide', oneLine);
+    elLimbs.setAttribute('viewBox', oneLine
+      ? `0 0 ${ROW_W*2 + COL_GAP} ${CELL.h}`
+      : `0 0 ${ROW_W} ${twoRows ? CELL.h*2 + ROW_GAP : CELL.h}`);
 
     hands.forEach((hand, hi)=>{
       const base  = hi * HAND_MAX;                       // 0, 5, 10, 15

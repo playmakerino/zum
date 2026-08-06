@@ -501,6 +501,13 @@
         <div class="err">No sub niche with that name — pick one from the list or leave it empty.</div>
       </div>
 
+      <div class="field" id="fUploader">
+        <label for="uploader">Uploader ID</label>
+        <input type="text" id="uploader" placeholder="Bùi" autocomplete="off">
+        <div class="err">Required.</div>
+        <div class="auto-hint" id="uploaderHint" style="display:block">Becomes a product tag.</div>
+      </div>
+
       </div>
 
       <div class="submit-wrap">
@@ -551,7 +558,12 @@
     const trimHint   = document.getElementById('trimHint');
     const nicheSel   = document.getElementById('niche');
     const subNiche   = document.getElementById('subNiche');
+    const uploader   = document.getElementById('uploader');
     const submitBtn  = document.getElementById('submitBtn');
+
+    // the same person submits over and over, so the id is remembered per browser
+    const LS_UPLOADER = 'zum_prd_uploader';
+    try { uploader.value = localStorage.getItem(LS_UPLOADER) || ''; } catch (e) {}
 
     // populate niche + sub niche
     nicheSel.innerHTML = '<option value="">— none —</option>' +
@@ -730,7 +742,7 @@
       validate(false);
     });
 
-    [patternName, nicheSel, subNiche].forEach(el => el.addEventListener('input', () => validate(false)));
+    [patternName, nicheSel, subNiche, uploader].forEach(el => el.addEventListener('input', () => validate(false)));
     nicheSel.addEventListener('change', () => validate(false));
 
     function normHex(v) {
@@ -748,19 +760,22 @@
       const okName = patternName.value.trim().length > 0;
       const okTrim = !!normHex(trimColor.value);
       const okSub  = subNicheGid() !== null;   // null = typed a name that does not exist
+      const okUp   = uploader.value.trim().length > 0;
 
       if (show) {
         document.getElementById('fPattern').classList.toggle('invalid', !okName);
         document.getElementById('fTrim').classList.toggle('invalid', !okTrim);
         document.getElementById('fSubNiche').classList.toggle('invalid', !okSub);
+        document.getElementById('fUploader').classList.toggle('invalid', !okUp);
       } else {
         if (okName) document.getElementById('fPattern').classList.remove('invalid');
         if (okTrim) document.getElementById('fTrim').classList.remove('invalid');
         if (okSub)  document.getElementById('fSubNiche').classList.remove('invalid');
+        if (okUp)   document.getElementById('fUploader').classList.remove('invalid');
       }
 
       refreshSubmit();
-      return okName && okTrim && okSub && !!selectedFile;
+      return okName && okTrim && okSub && okUp && !!selectedFile;
     }
 
     function refreshSubmit() {
@@ -789,7 +804,10 @@
         fd.append('niche', nicheSel.value);
         fd.append('sub_niche', subNiche.value.trim());
         fd.append('sub_niche_gid', subNicheGid() || '');
+        fd.append('uploader', uploader.value.trim());
         fd.append('pattern', selectedFile, selectedFile.name);
+
+        try { localStorage.setItem(LS_UPLOADER, uploader.value.trim()); } catch (e) {}
 
         const thumb = await makeThumb(selectedFile, 80);
 

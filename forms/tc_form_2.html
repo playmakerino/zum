@@ -118,6 +118,8 @@
       padding-right: 40px;
       cursor: pointer;
     }
+    .field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
+
     .field input[type="text"]::placeholder { color: var(--text-muted); }
     .field input[type="text"]:hover,
     .field select:hover { background-color: #2a2a2a; }
@@ -172,7 +174,7 @@
 
     .field-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 14px;
     }
 
@@ -431,6 +433,11 @@
               <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
             </div>
           </div>
+          <div class="field">
+            <label>Image positions</label>
+            <input type="text" id="image_positions" placeholder="2, 3, 4" />
+            <div class="field-hint">Counted from the first image, same for every product. Empty = all images.</div>
+          </div>
         </div>
       </div>
 
@@ -573,7 +580,10 @@
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
 
-      const payload = { ad_set_name, product_type, rows };
+      // One shared value for every row below
+      const image_positions = document.getElementById('image_positions').value.trim();
+
+      const payload = { ad_set_name, product_type, image_positions, rows };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -888,6 +898,16 @@
 
       <div class="guide-step">
         <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4><span class="g-field">Image positions</span>: chọn ảnh nào lên ad</h4>
+          <p>Điền vị trí các ảnh trên trang sản phẩm cần lấy làm quảng cáo, đếm từ ảnh đầu tiên. Nhiều vị trí thì ngăn cách bằng dấu phẩy.</p>
+          <span class="guide-eg">Ví dụ: <code>2, 3, 4</code> nghĩa là lấy ảnh thứ 2, thứ 3 và thứ 4.</span>
+          <p style="margin-top:7px">Ô này điền một lần và áp dụng cho tất cả sản phẩm trong bảng bên dưới. Để trống thì hệ thống lấy toàn bộ ảnh trên trang sản phẩm.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
           <p>Mỗi dòng trong bảng là 1 sản phẩm, gồm 2 ô cần điền:</p>

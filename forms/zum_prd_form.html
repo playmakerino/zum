@@ -135,8 +135,8 @@
     .card { background: transparent; padding: 0; }
 
     /* the swatch tile and the two fields it feeds share one row: a square reads as a
-       swatch, and Pattern name + Trim color are exactly the fields that come from it */
-    /* same two columns as .fields below, so Pattern name and Trim color are exactly as
+       swatch, and Pattern name + Trim color are exactly the fields that come from it.
+       Same two columns as .fields below, so Pattern name and Trim color are exactly as
        wide as Sub niche and Uploader ID and sit in the same vertical line */
     .upload-row {
       display: grid;
@@ -151,10 +151,17 @@
 
     .upload-side .field:first-child { margin-top: 0; }
 
+    /* the cell is half the form wide and the tile only takes 160px of it, so the file
+       name and size go in the leftover space instead of covering the swatch */
+    .upload-cell {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
     .drop-zone {
       position: relative;
-      /* the cell is half the form wide; the tile keeps its own size inside it so the
-         swatch stays a 160px square instead of ballooning with the column */
+      flex: none;
       width: 160px;
       max-width: 100%;
       aspect-ratio: 1 / 1;
@@ -183,9 +190,10 @@
 
     .drop-zone:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-    /* once the swatch is in, the tile IS the swatch — the dashed invitation is gone */
-    .drop-zone.filled { border-style: solid; border-color: rgba(255,255,255,0.14); }
-    .drop-zone.filled .dz-prompt { display: none; }
+    /* once the swatch is in, the tile IS the swatch — the dashed invitation is gone.
+       The state lives on .upload-cell because the caption is a sibling of the tile now */
+    .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(255,255,255,0.14); }
+    .upload-cell.filled .dz-prompt { display: none; }
 
     .drop-zone svg {
       width: 24px; height: 24px;
@@ -206,29 +214,28 @@
       width: 100%; height: 100%;
       object-fit: cover;
     }
-    .drop-zone.filled .dz-img { display: block; }
+    .upload-cell.filled .dz-img { display: block; }
 
-    /* name and size ride on the swatch instead of costing a row of their own */
     .preview {
       display: none;
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      padding: 22px 8px 7px;
-      text-align: left;
-      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+      min-width: 0;
+      flex: 1;
+      padding-top: 2px;
     }
 
-    .drop-zone.filled .preview { display: block; }
+    .upload-cell.filled .preview { display: block; }
 
+    /* the staged swatch is the active item, the way the playing track goes green */
     .preview .pv-name {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
-      color: #fff;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      color: var(--accent);
+      line-height: 1.35;
+      /* the column is narrow, and there is vertical room to spare — wrap instead of
+         cutting the name off with an ellipsis */
+      overflow-wrap: anywhere;
     }
-    .preview .pv-meta { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+    .preview .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
 
     #pvRemove {
       display: none;
@@ -239,7 +246,7 @@
       color: #fff; cursor: pointer;
       align-items: center; justify-content: center;
     }
-    .drop-zone.filled #pvRemove { display: flex; }
+    .upload-cell.filled #pvRemove { display: flex; }
     #pvRemove:hover { background: rgba(0,0,0,0.9); }
 
     /* two fields per row; the error text sits inside the cell so a wrong value in one
@@ -482,24 +489,27 @@
 
       <div class="upload-row">
 
-        <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload pattern image">
-          <img class="dz-img" id="pvImg" alt="">
-          <div class="dz-prompt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
-              <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
-            </svg>
-            <p>Drop the pattern<br>image here</p>
-            <p class="hint">png · jpg · webp</p>
+        <div class="upload-cell" id="uploadCell">
+          <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload pattern image">
+            <img class="dz-img" id="pvImg" alt="">
+            <div class="dz-prompt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
+                <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+              </svg>
+              <p>Drop the pattern<br>image here</p>
+              <p class="hint">png · jpg · webp</p>
+            </div>
+            <button type="button" id="pvRemove" title="Remove">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" style="display:none" />
           </div>
+
           <div class="preview" id="preview">
             <div class="pv-name" id="pvName"></div>
             <div class="pv-meta" id="pvMeta"></div>
           </div>
-          <button type="button" id="pvRemove" title="Remove">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-          <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" style="display:none" />
         </div>
 
         <div class="upload-side">
@@ -591,6 +601,7 @@
     let selectedFile = null;
 
     const dropZone   = document.getElementById('dropZone');
+    const uploadCell = document.getElementById('uploadCell');
     const fileInput  = document.getElementById('fileInput');
     const pvImg      = document.getElementById('pvImg');
     const pvName     = document.getElementById('pvName');
@@ -637,10 +648,10 @@
         pvImg.src = URL.createObjectURL(selectedFile);
         pvName.textContent = selectedFile.name;
         pvMeta.textContent = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
-        dropZone.classList.add('filled');
+        uploadCell.classList.add('filled');
         scrimFromImage(selectedFile);
       } else {
-        dropZone.classList.remove('filled');
+        uploadCell.classList.remove('filled');
         pvImg.removeAttribute('src');
         clearScrim();
       }

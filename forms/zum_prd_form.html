@@ -506,7 +506,7 @@
         <select id="gender">
           <option value="boy">Boy</option>
           <option value="girl">Girl</option>
-          <option value="neutral">Neutral</option>
+          <option value="neutral" selected>Neutral</option>
         </select>
         <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
       </div>
@@ -571,9 +571,6 @@
     const subNiche   = document.getElementById('subNiche');
     const uploader   = document.getElementById('uploader');
     const submitBtn  = document.getElementById('submitBtn');
-
-    const LS_GENDER = 'zum_prd_gender';
-    try { const g = localStorage.getItem(LS_GENDER); if (g) gender.value = g; } catch (e) {}
 
     // populate niche + sub niche
     nicheSel.innerHTML = '<option value="">— none —</option>' +
@@ -854,7 +851,6 @@
         fd.append('gender', gender.value);
         fd.append('pattern', selectedFile, selectedFile.name);
 
-        try { localStorage.setItem(LS_GENDER, gender.value); } catch (e) {}
 
         const thumb = await makeThumb(selectedFile, 80);
 

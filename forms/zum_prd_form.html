@@ -195,15 +195,17 @@
     .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(255,255,255,0.14); }
     .upload-cell.filled .dz-prompt { display: none; }
 
-    .drop-zone svg {
+    /* scoped to the prompt: an unscoped .drop-zone svg also hits the remove button's
+       glyph and shoves it off centre with the margin below */
+    .dz-prompt svg {
       width: 24px; height: 24px;
       color: var(--text-muted);
       margin-bottom: 6px;
       transition: color 0.2s;
     }
 
-    .drop-zone:hover svg { color: #fff; }
-    .drop-zone.drag-over svg { color: var(--accent); }
+    .drop-zone:hover .dz-prompt svg { color: #fff; }
+    .drop-zone.drag-over .dz-prompt svg { color: var(--accent); }
 
     .drop-zone p { font-size: 13px; color: var(--text-sub); line-height: 1.4; }
     .drop-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
@@ -247,6 +249,7 @@
       align-items: center; justify-content: center;
     }
     .upload-cell.filled #pvRemove { display: flex; }
+    #pvRemove svg { width: 12px; height: 12px; display: block; }
     #pvRemove:hover { background: rgba(0,0,0,0.9); }
 
     /* two fields per row; the error text sits inside the cell so a wrong value in one

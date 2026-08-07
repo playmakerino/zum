@@ -478,6 +478,17 @@
     .tasks-empty { padding: 48px 24px; text-align: center; }
     .tasks-empty h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
     .tasks-empty p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+
+    /* Narrow screens: the two panels stack instead of sitting side by side. The 1fr
+       track for Sent shrinks to ~0 once the form column alone fills the viewport, so
+       the panel is there but has no width to draw in. Stacking means the panels can no
+       longer each own a scroller — the page itself scrolls instead. */
+    @media (max-width: 900px) {
+      body { height: auto; min-height: 100vh; overflow: visible; }
+      .container { grid-template-columns: minmax(0, 1fr); height: auto; }
+      .panel { height: auto; }
+      .col-form, .tasks, #taskList { overflow: visible; }
+    }
   </style>
 </head>
 <body>

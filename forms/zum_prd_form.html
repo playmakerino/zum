@@ -655,8 +655,18 @@
     // the button sits inside the drop zone, so its click would reopen the file picker
     pvRemove.addEventListener('click', e => { e.stopPropagation(); setFile(null); });
 
+    // The run only survives what n8n's Edit Image decodes AND Gemini takes as inlineData:
+    // png, jpeg, webp. All three verified end to end (2026-08-07). A plain image/* test
+    // let heic off an iPhone, avif, gif and svg through here to die inside the workflow,
+    // and the accept="" list never covers drag-and-drop.
+    const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
     function setFile(f) {
-      if (f && !f.type.startsWith('image/')) f = null;
+      if (f && !ACCEPTED_TYPES.includes(f.type) &&
+          !(!f.type && /\.(png|jpe?g|webp)$/i.test(f.name))) {
+        toast('Only png, jpg and webp work — ' + (f.type || f.name) + ' is not accepted.', 'error');
+        f = null;
+      }
       selectedFile = f || null;
       if (selectedFile) {
         pvImg.src = URL.createObjectURL(selectedFile);

@@ -136,9 +136,11 @@
 
     /* the swatch tile and the two fields it feeds share one row: a square reads as a
        swatch, and Pattern name + Trim color are exactly the fields that come from it */
+    /* same two columns as .fields below, so Pattern name and Trim color are exactly as
+       wide as Sub niche and Uploader ID and sit in the same vertical line */
     .upload-row {
       display: grid;
-      grid-template-columns: 160px minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
       align-items: start;
     }
@@ -151,6 +153,10 @@
 
     .drop-zone {
       position: relative;
+      /* the cell is half the form wide; the tile keeps its own size inside it so the
+         swatch stays a 160px square instead of ballooning with the column */
+      width: 160px;
+      max-width: 100%;
       aspect-ratio: 1 / 1;
       border: 2px dashed #727272;
       border-radius: 8px;

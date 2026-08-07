@@ -489,16 +489,6 @@
         <div class="auto-hint" id="trimHint">Taken from the swatch.</div>
       </div>
 
-      <div class="field" id="fGender">
-        <label for="gender">Gender</label>
-        <select id="gender">
-          <option value="boy">Boy</option>
-          <option value="girl">Girl</option>
-          <option value="neutral">Neutral</option>
-        </select>
-        <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
-      </div>
-
       <div class="field" id="fNiche">
         <label for="niche">Niche <span class="opt">— optional</span></label>
         <select id="niche"></select>
@@ -509,6 +499,16 @@
         <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
         <datalist id="subNicheList"></datalist>
         <div class="err">No sub niche with that name — pick one from the list or leave it empty.</div>
+      </div>
+
+      <div class="field" id="fGender">
+        <label for="gender">Gender</label>
+        <select id="gender">
+          <option value="boy">Boy</option>
+          <option value="girl">Girl</option>
+          <option value="neutral">Neutral</option>
+        </select>
+        <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
       </div>
 
       <div class="field" id="fUploader">
@@ -571,10 +571,6 @@
     const subNiche   = document.getElementById('subNiche');
     const uploader   = document.getElementById('uploader');
     const submitBtn  = document.getElementById('submitBtn');
-
-    // the same person submits over and over, so the id is remembered per browser
-    const LS_UPLOADER = 'zum_prd_uploader';
-    try { uploader.value = localStorage.getItem(LS_UPLOADER) || ''; } catch (e) {}
 
     const LS_GENDER = 'zum_prd_gender';
     try { const g = localStorage.getItem(LS_GENDER); if (g) gender.value = g; } catch (e) {}
@@ -685,8 +681,8 @@
     }
 
     // Gender suy tu HUE cua mau trim. rgbToHsv tra h trong 0..1 nen phai nhan 360.
-    //   285-350 do: tim -> magenta -> hong        = girl
-    //    90-265 do: xanh la -> teal -> xanh duong = boy
+    //   250-350 do: tim/lavender -> magenta -> hong = girl
+    //    90-249 do: xanh la -> teal -> xanh duong    = boy
     //   con lai (vang, cam, do, nau) va mau gan xam = neutral
     let genderTouched = false;
     function genderFromHex(v) {
@@ -697,8 +693,8 @@
       // qua nhat mau thi khong co hue de doc - dung neutral thay vi doan bua
       if (hsv[1] < 0.15 || hsv[2] < 0.10) return 'neutral';
       const h = hsv[0] * 360;
-      if (h >= 285 && h <= 350) return 'girl';
-      if (h >= 90 && h <= 265) return 'boy';
+      if (h >= 250 && h <= 350) return 'girl';
+      if (h >= 90 && h < 250) return 'boy';
       return 'neutral';
     }
 
@@ -858,7 +854,6 @@
         fd.append('gender', gender.value);
         fd.append('pattern', selectedFile, selectedFile.name);
 
-        try { localStorage.setItem(LS_UPLOADER, uploader.value.trim()); } catch (e) {}
         try { localStorage.setItem(LS_GENDER, gender.value); } catch (e) {}
 
         const thumb = await makeThumb(selectedFile, 80);

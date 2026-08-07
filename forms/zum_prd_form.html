@@ -227,11 +227,12 @@
 
     .upload-cell.filled .preview { display: block; }
 
-    /* the staged swatch is the active item, the way the playing track goes green */
+    /* white, not accent: green belongs to the submit button alone. A playing track earns
+       green because it marks one row among many — a single staged file marks nothing */
     .preview .pv-name {
       font-size: 12px;
       font-weight: 700;
-      color: var(--accent);
+      color: var(--text);
       line-height: 1.35;
       /* the column is narrow, and there is vertical room to spare — wrap instead of
          cutting the name off with an ellipsis */

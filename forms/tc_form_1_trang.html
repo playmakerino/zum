@@ -367,7 +367,7 @@
 
       <div class="field-row">
         <div class="field">
-          <label>Print Image or Flatlay Image</label>
+          <label>Print Image</label>
           <input type="file" id="printFileInput" accept="image/*" style="display:none" />
           <div class="print-slot" id="printSlot"></div>
         </div>
@@ -511,7 +511,7 @@
       } else {
         const add = document.createElement('div');
         add.className = 'add-tile';
-        add.title = 'Add print / flatlay image';
+        add.title = 'Add print image';
         add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
         add.onclick = () => document.getElementById('printFileInput').click();
         slot.appendChild(add);
@@ -833,7 +833,7 @@
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Print / Flatlay image</span>: ảnh tham chiếu</h4>
+          <h4><span class="g-field">Print Image</span>: ảnh tham chiếu</h4>
           <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc hoặc ảnh flatlay, dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
         </div>
       </div>

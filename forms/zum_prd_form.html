@@ -33,7 +33,7 @@
       --error: #E22134;
       --divider: rgba(255,255,255,0.06);
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      /* set from the uploaded swatch only — no artwork, no tint */
+      /* set from the uploaded swatch only, no artwork, no tint */
       --scrim: transparent;
     }
 
@@ -131,24 +131,34 @@
       line-height: 1.5;
     }
 
-    /* the panel is the card — no nested surface */
+    /* the panel is the card, no nested surface */
     .card { background: transparent; padding: 0; }
 
-    /* the swatch tile and the two fields it feeds share one row: a square reads as a
-       swatch, and Pattern name + Trim color are exactly the fields that come from it.
-       Same two columns as .fields below, so Pattern name and Trim color are exactly as
-       wide as Sub niche and Uploader ID and sit in the same vertical line */
+    /* the swatch tile and the two fields that name it share one row: Pattern ID + Pattern
+       name are what identifies the artwork sitting next to them. Same two columns as
+       .fields below, so they are exactly as wide as Sub niche and Uploader ID and sit in
+       the same vertical line */
+    /* stretch, not start: the square tile is the taller item, so stretching lets the field
+       column fill that same height and line its last field up with the bottom of the tile */
     .upload-row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
-      align-items: start;
+      align-items: stretch;
     }
 
     @media (max-width: 560px) {
       .upload-row { grid-template-columns: minmax(0, 1fr); }
     }
 
+    /* the tile is a fixed 160px square, and the two fields beside it are shorter than that.
+       space-between pushes Pattern name to the bottom of the stretched column, so its
+       bottom edge sits exactly on the bottom edge of the tile */
+    .upload-side {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
     .upload-side .field:first-child { margin-top: 0; }
 
     /* the cell is half the form wide and the tile only takes 160px of it, so the file
@@ -190,7 +200,7 @@
 
     .drop-zone:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-    /* once the swatch is in, the tile IS the swatch — the dashed invitation is gone.
+    /* once the swatch is in, the tile IS the swatch, and the dashed invitation is gone.
        The state lives on .upload-cell because the caption is a sibling of the tile now */
     .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(255,255,255,0.14); }
     .upload-cell.filled .dz-prompt { display: none; }
@@ -228,13 +238,13 @@
     .upload-cell.filled .preview { display: block; }
 
     /* white, not accent: green belongs to the submit button alone. A playing track earns
-       green because it marks one row among many — a single staged file marks nothing */
+       green because it marks one row among many, and a single staged file marks nothing */
     .preview .pv-name {
       font-size: 12px;
       font-weight: 700;
       color: var(--text);
       line-height: 1.35;
-      /* the column is narrow, and there is vertical room to spare — wrap instead of
+      /* the column is narrow, and there is vertical room to spare, so wrap instead of
          cutting the name off with an ellipsis */
       overflow-wrap: anywhere;
     }
@@ -270,7 +280,7 @@
     .field { margin-top: 16px; }
     .fields .field { margin-top: 0; }
 
-    /* sentence-case bold, the way Encore labels form fields — no uppercase tracking */
+    /* sentence-case bold, the way Encore labels form fields, no uppercase tracking */
     .field label {
       display: block;
       font-size: 14px;
@@ -321,6 +331,12 @@
 
     .auto-hint { margin-top: 6px; font-size: 12px; color: var(--text-muted); display: none; }
     .field.invalid .auto-hint { display: none; }
+
+    /* the hint sits on the label line, to its right: it explains where the value came
+       from, so it belongs with the name of the field and not under the input */
+    .lbl-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .lbl-row label { margin-bottom: 0; }
+    .lbl-row .auto-hint { margin-top: 0; }
 
     .trim-row { display: flex; gap: 10px; }
     .trim-row input[type=text] { flex: 1; }
@@ -432,7 +448,7 @@
       padding: 8px 16px 16px;
     }
 
-    /* track-list row: transparent, background only on hover — not a card */
+    /* track-list row: transparent, background only on hover, not a card */
     .task {
       display: grid;
       grid-template-columns: 40px minmax(0, 1fr) auto;
@@ -483,7 +499,7 @@
     /* Narrow screens: the two panels stack instead of sitting side by side. The 1fr
        track for Sent shrinks to ~0 once the form column alone fills the viewport, so
        the panel is there but has no width to draw in. Stacking means the panels can no
-       longer each own a scroller — the page itself scrolls instead. */
+       longer each own a scroller; the page itself scrolls instead. */
     @media (max-width: 900px) {
       body { height: auto; min-height: 100vh; overflow: visible; }
       .container { grid-template-columns: minmax(0, 1fr); height: auto; }
@@ -528,20 +544,19 @@
         </div>
 
         <div class="upload-side">
+          <div class="field" id="fPatternId">
+            <div class="lbl-row">
+              <label for="patternId">Pattern ID</label>
+              <div class="auto-hint" id="patternIdHint" style="display:block">Goes on the swatch entry.</div>
+            </div>
+            <input type="text" id="patternId" placeholder="Dub9707" autocomplete="off">
+            <div class="err">Required.</div>
+          </div>
+
           <div class="field" id="fPattern">
             <label for="patternName">Pattern name</label>
             <input type="text" id="patternName" placeholder="e.g. Birthday Dachshund" autocomplete="off">
             <div class="err">Required.</div>
-          </div>
-
-          <div class="field" id="fTrim">
-            <label for="trimColor">Trim color</label>
-            <div class="trim-row">
-              <input type="text" id="trimColor" placeholder="#8fb6d7" autocomplete="off">
-              <input type="color" id="trimPicker" value="#8fb6d7">
-            </div>
-            <div class="err">Use a hex color like #8fb6d7.</div>
-            <div class="auto-hint" id="trimHint">Taken from the swatch.</div>
           </div>
         </div>
 
@@ -549,33 +564,49 @@
 
       <div class="fields">
 
-      <div class="field" id="fNiche">
-        <label for="niche">Niche <span class="opt">— optional</span></label>
-        <select id="niche"></select>
-      </div>
-
-      <div class="field" id="fSubNiche">
-        <label for="subNiche">Sub niche <span class="opt">— optional</span></label>
-        <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
-        <datalist id="subNicheList"></datalist>
-        <div class="err">No sub niche with that name — pick one from the list or leave it empty.</div>
+      <div class="field" id="fTrim">
+        <div class="lbl-row">
+          <label for="trimColor">Trim color</label>
+          <div class="auto-hint" id="trimHint">Taken from the swatch.</div>
+        </div>
+        <div class="trim-row">
+          <input type="text" id="trimColor" placeholder="#8fb6d7" autocomplete="off">
+          <input type="color" id="trimPicker" value="#8fb6d7">
+        </div>
+        <div class="err">Use a hex color like #8fb6d7.</div>
       </div>
 
       <div class="field" id="fGender">
-        <label for="gender">Gender</label>
+        <div class="lbl-row">
+          <label for="gender">Gender</label>
+          <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
+        </div>
         <select id="gender">
           <option value="boy">Boy</option>
           <option value="girl">Girl</option>
           <option value="neutral" selected>Neutral</option>
         </select>
-        <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
+      </div>
+
+      <div class="field" id="fNiche">
+        <label for="niche">Niche <span class="opt">(optional)</span></label>
+        <select id="niche"></select>
+      </div>
+
+      <div class="field" id="fSubNiche">
+        <label for="subNiche">Sub niche <span class="opt">(optional)</span></label>
+        <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
+        <datalist id="subNicheList"></datalist>
+        <div class="err">No sub niche with that name. Pick one from the list or leave it empty.</div>
       </div>
 
       <div class="field" id="fUploader">
-        <label for="uploader">Uploader ID</label>
+        <div class="lbl-row">
+          <label for="uploader">Uploader ID</label>
+          <div class="auto-hint" id="uploaderHint" style="display:block">Becomes a product tag.</div>
+        </div>
         <input type="text" id="uploader" placeholder="Bùi" autocomplete="off">
         <div class="err">Required.</div>
-        <div class="auto-hint" id="uploaderHint" style="display:block">Becomes a product tag.</div>
       </div>
 
       </div>
@@ -630,10 +661,11 @@
     const nicheSel   = document.getElementById('niche');
     const subNiche   = document.getElementById('subNiche');
     const uploader   = document.getElementById('uploader');
+    const patternId  = document.getElementById('patternId');
     const submitBtn  = document.getElementById('submitBtn');
 
     // populate niche + sub niche
-    nicheSel.innerHTML = '<option value="">— none —</option>' +
+    nicheSel.innerHTML = '<option value="">(none)</option>' +
       NICHES.map(n => '<option>' + escapeHtml(n) + '</option>').join('');
 
     document.getElementById('subNicheList').innerHTML =
@@ -665,7 +697,7 @@
     function setFile(f) {
       if (f && !ACCEPTED_TYPES.includes(f.type) &&
           !(!f.type && /\.(png|jpe?g|webp)$/i.test(f.name))) {
-        toast('Only png, jpg and webp work — ' + (f.type || f.name) + ' is not accepted.', 'error');
+        toast('Only png, jpg and webp work. ' + (f.type || f.name) + ' is not accepted.', 'error');
         f = null;
       }
       selectedFile = f || null;
@@ -721,7 +753,7 @@
     function setScrim(r, g, b) {
       const hsv = rgbToHsv(r, g, b);
 
-      // too little colour to name a hue — leave the panel flat rather than invent one
+      // too little colour to name a hue, so leave the panel flat rather than invent one
       if (hsv[1] < 0.15 || hsv[2] < 0.10) { clearScrim(); return; }
 
       const out = hsvToRgb(hsv[0], Math.min(0.62, Math.max(0.35, hsv[1])), 0.30);
@@ -856,7 +888,7 @@
       validate(false);
     });
 
-    [patternName, nicheSel, subNiche, uploader].forEach(el => el.addEventListener('input', () => validate(false)));
+    [patternName, nicheSel, subNiche, uploader, patternId].forEach(el => el.addEventListener('input', () => validate(false)));
     nicheSel.addEventListener('change', () => validate(false));
 
     function normHex(v) {
@@ -875,21 +907,24 @@
       const okTrim = !!normHex(trimColor.value);
       const okSub  = subNicheGid() !== null;   // null = typed a name that does not exist
       const okUp   = uploader.value.trim().length > 0;
+      const okPid  = patternId.value.trim().length > 0;
 
       if (show) {
         document.getElementById('fPattern').classList.toggle('invalid', !okName);
         document.getElementById('fTrim').classList.toggle('invalid', !okTrim);
         document.getElementById('fSubNiche').classList.toggle('invalid', !okSub);
         document.getElementById('fUploader').classList.toggle('invalid', !okUp);
+        document.getElementById('fPatternId').classList.toggle('invalid', !okPid);
       } else {
         if (okName) document.getElementById('fPattern').classList.remove('invalid');
         if (okTrim) document.getElementById('fTrim').classList.remove('invalid');
         if (okSub)  document.getElementById('fSubNiche').classList.remove('invalid');
         if (okUp)   document.getElementById('fUploader').classList.remove('invalid');
+        if (okPid)  document.getElementById('fPatternId').classList.remove('invalid');
       }
 
       refreshSubmit();
-      return okName && okTrim && okSub && okUp && !!selectedFile;
+      return okName && okTrim && okSub && okUp && okPid && !!selectedFile;
     }
 
     function refreshSubmit() {
@@ -919,6 +954,7 @@
         fd.append('sub_niche', subNiche.value.trim());
         fd.append('sub_niche_gid', subNicheGid() || '');
         fd.append('uploader', uploader.value.trim());
+        fd.append('pattern_id', patternId.value.trim());
         fd.append('gender', gender.value);
         fd.append('pattern', selectedFile, selectedFile.name);
 
@@ -944,10 +980,10 @@
         });
         renderTasks();
 
-        toast('Sent — takes a few minutes. The result lands in Telegram.');
+        toast('Sent. Takes a few minutes. The result lands in Telegram.');
         setFile(null);
       } catch (err) {
-        toast('Upload failed: ' + err.message + ' — check network or CORS (file:// origin is blocked).', 'error');
+        toast('Upload failed: ' + err.message + '. Check network or CORS (file:// origin is blocked).', 'error');
       } finally {
         submitBtn.textContent = 'Create products';
         refreshSubmit();
@@ -964,7 +1000,7 @@
       toastTimer = setTimeout(() => { el.className = 'toast' + (type === 'error' ? ' error' : ''); }, type === 'error' ? 6000 : 4000);
     }
 
-    // 80px square (40 CSS px at 2x) jpeg, ~2 KB each — 40 of them fit in localStorage
+    // 80px square (40 CSS px at 2x) jpeg, ~2 KB each, 40 of them fit in localStorage
     function makeThumb(file, size) {
       return new Promise(resolve => {
         const url = URL.createObjectURL(file);

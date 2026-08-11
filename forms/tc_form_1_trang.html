@@ -27,6 +27,7 @@
       --error-soft: rgba(241,94,108,0.10);
       --divider: rgba(255,255,255,0.06);
       --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --tile: 96px;   /* one image slot: print tile and ad thumbnails share this size */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -99,10 +100,8 @@
       align-items: start;
     }
     .field-row .field { margin-bottom: 0; }
-    /* One print tile, fixed size, so the narrow column does not shrink it */
-    .field-row .print-slot { grid-template-columns: 96px; }
     @media (min-width: 560px) {
-      .field-row { grid-template-columns: 120px 1fr; }
+      .field-row { grid-template-columns: calc(var(--tile) + 24px) 1fr; }
     }
     .field label {
       display: block; font-size: 12px; font-weight: 500;
@@ -198,7 +197,7 @@
     .thumbs {
       margin-top: 0;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, var(--tile));
       gap: 10px;
     }
     .thumb {
@@ -237,14 +236,11 @@
       margin-top: 8px; text-align: right;
     }
 
-    /* Print/flatlay slot + ad grid share tile size: 1/3 width on mobile, 1/6 on desktop */
+    /* Print/flatlay slot holds a single tile, same size as an ad thumbnail */
     .print-slot {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: var(--tile);
       gap: 10px;
-    }
-    @media (min-width: 560px) {
-      .thumbs, .print-slot { grid-template-columns: repeat(6, 1fr); }
     }
     .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
 

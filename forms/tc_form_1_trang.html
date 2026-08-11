@@ -356,7 +356,7 @@
 
     <div class="header">
       <h1>Test product</h1>
-      <p>Upload ad images from your device. Each image becomes its own ad, named after the file. Image filenames must follow [PrintID-TypeID_MockupID].jpg. <strong>One product type per upload.</strong></p>
+      <p>Upload ad images from your device. Each image becomes its own ad, named after the file. Image filenames must follow [PrintID-TypeID_MockupID].jpg. <strong>One product type and one print per upload.</strong></p>
     </div>
 
     <div class="card">
@@ -535,6 +535,11 @@
         .map(f => f.name);
       if (wrongType.length) {
         return showStatus('error', '&#10007; One product type per upload. These files are not ' + product_type + ': ' + wrongType.join(', '));
+      }
+
+      const prints = [...new Set(adFiles.map(f => (f.name.match(FILE_RE) || [])[1]))];
+      if (prints.length > 1) {
+        return showStatus('error', '&#10007; One print per upload. This batch has: ' + prints.join(', '));
       }
 
       const fd = new FormData();
@@ -803,7 +808,7 @@
       <p class="guide-intro">Form này tải ảnh quảng cáo từ máy lên. Print ID và product type lấy từ tên file, không phải điền tay. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, tên quảng cáo chính là tên file.</p>
 
       <div class="guide-note warn">
-        <strong>Mỗi lần chỉ up ảnh của 1 product type.</strong> Muốn chạy product type khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
+        <strong>Mỗi lần chỉ up ảnh của 1 product type và 1 print.</strong> Muốn chạy print khác hoặc product type khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
       </div>
 
       <div class="guide-sec">Các bước điền</div>
@@ -836,7 +841,7 @@
         <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
-          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 product type.</p>
+          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 Print ID và cùng 1 product type.</p>
         </div>
       </div>
 

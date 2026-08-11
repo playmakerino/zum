@@ -312,7 +312,9 @@
 
     <div class="header">
       <h1>Test product</h1>
-      <p>Upload ad images from your device for one product. Each image becomes its own ad.</p>
+      <p>Upload ad images from your device. Each image becomes its own ad, named after the file.</p>
+      <p>Image filenames must follow [PrintID-TypeID_MockupID].jpg</p>
+      <p><strong>One product type per upload.</strong></p>
     </div>
 
     <div class="card">
@@ -322,16 +324,6 @@
         <span class="count" id="adCount"></span>
       </div>
 
-      <div class="field-row">
-        <div class="field">
-          <label>Print ID</label>
-          <input type="text" id="printId" placeholder="xua1234" />
-        </div>
-        <div class="field">
-          <label>Product URL</label>
-          <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
-        </div>
-      </div>
       <div class="field">
         <label>Print Image or Flatlay Image</label>
         <input type="file" id="printFileInput" accept="image/*" style="display:none" />
@@ -359,14 +351,12 @@
     //   CONFIG
     // ============================================================
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-1-trang";
+    // Filename carries the print ID and the product type: [PrintID-TypeID_MockupID].jpg
+    const FILE_RE = /^\[([^\-\]]+)-([^_\]]+)(?:_([^\]]+))?\](?:\s*\(\d+\))?(?:\.\w+)?$/i;
     // ============================================================
 
     let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
     let printFile = null;  // single print/flatlay reference | null
-
-    function cleanProductUrl(url) {
-      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
-    }
 
     function updateCount() {
       const n = adFiles.length;
@@ -477,18 +467,24 @@
 
     async function submitForm() {
       const submitBtn = document.getElementById('submitBtn');
-      const url = cleanProductUrl(document.getElementById('productUrl').value.trim());
-      const print_id = document.getElementById('printId').value.trim();
 
-      if (!url || !print_id || adFiles.length === 0) {
-        return showStatus('error', '&#9888; Need a Product URL, a Print ID, and at least one ad image.');
+      if (adFiles.length === 0) {
+        return showStatus('error', '&#9888; Add at least one ad image.');
+      }
+
+      const badNames = adFiles.filter(f => !FILE_RE.test(f.name)).map(f => f.name);
+      if (badNames.length) {
+        return showStatus('error', '&#10007; Wrong filename: ' + badNames.join(', ') + '. Use [PrintID-TypeID_MockupID].jpg');
+      }
+
+      const types = [...new Set(adFiles.map(f => (f.name.match(FILE_RE) || [])[2]))];
+      if (types.length > 1) {
+        return showStatus('error', '&#10007; One product type per upload. This batch has: ' + types.join(', '));
       }
 
       const fd = new FormData();
-      const meta = [{ index: 0, product_url: url, print_id }];
       adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name));
       if (printFile) fd.append('print_0', printFile, printFile.name);
-      fd.append('meta', JSON.stringify(meta));
 
       const total = adFiles.length;
       const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (printFile ? printFile.size : 0)) / (1024 * 1024);
@@ -622,17 +618,19 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này tải ảnh quảng cáo từ máy lên, mỗi lần cho 1 sản phẩm. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng.</p>
+      <p class="guide-intro">Form này tải ảnh quảng cáo từ máy lên. Print ID và product type lấy từ tên file, không phải điền tay. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, tên quảng cáo chính là tên file.</p>
 
-      <div class="guide-sec">Các bước điền (mỗi lần 1 sản phẩm)</div>
+      <div class="guide-note warn">
+        <strong>Mỗi lần chỉ up ảnh của 1 product type.</strong> Muốn chạy product type khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
+      </div>
+
+      <div class="guide-sec">Các bước điền</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Print ID</span> và <span class="g-field">Product URL</span></h4>
-          <p>Điền 2 ô:</p>
-          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã bản in (ví dụ <code>xua1234</code>).<br>
-          b) <span class="g-field">Product URL</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.</p>
+          <h4>Đặt tên file ảnh quảng cáo</h4>
+          <p>Tên file phải theo dạng <code>[PrintID-TypeID_MockupID].jpg</code>, ví dụ <code>[xua1234-BDS_PM-SSI-177].jpg</code>. Phần <code>_MockupID</code> có thể bỏ. File sai dạng sẽ bị form báo lỗi và không gửi được.</p>
         </div>
       </div>
 
@@ -648,7 +646,7 @@
         <div class="guide-num">3</div>
         <div class="guide-sb">
           <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
-          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc.</p>
+          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 product type.</p>
         </div>
       </div>
 
@@ -656,14 +654,18 @@
         <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
-          <p>Xem lại rồi bấm <strong>Upload &amp; Create Ads</strong>. Ảnh cần chút thời gian để tải lên, chờ tới khi thấy dòng chữ xanh báo thành công, đừng đóng tab khi đang tải. Xong sản phẩm này thì đổi thông tin rồi gửi sản phẩm khác.</p>
+          <p>Xem lại rồi bấm <strong>Create Ads</strong>. Ảnh cần chút thời gian để tải lên, chờ tới khi thấy dòng chữ xanh báo thành công, đừng đóng tab khi đang tải. Xong lượt này thì chọn ảnh khác rồi gửi lượt tiếp theo.</p>
         </div>
       </div>
 
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Mỗi sản phẩm cần có đủ <span class="g-field">Product URL</span>, <span class="g-field">Print ID</span> và ít nhất 1 ảnh trong <span class="g-field">Ad images</span> thì mới gửi được.
+        Cần ít nhất 1 ảnh trong <span class="g-field">Ad images</span> thì mới gửi được.
+      </div>
+
+      <div class="guide-note">
+        Link của quảng cáo lấy theo Print ID: hệ thống tìm trong collection của Print ID đó ra sản phẩm đúng product type. Print ID chưa có trong bảng Print settings thì link sẽ trỏ về trang chủ, báo cáo Telegram sẽ ghi rõ.
       </div>
 
       <div class="guide-note">

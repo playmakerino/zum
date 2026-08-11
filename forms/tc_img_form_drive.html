@@ -228,6 +228,67 @@
 </head>
 <body>
   <div class="container">
+    <!-- ============ Form switcher ============ -->
+    <style>
+      .form-switcher{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:24px;}
+      .fs-row{display:flex;align-items:flex-start;gap:12px;max-width:100%;}
+      .fs-label{flex:0 0 100px;line-height:32px;font-family:var(--font);font-size:12px;font-weight:500;
+        letter-spacing:.01em;color:var(--text-muted);}
+      .fs-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+      .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
+        background:var(--surface-hover);color:var(--text);border:none;border-radius:500px;
+        font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
+        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s,opacity .15s;}
+      .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
+      .form-chip:active{transform:scale(.98);}
+      .form-chip.active{background:var(--text);color:#000;}
+      .form-chip.active:hover{background:#fff;transform:none;}
+      .form-chip.ghost{opacity:.4;}
+      .form-chip.ghost:hover{opacity:1;}
+      .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
+        transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
+        letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,.45);
+        opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
+      .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
+        transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
+        opacity:0;transition:opacity .14s;z-index:30;}
+      .form-chip[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0);}
+      .form-chip[data-tip]:hover::before{opacity:1;}
+      @media(max-width:480px){.fs-row{flex-direction:column;align-items:flex-start;gap:6px;}
+        .fs-label{flex:none;line-height:1.4;}}
+    </style>
+    <nav class="form-switcher" aria-label="Choose form">
+      <div class="fs-row" data-dim="source">
+        <span class="fs-label">Image source</span>
+        <div class="fs-chips">
+          <a class="form-chip" data-val="device" data-tip="Upload product images from your device">Device</a>
+          <a class="form-chip" data-val="drive" data-tip="Take mockup images from a Google Drive folder">Drive</a>
+        </div>
+      </div>
+    </nav>
+    <script>
+      (function(){
+        var FORMS={
+          'device|single':'tc_form_1_trang.html','drive|single':'tc_img_form_drive.html'
+        };
+        var REV={};for(var k in FORMS){REV[FORMS[k].toLowerCase()]=k.split('|');}
+        var cur=(location.pathname.split('/').pop()||'').toLowerCase();
+        var pair=REV[cur]||[],curSource=pair[0],curGroup=pair[1];
+        document.querySelectorAll('.form-switcher .form-chip').forEach(function(a){
+          var dim=a.closest('.fs-row').getAttribute('data-dim'),val=a.getAttribute('data-val');
+          var isActive=(dim==='source'&&val===curSource)||(dim==='group'&&val===curGroup);
+          if(isActive){a.classList.add('active');a.setAttribute('aria-current','page');return;}
+          var s=dim==='source'?val:curSource,g=dim==='group'?val:curGroup;
+          var target=FORMS[s+'|'+g];
+          if(!target){a.classList.add('ghost');
+            for(var key in FORMS){var p=key.split('|');
+            if((dim==='source'&&p[0]===val)||(dim==='group'&&p[1]===val)){target=FORMS[key];break;}}}
+          if(target){a.setAttribute('href',target);}
+        });
+      })();
+    </script>
+    <!-- ============ /Form switcher ============ -->
+
     <div class="header">
       <h1>TC Image</h1>
       <p>Paste a Google Drive folder link to auto create ads.</p>

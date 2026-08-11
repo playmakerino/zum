@@ -90,16 +90,19 @@
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
 
-    /* Print ID + Product URL: stacked on mobile, side-by-side on desktop */
+    /* Print image + Product type: stacked on mobile, side-by-side on desktop */
     .field-row {
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
       margin-bottom: 12px;
+      align-items: start;
     }
     .field-row .field { margin-bottom: 0; }
+    /* One print tile, fixed size, so the narrow column does not shrink it */
+    .field-row .print-slot { grid-template-columns: 96px; }
     @media (min-width: 560px) {
-      .field-row { grid-template-columns: minmax(120px, 0.5fr) 1fr; }
+      .field-row { grid-template-columns: 120px 1fr; }
     }
     .field label {
       display: block; font-size: 12px; font-weight: 500;
@@ -366,20 +369,22 @@
         <span class="count" id="adCount"></span>
       </div>
 
-      <div class="field">
-        <label>Product type</label>
-        <div class="combo" id="productTypeCombo">
-          <input type="text" class="combo-input" id="productTypeSearch"
-                 placeholder="Search product type..." autocomplete="off" role="combobox"
-                 aria-expanded="false" aria-controls="productTypeMenu" />
-          <input type="hidden" id="product_type" value="QBS" />
-          <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Print Image or Flatlay Image</label>
+          <input type="file" id="printFileInput" accept="image/*" style="display:none" />
+          <div class="print-slot" id="printSlot"></div>
         </div>
-      </div>
-      <div class="field">
-        <label>Print Image or Flatlay Image</label>
-        <input type="file" id="printFileInput" accept="image/*" style="display:none" />
-        <div class="print-slot" id="printSlot"></div>
+        <div class="field">
+          <label>Product type</label>
+          <div class="combo" id="productTypeCombo">
+            <input type="text" class="combo-input" id="productTypeSearch"
+                   placeholder="Search product type..." autocomplete="off" role="combobox"
+                   aria-expanded="false" aria-controls="productTypeMenu" />
+            <input type="hidden" id="product_type" value="QBS" />
+            <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
+          </div>
+        </div>
       </div>
       <div class="field">
         <label>Ad images</label>

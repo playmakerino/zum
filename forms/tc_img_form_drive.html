@@ -261,15 +261,15 @@
       <div class="fs-row" data-dim="source">
         <span class="fs-label">Product type</span>
         <div class="fs-chips">
-          <a class="form-chip" data-val="kidpajama" data-tip="Upload ad images from your device for one kid pajama product">Kid pajama</a>
-          <a class="form-chip" data-val="others" data-tip="Take mockup images from a Google Drive folder for other products">Others</a>
+          <a class="form-chip" data-val="kidpajama" data-tip="Take mockup images from a Google Drive folder for kid pajama">Kid pajama</a>
+          <a class="form-chip" data-val="others" data-tip="Upload ad images from your device for one other product">Others</a>
         </div>
       </div>
     </nav>
     <script>
       (function(){
         var FORMS={
-          'kidpajama|single':'tc_form_1_trang.html','others|single':'tc_img_form_drive.html'
+          'kidpajama|single':'tc_img_form_drive.html','others|single':'tc_form_1_trang.html'
         };
         var REV={};for(var k in FORMS){REV[FORMS[k].toLowerCase()]=k.split('|');}
         var cur=(location.pathname.split('/').pop()||'').toLowerCase();

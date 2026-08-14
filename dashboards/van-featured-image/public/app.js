@@ -60,7 +60,10 @@ function showCacheTime(iso) {
   const el = $('headerCachedAt');
   if (!el || !iso) { if (el) el.textContent = ''; return; }
   const d = new Date(iso);
-  el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
+  const months = state.ads.lookback_months;
+  const range = months ? `Last ${months} months · ` : '';
+  el.title = state.ads.period ? `${state.ads.period.since} → ${state.ads.period.until}` : '';
+  el.textContent = `${range}Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
 }
 
 // Load log
@@ -145,7 +148,7 @@ async function fetchAll(mode = 'all', from = 1) {
     if (!data) throw new Error('No data received');
     clearInterval(timerInterval);
 
-    state.ads = { data: data.ads, period: data.period, cached_at: data.cached_at };
+    state.ads = { data: data.ads, period: data.period, cached_at: data.cached_at, lookback_months: data.lookback_months };
     saveCache(state.ads);
     renderTable('ads');
     showCacheTime(data.cached_at);

@@ -89,9 +89,11 @@ function todayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
+const LOOKBACK_MONTHS = 12;
+
 function allTimeStart() {
   const d = new Date();
-  d.setMonth(d.getMonth() - 36);
+  d.setMonth(d.getMonth() - LOOKBACK_MONTHS);
   return d.toISOString().split('T')[0];
 }
 

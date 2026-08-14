@@ -48,7 +48,7 @@ Meta API: POST /act_{id}/insights (async report)
   → Fetch GET /{report_id}/insights?limit=500 (paginate)
 ```
 - Fields: `ad_id, ad_name, spend, action_values`
-- All-time data (36 tháng), incremental fetch từ `lastUntil`
+- Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), incremental fetch từ `lastUntil`
 - Cache: `insightsCache` (memory + file)
 
 ### Step 1.5: pickTopSpendAds()

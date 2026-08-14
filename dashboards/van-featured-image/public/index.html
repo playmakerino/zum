@@ -12,7 +12,9 @@
     <span class="logo">Most Spent Image Ad by Design</span>
     <div class="topbar-actions">
       <span class="cache-time" id="headerCachedAt"></span>
+      <span class="btn-note" title="Load All chay lau (vai phut). Bam 1 lan roi cho, bam nhieu lan se bi rate limit.">Load All: bam 1 lan roi cho, dung bam lai</span>
       <button class="btn btn-primary" onclick="fetchAll('active')">Load Active Ads</button>
+      <button class="btn btn-secondary" style="opacity:0.45" onclick="fetchAll('all')">Load All</button>
     </div>
   </header>
 
@@ -28,7 +30,7 @@
             <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="adsBody">
-            <tr><td colspan="6"><div class="state-box">Click "Load Active Ads" to start</div></td></tr>
+            <tr><td colspan="6"><div class="state-box">Click "Load Active Ads" or "Load All" to start</div></td></tr>
           </tbody></table>
         </div>
       </div>

@@ -304,14 +304,6 @@
           let msg = '&#10003; Saved successfully!';
           if (saved && saved.print_name) {
             msg = '&#10003; Saved for &ldquo;' + escapeHtml(saved.print_name) + '&rdquo;.';
-            try {
-              const spec = typeof saved.asset_feed_spec === 'string'
-                ? JSON.parse(saved.asset_feed_spec) : saved.asset_feed_spec;
-              if (spec) {
-                const t = (spec.titles || []).length, b = (spec.bodies || []).length;
-                msg += ' ' + t + ' titles, ' + b + ' bodies.';
-              }
-            } catch (e) {}
           }
           showStatus('success', msg);
           const preview = document.getElementById('payloadPreview');

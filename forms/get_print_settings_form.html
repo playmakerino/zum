@@ -281,7 +281,7 @@
 
       const payload = { print_id, collection_id };
 
-      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
+      showStatus('loading', '<span class="spinner"></span> Saving, please wait...');
       document.getElementById('submitBtn').disabled = true;
 
       try {
@@ -298,10 +298,25 @@
         }
 
         if (res.ok) {
-          showStatus('success', '&#10003; Sent successfully! Workflow is running.');
+          let data = null;
+          try { data = await res.json(); } catch (e) {}
+          const saved = Array.isArray(data) ? data[0] : data;
+          let msg = '&#10003; Saved successfully!';
+          if (saved && saved.print_name) {
+            msg = '&#10003; Saved for &ldquo;' + escapeHtml(saved.print_name) + '&rdquo;.';
+            try {
+              const spec = typeof saved.asset_feed_spec === 'string'
+                ? JSON.parse(saved.asset_feed_spec) : saved.asset_feed_spec;
+              if (spec) {
+                const t = (spec.titles || []).length, b = (spec.bodies || []).length;
+                msg += ' ' + t + ' titles, ' + b + ' bodies.';
+              }
+            } catch (e) {}
+          }
+          showStatus('success', msg);
           const preview = document.getElementById('payloadPreview');
           preview.style.display = 'block';
-          preview.textContent = JSON.stringify(payload, null, 2);
+          preview.textContent = JSON.stringify(saved || payload, null, 2);
         } else {
           const errText = await res.text();
           showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 120));
@@ -317,6 +332,12 @@
       const el = document.getElementById('statusMsg');
       el.className = 'status ' + type;
       el.innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
     }
   </script>
   <!-- ============ Guide (help panel) ============ -->

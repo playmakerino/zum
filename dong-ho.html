@@ -1133,10 +1133,14 @@
     // nên bảng (căn theo tâm khối) trông THẤP hơn mặt. Ghim body theo mép trên (flex-start) rồi
     // đẩy bảng xuống sao cho tâm bảng = tâm mặt đồng hồ = marginTop + D/2 (tính từ mép trên khối).
     if(desktop){
+      // Bề rộng bảng BÁM đường kính mặt đồng hồ (D) -> hai bên CÂN XỨNG kể cả khi mặt bị
+      // giới hạn theo chiều cao (tivi 16:9 thấp). Kẹp [440,640] để timeline 24h vẫn đọc được.
+      elCalendar.style.width = Math.round(Math.min(640, Math.max(440, D))) + 'px';
       const analogCenter = marginTop + D/2;             // tâm MẶT đồng hồ, từ mép trên khối
-      const calH = elCalendar ? elCalendar.offsetHeight : 0;
+      const calH = elCalendar.offsetHeight;
       elCalendar.style.marginTop = Math.max(0, analogCenter - calH/2) + 'px';
     } else {
+      elCalendar.style.width = '';                      // mobile: trả về CSS (min(96vw,640px))
       elCalendar.style.marginTop = '';                  // mobile: trả về CSS (media .8rem)
     }
 

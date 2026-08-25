@@ -588,6 +588,18 @@
         </select>
       </div>
 
+      <div class="field" id="fMotif">
+        <div class="lbl-row">
+          <label for="motifCount">Motif size</label>
+          <div class="auto-hint" style="display:block">Motifs across the garment width.</div>
+        </div>
+        <select id="motifCount">
+          <option value="3">3 – larger</option>
+          <option value="4" selected>4 – default</option>
+          <option value="5">5 – smaller</option>
+        </select>
+      </div>
+
       <div class="field" id="fNiche">
         <label for="niche">Niche <span class="opt">(optional)</span></label>
         <select id="niche"></select>
@@ -956,6 +968,7 @@
         fd.append('uploader', uploader.value.trim());
         fd.append('pattern_id', patternId.value.trim());
         fd.append('gender', gender.value);
+        fd.append('motif_count', motifCount.value);
         fd.append('pattern', selectedFile, selectedFile.name);
 
 

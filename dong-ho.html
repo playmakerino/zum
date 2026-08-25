@@ -30,7 +30,9 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   /* MOBILE (mặc định): chỉ CHẶN TRÀN NGANG (giữ mọi thứ căn giữa, không bị đẩy lệch
      trái do nhãn/đồng hồ cát tràn mép), nhưng VẪN cho cuộn DỌC tự nhiên. */
-  html{ overflow-x:hidden; }
+  /* clip = CẮT THẬT phần tràn ngang (nhãn/vòng SVG thò ra mép), KHÔNG tạo vùng cuộn ẩn
+     -> canvas không phình quá viewport, hết dải nền thừa bên phải. hidden = fallback trình duyệt cũ. */
+  html{ overflow-x:hidden; overflow-x:clip; }
   /* MOBILE (mặc định): trang CUỘN tự nhiên. Đồng hồ co theo BỀ RỘNG; nội dung dài hơn
      màn thì cuộn — KHÔNG ép vừa khít viewport. Logic "không scroll" chỉ bật ở DESKTOP. */
   body{
@@ -456,7 +458,9 @@
 <body>
   <div class="clock">
   <div class="analog" id="analog">
-    <svg style="position:absolute;left:50%;top:50%;overflow:visible;pointer-events:none;z-index:9;">
+    <!-- width/height:0 BẮT BUỘC: SVG không khai báo cỡ sẽ nhận mặc định 300x150, box thò khỏi
+         mép phải viewport (scrollWidth 487 @ màn 375) tạo dải nền thừa. Nét vẽ vẫn hiện nhờ overflow:visible. -->
+    <svg style="position:absolute;left:50%;top:50%;width:0;height:0;overflow:visible;pointer-events:none;z-index:9;">
       <!-- LUẬT MỚI — mỗi vòng MỘT màu, 4 TRẠNG THÁI = (đậm/mảnh) × (đặc/mờ):
              track = CẢ vòng:        MẢNH + MỜ  (op .25) -> ô TƯƠNG LAI (chưa đến)
              arc   = đã qua:         MẢNH + ĐẶC (op 1)   -> ô QUÁ KHỨ

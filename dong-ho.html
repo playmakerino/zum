@@ -1050,19 +1050,24 @@
     const marginTop    = topNeed;                        // = maxReach - ARC_GAP
     const marginBottom = topNeed + ARC_GAP + GAP_EXTRA;
 
+    // LỀ NGANG khối đồng hồ: bớt 20px so với tầm với tối đa (maxReach). Nhãn thường gặp
+    // (góc ~240°/300° như 🎒 8h, 😴 22h: |sin|≈.87) chỉ với ~87% tầm ngang -> vẫn cách mép
+    // ~12px như lịch. Chỉ BADGE GIỜ khi kim chỉ đúng 3h/9h (≈3:00/9:00/15:00/21:00) hụt
+    // tối đa 20px trong ít phút — đánh đổi đã chốt với user để đồng hồ to hơn, đỡ hụt vào trong.
+    const REACH_X = maxReach - 20;
     let faceByW;
     if(desktop){
-      // DESKTOP chia đôi màn hình: đồng hồ chiếm NỬA TRÁI. Khối analog (2*FACE + 2*maxReach)
+      // DESKTOP chia đôi màn hình: đồng hồ chiếm NỬA TRÁI. Khối analog (2*FACE + 2*REACH_X)
       // vừa trong nửa màn hình; đồng thời vừa CHIỀU CAO (chừa nhãn + cột digital + dòng văn nói).
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
       const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 16 + GAP_EXTRA) / 2;
-      faceByW = ((vw/2) - 2*maxReach - 24) / 2;             // khối analog vừa ~nửa màn hình (khe hẹp lại -> mặt TO hơn)
+      faceByW = ((vw/2) - 2*REACH_X - 24) / 2;              // khối analog vừa ~nửa màn hình
       FACE = Math.min(faceByW, faceByH);
     } else {
       // MOBILE DỌC: đồng hồ chỉ co theo BỀ RỘNG (cao hơn màn thì cuộn) -> không cần đo
       // chiều cao digital/lịch hay tính theo viewport-height.
       const halfW = (Math.min(vw, 900) / 2) - EDGE;
-      faceByW = halfW - maxReach;
+      faceByW = halfW - REACH_X;
       FACE = faceByW;
     }
     // Sàn MỀM (FACE_SOFT_MIN) NHƯNG không bao giờ vượt quá giới hạn BỀ RỘNG (faceByW) ->
@@ -1077,8 +1082,8 @@
     analog.style.width  = D+'px';
     analog.style.height = D+'px';
     // Lề: trên = marginTop (đã nhích analog lên); dưới = marginBottom (khe hở tới digital);
-    //     hai bên = maxReach (đủ chỗ nhãn lúc 3/9 giờ).
-    analog.style.margin = `${marginTop}px ${maxReach}px ${marginBottom}px`;
+    //     hai bên = REACH_X (bớt 20px so tầm với tối đa — xem chú thích ở trên).
+    analog.style.margin = `${marginTop}px ${REACH_X}px ${marginBottom}px`;
 
     // Ba vòng đồng tâm, cách đều nhau đúng CLEAR; RIÊNG hai vòng "ngày" chỉ cách nhau NỬA
     // CLEAR nên đọc thành một nhóm (xem khối hằng số ở đầu hàm).
@@ -1130,7 +1135,7 @@
     // Phát bề rộng KHỐI ĐỒNG HỒ (mặt + tầm với nhãn) ra biến CSS --clock-w.
     // JS chỉ công bố một con số (vì FACE do JS tính); còn RULE "bảng rộng bằng đồng hồ"
     // nằm ở CSS: .calendar{ width:min(var(--clock-w), 100%) }.
-    document.documentElement.style.setProperty('--clock-w', (D + 2*maxReach) + 'px');
+    document.documentElement.style.setProperty('--clock-w', (D + 2*REACH_X) + 'px');
 
   }
 

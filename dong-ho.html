@@ -369,9 +369,8 @@
     width:100%; aspect-ratio:1;
     border-radius:50%;
     border:var(--ring-thin) solid var(--c-hour);
-    /* nền KÍNH MỜ như đĩa nhãn giờ/phút trên mặt: màu giờ ở độ mờ --faint,
-       trong suốt nên vạch giờ sau lưng vẫn nhìn thấy nhẹ */
-    background:var(--c-hour-faint);
+    /* nền TRẮNG mờ (kính): trong suốt nên vạch giờ sau lưng vẫn nhìn thấy nhẹ */
+    background:rgba(255,255,255,.55);
     display:flex; align-items:center; justify-content:center;
     container-type:size;                       /* cho emoji đo theo cỡ vòng tròn (cqw) */
   }

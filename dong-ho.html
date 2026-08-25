@@ -26,15 +26,15 @@
     /* Kích thước nhãn & emoji — MỘT nguồn (JS đọc --badge-dia để tính bố cục) */
     --badge-dia:26px;                      /* đường kính nhãn tròn (giờ / phút / emoji) */
     --emoji-size:15px;                     /* cỡ emoji trên nhãn; emoji trên tâm = x2 */
+    /* Lịch tuần: SỐ Ô GIỜ của timeline (7h sáng -> 11h đêm) — MỘT nguồn cho cả CSS
+       (vạch giờ, bề rộng nhãn) lẫn JS (vị trí %, trục số; đọc qua cssVar) */
+    --wk-hours:16;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  /* MOBILE (mặc định): chỉ CHẶN TRÀN NGANG (giữ mọi thứ căn giữa, không bị đẩy lệch
-     trái do nhãn/đồng hồ cát tràn mép), nhưng VẪN cho cuộn DỌC tự nhiên. */
-  /* clip = CẮT THẬT phần tràn ngang (nhãn/vòng SVG thò ra mép), KHÔNG tạo vùng cuộn ẩn
-     -> canvas không phình quá viewport, hết dải nền thừa bên phải. hidden = fallback trình duyệt cũ. */
+  /* CHẶN TRÀN NGANG bằng clip = CẮT THẬT (không tạo vùng cuộn ẩn -> canvas không phình
+     quá viewport, không sinh dải nền thừa); hidden = fallback trình duyệt cũ.
+     Cuộn DỌC vẫn tự nhiên trên mobile; desktop khoá cuộn ở @media dưới. */
   html{ overflow-x:hidden; overflow-x:clip; }
-  /* MOBILE (mặc định): trang CUỘN tự nhiên. Đồng hồ co theo BỀ RỘNG; nội dung dài hơn
-     màn thì cuộn — KHÔNG ép vừa khít viewport. Logic "không scroll" chỉ bật ở DESKTOP. */
   body{
     min-height:100dvh;
     /* KHÔNG đặt overflow-x:hidden ở body: sẽ biến body thành scroll-container (overflow-y auto)
@@ -55,8 +55,8 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* DESKTOP (≥768px): [đồng hồ | lịch] cùng BỀ RỘNG (JS đặt lịch = khối đồng hồ),
-     space-evenly -> 3 khoảng trống trái/giữa/phải BẰNG NHAU. */
+  /* DESKTOP (≥768px): [đồng hồ | lịch] cùng BỀ RỘNG (lịch bám --clock-w),
+     space-evenly -> 3 khoảng trống trái/giữa/phải BẰNG NHAU; khoá cuộn, ghim cao = viewport. */
   @media (min-width:768px){
     html{overflow:hidden;}
     body{ height:100dvh; overflow:hidden; flex-direction:row; justify-content:space-evenly; }
@@ -300,8 +300,7 @@
   .spoken .sp-b{color:var(--c-buoi);}
 
   /* ===== LỊCH TUẦN (timeline: cột = giờ 12h, hàng = 7 thứ T2..CN) ===== */
-  /* RULE bề rộng: BẢNG rộng bằng KHỐI ĐỒNG HỒ (--clock-w do JS công bố), không vượt màn hình.
-     Timeline bên trong hẹp hơn min-width thì .wk-scroll cuộn ngang. */
+  /* RULE bề rộng: BẢNG rộng bằng KHỐI ĐỒNG HỒ (--clock-w do layout() công bố), không vượt màn hình. */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
     gap:clamp(.4rem,1.5vw,.7rem);
@@ -314,11 +313,10 @@
     font-weight:500; letter-spacing:.02em;
     color:var(--neutral);             /* đen trung tính */
   }
-  /* Khung cuộn ngang cho timeline (chỉ bật ở mobile — xem @media max-width) */
-  .wk-scroll{ width:100%; }
   .wk-grid{
+    width:100%;
     display:grid;
-    grid-template-columns:auto auto 1fr auto;   /* ngày | thứ VN | track 24 giờ | thứ EN */
+    grid-template-columns:auto auto 1fr auto;   /* ngày | thứ VN | track 16 giờ | thứ EN */
     align-items:center;
     row-gap:clamp(.3rem,1.4vw,.55rem);
     column-gap:clamp(.4rem,1.6vw,.6rem);
@@ -328,7 +326,7 @@
   .wk-axis{ position:relative; height:1.2em; }
   .wk-axis .wk-tick{                   /* số giờ 12h — màu GIỜ như số trên mặt đồng hồ */
     position:absolute; bottom:0; transform:translateX(calc(-50% + 0.5px));   /* +0.5px -> khớp TÂM vạch giờ */
-    font-size:.72rem; font-weight:500;   /* track có min-width nên số không dính (hẹp thì cuộn ngang) */
+    font-size:.72rem; font-weight:500;   /* mobile thu còn .6rem (media dưới) cho "10"/"11" không dính */
     color:var(--c-hour); white-space:nowrap;
   }
   /* Bốn cột nhãn: NGÀY | thứ VN | (track) | thứ EN — mỗi cột tự thẳng hàng */
@@ -342,8 +340,8 @@
   .wk-col-date{ justify-self:end; font-weight:400; }          /* số ngày căn phải -> thẳng cột */
   .wk-col-vn{ justify-self:start; }                           /* thứ VN */
   .wk-col-en{ justify-self:start; }                           /* thứ EN: CÙNG style với thứ VN */
-  /* Thứ đã qua KHÔNG tô màu (giữ neutral); chỉ HÔM NAY là pill teal. */
-  .wk-col-date.today, .wk-col-vn.today, .wk-col-en.today{  /* hôm nay: NGÀY + THỨ chữ màu XANH, KHÔNG nền */
+  /* Ngày/thứ đã qua KHÔNG tô màu; chỉ HÔM NAY: chữ xanh teal đậm, không nền */
+  .wk-col-date.today, .wk-col-vn.today, .wk-col-en.today{
     color:var(--c-buoi); font-weight:700;
   }
   /* Track một ngày: vạch giờ màu GIỜ NHẠT mỗi 1 giờ; nhãn hoạt động đặt theo % giờ */
@@ -351,16 +349,16 @@
     position:relative;
     height:clamp(32px,8vw,42px);
     border-radius:2px;
-    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. 16 ô = 7h sáng -> 11h đêm */
+    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt; số ô = --wk-hours */
     background:
       repeating-linear-gradient(to right,
-        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/16));
+        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/var(--wk-hours)));
   }
   /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ.
-     Vòng tròn dùng chung cỡ/viền với nhãn emoji trên mặt đồng hồ (.badge-emoji). */
+     Cả cụm rộng đúng 1 KHE GIỜ -> vòng tròn không bao giờ đè sang giờ bên cạnh. */
   .wk-mark{
     position:absolute; top:50%; left:0; transform:translate(calc(-50% + 0.5px),-50%);   /* +0.5px -> khớp TÂM vạch giờ */
-    width:calc(100%/16);                      /* RỘNG ĐÚNG 1 KHE GIỜ (% tính theo track vì mark là absolute trong track) */
+    width:calc(100%/var(--wk-hours));         /* RỘNG ĐÚNG 1 KHE GIỜ (% tính theo track vì mark là absolute trong track) */
     display:flex; flex-direction:column; align-items:center;
   }
   .wk-mark .wk-bar{                           /* vạch DỌC ở TRÊN = mốc BẮT ĐẦU (đậm BẰNG viền vòng tròn) */
@@ -544,7 +542,7 @@
 
   <div class="calendar" id="calendar">
     <div class="wk-heads"><span class="wk-head" id="wkHead"></span><span class="wk-head" id="wkHeadEn"></span></div>
-    <div class="wk-scroll"><div class="wk-grid" id="wkGrid"></div></div>
+    <div class="wk-grid" id="wkGrid"></div>
   </div>
 
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
@@ -1140,7 +1138,6 @@
     // JS chỉ công bố một con số (vì FACE do JS tính); còn RULE "bảng rộng bằng đồng hồ"
     // nằm ở CSS: .calendar{ width:min(var(--clock-w), 100%) }.
     document.documentElement.style.setProperty('--clock-w', (D + 2*REACH_X) + 'px');
-
   }
 
   // Nét nối: chạy TỪ vòng ringR ra ngoài, dài len. Đặt bằng top vì gốc toạ độ là tâm mặt,
@@ -1294,16 +1291,17 @@
     // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện -> không xử lý ở JS.
   }
 
-  /* ===== 8. LỊCH TUẦN (cột = giờ 0–24, hàng = 7 thứ T2..CN) ===== */
-  /* Tuần HIỆN TẠI (bắt đầu Thứ Hai). Mỗi hàng = một ngày: TRÁI = số ngày + thứ VN,
-       GIỮA = track 24 giờ, PHẢI = thứ EN; hoạt động của thứ đó (DAY_ACTIVITIES suy từ
-       FIXED_LABELS) đặt badge theo đúng giờ. Hôm nay: pill teal + vạch "bây giờ"; đã qua: xanh ngọc. */
+  /* ===== 8. LỊCH TUẦN (cột = giờ 7h-23h, hàng = 7 thứ T2..CN) ===== */
+  /* Tuần HIỆN TẠI (bắt đầu Thứ Hai). Mỗi hàng = một ngày: NGÀY | thứ VN | track giờ | thứ EN;
+       hoạt động của thứ đó (DAY_ACTIVITIES suy từ FIXED_LABELS) đặt nhãn theo đúng giờ.
+       Hôm nay: ngày+thứ chữ teal đậm + vạch "bây giờ" trên track. */
   const DOW    = ['T2','T3','T4','T5','T6','T7','CN'];        // thứ VN, bắt đầu Thứ Hai
   const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // thứ EN, cùng thứ tự
   const MONTH_EN = ['January','February','March','April','May','June','July','August',
                     'September','October','November','December'];
-  // Timeline chỉ hiển thị 7h SÁNG -> 11h ĐÊM (bỏ 0-6h và 23h không có hoạt động) = 16 ô giờ
-  const WK_H0 = 7, WK_HOURS = 16;
+  // Timeline chỉ hiển thị 7h SÁNG -> 11h ĐÊM (bỏ 0-6h và 23h không có hoạt động).
+  // SỐ Ô đọc từ --wk-hours (:root) — một nguồn với CSS (vạch giờ, bề rộng nhãn).
+  const WK_H0 = 7, WK_HOURS = cssVar('--wk-hours', 16);
   const wkPos = hour => ((hour - WK_H0) / WK_HOURS * 100) + '%';   // vị trí % trên track
   const mkEl = (tag,cls)=>{ const e=document.createElement(tag); if(cls) e.className=cls; return e; };
   let lastDay = -1;
@@ -1319,7 +1317,7 @@
     grid.appendChild(mkEl('div','wk-corner'));
     grid.appendChild(mkEl('div','wk-corner'));
     const axis = mkEl('div','wk-axis');
-    for(let hh=WK_H0; hh<23; hh++){                    // 7..22: 7 sáng ... 12 trưa ... 10 đêm (bỏ 11 đêm)
+    for(let hh=WK_H0; hh<WK_H0+WK_HOURS; hh++){        // 7..22: 7 sáng ... 12 trưa ... 10 đêm (bỏ 11 đêm)
       const t = mkEl('div','wk-tick');
       t.textContent = ((hh+11)%12)+1;                 // 12h: 7->7 ... 12->12(trưa) ... 22->10
       t.style.left = wkPos(hh);                       // trùng vạch giờ (canh giữa)

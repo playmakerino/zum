@@ -53,13 +53,12 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* NGANG (rộng >= 768px): toàn bộ ĐỒNG HỒ bên TRÁI, LỊCH bên PHẢI.
-     DESKTOP giữ logic "vừa khít, không scroll": ghim chiều cao = viewport + overflow ẩn. */
-  /* DESKTOP: một hàng [đồng hồ | lịch] căn giữa -> lề trái = lề phải, khe giữa = gap. Hết. */
+  /* DESKTOP (≥768px): CHIA ĐÔI CỨNG — mỗi bên flex 50%, nội dung tự căn giữa trong nửa của mình. */
   @media (min-width:768px){
     html{overflow:hidden;}
-    body{ height:100dvh; overflow:hidden; flex-direction:row; justify-content:center; gap:4vw; }
-    .calendar{ width:min(45vw,720px); }
+    body{ height:100dvh; overflow:hidden; flex-direction:row; }
+    .clock, .calendar{ flex:1 1 50%; min-width:0; }
+    .calendar{ width:auto; padding-inline:2vw; }   /* width:auto để flex-basis 50% quyết bề rộng */
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -307,13 +306,6 @@
     width:100%;
     font-variant-numeric:tabular-nums;
   }
-  /* MOBILE: full 100vw; timeline có bề rộng tối thiểu (24px/giờ × 17) + cuộn ngang khi hẹp */
-  @media (max-width:767.98px){
-    body{ padding-inline:0; }
-    .calendar{ margin-top:.8rem; }
-    .wk-scroll{ overflow-x:auto; }
-    .wk-grid{ grid-template-columns:auto auto minmax(408px,1fr) auto; }
-  }
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500; letter-spacing:.02em;
@@ -387,6 +379,14 @@
     position:absolute; top:-2px; bottom:-2px; left:0; width:2px;
     transform:translateX(-50%); border-radius:2px;
     background:var(--accent);
+  }
+  /* MOBILE: full 100vw; timeline có bề rộng tối thiểu (24px/giờ × 17) + cuộn ngang khi hẹp.
+     PHẢI đứng SAU các rule wk-* ở trên (cùng specificity, sau thắng). */
+  @media (max-width:767.98px){
+    body{ padding-inline:0; }
+    .calendar{ margin-top:.8rem; }
+    .wk-scroll{ overflow-x:auto; }
+    .wk-grid{ grid-template-columns:auto auto minmax(408px,1fr) auto; }
   }
 
   /* ===== NÚT + & POPUP TẠO NHÃN ===== */

@@ -360,21 +360,25 @@
      Vòng tròn dùng chung cỡ/viền với nhãn emoji trên mặt đồng hồ (.badge-emoji). */
   .wk-mark{
     position:absolute; top:50%; left:0; transform:translate(calc(-50% + 0.5px),-50%);   /* +0.5px -> khớp TÂM vạch giờ */
+    width:calc(100%/16);                      /* RỘNG ĐÚNG 1 KHE GIỜ (% tính theo track vì mark là absolute trong track) */
     display:flex; flex-direction:column; align-items:center;
   }
   .wk-mark .wk-bar{                           /* vạch DỌC ở TRÊN = mốc BẮT ĐẦU (đậm BẰNG viền vòng tròn) */
     width:var(--ring-thin); height:6px; border-radius:1px;
     background:var(--c-hour);
   }
-  .wk-mark .wk-badge{                         /* vòng tròn quanh icon (như label mặt đồng hồ) */
-    width:var(--badge-dia); height:var(--badge-dia);
+  .wk-mark .wk-badge{                         /* vòng tròn quanh icon — đường kính = bề rộng 1 khe giờ */
+    width:100%; aspect-ratio:1;
     border-radius:50%;
     border:var(--ring-thin) solid var(--c-hour);
     background:transparent;                    /* nền trong -> không che vạch giờ phía sau */
     display:flex; align-items:center; justify-content:center;
+    container-type:size;                       /* cho emoji đo theo cỡ vòng tròn (cqw) */
   }
-  .wk-mark .wk-emoji{                         /* icon trong vòng tròn */
-    font-size:var(--emoji-size); line-height:1;
+  .wk-mark .wk-emoji{                         /* icon co theo vòng tròn; dòng cqw đè khi trình duyệt hỗ trợ */
+    font-size:var(--emoji-size);
+    font-size:58cqw;
+    line-height:1;
     transform:translateY(.06em);              /* bù glyph emoji nằm cao trong line-box */
   }
   /* Vạch "bây giờ" trên hàng hôm nay — màu accent như tâm/kim đồng hồ */

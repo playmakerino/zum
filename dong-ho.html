@@ -381,13 +381,10 @@
     transform:translateX(-50%); border-radius:2px;
     background:var(--accent);
   }
-  /* MOBILE: full 100vw; timeline có bề rộng tối thiểu (24px/giờ × 17) + cuộn ngang khi hẹp.
-     PHẢI đứng SAU các rule wk-* ở trên (cùng specificity, sau thắng). */
+  /* MOBILE: full 100vw; timeline co theo bề rộng còn lại (KHÔNG cuộn ngang) */
   @media (max-width:767.98px){
     body{ padding-inline:0; }
     .calendar{ margin-top:.8rem; }
-    .wk-scroll{ overflow-x:auto; }
-    .wk-grid{ grid-template-columns:auto auto minmax(408px,1fr) auto; }
   }
 
   /* ===== NÚT + & POPUP TẠO NHÃN ===== */

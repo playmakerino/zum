@@ -55,17 +55,11 @@
 
   /* NGANG (rộng >= 768px): toàn bộ ĐỒNG HỒ bên TRÁI, LỊCH bên PHẢI.
      DESKTOP giữ logic "vừa khít, không scroll": ghim chiều cao = viewport + overflow ẩn. */
+  /* DESKTOP: một hàng [đồng hồ | lịch] căn giữa -> lề trái = lề phải, khe giữa = gap. Hết. */
   @media (min-width:768px){
-    html{overflow:hidden;}            /* chặn cuộn cấp tài liệu */
-    body{
-      height:100dvh;
-      overflow:hidden;
-      flex-direction:row;
-      gap:2rem;                 /* khe GIỮA hai nửa = khe hai MÉP (padding) -> space đồng bộ */
-      padding:.5rem 2rem;
-    }
-    .clock{ flex:1; min-width:0; }        /* nửa TRÁI màn hình */
-    .calendar{ flex:1; min-width:0; }     /* nửa PHẢI màn hình */
+    html{overflow:hidden;}
+    body{ height:100dvh; overflow:hidden; flex-direction:row; justify-content:center; gap:4vw; }
+    .calendar{ width:min(45vw,720px); }
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -313,12 +307,12 @@
     width:100%;
     font-variant-numeric:tabular-nums;
   }
+  /* MOBILE: full 100vw; timeline có bề rộng tối thiểu (24px/giờ × 17) + cuộn ngang khi hẹp */
   @media (max-width:767.98px){
-    body{ padding-inline:0; }        /* mobile: nội dung chiếm trọn 100vw (bỏ lề ngang) */
-    .calendar{ margin-top:.8rem; }   /* mobile (dọc): tách khỏi digital phía trên */
-    /* CHỈ mobile: timeline có bề rộng tối thiểu (~20px/giờ) + cuộn ngang -> không bị chật */
+    body{ padding-inline:0; }
+    .calendar{ margin-top:.8rem; }
     .wk-scroll{ overflow-x:auto; }
-    .wk-grid{ grid-template-columns:auto auto minmax(480px,1fr) auto; }
+    .wk-grid{ grid-template-columns:auto auto minmax(408px,1fr) auto; }
   }
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
@@ -362,10 +356,10 @@
     position:relative;
     height:clamp(32px,8vw,42px);
     border-radius:2px;
-    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. Vạch tại [h/24, +1px], tâm = h/24 + 0.5px */
+    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. 17 ô = 7h sáng -> 12 đêm */
     background:
       repeating-linear-gradient(to right,
-        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/24));
+        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/17));
   }
   /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ.
      Vòng tròn dùng chung cỡ/viền với nhãn emoji trên mặt đồng hồ (.badge-emoji). */
@@ -1057,7 +1051,7 @@
       // vừa trong nửa màn hình; đồng thời vừa CHIỀU CAO (chừa nhãn + cột digital + dòng văn nói).
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
       const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
-      faceByW = ((vw/2) - 2*maxReach - 48) / 2;             // khối analog vừa NỬA màn hình (trừ padding 2rem + gap)
+      faceByW = ((vw/2) - 2*maxReach - 48) / 2;             // khối analog vừa ~nửa màn hình (lịch 45vw + gap 4vw)
       FACE = Math.min(faceByW, faceByH);
     } else {
       // MOBILE DỌC: đồng hồ chỉ co theo BỀ RỘNG (cao hơn màn thì cuộn) -> không cần đo
@@ -1310,6 +1304,9 @@
        FIXED_LABELS) đặt badge theo đúng giờ. Hôm nay: pill teal + vạch "bây giờ"; đã qua: xanh ngọc. */
   const DOW    = ['T2','T3','T4','T5','T6','T7','CN'];        // thứ VN, bắt đầu Thứ Hai
   const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // thứ EN, cùng thứ tự
+  // Timeline chỉ hiển thị 7h SÁNG -> 12 ĐÊM (bỏ 0-6h không có hoạt động) = 17 ô giờ
+  const WK_H0 = 7, WK_HOURS = 17;
+  const wkPos = hour => ((hour - WK_H0) / WK_HOURS * 100) + '%';   // vị trí % trên track
   const mkEl = (tag,cls)=>{ const e=document.createElement(tag); if(cls) e.className=cls; return e; };
   let lastDay = -1;
 
@@ -1323,10 +1320,10 @@
     grid.appendChild(mkEl('div','wk-corner'));
     grid.appendChild(mkEl('div','wk-corner'));
     const axis = mkEl('div','wk-axis');
-    for(let hh=0; hh<24; hh++){                        // 0..23: 12 đêm (0) · … · 12 trưa (12) · … · 11 — mỗi số canh GIỮA trên vạch
+    for(let hh=WK_H0; hh<24; hh++){                    // 7..23: 7 sáng ... 12 trưa ... 11 đêm
       const t = mkEl('div','wk-tick');
-      t.textContent = ((hh+11)%12)+1;                 // 12h: 0->12(đêm) ... 12->12(trưa) ... 23->11
-      t.style.left = (hh/24*100) + '%';               // trùng vạch giờ tại h/24 (canh giữa)
+      t.textContent = ((hh+11)%12)+1;                 // 12h: 7->7 ... 12->12(trưa) ... 23->11
+      t.style.left = wkPos(hh);                       // trùng vạch giờ (canh giữa)
       axis.appendChild(t);
     }
     grid.appendChild(axis);
@@ -1346,16 +1343,16 @@
       const track = mkEl('div','wk-track');
       const acts = DAY_ACTIVITIES[d.getDay()];
       if(acts) for(const a of acts){
-        const mark = mkEl('div','wk-mark'); mark.style.left = (a.hour/24*100) + '%';   // canh giữa tại mốc bắt đầu
-        mark.appendChild(mkEl('span','wk-bar'));                                         // vạch DỌC (trên) nối vào vòng tròn
-        const b = mkEl('span','wk-badge');                                              // vòng tròn (dưới)
+        const mark = mkEl('div','wk-mark'); mark.style.left = wkPos(a.hour);   // canh giữa tại mốc bắt đầu
+        mark.appendChild(mkEl('span','wk-bar'));                                 // vạch DỌC (trên) nối vào vòng tròn
+        const b = mkEl('span','wk-badge');                                      // vòng tròn (dưới)
         const ic = mkEl('span','wk-emoji'); ic.textContent = a.emoji;
         b.appendChild(ic); mark.appendChild(b);
         track.appendChild(mark);
       }
       if(isToday){
         const nl = mkEl('div','wk-now'); nl.id = 'wkNow';
-        nl.style.left = ((now.getHours()+now.getMinutes()/60)/24*100) + '%';
+        nl.style.left = wkPos(now.getHours()+now.getMinutes()/60);
         track.appendChild(nl);
       }
       grid.appendChild(track);
@@ -1428,8 +1425,12 @@
     if(secChanged){
       // Sang ngày mới -> dựng lại lịch tuần (đổi hôm nay/quá khứ) rồi căn lại bố cục
       if(now.getDate()!==lastDay){ buildWeek(); layout(); }
-      // Vạch "bây giờ" trượt theo thời gian trong ngày (chỉ tồn tại trên hàng hôm nay)
-      const nowLine = $('wkNow'); if(nowLine) nowLine.style.left = ((h + m/60)/24*100) + '%';
+      // Vạch "bây giờ" trượt theo thời gian trong ngày (chỉ trên hàng hôm nay; ẩn trước 7h sáng)
+      const nowLine = $('wkNow');
+      if(nowLine){
+        nowLine.style.left = wkPos(h + m/60);
+        nowLine.style.display = h < WK_H0 ? 'none' : '';
+      }
       updateBadge(elTextHt, String(gio12(h)));   // lớp số giờ (solid, trên kính)
       updateBadge(elTextMt, String(m));          // lớp số phút (solid, trên kính)
       elH.textContent=pad(h);

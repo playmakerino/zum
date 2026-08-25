@@ -53,12 +53,11 @@
   /* Khối "đồng hồ" = analog + digital(+cát). Mặc định (MOBILE DỌC) xếp dọc: analog trên, digital dưới. */
   .clock{ display:flex; flex-direction:column; align-items:center; }
 
-  /* DESKTOP (≥768px): CHIA ĐÔI CỨNG — mỗi bên flex 50%, nội dung tự căn giữa trong nửa của mình. */
+  /* DESKTOP (≥768px): [đồng hồ | lịch] cùng BỀ RỘNG (JS đặt lịch = khối đồng hồ),
+     space-evenly -> 3 khoảng trống trái/giữa/phải BẰNG NHAU. */
   @media (min-width:768px){
     html{overflow:hidden;}
-    body{ height:100dvh; overflow:hidden; flex-direction:row; }
-    .clock, .calendar{ flex:1 1 50%; min-width:0; }
-    .calendar{ width:auto; padding-inline:2vw; }   /* width:auto để flex-basis 50% quyết bề rộng */
+    body{ height:100dvh; overflow:hidden; flex-direction:row; justify-content:space-evenly; }
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -299,11 +298,12 @@
   .spoken .sp-b{color:var(--c-buoi);}
 
   /* ===== LỊCH TUẦN (timeline: cột = giờ 12h, hàng = 7 thứ T2..CN) ===== */
-  /* Bề rộng: mobile = 100% (đầy 100vw); desktop = nửa màn hình (flex, xem @media 768px). */
+  /* RULE bề rộng: BẢNG rộng bằng KHỐI ĐỒNG HỒ (--clock-w do JS công bố), không vượt màn hình.
+     Timeline bên trong hẹp hơn min-width thì .wk-scroll cuộn ngang. */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
     gap:clamp(.4rem,1.5vw,.7rem);
-    width:100%;
+    width:min(var(--clock-w,100%),100%);
     font-variant-numeric:tabular-nums;
   }
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
@@ -532,6 +532,7 @@
   <div class="calendar" id="calendar">
     <div class="wk-head" id="wkHead"></div>
     <div class="wk-scroll"><div class="wk-grid" id="wkGrid"></div></div>
+    <div class="wk-head" id="wkHeadEn"></div>
   </div>
 
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
@@ -574,7 +575,7 @@
   const elOrbitMt=$('orbitMt'), elBadgeMt=$('badgeMt'), elTextMt=$('textMt');   // lớp SỐ phút riêng (z cao)
   const elConnH=$('connH'), elConnM=$('connM');
   const elH=$('h'), elM=$('m'), elS=$('s'), elSpoken=$('spoken');
-  const elDigitalCol=document.querySelector('.digital-col'), elCalendar=$('calendar');   // layout() đo mỗi lần căn
+  const elDigitalCol=document.querySelector('.digital-col');   // layout() đo chiều cao cột digital
 
   // Các path cung gom 4 lớp = 4 trạng thái: track(mảnh mờ)/arc(mảnh đặc)/act(đậm mờ)/live(đậm đặc)
   const ring = {
@@ -1029,10 +1030,7 @@
     // 2 bố cục theo CHIỀU RỘNG (khớp media query CSS): desktop (≥768) | dọc (<768)
     const desktop = mqDesktop.matches;
 
-    // DESKTOP: ghim chiều cao body = vùng nhìn thấy để căn giữa, KHÔNG scroll.
-    // MOBILE: '' -> theo CSS (min-height:100dvh) và cuộn tự nhiên.
-    document.body.style.height = desktop ? vh + 'px' : '';
-    const bodyPad = 16;                       // padding .5rem hai đầu
+    const bodyPad = 16;                       // padding .5rem hai đầu (chiều cao body do CSS media lo)
 
     // ===== Lề dọc analog: đẩy analog LÊN, cách digital/cát xa hơn — KHÔNG co FACE =====
     // Lề NGANG phải bằng maxReach (tầm với của nhãn giờ lúc nó ở 3/9 giờ). Tầm với THẲNG
@@ -1044,7 +1042,6 @@
     const marginTop    = topNeed;                        // = maxReach - ARC_GAP
     const marginBottom = topNeed + ARC_GAP + GAP_EXTRA;
 
-    const calW = elCalendar?.offsetWidth || 0;   // bề rộng lịch (dùng cho kiểm tra tràn ở mobile)
     let faceByW;
     if(desktop){
       // DESKTOP chia đôi màn hình: đồng hồ chiếm NỬA TRÁI. Khối analog (2*FACE + 2*maxReach)
@@ -1122,29 +1119,11 @@
 
     layoutFace();
 
-    // Bố cục bảng do CSS lo (desktop flex 50/50, mobile 100%). JS không đặt width/margin.
+    // Phát bề rộng KHỐI ĐỒNG HỒ (mặt + tầm với nhãn) ra biến CSS --clock-w.
+    // JS chỉ công bố một con số (vì FACE do JS tính); còn RULE "bảng rộng bằng đồng hồ"
+    // nằm ở CSS: .calendar{ width:min(var(--clock-w), 100%) }.
+    document.documentElement.style.setProperty('--clock-w', (D + 2*maxReach) + 'px');
 
-    // ===== CUỘN KHI NỘI DUNG TRÀN =====
-    // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.
-    // CSS mặc định chặn cuộn (html overflow-x:hidden; desktop overflow:hidden) -> mở ra khi tràn.
-    // Bề ngang cần = khối analog (mặt + chỗ cho nhãn hai bên), desktop thêm lịch bên phải.
-    // (Tự tính, KHÔNG đo scrollWidth: dòng "văn nói" đặt tuyệt đối + nowrap có thể thò ra
-    //  ngoài khối mà không phải nội dung cần nhìn thấy hết -> đo sẽ báo tràn nhầm.)
-    const root = document.documentElement;
-    const blockW = D + 2*maxReach;
-    // Desktop: khối đồng hồ phải vừa NỬA màn hình (blockW <= vw/2) -> so cả màn = blockW*2.
-    const needW  = desktop ? blockW*2 : Math.max(blockW, calW);
-    const tranNgang = needW > root.clientWidth + 1;
-    root.style.overflow = tranNgang ? 'auto' : '';
-    document.body.style.overflow = tranNgang ? 'visible' : '';
-    // Flex CĂN GIỮA đẩy mép TRÁI của nội dung ra NGOÀI vùng cuộn được (cuộn không tới) ->
-    // khi tràn NGANG thì căn từ mép trái để không mất phần nào của đồng hồ.
-    // Trục NGANG do thuộc tính nào quyết định: desktop xếp HÀNG -> justify-content; dọc -> align-items.
-    // Chiều DỌC không cần đụng tới: khi phóng to body cao theo nội dung nên không cắt mất gì.
-    document.body.style.justifyContent = (tranNgang &&  desktop) ? 'flex-start' : '';
-    // Căn giữa dọc (CSS align-items:center) trên desktop -> cả đồng hồ và bảng đều ở giữa màn hình.
-    // Chỉ ghim mép trên khi tràn dọc ở mobile để không mất phần trên.
-    document.body.style.alignItems     = (tranNgang && !desktop) ? 'flex-start' : '';
   }
 
   // Nét nối: chạy TỪ vòng ringR ra ngoài, dài len. Đặt bằng top vì gốc toạ độ là tâm mặt,
@@ -1304,6 +1283,8 @@
        FIXED_LABELS) đặt badge theo đúng giờ. Hôm nay: pill teal + vạch "bây giờ"; đã qua: xanh ngọc. */
   const DOW    = ['T2','T3','T4','T5','T6','T7','CN'];        // thứ VN, bắt đầu Thứ Hai
   const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // thứ EN, cùng thứ tự
+  const MONTH_EN = ['January','February','March','April','May','June','July','August',
+                    'September','October','November','December'];
   // Timeline chỉ hiển thị 7h SÁNG -> 12 ĐÊM (bỏ 0-6h không có hoạt động) = 17 ô giờ
   const WK_H0 = 7, WK_HOURS = 17;
   const wkPos = hour => ((hour - WK_H0) / WK_HOURS * 100) + '%';   // vị trí % trên track
@@ -1313,7 +1294,8 @@
   function buildWeek(){
     const now = new Date();
     const y=now.getFullYear(), mo=now.getMonth(), today=now.getDate();
-    $('wkHead').textContent = `Tháng ${mo+1}, ${y}`;
+    $('wkHead').textContent   = `Tháng ${mo+1}, ${y}`;          // tháng/năm VN — TRÊN bảng
+    $('wkHeadEn').textContent = `${MONTH_EN[mo]} ${y}`;          // tháng/năm EN — DƯỚI bảng
     const grid = $('wkGrid');
     grid.innerHTML = '';
     // Hàng đầu: 2 ô góc trống (cột ngày + thứ VN) + trục GIỜ + ô góc (cột thứ EN)

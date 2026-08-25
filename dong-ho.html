@@ -306,6 +306,7 @@
     width:min(var(--clock-w,100%),100%);
     font-variant-numeric:tabular-nums;
   }
+  .wk-heads{ width:100%; display:flex; justify-content:space-between; }   /* VN trái · EN phải, TRÊN bảng */
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500; letter-spacing:.02em;
@@ -530,9 +531,8 @@
   </div><!-- /clock -->
 
   <div class="calendar" id="calendar">
-    <div class="wk-head" id="wkHead"></div>
+    <div class="wk-heads"><span class="wk-head" id="wkHead"></span><span class="wk-head" id="wkHeadEn"></span></div>
     <div class="wk-scroll"><div class="wk-grid" id="wkGrid"></div></div>
-    <div class="wk-head" id="wkHeadEn"></div>
   </div>
 
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
@@ -1294,8 +1294,8 @@
   function buildWeek(){
     const now = new Date();
     const y=now.getFullYear(), mo=now.getMonth(), today=now.getDate();
-    $('wkHead').textContent   = `Tháng ${mo+1}, ${y}`;          // tháng/năm VN — TRÊN bảng
-    $('wkHeadEn').textContent = `${MONTH_EN[mo]} ${y}`;          // tháng/năm EN — DƯỚI bảng
+    $('wkHead').textContent   = `Tháng ${mo+1}, ${y}`;          // tháng/năm VN — trên bảng, TRÁI
+    $('wkHeadEn').textContent = `${MONTH_EN[mo]} ${y}`;          // tháng/năm EN — trên bảng, PHẢI
     const grid = $('wkGrid');
     grid.innerHTML = '';
     // Hàng đầu: 2 ô góc trống (cột ngày + thứ VN) + trục GIỜ + ô góc (cột thứ EN)

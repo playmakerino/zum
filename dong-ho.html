@@ -397,6 +397,11 @@
     background:var(--accent); color:#fff; font-size:30px; line-height:1; font-weight:300;
     display:flex; align-items:center; justify-content:center;
   }
+  /* MOBILE: nút + vào TRONG LUỒNG, nằm DƯỚI bảng — fixed góc màn sẽ đè lên các hàng cuối của lịch.
+     (Phải đứng SAU rule #fab gốc: cùng specificity, sau thắng.) */
+  @media (max-width:767.98px){
+    #fab{ position:static; margin:14px auto 20px; }
+  }
   .modal{
     position:fixed; inset:0; z-index:60; display:none;
     align-items:center; justify-content:center; padding:16px;
@@ -962,7 +967,7 @@
   // nhãn emoji có viền nên chiều cao thật lệch chút so với --badge-dia.
   const halfOf = el => el.offsetHeight/2 || BADGE_HALF;
   const RING_HALF  = cssVar('--ring-thin', 1)/2;  // nửa nét MẢNH — MỌI khe ở vành ngoài đo theo số này
-  const EDGE       = 6;    // lề tối thiểu tới cạnh màn hình (nhỏ -> đồng hồ + lịch to hơn)
+  const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
 
   // Hai sàn cho bán kính mặt: sàn MỀM là cỡ dễ đọc, chỉ giữ khi bề ngang còn cho phép; sàn
   // CỨNG là mức không bao giờ xuống dưới, kể cả khi vì thế mà nội dung rộng hơn màn.

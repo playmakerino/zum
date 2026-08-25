@@ -354,7 +354,7 @@
   .wk-col-vn{ justify-self:start; }                           /* thứ VN */
   .wk-col-en{ justify-self:start; }                           /* thứ EN: CÙNG style với thứ VN */
   /* Thứ đã qua KHÔNG tô màu (giữ neutral); chỉ HÔM NAY là pill teal. */
-  .wk-col-vn.today, .wk-col-en.today{                     /* hôm nay: chữ THỨ màu XANH, KHÔNG nền */
+  .wk-col-date.today, .wk-col-vn.today, .wk-col-en.today{  /* hôm nay: NGÀY + THỨ chữ màu XANH, KHÔNG nền */
     color:var(--c-buoi); font-weight:700;
   }
   /* Track một ngày: vạch giờ màu GIỜ NHẠT mỗi 1 giờ; nhãn hoạt động đặt theo % giờ */
@@ -1340,7 +1340,7 @@
       const isToday = d.getTime()===todayMid;
       const cls = isToday ? ' today' : '';   // chỉ đánh dấu HÔM NAY (thứ đã qua không tô màu)
       // Cột NGÀY (neutral, KHÔNG theo trạng thái) | cột thứ VN
-      const dateCell = mkEl('div','wk-day wk-col-date'); dateCell.textContent = d.getDate();
+      const dateCell = mkEl('div','wk-day wk-col-date' + cls); dateCell.textContent = d.getDate();
       const vnCell   = mkEl('div','wk-day wk-col-vn' + cls); vnCell.textContent = DOW[i];
       grid.appendChild(dateCell); grid.appendChild(vnCell);
       const track = mkEl('div','wk-track');

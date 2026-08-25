@@ -588,18 +588,6 @@
         </select>
       </div>
 
-      <div class="field" id="fMotif">
-        <div class="lbl-row">
-          <label for="motifCount">Motif size</label>
-          <div class="auto-hint" style="display:block">Motifs across the garment width.</div>
-        </div>
-        <select id="motifCount">
-          <option value="3">3 – larger</option>
-          <option value="4" selected>4 – default</option>
-          <option value="5">5 – smaller</option>
-        </select>
-      </div>
-
       <div class="field" id="fNiche">
         <label for="niche">Niche <span class="opt">(optional)</span></label>
         <select id="niche"></select>
@@ -610,6 +598,18 @@
         <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
         <datalist id="subNicheList"></datalist>
         <div class="err">No sub niche with that name. Pick one from the list or leave it empty.</div>
+      </div>
+
+      <div class="field" id="fMotif">
+        <div class="lbl-row">
+          <label for="motifCount">Motifs across width</label>
+          <div class="auto-hint" style="display:block">Fewer = larger motifs.</div>
+        </div>
+        <select id="motifCount">
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
       </div>
 
       <div class="field" id="fUploader">

@@ -1003,7 +1003,7 @@
     //   đúng chỗ đó hẹp lại (vd vòng ngày ngoài -> nhãn phút còn ~3.9px). Chấp nhận để cả
     //   vành có MỘT nhịp đều, thay vì để riêng khe ra nhãn rộng hơn mọi khe khác 1.1px.
     // RING_HALF đọc từ --ring-thin ở đầu script, không khai báo lại ở đây.
-    const CLEAR = 5;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài
+    const CLEAR = 3;                           // khe hở CHUNG của mọi cặp kề nhau ở vành ngoài (giảm -> mặt to hơn)
     const STEP  = RING_HALF + CLEAR + RING_HALF;   // tâm->tâm hai vòng cách nhau một khe CHUNG
     const R_M_OFF  = CLEAR + RING_HALF;        // vòng phút (60'): mép trong cách MÉP MẶT đúng CLEAR
     const R_D1_OFF = R_M_OFF + STEP;           // vòng nửa ngày 1 (TRONG)
@@ -1043,7 +1043,7 @@
     // là cùng một số). Dồn phần dư đó xuống dưới => analog nhích LÊN đúng ARC_GAP.
     // GAP_EXTRA lấy thêm từ ĐỆM ĐÁY -> khe hở tới digital rõ hơn mà FACE giữ nguyên.
     const topNeed   = badgeH_off + BADGE_HALF;           // tầm với THẲNG ĐỨNG của nhãn giờ
-    const GAP_EXTRA = desktop ? 24 : 8;                  // khe thêm lấy từ đệm đáy
+    const GAP_EXTRA = 8;                                 // khe thêm lấy từ đệm đáy (giảm -> mặt to hơn)
     const marginTop    = topNeed;                        // = maxReach - ARC_GAP
     const marginBottom = topNeed + ARC_GAP + GAP_EXTRA;
 
@@ -1128,21 +1128,16 @@
 
     layoutFace();
 
-    // ===== DESKTOP: căn TÂM bảng tuần trùng TÂM MẶT đồng hồ (analog) =====
-    // Khối .clock = mặt + digital + dòng văn nói; căn giữa cả khối làm MẶT nằm cao hơn tâm khối,
-    // nên bảng (căn theo tâm khối) trông THẤP hơn mặt. Ghim body theo mép trên (flex-start) rồi
-    // đẩy bảng xuống sao cho tâm bảng = tâm mặt đồng hồ = marginTop + D/2 (tính từ mép trên khối).
+    // ===== DESKTOP: bề rộng bảng bám đường kính mặt đồng hồ (cân xứng), bảng CĂN GIỮA màn hình =====
+    // Bảng KHÔNG cần ngang hàng với đồng hồ; flex align-items:center tự căn giữa theo chiều dọc.
     if(desktop){
       // Bề rộng bảng BÁM đường kính mặt đồng hồ (D) -> hai bên CÂN XỨNG kể cả khi mặt bị
       // giới hạn theo chiều cao (tivi 16:9 thấp). Kẹp [440,640] để timeline 24h vẫn đọc được.
       elCalendar.style.width = Math.round(Math.min(640, Math.max(440, D))) + 'px';
-      const analogCenter = marginTop + D/2;             // tâm MẶT đồng hồ, từ mép trên khối
-      const calH = elCalendar.offsetHeight;
-      elCalendar.style.marginTop = Math.max(0, analogCenter - calH/2) + 'px';
     } else {
       elCalendar.style.width = '';                      // mobile: trả về CSS (min(96vw,640px))
-      elCalendar.style.marginTop = '';                  // mobile: trả về CSS (media .8rem)
     }
+    elCalendar.style.marginTop = '';                    // KHÔNG căn theo mặt đồng hồ; để flex căn giữa
 
     // ===== CUỘN KHI NỘI DUNG TRÀN =====
     // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.
@@ -1161,9 +1156,9 @@
     // Trục NGANG do thuộc tính nào quyết định: desktop xếp HÀNG -> justify-content; dọc -> align-items.
     // Chiều DỌC không cần đụng tới: khi phóng to body cao theo nội dung nên không cắt mất gì.
     document.body.style.justifyContent = (tranNgang &&  desktop) ? 'flex-start' : '';
-    // Desktop: ghim mép trên để marginTop của bảng (ở trên) quyết vị trí -> tâm bảng khớp tâm mặt.
-    // Mobile: chỉ flex-start khi tràn ngang; bình thường '' (theo CSS center).
-    document.body.style.alignItems     = (desktop || tranNgang) ? 'flex-start' : '';
+    // Căn giữa dọc (CSS align-items:center) trên desktop -> cả đồng hồ và bảng đều ở giữa màn hình.
+    // Chỉ ghim mép trên khi tràn dọc ở mobile để không mất phần trên.
+    document.body.style.alignItems     = (tranNgang && !desktop) ? 'flex-start' : '';
   }
 
   // Nét nối: chạy TỪ vòng ringR ra ngoài, dài len. Đặt bằng top vì gốc toạ độ là tâm mặt,

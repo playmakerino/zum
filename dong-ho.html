@@ -385,6 +385,7 @@
   @media (max-width:767.98px){
     body{ padding-inline:0; }
     .calendar{ margin-top:.8rem; }
+    .wk-axis .wk-tick{ font-size:.6rem; }   /* slot hẹp -> số nhỏ lại cho "10","11" không dính nhau */
   }
 
   /* ===== NÚT + & POPUP TẠO NHÃN ===== */
@@ -957,7 +958,7 @@
   // nhãn emoji có viền nên chiều cao thật lệch chút so với --badge-dia.
   const halfOf = el => el.offsetHeight/2 || BADGE_HALF;
   const RING_HALF  = cssVar('--ring-thin', 1)/2;  // nửa nét MẢNH — MỌI khe ở vành ngoài đo theo số này
-  const EDGE       = 12;   // lề tối thiểu tới cạnh màn hình
+  const EDGE       = 6;    // lề tối thiểu tới cạnh màn hình (nhỏ -> đồng hồ + lịch to hơn)
 
   // Hai sàn cho bán kính mặt: sàn MỀM là cỡ dễ đọc, chỉ giữ khi bề ngang còn cho phép; sàn
   // CỨNG là mức không bao giờ xuống dưới, kể cả khi vì thế mà nội dung rộng hơn màn.
@@ -1044,8 +1045,8 @@
       // DESKTOP chia đôi màn hình: đồng hồ chiếm NỬA TRÁI. Khối analog (2*FACE + 2*maxReach)
       // vừa trong nửa màn hình; đồng thời vừa CHIỀU CAO (chừa nhãn + cột digital + dòng văn nói).
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
-      const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
-      faceByW = ((vw/2) - 2*maxReach - 48) / 2;             // khối analog vừa ~nửa màn hình (lịch 45vw + gap 4vw)
+      const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 16 + GAP_EXTRA) / 2;
+      faceByW = ((vw/2) - 2*maxReach - 24) / 2;             // khối analog vừa ~nửa màn hình (khe hẹp lại -> mặt TO hơn)
       FACE = Math.min(faceByW, faceByH);
     } else {
       // MOBILE DỌC: đồng hồ chỉ co theo BỀ RỘNG (cao hơn màn thì cuộn) -> không cần đo

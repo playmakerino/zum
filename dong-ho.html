@@ -61,12 +61,11 @@
       height:100dvh;
       overflow:hidden;
       flex-direction:row;
-      gap:0;
+      gap:2rem;                 /* khe GIỮA hai nửa = khe hai MÉP (padding) -> space đồng bộ */
+      padding:.5rem 2rem;
     }
-    /* CHIA ĐÔI màn hình: đồng hồ NỬA TRÁI, lịch NỬA PHẢI (mỗi bên đúng 50%). */
-    .clock{ flex:1 1 0; min-width:0; }
-    /* padding-inline: chừa khe hai bên để bảng KHÔNG sát mép phải màn hình (đối xứng như đồng hồ) */
-    .calendar{ flex:1 1 0; min-width:0; width:auto; padding-inline:clamp(16px,2.5vw,44px); }
+    .clock{ flex:1; min-width:0; }        /* nửa TRÁI màn hình */
+    .calendar{ flex:1; min-width:0; }     /* nửa PHẢI màn hình */
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -317,14 +316,18 @@
   @media (max-width:767.98px){
     body{ padding-inline:0; }        /* mobile: nội dung chiếm trọn 100vw (bỏ lề ngang) */
     .calendar{ margin-top:.8rem; }   /* mobile (dọc): tách khỏi digital phía trên */
+    /* CHỈ mobile: timeline có bề rộng tối thiểu (~20px/giờ) + cuộn ngang -> không bị chật */
+    .wk-scroll{ overflow-x:auto; }
+    .wk-grid{ grid-template-columns:auto auto minmax(480px,1fr) auto; }
   }
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500; letter-spacing:.02em;
     color:var(--neutral);             /* đen trung tính */
   }
+  /* Khung cuộn ngang cho timeline (chỉ bật ở mobile — xem @media max-width) */
+  .wk-scroll{ width:100%; }
   .wk-grid{
-    width:100%;
     display:grid;
     grid-template-columns:auto auto 1fr auto;   /* ngày | thứ VN | track 24 giờ | thứ EN */
     align-items:center;
@@ -336,8 +339,7 @@
   .wk-axis{ position:relative; height:1.2em; }
   .wk-axis .wk-tick{                   /* số giờ 12h — màu GIỜ như số trên mặt đồng hồ */
     position:absolute; bottom:0; transform:translateX(calc(-50% + 0.5px));   /* +0.5px -> khớp TÂM vạch giờ */
-    /* Cỡ số do layout() đặt theo bề rộng track (--wk-tick-size) -> 24 số KHÔNG dính nhau */
-    font-size:var(--wk-tick-size, .72rem); font-weight:500;
+    font-size:.72rem; font-weight:500;   /* track có min-width nên số không dính (hẹp thì cuộn ngang) */
     color:var(--c-hour); white-space:nowrap;
   }
   /* Bốn cột nhãn: NGÀY | thứ VN | (track) | thứ EN — mỗi cột tự thẳng hàng */
@@ -351,13 +353,9 @@
   .wk-col-date{ justify-self:end; font-weight:400; }          /* số ngày căn phải -> thẳng cột */
   .wk-col-vn{ justify-self:start; }                           /* thứ VN */
   .wk-col-en{ justify-self:start; }                           /* thứ EN: CÙNG style với thứ VN */
-  /* Trạng thái CHỈ áp cho THỨ (VN/EN); số ngày luôn giữ màu neutral như tháng/năm ở tiêu đề */
-  .wk-day.past{ color:var(--c-buoi); }                    /* thứ đã qua: xanh ngọc như lịch cũ */
-  .wk-col-vn.today, .wk-col-en.today{                     /* hôm nay: THỨ là pill teal RIÊNG */
-    background:var(--c-buoi); color:#fff;
-    border-radius:999px; font-weight:700;
-    /* box-shadow (không padding) nới nền ra ngoài mà KHÔNG chiếm layout -> chữ thứ vẫn thẳng hàng mọi hàng */
-    box-shadow:0 0 0 .26em var(--c-buoi);
+  /* Thứ đã qua KHÔNG tô màu (giữ neutral); chỉ HÔM NAY là pill teal. */
+  .wk-col-vn.today, .wk-col-en.today{                     /* hôm nay: chữ THỨ màu XANH, KHÔNG nền */
+    color:var(--c-buoi); font-weight:700;
   }
   /* Track một ngày: vạch giờ màu GIỜ NHẠT mỗi 1 giờ; nhãn hoạt động đặt theo % giờ */
   .wk-track{
@@ -539,7 +537,7 @@
 
   <div class="calendar" id="calendar">
     <div class="wk-head" id="wkHead"></div>
-    <div class="wk-grid" id="wkGrid"></div>
+    <div class="wk-scroll"><div class="wk-grid" id="wkGrid"></div></div>
   </div>
 
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
@@ -1059,7 +1057,7 @@
       // vừa trong nửa màn hình; đồng thời vừa CHIỀU CAO (chừa nhãn + cột digital + dòng văn nói).
       const digitalH = elDigitalCol?.offsetHeight || 140;   // gồm dòng văn nói đã dành chỗ
       const faceByH = (vh - bodyPad - marginTop - marginBottom - digitalH - 40 + GAP_EXTRA) / 2;
-      faceByW = ((vw/2) - 2*maxReach - EDGE) / 2;            // khối analog vừa NỬA màn hình
+      faceByW = ((vw/2) - 2*maxReach - 48) / 2;             // khối analog vừa NỬA màn hình (trừ padding 2rem + gap)
       FACE = Math.min(faceByW, faceByH);
     } else {
       // MOBILE DỌC: đồng hồ chỉ co theo BỀ RỘNG (cao hơn màn thì cuộn) -> không cần đo
@@ -1130,17 +1128,7 @@
 
     layoutFace();
 
-    // ===== BỐ CỤC BẢNG =====
-    // Desktop: đồng hồ NỬA TRÁI, lịch NỬA PHẢI (CSS flex 50/50); căn giữa màn hình bằng align-items.
-    // Mobile: bề rộng theo CSS min(96vw,640px). JS không đặt width/margin nữa.
-    elCalendar.style.width = '';
-    elCalendar.style.marginTop = '';
-    // Cỡ SỐ GIỜ theo bề rộng track: chia đủ 24 ô, để 24 số 12h KHÔNG dính nhau (kẹp 8–13px).
-    const trk = elCalendar.querySelector('.wk-track');
-    if(trk){
-      const slot = trk.offsetWidth / 24;
-      elCalendar.style.setProperty('--wk-tick-size', Math.max(8, Math.min(13, slot/1.4)).toFixed(1) + 'px');
-    }
+    // Bố cục bảng do CSS lo (desktop flex 50/50, mobile 100%). JS không đặt width/margin.
 
     // ===== CUỘN KHI NỘI DUNG TRÀN =====
     // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.
@@ -1350,7 +1338,7 @@
     for(let i=0;i<7;i++){
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i);
       const isToday = d.getTime()===todayMid;
-      const cls = (isToday ? ' today' : (d.getTime()<todayMid ? ' past' : ''));
+      const cls = isToday ? ' today' : '';   // chỉ đánh dấu HÔM NAY (thứ đã qua không tô màu)
       // Cột NGÀY (neutral, KHÔNG theo trạng thái) | cột thứ VN
       const dateCell = mkEl('div','wk-day wk-col-date'); dateCell.textContent = d.getDate();
       const vnCell   = mkEl('div','wk-day wk-col-vn' + cls); vnCell.textContent = DOW[i];

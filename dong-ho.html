@@ -351,10 +351,10 @@
     position:relative;
     height:clamp(32px,8vw,42px);
     border-radius:2px;
-    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. 17 ô = 7h sáng -> 12 đêm */
+    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. 16 ô = 7h sáng -> 11h đêm */
     background:
       repeating-linear-gradient(to right,
-        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/17));
+        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/16));
   }
   /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ.
      Vòng tròn dùng chung cỡ/viền với nhãn emoji trên mặt đồng hồ (.badge-emoji). */
@@ -463,9 +463,10 @@
 <body>
   <div class="clock">
   <div class="analog" id="analog">
-    <!-- width/height:0 BẮT BUỘC: SVG không khai báo cỡ sẽ nhận mặc định 300x150, box thò khỏi
-         mép phải viewport (scrollWidth 487 @ màn 375) tạo dải nền thừa. Nét vẽ vẫn hiện nhờ overflow:visible. -->
-    <svg style="position:absolute;left:50%;top:50%;width:0;height:0;overflow:visible;pointer-events:none;z-index:9;">
+    <!-- width/height:1px BẮT BUỘC (KHÔNG để 0: SVG viewport 0 bị Chrome bỏ render hoàn toàn;
+         không khai báo thì nhận mặc định 300x150, box thò khỏi mép phải viewport tạo dải nền thừa).
+         1x1 tại tâm: gốc toạ độ vẫn ở tâm mặt, nét vẽ hiện đủ nhờ overflow:visible. -->
+    <svg style="position:absolute;left:50%;top:50%;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:9;">
       <!-- LUẬT MỚI — mỗi vòng MỘT màu, 4 TRẠNG THÁI = (đậm/mảnh) × (đặc/mờ):
              track = CẢ vòng:        MẢNH + MỜ  (op .25) -> ô TƯƠNG LAI (chưa đến)
              arc   = đã qua:         MẢNH + ĐẶC (op 1)   -> ô QUÁ KHỨ
@@ -1292,8 +1293,8 @@
   const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // thứ EN, cùng thứ tự
   const MONTH_EN = ['January','February','March','April','May','June','July','August',
                     'September','October','November','December'];
-  // Timeline chỉ hiển thị 7h SÁNG -> 12 ĐÊM (bỏ 0-6h không có hoạt động) = 17 ô giờ
-  const WK_H0 = 7, WK_HOURS = 17;
+  // Timeline chỉ hiển thị 7h SÁNG -> 11h ĐÊM (bỏ 0-6h và 23h không có hoạt động) = 16 ô giờ
+  const WK_H0 = 7, WK_HOURS = 16;
   const wkPos = hour => ((hour - WK_H0) / WK_HOURS * 100) + '%';   // vị trí % trên track
   const mkEl = (tag,cls)=>{ const e=document.createElement(tag); if(cls) e.className=cls; return e; };
   let lastDay = -1;
@@ -1309,9 +1310,9 @@
     grid.appendChild(mkEl('div','wk-corner'));
     grid.appendChild(mkEl('div','wk-corner'));
     const axis = mkEl('div','wk-axis');
-    for(let hh=WK_H0; hh<24; hh++){                    // 7..23: 7 sáng ... 12 trưa ... 11 đêm
+    for(let hh=WK_H0; hh<23; hh++){                    // 7..22: 7 sáng ... 12 trưa ... 10 đêm (bỏ 11 đêm)
       const t = mkEl('div','wk-tick');
-      t.textContent = ((hh+11)%12)+1;                 // 12h: 7->7 ... 12->12(trưa) ... 23->11
+      t.textContent = ((hh+11)%12)+1;                 // 12h: 7->7 ... 12->12(trưa) ... 22->10
       t.style.left = wkPos(hh);                       // trùng vạch giờ (canh giữa)
       axis.appendChild(t);
     }

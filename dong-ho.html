@@ -248,7 +248,7 @@
     0%  {transform:rotate(0deg);}
     100%{transform:rotate(180deg);}
   }
-  .hg-bg{fill:var(--label-bg);stroke:none;}   /* nền KÍNH trắng mờ — ĐỒNG BỘ nhãn hoạt động (đồng hồ + lịch) */
+  .hg-bg{fill:var(--label-bg);stroke:none;}   /* lớp KÍNH trắng mờ PHỦ TRÊN cát (nhìn cát qua kính) — đồng bộ --label-bg */
   .hg-glass{fill:none;stroke:var(--line);stroke-width:1.2;}
   .hg-cap{stroke:var(--line);stroke-width:1.6;stroke-linecap:round;}   /* nắp màu be — vẫn vẽ SAU nét cát rơi để che đầu nét */
   .u-hour .hg-sand,.u-hour .hg-stream{fill:var(--c-hour);}
@@ -654,10 +654,10 @@
       `<svg class="hourglass" id="${id}" viewBox="0 0 24 32" aria-hidden="true">
         <clipPath id="${id}-top"><rect id="${id}-top-r" x="0" y="0" width="24" height="14"></rect></clipPath>
         <clipPath id="${id}-bot"><rect id="${id}-bot-r" x="0" y="32" width="24" height="0"></rect></clipPath>
-        <path class="hg-bg" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
         <path class="hg-sand" clip-path="url(#${id}-top)" d="M5 4 H19 L12.8 14.5 V16 H11.2 V14.5 Z"></path>
         <path class="hg-sand" clip-path="url(#${id}-bot)" d="M5 28 L11.2 17 V16 H12.8 V17 L19 28 Z"></path>
         <rect class="hg-stream" x="${streamX}" y="15" width="${streamW}" height="13"></rect>
+        <path class="hg-bg" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
         <path class="hg-glass" d="M5 4 H19 L12.8 15 Q12 16 12.8 17 L19 28 H5 L11.2 17 Q12 16 11.2 15 Z"></path>
         <line class="hg-cap" x1="4" y1="4" x2="20" y2="4"></line>
         <line class="hg-cap" x1="4" y1="28" x2="20" y2="28"></line>

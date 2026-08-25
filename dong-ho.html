@@ -35,7 +35,8 @@
      màn thì cuộn — KHÔNG ép vừa khít viewport. Logic "không scroll" chỉ bật ở DESKTOP. */
   body{
     min-height:100dvh;
-    overflow-x:hidden;
+    /* KHÔNG đặt overflow-x:hidden ở body: sẽ biến body thành scroll-container (overflow-y auto)
+       cao bằng nội dung -> KHÔNG cuộn dọc được trên mobile. Chặn tràn ngang đã có ở html. */
     overscroll-behavior:none;
     background:var(--bg);
     color:var(--ink);

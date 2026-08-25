@@ -65,7 +65,8 @@
     }
     /* CHIA ĐÔI màn hình: đồng hồ NỬA TRÁI, lịch NỬA PHẢI (mỗi bên đúng 50%). */
     .clock{ flex:1 1 0; min-width:0; }
-    .calendar{ flex:1 1 0; min-width:0; width:auto; }
+    /* padding-inline: chừa khe hai bên để bảng KHÔNG sát mép phải màn hình (đối xứng như đồng hồ) */
+    .calendar{ flex:1 1 0; min-width:0; width:auto; padding-inline:clamp(16px,2.5vw,44px); }
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -306,14 +307,17 @@
   .spoken .sp-b{color:var(--c-buoi);}
 
   /* ===== LỊCH TUẦN (timeline: cột = giờ 12h, hàng = 7 thứ T2..CN) ===== */
-  /* Bề rộng: mobile = min(96vw,640px); desktop = nửa màn hình (flex, xem @media 768px). */
+  /* Bề rộng: mobile = 100% (đầy 100vw); desktop = nửa màn hình (flex, xem @media 768px). */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
     gap:clamp(.4rem,1.5vw,.7rem);
-    width:min(96vw,640px);
+    width:100%;
     font-variant-numeric:tabular-nums;
   }
-  @media (max-width:767.98px){ .calendar{ margin-top:.8rem; } }   /* mobile (dọc): tách khỏi digital phía trên */
+  @media (max-width:767.98px){
+    body{ padding-inline:0; }        /* mobile: nội dung chiếm trọn 100vw (bỏ lề ngang) */
+    .calendar{ margin-top:.8rem; }   /* mobile (dọc): tách khỏi digital phía trên */
+  }
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500; letter-spacing:.02em;
@@ -346,10 +350,9 @@
      đồng thời canh cột: ngày sát phải, thứ sát trái -> vẫn thẳng hàng giữa các dòng. */
   .wk-col-date{ justify-self:end; font-weight:400; }          /* số ngày căn phải -> thẳng cột */
   .wk-col-vn{ justify-self:start; }                           /* thứ VN */
-  .wk-col-en{ justify-self:start; color:var(--muted); font-weight:400; }  /* thứ EN: mờ hơn */
+  .wk-col-en{ justify-self:start; }                           /* thứ EN: CÙNG style với thứ VN */
   /* Trạng thái CHỈ áp cho THỨ (VN/EN); số ngày luôn giữ màu neutral như tháng/năm ở tiêu đề */
   .wk-day.past{ color:var(--c-buoi); }                    /* thứ đã qua: xanh ngọc như lịch cũ */
-  .wk-col-en.past{ color:var(--c-buoi); opacity:.7; }
   .wk-col-vn.today, .wk-col-en.today{                     /* hôm nay: THỨ là pill teal RIÊNG */
     background:var(--c-buoi); color:#fff;
     border-radius:999px; font-weight:700;

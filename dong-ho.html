@@ -29,6 +29,8 @@
     /* Lịch tuần: SỐ Ô GIỜ của timeline (7h sáng -> 11h đêm) — MỘT nguồn cho cả CSS
        (vạch giờ, bề rộng nhãn) lẫn JS (vị trí %, trục số; đọc qua cssVar) */
     --wk-hours:16;
+    /* Nền nhãn hoạt động (KÍNH trắng mờ) — dùng CHUNG cho nhãn trên mặt đồng hồ + nhãn lịch */
+    --label-bg:rgba(255,255,255,.55);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   /* CHẶN TRÀN NGANG bằng clip = CẮT THẬT (không tạo vùng cuộn ẩn -> canvas không phình
@@ -173,9 +175,9 @@
   /* HÌNH TRÒN đều (bỏ min-width pill kế thừa): offsetHeight/2 = bán kính ở MỌI hướng
      -> nét nối chạm đúng viền, không đâm xuyên khi nhãn ở góc xiên. */
   .badge-emoji{width:var(--badge-dia);height:var(--badge-dia);border:var(--ring-thin) solid var(--c-hour);
-    /* nền = MÀU NỀN TRANG ở MỌI trạng thái (không transparent): nhãn luôn nằm trên nền be
-       ngoài mặt nên trông y hệt, nhưng CHE được nét nối của nhãn vòng ngoài / kim chạy SAU LƯNG. */
-    background:var(--bg);}
+    /* nền KÍNH trắng mờ --label-bg — ĐỒNG BỘ với nhãn hoạt động bên lịch (.wk-badge);
+       mờ nên nét nối / kim chạy sau lưng vẫn thấy nhẹ qua nhãn */
+    background:var(--label-bg);}
   /* CHƯA đến giờ -> nét nối + viền MỜ (khớp vòng track); ĐÃ đến/qua -> viền + nét ĐẶC (mặc định ở trên) */
   .emoji-orbit.upcoming .connector{background:var(--c-hour-faint);}
   .emoji-orbit.upcoming .badge-emoji{border-color:var(--c-hour-faint);}
@@ -369,8 +371,8 @@
     width:100%; aspect-ratio:1;
     border-radius:50%;
     border:var(--ring-thin) solid var(--c-hour);
-    /* nền TRẮNG mờ (kính): trong suốt nên vạch giờ sau lưng vẫn nhìn thấy nhẹ */
-    background:rgba(255,255,255,.55);
+    /* nền KÍNH trắng mờ --label-bg — ĐỒNG BỘ với nhãn hoạt động trên mặt đồng hồ (.badge-emoji) */
+    background:var(--label-bg);
     display:flex; align-items:center; justify-content:center;
     container-type:size;                       /* cho emoji đo theo cỡ vòng tròn (cqw) */
   }

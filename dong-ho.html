@@ -63,7 +63,7 @@
       justify-content:center;
       gap:24px;
     }
-    .calendar{ margin-top:0; }   /* căn giữa theo chiều dọc, không cần lề trên */
+    /* Lề dọc của .calendar do layout() đặt trực tiếp trên desktop (căn tâm bảng theo tâm mặt đồng hồ). */
   }
 
   /* ===== ANALOG: MẶT SỐ, VẠCH, KIM =====
@@ -303,60 +303,93 @@
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
 
-  /* ===== LỊCH THÁNG ===== */
+  /* ===== LỊCH TUẦN (timeline: cột = giờ 0–24, hàng = 7 thứ T2..CN) ===== */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
-    gap:clamp(.5rem,2vw,.8rem);
-    margin-top:.8rem;                 /* mobile: cách digital phía trên; desktop reset =0 */
+    gap:clamp(.4rem,1.5vw,.7rem);
+    width:min(96vw,640px);
     font-variant-numeric:tabular-nums;
   }
-  .cal-head{                          /* tháng/năm (VN ở trên, EN ở dưới — cùng style) */
+  /* Mobile (dọc): chừa lề trên tách khỏi digital. Desktop (ngang) KHÔNG lề -> căn giữa cùng đồng hồ.
+     Đặt margin ở media MOBILE (đứng SAU base) để không bị rule base đè như trước. */
+  @media (max-width:767.98px){ .calendar{ margin-top:.8rem; } }
+  .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
-    font-weight:500;
-    letter-spacing:.02em;
-    color:var(--neutral);             /* tháng/năm: đen trung tính */
+    font-weight:500; letter-spacing:.02em;
+    color:var(--neutral);             /* đen trung tính */
   }
-  .cal-grid{
+  .wk-grid{
+    width:100%;
     display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:clamp(.15rem,1vw,.4rem);
+    grid-template-columns:auto auto 1fr auto;   /* ngày | thứ VN | track 24 giờ | thứ EN */
+    align-items:center;
+    row-gap:clamp(.3rem,1.4vw,.55rem);
+    column-gap:clamp(.4rem,1.6vw,.6rem);
   }
-  .cal-cell{
-    width:clamp(1.7rem,6.5vw,2.3rem);
-    height:clamp(1.7rem,6.5vw,2.3rem);
-    display:flex;align-items:center;justify-content:center;
-    font-size:clamp(.78rem,3.2vw,1rem);
-    line-height:1;
+  /* .wk-corner: ô góc để trống (giữ chỗ cột nhãn thứ ở hàng trục giờ) — không cần style riêng. */
+  /* Trục GIỜ (hàng đầu): số 12h cho mỗi giờ, đặt theo % */
+  .wk-axis{ position:relative; height:1.2em; }
+  .wk-axis .wk-tick{                   /* số giờ 12h — màu GIỜ như số trên mặt đồng hồ */
+    position:absolute; bottom:0; transform:translateX(calc(-50% + 0.5px));   /* +0.5px -> khớp TÂM vạch giờ */
+    font-size:clamp(.6rem,2.6vw,.8rem); font-weight:500;
+    color:var(--c-hour); white-space:nowrap;
+  }
+  /* Bốn cột nhãn: NGÀY | thứ VN | (track) | thứ EN — mỗi cột tự thẳng hàng */
+  .wk-day{
+    display:flex; align-items:center;
+    font-size:clamp(.8rem,3.2vw,1rem); font-weight:500;
+    color:var(--neutral); white-space:nowrap;
+  }
+  /* justify-self co item về ĐÚNG bề rộng chữ (không giãn full cột) -> nền/pill ôm sát chữ, không lệch;
+     đồng thời canh cột: ngày sát phải, thứ sát trái -> vẫn thẳng hàng giữa các dòng. */
+  .wk-col-date{ justify-self:end; font-weight:400; }          /* số ngày căn phải -> thẳng cột */
+  .wk-col-vn{ justify-self:start; }                           /* thứ VN */
+  .wk-col-en{ justify-self:start; color:var(--muted); font-weight:400; }  /* thứ EN: mờ hơn */
+  /* Trạng thái CHỈ áp cho THỨ (VN/EN); số ngày luôn giữ màu neutral như tháng/năm ở tiêu đề */
+  .wk-day.past{ color:var(--c-buoi); }                    /* thứ đã qua: xanh ngọc như lịch cũ */
+  .wk-col-en.past{ color:var(--c-buoi); opacity:.7; }
+  .wk-col-vn.today, .wk-col-en.today{                     /* hôm nay: THỨ là pill teal RIÊNG */
+    background:var(--c-buoi); color:#fff;
+    border-radius:999px; font-weight:700;
+    /* box-shadow (không padding) nới nền ra ngoài mà KHÔNG chiếm layout -> chữ thứ vẫn thẳng hàng mọi hàng */
+    box-shadow:0 0 0 .26em var(--c-buoi);
+  }
+  /* Track một ngày: gridline mờ mỗi 3 giờ; badge hoạt động đặt theo % giờ */
+  .wk-track{
+    position:relative;
+    height:clamp(32px,8vw,42px);
+    border-radius:2px;
+    /* CHỈ vạch mỗi GIỜ (mảnh, dài BẰNG NHAU) — màu GIỜ nhạt. Vạch tại [h/24, +1px], tâm = h/24 + 0.5px */
+    background:
+      repeating-linear-gradient(to right,
+        var(--c-hour-faint) 0 1px, transparent 1px calc(100%/24));
+  }
+  /* Badge hoạt động — KHỚP kiểu nhãn emoji trên mặt đồng hồ (.badge-emoji) */
+  /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ. */
+  .wk-mark{
+    position:absolute; top:50%; left:0; transform:translate(calc(-50% + 0.5px),-50%);   /* +0.5px -> khớp TÂM vạch giờ */
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wk-mark .wk-bar{                           /* vạch DỌC ở TRÊN = mốc BẮT ĐẦU (đậm BẰNG viền vòng tròn) */
+    width:var(--ring-thin); height:6px; border-radius:1px;
+    background:var(--c-hour);
+  }
+  .wk-mark .wk-badge{                         /* vòng tròn quanh icon (như label mặt đồng hồ) */
+    width:var(--badge-dia); height:var(--badge-dia);
     border-radius:50%;
+    border:var(--ring-thin) solid var(--c-hour);
+    background:transparent;                    /* nền trong -> không che vạch giờ phía sau */
+    display:flex; align-items:center; justify-content:center;
   }
-  .cal-dow{                           /* tiêu đề thứ trong tuần */
-    color:var(--muted);
-    font-size:clamp(.6rem,2.6vw,.78rem);
-    font-weight:500;
-    text-transform:uppercase;
-    letter-spacing:.04em;
+  .wk-mark .wk-emoji{                         /* icon trong vòng tròn */
+    font-size:var(--emoji-size); line-height:1;
+    transform:translateY(.06em);              /* bù glyph emoji nằm cao trong line-box */
   }
-  .cal-day{ color:var(--neutral); position:relative; }   /* ngày chưa đến: đen trung tính */
-  /* Nhãn hoạt động ở GÓC TRÊN BÊN PHẢI ô lịch (bóng rổ/múa/vẽ theo thứ). Tuyệt đối -> không
-     phá việc căn giữa số (số là text node duy nhất trong flow). */
-  .cal-mark{
-    position:absolute; top:0; right:0;     /* nằm BĂNG TRÊN, phía trên số ở giữa ô -> không chạm số */
-    display:flex; line-height:1; letter-spacing:-.12em;
-    font-size:.42rem; pointer-events:none;
-  }
-  .cal-mark--multi{ right:-2px; }            /* ngày 2 emoji (T7): dịch sang PHẢI chút cho thoáng số */
-  /* Desktop: ô lịch to hơn -> phóng to emoji + nhích LÊN để KHÔNG chạm số */
-  @media (min-width:768px){
-    .cal-mark{ font-size:.8rem; top:-2px; right:-1px; }
-    .cal-mark--multi{ right:-5px; }          /* 2 emoji to hơn -> dịch phải nhiều hơn cho khỏi đè số */
-  }
-  .cal-day.past{                      /* ngày đã qua: xanh ngọc đậm */
-    color:var(--c-buoi);
-  }
-  .cal-day.today{                     /* hôm nay: ô tròn nền teal đặc (đã bỏ thanh tiến trình ngày) */
-    background:var(--c-buoi);
-    color:#fff;
-    font-weight:700;
+  /* Vạch "bây giờ" trên hàng hôm nay — màu accent như tâm/kim đồng hồ */
+  .wk-now{
+    position:absolute; top:-2px; bottom:-2px; left:0; width:2px;
+    transform:translateX(-50%); border-radius:2px;
+    background:var(--accent);
   }
 
   /* ===== NÚT + & POPUP TẠO NHÃN ===== */
@@ -500,9 +533,8 @@
   </div><!-- /clock -->
 
   <div class="calendar" id="calendar">
-    <div class="cal-head" id="calHead"></div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div class="cal-head" id="calHeadEn"></div>
+    <div class="wk-head" id="wkHead"></div>
+    <div class="wk-grid" id="wkGrid"></div>
   </div>
 
   <!-- Nút + (góc dưới-phải) mở popup tạo nhãn hoạt động (không chữ: chọn emoji / giờ / phút) -->
@@ -637,6 +669,8 @@
   //             thì đánh dấu chỉ làm rối ô lịch mà không thêm thông tin)
   // Ô LỊCH tự suy ra từ đây (xem DAY_ACTIVITIES ngay dưới) — KHÔNG khai báo riêng, không lệch được.
   const FIXED_LABELS = [
+    {emoji:'🎒', hour:8,    days:[1,2,3,4,5]},                    // ba lô: T2-T6 8h sáng
+    {emoji:'☕', hour:8.5,  days:[0]},                            // cà phê: Chủ nhật 8h30
     {emoji:'🔠', hour:8.5,  days:[6]},                            // chữ cái: thứ Bảy 8h30
     {emoji:'🎨', hour:10,   days:[6], inner:true},                // vẽ: thứ Bảy 10h — vòng TRONG, tránh đè 22h
     {emoji:'🏀', hour:18,   days:[2], inner:true},                // bóng rổ: thứ Ba 18h — vòng TRONG (nhường vòng ngoài cho 🙋‍♀️)
@@ -646,6 +680,8 @@
     {emoji:'🙋‍♀️', hour:18, days:[1,2,3,4,5], noCal:true},         // giơ tay: T2-T6 18h — vòng NGOÀI, không lên lịch
     {emoji:'🎹', hour:19.25, days:[4]},                           // piano: thứ Năm 19h15
     {emoji:'🍲', hour:19.5},                                      // ăn tối: mọi ngày
+    {emoji:'✍️', hour:20.25, days:[1,2,3,4]},                     // viết: T2-T5 20h15
+    {emoji:'🤸🏼', hour:20.25, days:[5,6,0]},                      // T6-CN 20h15
     {emoji:'😴', hour:22},                                        // đi ngủ: mọi ngày
   ];
   // Emoji hoạt động ở góc ô lịch theo THỨ — SUY THẲNG từ bảng trên, không có cờ khai báo riêng:
@@ -655,12 +691,12 @@
   // => sửa/thêm/bớt nhãn ở FIXED_LABELS là mặt đồng hồ và lịch luôn khớp nhau.
   // Giữ dạng MẢNG (không nối chuỗi) để đếm đúng SỐ nhãn: emoji ghép ZWJ như 🙋‍♀️ dài 3 mã
   // -> nối chuỗi rồi đếm ký tự sẽ tưởng nhầm là nhiều nhãn.
-  const DAY_ACTIVITIES = {};
+  const DAY_ACTIVITIES = {};   // getDay 0..6 -> [{emoji, hour}] (lịch tuần đặt badge theo giờ)
   for(const L of FIXED_LABELS){
     if(!L.days || L.noCal) continue;
     for(const d of L.days){
       if(!DAY_ACTIVITIES[d]) DAY_ACTIVITIES[d] = [];
-      DAY_ACTIVITIES[d].push(L.emoji);
+      DAY_ACTIVITIES[d].push({emoji:L.emoji, hour:L.hour});
     }
   }
 
@@ -1092,6 +1128,18 @@
 
     layoutFace();
 
+    // ===== DESKTOP: căn TÂM bảng tuần trùng TÂM MẶT đồng hồ (analog) =====
+    // Khối .clock = mặt + digital + dòng văn nói; căn giữa cả khối làm MẶT nằm cao hơn tâm khối,
+    // nên bảng (căn theo tâm khối) trông THẤP hơn mặt. Ghim body theo mép trên (flex-start) rồi
+    // đẩy bảng xuống sao cho tâm bảng = tâm mặt đồng hồ = marginTop + D/2 (tính từ mép trên khối).
+    if(desktop){
+      const analogCenter = marginTop + D/2;             // tâm MẶT đồng hồ, từ mép trên khối
+      const calH = elCalendar ? elCalendar.offsetHeight : 0;
+      elCalendar.style.marginTop = Math.max(0, analogCenter - calH/2) + 'px';
+    } else {
+      elCalendar.style.marginTop = '';                  // mobile: trả về CSS (media .8rem)
+    }
+
     // ===== CUỘN KHI NỘI DUNG TRÀN =====
     // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.
     // CSS mặc định chặn cuộn (html overflow-x:hidden; desktop overflow:hidden) -> mở ra khi tràn.
@@ -1109,7 +1157,9 @@
     // Trục NGANG do thuộc tính nào quyết định: desktop xếp HÀNG -> justify-content; dọc -> align-items.
     // Chiều DỌC không cần đụng tới: khi phóng to body cao theo nội dung nên không cắt mất gì.
     document.body.style.justifyContent = (tranNgang &&  desktop) ? 'flex-start' : '';
-    document.body.style.alignItems     = (tranNgang && !desktop) ? 'flex-start' : '';
+    // Desktop: ghim mép trên để marginTop của bảng (ở trên) quyết vị trí -> tâm bảng khớp tâm mặt.
+    // Mobile: chỉ flex-start khi tràn ngang; bình thường '' (theo CSS center).
+    document.body.style.alignItems     = (desktop || tranNgang) ? 'flex-start' : '';
   }
 
   // Nét nối: chạy TỪ vòng ringR ra ngoài, dài len. Đặt bằng top vì gốc toạ độ là tâm mặt,
@@ -1263,56 +1313,66 @@
     // Nét dọc cát rơi: chiều dài CỐ ĐỊNH (khai báo sẵn trong rect), luôn hiện -> không xử lý ở JS.
   }
 
-  /* ===== 8. LỊCH THÁNG ===== */
-  /* Lưới 7 cột (T2..CN, bắt đầu từ Thứ Hai).
-       - Hôm nay      : nền xanh ngọc, chữ trắng đậm (.today)
-       - Ngày đã qua  : xanh ngọc đậm (.past)
-       - Ngày sắp tới : màu chữ thường */
-  const DOW = ['T2','T3','T4','T5','T6','T7','CN'];
-  // Hàng "thứ" tiếng Anh: cùng thứ tự (bắt đầu Thứ Hai) để thẳng cột với hàng VN
-  const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const MONTH_EN = ['January','February','March','April','May','June','July','August',
-                    'September','October','November','December'];
+  /* ===== 8. LỊCH TUẦN (cột = giờ 0–24, hàng = 7 thứ T2..CN) ===== */
+  /* Tuần HIỆN TẠI (bắt đầu Thứ Hai). Mỗi hàng = một ngày: TRÁI = số ngày + thứ VN,
+       GIỮA = track 24 giờ, PHẢI = thứ EN; hoạt động của thứ đó (DAY_ACTIVITIES suy từ
+       FIXED_LABELS) đặt badge theo đúng giờ. Hôm nay: pill teal + vạch "bây giờ"; đã qua: xanh ngọc. */
+  const DOW    = ['T2','T3','T4','T5','T6','T7','CN'];        // thứ VN, bắt đầu Thứ Hai
+  const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // thứ EN, cùng thứ tự
+  const mkEl = (tag,cls)=>{ const e=document.createElement(tag); if(cls) e.className=cls; return e; };
   let lastDay = -1;
 
-  function buildCalendar(){
+  function buildWeek(){
     const now = new Date();
-    const y = now.getFullYear(), mo = now.getMonth(), today = now.getDate();
-    $('calHead').textContent   = `Tháng ${mo+1}, ${y}`;   // tháng/năm VN — TRÊN ngày
-    $('calHeadEn').textContent = `${MONTH_EN[mo]} ${y}`;   // tháng/năm EN — DƯỚI ngày (cùng style)
-    const grid = $('calGrid');
+    const y=now.getFullYear(), mo=now.getMonth(), today=now.getDate();
+    $('wkHead').textContent = `Tháng ${mo+1}, ${y}`;
+    const grid = $('wkGrid');
     grid.innerHTML = '';
-    const addCell=(cls,txt)=>{
-      const c=document.createElement('div');
-      c.className=cls;
-      if(txt!=null) c.textContent=txt;
-      grid.appendChild(c);
-      return c;
-    };
-    // Hàng "thứ" tiếng Việt — TRÊN ngày
-    DOW.forEach(d=>addCell('cal-cell cal-dow', d));
-    // Ô trống đầu tháng: lùi theo thứ (Thứ Hai = 0)
-    const startOffset = (new Date(y,mo,1).getDay()+6)%7;
-    for(let i=0;i<startOffset;i++) addCell('cal-cell');
-    const daysInMonth = new Date(y,mo+1,0).getDate();
-    for(let d=1;d<=daysInMonth;d++){
-      const cell = addCell('cal-cell cal-day'+(d<today?' past':d===today?' today':''), d);
-      // Nhãn hoạt động góc trên-phải theo THỨ — DAY_ACTIVITIES suy thẳng từ FIXED_LABELS
-      const acts = DAY_ACTIVITIES[new Date(y,mo,d).getDay()];
-      if(acts){
-        const mk = document.createElement('span');
-        // Từ 2 nhãn trở lên (T7: 🔠🎨) -> class --multi để dịch sang phải, khỏi đè số.
-        // Đếm theo SỐ PHẦN TỬ mảng (không đếm ký tự: 🙋‍♀️ một nhãn nhưng dài 3 mã).
-        mk.className = 'cal-mark' + (acts.length > 1 ? ' cal-mark--multi' : '');
-        mk.textContent = acts.join('');
-        cell.appendChild(mk);
-      }
+    // Hàng đầu: 2 ô góc trống (cột ngày + thứ VN) + trục GIỜ + ô góc (cột thứ EN)
+    grid.appendChild(mkEl('div','wk-corner'));
+    grid.appendChild(mkEl('div','wk-corner'));
+    const axis = mkEl('div','wk-axis');
+    for(let hh=0; hh<24; hh++){                        // 0..23: 12 đêm (0) · … · 12 trưa (12) · … · 11 — mỗi số canh GIỮA trên vạch
+      const t = mkEl('div','wk-tick');
+      t.textContent = ((hh+11)%12)+1;                 // 12h: 0->12(đêm) ... 12->12(trưa) ... 23->11
+      t.style.left = (hh/24*100) + '%';               // trùng vạch giờ tại h/24 (canh giữa)
+      axis.appendChild(t);
     }
-    // Ô trống cuối: lấp đầy hàng cuối để hàng "thứ" EN bên dưới thẳng cột
-    const trailing = (7 - ((startOffset+daysInMonth)%7))%7;
-    for(let i=0;i<trailing;i++) addCell('cal-cell');
-    // Hàng "thứ" tiếng Anh — DƯỚI ngày (cùng thứ tự & style với hàng VN)
-    DOW_EN.forEach(d=>addCell('cal-cell cal-dow', d));
+    grid.appendChild(axis);
+    grid.appendChild(mkEl('div','wk-corner'));   // ô góc phải (cột thứ EN)
+    // Thứ Hai của tuần hiện tại (getDay: 0=CN -> đưa về 0=T2 bằng (d+6)%7)
+    const dow = (now.getDay()+6)%7;
+    const start = new Date(y, mo, today-dow);
+    const todayMid = new Date(y, mo, today).getTime();
+    for(let i=0;i<7;i++){
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i);
+      const isToday = d.getTime()===todayMid;
+      const cls = (isToday ? ' today' : (d.getTime()<todayMid ? ' past' : ''));
+      // Cột NGÀY (neutral, KHÔNG theo trạng thái) | cột thứ VN
+      const dateCell = mkEl('div','wk-day wk-col-date'); dateCell.textContent = d.getDate();
+      const vnCell   = mkEl('div','wk-day wk-col-vn' + cls); vnCell.textContent = DOW[i];
+      grid.appendChild(dateCell); grid.appendChild(vnCell);
+      const track = mkEl('div','wk-track');
+      const acts = DAY_ACTIVITIES[d.getDay()];
+      if(acts) for(const a of acts){
+        const mark = mkEl('div','wk-mark'); mark.style.left = (a.hour/24*100) + '%';   // canh giữa tại mốc bắt đầu
+        mark.appendChild(mkEl('span','wk-bar'));                                         // vạch DỌC (trên) nối vào vòng tròn
+        const b = mkEl('span','wk-badge');                                              // vòng tròn (dưới)
+        const ic = mkEl('span','wk-emoji'); ic.textContent = a.emoji;
+        b.appendChild(ic); mark.appendChild(b);
+        track.appendChild(mark);
+      }
+      if(isToday){
+        const nl = mkEl('div','wk-now'); nl.id = 'wkNow';
+        nl.style.left = ((now.getHours()+now.getMinutes()/60)/24*100) + '%';
+        track.appendChild(nl);
+      }
+      grid.appendChild(track);
+      // Cột thứ tiếng Anh (phải)
+      const enCell = mkEl('div','wk-day wk-col-en' + cls);
+      enCell.textContent = DOW_EN[i];
+      grid.appendChild(enCell);
+    }
     lastDay = today;
   }
 
@@ -1375,8 +1435,10 @@
 
     // Text + nhãn: chỉ cập nhật khi giây đổi (đỡ tải, không gây giật)
     if(secChanged){
-      // Sang ngày mới -> dựng lại lịch (di chuyển ô "hôm nay") rồi căn lại bố cục
-      if(now.getDate()!==lastDay){ buildCalendar(); layout(); }
+      // Sang ngày mới -> dựng lại lịch tuần (đổi hôm nay/quá khứ) rồi căn lại bố cục
+      if(now.getDate()!==lastDay){ buildWeek(); layout(); }
+      // Vạch "bây giờ" trượt theo thời gian trong ngày (chỉ tồn tại trên hàng hôm nay)
+      const nowLine = $('wkNow'); if(nowLine) nowLine.style.left = ((h + m/60)/24*100) + '%';
       updateBadge(elTextHt, String(gio12(h)));   // lớp số giờ (solid, trên kính)
       updateBadge(elTextMt, String(m));          // lớp số phút (solid, trên kính)
       elH.textContent=pad(h);
@@ -1535,7 +1597,7 @@
   loadUserLabels(); buildUserLabels();   // cache cục bộ hiện NGAY; snapshot server về sẽ thay
   startLabelSync();                      // nghe /labels trên RTDB -> đồng bộ giữa các thiết bị
   setupAddLabelUI();
-  buildCalendar();   // dựng lịch TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
+  buildWeek();   // dựng lịch tuần TRƯỚC khi layout để đo đúng bề rộng/chiều cao lịch
   layout();
   // Chỉ nghe resize/orientation cấp window: KHÔNG nghe visualViewport (scroll/pinch) nữa
   // -> trên mobile pinch-zoom chỉ phóng to đồng đều, không kích relayout giữa cử chỉ.

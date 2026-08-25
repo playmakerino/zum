@@ -304,16 +304,15 @@
   .spoken .sp-m{color:var(--c-min);}
   .spoken .sp-b{color:var(--c-buoi);}
 
-  /* ===== LỊCH TUẦN (timeline: cột = giờ 0–24, hàng = 7 thứ T2..CN) ===== */
+  /* ===== LỊCH TUẦN (timeline: cột = giờ 12h, hàng = 7 thứ T2..CN) ===== */
+  /* Bề rộng: mobile = min(96vw,640px); desktop = nửa màn hình (flex, xem @media 768px). */
   .calendar{
     display:flex;flex-direction:column;align-items:center;
     gap:clamp(.4rem,1.5vw,.7rem);
     width:min(96vw,640px);
     font-variant-numeric:tabular-nums;
   }
-  /* Mobile (dọc): chừa lề trên tách khỏi digital. Desktop (ngang) KHÔNG lề -> căn giữa cùng đồng hồ.
-     Đặt margin ở media MOBILE (đứng SAU base) để không bị rule base đè như trước. */
-  @media (max-width:767.98px){ .calendar{ margin-top:.8rem; } }
+  @media (max-width:767.98px){ .calendar{ margin-top:.8rem; } }   /* mobile (dọc): tách khỏi digital phía trên */
   .wk-head{                           /* tháng/năm — cùng style tiêu đề lịch cũ */
     font-size:clamp(.95rem,4vw,1.2rem);
     font-weight:500; letter-spacing:.02em;
@@ -332,7 +331,8 @@
   .wk-axis{ position:relative; height:1.2em; }
   .wk-axis .wk-tick{                   /* số giờ 12h — màu GIỜ như số trên mặt đồng hồ */
     position:absolute; bottom:0; transform:translateX(calc(-50% + 0.5px));   /* +0.5px -> khớp TÂM vạch giờ */
-    font-size:clamp(.6rem,2.6vw,.8rem); font-weight:500;
+    /* Cỡ số do layout() đặt theo bề rộng track (--wk-tick-size) -> 24 số KHÔNG dính nhau */
+    font-size:var(--wk-tick-size, .72rem); font-weight:500;
     color:var(--c-hour); white-space:nowrap;
   }
   /* Bốn cột nhãn: NGÀY | thứ VN | (track) | thứ EN — mỗi cột tự thẳng hàng */
@@ -355,7 +355,7 @@
     /* box-shadow (không padding) nới nền ra ngoài mà KHÔNG chiếm layout -> chữ thứ vẫn thẳng hàng mọi hàng */
     box-shadow:0 0 0 .26em var(--c-buoi);
   }
-  /* Track một ngày: gridline mờ mỗi 3 giờ; badge hoạt động đặt theo % giờ */
+  /* Track một ngày: vạch giờ màu GIỜ NHẠT mỗi 1 giờ; nhãn hoạt động đặt theo % giờ */
   .wk-track{
     position:relative;
     height:clamp(32px,8vw,42px);
@@ -365,8 +365,8 @@
       repeating-linear-gradient(to right,
         var(--c-hour-faint) 0 1px, transparent 1px calc(100%/24));
   }
-  /* Badge hoạt động — KHỚP kiểu nhãn emoji trên mặt đồng hồ (.badge-emoji) */
-  /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ. */
+  /* Nhãn hoạt động: vạch DỌC ở TRÊN (mốc BẮT ĐẦU) nối liền vòng tròn icon ở DƯỚI, canh giữa mốc giờ.
+     Vòng tròn dùng chung cỡ/viền với nhãn emoji trên mặt đồng hồ (.badge-emoji). */
   .wk-mark{
     position:absolute; top:50%; left:0; transform:translate(calc(-50% + 0.5px),-50%);   /* +0.5px -> khớp TÂM vạch giờ */
     display:flex; flex-direction:column; align-items:center;
@@ -1131,6 +1131,12 @@
     // Mobile: bề rộng theo CSS min(96vw,640px). JS không đặt width/margin nữa.
     elCalendar.style.width = '';
     elCalendar.style.marginTop = '';
+    // Cỡ SỐ GIỜ theo bề rộng track: chia đủ 24 ô, để 24 số 12h KHÔNG dính nhau (kẹp 8–13px).
+    const trk = elCalendar.querySelector('.wk-track');
+    if(trk){
+      const slot = trk.offsetWidth / 24;
+      elCalendar.style.setProperty('--wk-tick-size', Math.max(8, Math.min(13, slot/1.4)).toFixed(1) + 'px');
+    }
 
     // ===== CUỘN KHI NỘI DUNG TRÀN =====
     // Mặt có SÀN CỨNG (FACE_MIN) nên viewport quá hẹp thì nội dung rộng hơn màn.

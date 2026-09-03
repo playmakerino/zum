@@ -68,7 +68,13 @@ do {
     $cursor = $r.data.metaobjects.pageInfo.endCursor
 } while ($r.data.metaobjects.pageInfo.hasNextPage)
 
-$nicheRows = $niches.Keys | Sort-Object | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }
+# Metafield custom.niche has an ASCII-apostrophe choice list, but some swatch metaobjects
+# store curly apostrophes (Valentine's / St. Patrick's). Normalize so the submitted value
+# matches a choice, otherwise productCreate rejects it.
+$nicheRows = $niches.Keys | Sort-Object | ForEach-Object {
+    $v = $_ -replace [char]0x2019, "'" -replace [char]0x2018, "'"
+    '"' + ($v -replace '"', '\"') + '"'
+}
 
 Write-Host "niches: $($nicheRows.Count)  sub niches: $($subRows.Count)"
 

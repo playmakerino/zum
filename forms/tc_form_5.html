@@ -80,7 +80,7 @@
         grid-template-columns: 1fr 1fr;
         column-gap: 32px;
       }
-      .section-fields.print-fields { grid-template-columns: 1fr 1fr 1fr; }
+      .section-fields.product-fields { grid-template-columns: 1fr 180px; }
     }
 
     /* Header */
@@ -637,7 +637,7 @@
             <div class="field">
               <label>Image positions</label>
               <input type="text" id="image_positions" placeholder="2, 3, 4" />
-              <div class="field-hint">Positions of the product page images to turn into ads, counted from the first image. Applies to every product below unless a product has its own positions. Leave empty to use all images.</div>
+              <div class="field-hint">Which product page images become ads, counted from 1. Applies to all products unless a product sets its own. Empty = all images.</div>
             </div>
           </div>
         </div>
@@ -737,7 +737,7 @@
           <div class="section-label">Product</div>
           <button class="remove-section-btn" type="button" onclick="removeProduct('${key}')">Remove</button>
         </div>
-        <div class="section-fields">
+        <div class="section-fields product-fields">
           <div class="field">
             <label>Product URL</label>
             <input type="text" id="url_${key}" placeholder="" />

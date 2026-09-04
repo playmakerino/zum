@@ -5,12 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Type group</title>
 
-  <script type="text/javascript"
-    src="https://www.dropbox.com/static/api/2/dropins.js"
-    id="dropboxjs"
-    data-app-key="omrmsrosehpy3vi">
-  </script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
@@ -620,7 +614,7 @@
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
                 <span class="chooser-path" id="path_print_image"></span>
-                <button class="chooser-btn" onclick="choosePrintImage()">
+                <button class="chooser-btn" type="button" onclick="document.getElementById('print_file').click()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                   </svg>
@@ -632,7 +626,7 @@
                   </svg>
                 </button>
               </div>
-              <input type="hidden" id="dropbox_print_image" />
+              <input type="file" id="print_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" onchange="onPrintFile(this)" />
             </div>
             <div class="field">
               <label>Image positions</label>
@@ -687,25 +681,16 @@
     };
 
     const state = {
-      dropbox_print_image: null,
+      print_file: null,
       productKeys: []
     };
     let productSeq = 0;
 
-    function choosePrintImage() {
-      Dropbox.choose({
-        success(files) {
-          const file = files[0];
-          state.dropbox_print_image = file.link;
-          document.getElementById('dropbox_print_image').value = file.link;
-          setFieldValue('print_image', file.name);
-        },
-        cancel() {},
-        linkType: 'direct',
-        multiselect: false,
-        extensions: ['.jpg', '.jpeg', '.png'],
-        folderselect: false
-      });
+    function onPrintFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      state.print_file = file;
+      setFieldValue('print_image', file.name);
     }
 
     function setFieldValue(key, displayText) {
@@ -715,8 +700,8 @@
 
     function clearField(key) {
       if (key !== 'print_image') return;
-      state.dropbox_print_image = null;
-      document.getElementById('dropbox_print_image').value = '';
+      state.print_file = null;
+      document.getElementById('print_file').value = '';
       document.getElementById('field_print_image').classList.remove('has-value');
       document.getElementById('path_print_image').textContent = '';
     }
@@ -777,7 +762,6 @@
     async function submitForm() {
       const ad_set_name = document.getElementById('ad_set_name').value.trim();
       const product_type_group = document.getElementById('product_type_group').value;
-      const dropbox_print_image = document.getElementById('dropbox_print_image').value;
       const image_positions = document.getElementById('image_positions').value.trim();
 
       if (!ad_set_name) return showStatus('error', 'Please enter Print ID.');
@@ -793,7 +777,14 @@
       if (products.length === 0)
         return showStatus('error', 'Please add at least one product with a URL.');
 
-      const payload = { ad_set_name, product_type_group, dropbox_print_image, image_positions, products };
+      // Multipart: text fields + optional print image file (n8n reads it as binary "print_image")
+      const fd = new FormData();
+      fd.append('ad_set_name', ad_set_name);
+      fd.append('product_type_group', product_type_group);
+      fd.append('image_positions', image_positions);
+      fd.append('products', JSON.stringify(products));
+      if (state.print_file) fd.append('print_image', state.print_file, state.print_file.name);
+      const payload = { ad_set_name, product_type_group, image_positions, products, print_image: state.print_file ? state.print_file.name : '' };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -801,8 +792,8 @@
       try {
         const res = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
-          body: JSON.stringify(payload)
+          headers: TC_AUTH_HEADERS(),
+          body: fd
         });
         if (res.status === 401 || res.status === 403) {
           showStatus('error', 'Wrong password.');
@@ -931,7 +922,7 @@
         <div class="guide-num">2</div>
         <div class="guide-sb">
           <h4><span class="g-field">Print image</span>: ảnh file thiết kế (tùy chọn)</h4>
-          <p>Bấm <strong>Select image</strong>, cửa sổ Dropbox mở ra, chọn 1 ảnh file thiết kế của bản in (không phải ảnh chụp sản phẩm). Chỉ chọn 1 ảnh.</p>
+          <p>Bấm <strong>Select image</strong> rồi chọn 1 ảnh file thiết kế của bản in trên máy (không phải ảnh chụp sản phẩm). Chỉ chọn 1 ảnh, định dạng .jpg, .jpeg hoặc .png.</p>
           <p style="margin-top:7px">Có ảnh thì AI nhìn ảnh để viết chữ quảng cáo riêng cho bản in này. Bỏ trống thì bỏ qua bước AI, ad dùng bộ chữ mặc định đã lưu sẵn theo từng loại sản phẩm.</p>
         </div>
       </div>
@@ -991,7 +982,7 @@
       </div>
 
       <div class="guide-note">
-        Link sản phẩm dán nguyên từ trình duyệt là được. Ảnh Print image (file thiết kế) vẫn chọn từ Dropbox như cũ.
+        Link sản phẩm dán nguyên từ trình duyệt là được.
       </div>
 
       <div class="guide-note">

@@ -108,7 +108,9 @@ function getCredentials(req) {
   return { token, accountId };
 }
 
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering, sort) {
+// One create+poll+fetch attempt. Throws a retryable Error (err.retryable=true)
+// when Meta fails the async job transiently ("Job Failed" / "Job Skipped" / timeout).
+async function runInsightsReport(base, token, fields, timeRange, onProgress, filtering, sort) {
   const params = {
     access_token: token, level: 'ad', fields,
     time_range: JSON.stringify(timeRange),
@@ -122,6 +124,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
   const reportId = createRes.data.report_run_id;
   if (!reportId) throw new Error('No report_run_id returned from Meta');
 
+  let completed = false;
   for (let i = 0; i < 60; i++) {
     const poll = await axios.get(`${META_BASE_URL}/${reportId}`, {
       params: { access_token: token },
@@ -129,11 +132,18 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
     const status = poll.data.async_status;
     const pct = poll.data.async_percent_completion || 0;
     if (onProgress) onProgress(status, pct);
-    if (status === 'Job Completed') break;
+    if (status === 'Job Completed') { completed = true; break; }
     if (status === 'Job Failed' || status === 'Job Skipped') {
-      throw new Error(`Async report ${status}`);
+      const e = new Error(`Async report ${status}`);
+      e.retryable = true;
+      throw e;
     }
     await new Promise(r => setTimeout(r, 2000));
+  }
+  if (!completed) {
+    const e = new Error('Async report timed out (never reached Job Completed)');
+    e.retryable = true;
+    throw e;
   }
 
   const results = [];
@@ -147,6 +157,54 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
     pageParams = next ? {} : null;
   }
   return results;
+}
+
+// Meta gives no reason on an async "Job Failed" — the poll object only carries the
+// status. To recover the real cause, replay the SAME query as a small synchronous
+// insights call (tiny window); if the query is invalid (bad token/scope/param) Meta
+// returns the concrete error here. Returns Meta's error object, or null if the query
+// is actually valid (i.e. the async failure was transient infra, not the query).
+async function probeInsightsError(base, token, fields, filtering, sort) {
+  const params = { access_token: token, level: 'ad', fields, date_preset: 'today', limit: 1 };
+  if (filtering) params.filtering = JSON.stringify(filtering);
+  if (sort) params.sort = sort;
+  try {
+    await axios.get(`${base}/insights`, { params });
+    return null;
+  } catch (e) {
+    return e.response?.data?.error || { message: e.message };
+  }
+}
+
+// Retry the whole async report on transient Meta failures. Meta fails insights
+// async jobs ("Job Failed") intermittently even for valid queries; a fresh report
+// usually succeeds. Backoff: 5s, 15s, 30s. When retries are exhausted, run a
+// synchronous probe so the surfaced error states the real reason, not "Job Failed".
+async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, filtering, sort) {
+  const backoffs = [5000, 15000, 30000];
+  for (let attempt = 0; attempt <= backoffs.length; attempt++) {
+    try {
+      return await runInsightsReport(base, token, fields, timeRange, onProgress, filtering, sort);
+    } catch (err) {
+      const canRetry = err.retryable && attempt < backoffs.length;
+      if (!canRetry) {
+        // Async job failed and carries no HTTP error body → probe for the real cause.
+        if (err.retryable && !err.response) {
+          const probe = await probeInsightsError(base, token, fields, filtering, sort);
+          if (probe) {
+            // Attach as a Meta error so the route's code-190 / rate-limit branches apply.
+            err.response = { data: { error: probe } };
+            err.message = `${err.message} — real reason: [${probe.code ?? '?'}] ${probe.message}`;
+          } else {
+            err.message = `${err.message} — query is valid; transient Meta failure, ${backoffs.length} retries exhausted. Try again shortly.`;
+          }
+        }
+        throw err;
+      }
+      if (onProgress) onProgress(`Retrying after ${err.message}`, 0);
+      await new Promise(r => setTimeout(r, backoffs[attempt]));
+    }
+  }
 }
 
 function findPurchaseAction(arr = []) {

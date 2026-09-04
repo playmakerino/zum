@@ -507,6 +507,8 @@
       transform: scale(1.04);
     }
 
+    .field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
+
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
       font-size: 12px !important;
@@ -589,7 +591,7 @@
 
     <div class="header">
       <h1>Test print</h1>
-      <p>Fill in print information and select images from Dropbox to automatically create ads.</p>
+      <p>Fill in print information and paste product links. Ad images are pulled from the Shopify product page automatically.</p>
     </div>
 
     <div class="card">
@@ -632,6 +634,11 @@
               </div>
               <input type="hidden" id="dropbox_print_image" />
             </div>
+            <div class="field">
+              <label>Image positions</label>
+              <input type="text" id="image_positions" placeholder="2, 3, 4" />
+              <div class="field-hint">Positions of the product page images to turn into ads, counted from the first image. Applies to every product below unless a product has its own positions. Leave empty to use all images.</div>
+            </div>
           </div>
         </div>
 
@@ -658,7 +665,7 @@
   </div>
 
   <script>
-    const N8N_WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/b3d71f42-9c58-4e16-a0d7-52ef8ac31b96';
+    const N8N_WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/tc-form-5';
 
     // Sample product URLs per type group, shown as placeholders (product type is resolved from the URL in n8n).
     // Each placeholder is used at most once (by block position); extra blocks get no sample.
@@ -701,72 +708,17 @@
       });
     }
 
-    function chooseProduct(key) {
-      Dropbox.choose({
-        success(files) {
-          files.forEach(f => {
-            if (!state[`dropbox_${key}`].find(x => x.link === f.link))
-              state[`dropbox_${key}`].push({ name: f.name, link: f.link });
-          });
-          syncMultiField(key);
-        },
-        cancel() {},
-        linkType: 'direct',
-        multiselect: true,
-        extensions: ['.jpg', '.jpeg', '.png'],
-        folderselect: false
-      });
-    }
-
-    function syncMultiField(key) {
-      const arr = state[`dropbox_${key}`];
-      const field = document.getElementById(`field_${key}`);
-      const pathEl = document.getElementById(`path_${key}`);
-      const tagsEl = document.getElementById(`tags_${key}`);
-      const hiddenEl = document.getElementById(`dropbox_${key}`);
-
-      hiddenEl.value = JSON.stringify(arr.map(f => f.link));
-
-      if (arr.length > 0) {
-        field.classList.add('has-value');
-        pathEl.textContent = `${arr.length} images selected`;
-      } else {
-        field.classList.remove('has-value');
-        pathEl.textContent = '';
-      }
-
-      tagsEl.innerHTML = arr.map((f, i) => `
-        <div class="file-tag">
-          <span title="${f.name}">${f.name}</span>
-          <button onclick="removeFile('${key}', ${i})" title="Clear">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      `).join('');
-    }
-
-    function removeFile(key, index) {
-      state[`dropbox_${key}`].splice(index, 1);
-      syncMultiField(key);
-    }
-
     function setFieldValue(key, displayText) {
       document.getElementById(`field_${key}`).classList.add('has-value');
       document.getElementById(`path_${key}`).textContent = displayText;
     }
 
     function clearField(key) {
-      if (key === 'print_image') {
-        state.dropbox_print_image = null;
-        document.getElementById('dropbox_print_image').value = '';
-        document.getElementById('field_print_image').classList.remove('has-value');
-        document.getElementById('path_print_image').textContent = '';
-      } else {
-        state[`dropbox_${key}`] = [];
-        syncMultiField(key);
-      }
+      if (key !== 'print_image') return;
+      state.dropbox_print_image = null;
+      document.getElementById('dropbox_print_image').value = '';
+      document.getElementById('field_print_image').classList.remove('has-value');
+      document.getElementById('path_print_image').textContent = '';
     }
 
     function cleanProductUrl(url) {
@@ -776,7 +728,6 @@
     function addProduct() {
       const key = `p${++productSeq}`;
       state.productKeys.push(key);
-      state[`dropbox_${key}`] = [];
 
       const section = document.createElement('div');
       section.className = 'section';
@@ -788,28 +739,12 @@
         </div>
         <div class="section-fields">
           <div class="field">
+            <label>Product URL</label>
             <input type="text" id="url_${key}" placeholder="" />
           </div>
           <div class="field">
-            <div class="chooser-field" id="field_${key}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-              </svg>
-              <span class="chooser-path" id="path_${key}"></span>
-              <button class="chooser-btn" type="button" onclick="chooseProduct('${key}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                </svg>
-                Select images
-              </button>
-              <button class="clear-btn" type="button" onclick="clearField('${key}')" title="Clear">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <div id="tags_${key}" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-            <input type="hidden" id="dropbox_${key}" />
+            <label>Image positions</label>
+            <input type="text" id="positions_${key}" placeholder="Same as above" />
           </div>
         </div>
       `;
@@ -834,7 +769,6 @@
     function removeProduct(key) {
       const section = document.getElementById(`section_${key}`);
       if (section) section.remove();
-      delete state[`dropbox_${key}`];
       state.productKeys = state.productKeys.filter(k => k !== key);
       if (state.productKeys.length === 0) addProduct();
       else renumberProducts();
@@ -844,20 +778,22 @@
       const ad_set_name = document.getElementById('ad_set_name').value.trim();
       const product_type_group = document.getElementById('product_type_group').value;
       const dropbox_print_image = document.getElementById('dropbox_print_image').value;
+      const image_positions = document.getElementById('image_positions').value.trim();
 
       if (!ad_set_name) return showStatus('error', 'Please enter Print ID.');
 
+      // Per-product positions override the shared field; empty per-product falls back to shared.
       const products = [];
       state.productKeys.forEach(key => {
         const url = cleanProductUrl(document.getElementById(`url_${key}`).value.trim());
-        const images = (state[`dropbox_${key}`] || []).map(f => f.link);
-        if (url && images.length > 0) products.push({ url, images });
+        const own = document.getElementById(`positions_${key}`).value.trim();
+        if (url) products.push({ url, image_positions: own || image_positions });
       });
 
       if (products.length === 0)
-        return showStatus('error', 'Please add at least one product with a URL and images.');
+        return showStatus('error', 'Please add at least one product with a URL.');
 
-      const payload = { ad_set_name, product_type_group, dropbox_print_image, products };
+      const payload = { ad_set_name, product_type_group, dropbox_print_image, image_positions, products };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -979,7 +915,7 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này dùng cho 1 bản in mới trên nhiều loại sản phẩm. Bạn chỉ cần nhập thông tin và chọn ảnh từ <strong>Dropbox</strong> theo các bước bên dưới.</p>
+      <p class="guide-intro">Form này dùng cho 1 bản in mới trên nhiều loại sản phẩm. Ảnh quảng cáo lấy tự động từ trang sản phẩm trên <strong>Shopify</strong>, không cần chọn ảnh. Điền theo các bước bên dưới.</p>
 
       <div class="guide-sec">Các bước điền</div>
 
@@ -1011,33 +947,43 @@
       <div class="guide-step">
         <div class="guide-num">4</div>
         <div class="guide-sb">
-          <h4>Điền từng khối sản phẩm</h4>
-          <p>Form có sẵn 2 khối <strong>Product</strong>. Với mỗi sản phẩm muốn chạy, làm 2 việc:</p>
-          <p style="margin-top:7px">a) Dán link sản phẩm trên zumbamboo.com vào ô nhập link (mở trang sản phẩm rồi copy link trên trình duyệt). Loại sản phẩm được nhận tự động từ link này.<br>
-          b) Bấm <strong>Select images</strong> để mở Dropbox và chọn các ảnh quảng cáo cho sản phẩm đó. Có thể chọn nhiều ảnh cùng một lúc.</p>
+          <h4><span class="g-field">Image positions</span>: chọn ảnh nào lên ad</h4>
+          <p>Điền vị trí các ảnh trên trang sản phẩm cần lấy làm quảng cáo, đếm từ ảnh đầu tiên. Nhiều vị trí thì ngăn cách bằng dấu phẩy.</p>
+          <span class="guide-eg">Ví dụ: <code>2, 3, 4</code> nghĩa là lấy ảnh thứ 2, thứ 3 và thứ 4.</span>
+          <p style="margin-top:7px">Ô này ở khối Print điền một lần và áp dụng cho tất cả sản phẩm bên dưới. Để trống thì hệ thống lấy toàn bộ ảnh trên trang sản phẩm.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">5</div>
         <div class="guide-sb">
-          <h4>Thêm hoặc bớt khối sản phẩm</h4>
-          <p>Cần chạy nhiều hơn 2 sản phẩm thì bấm <strong>Add product</strong>, một khối mới hiện ra để điền giống bước 4. Bấm <strong>Remove</strong> để bỏ một khối không dùng.</p>
+          <h4>Điền từng khối sản phẩm</h4>
+          <p>Form có sẵn 2 khối <strong>Product</strong>. Với mỗi sản phẩm muốn chạy:</p>
+          <p style="margin-top:7px">a) Dán link sản phẩm trên zumbamboo.com vào ô <span class="g-field">Product URL</span> (mở trang sản phẩm rồi copy link trên trình duyệt). Loại sản phẩm được nhận tự động từ link này.<br>
+          b) Ô <span class="g-field">Image positions</span> của riêng khối đó chỉ điền khi sản phẩm này cần vị trí ảnh khác với ô chung ở khối Print. Để trống thì dùng theo ô chung.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">6</div>
         <div class="guide-sb">
+          <h4>Thêm hoặc bớt khối sản phẩm</h4>
+          <p>Cần chạy nhiều hơn 2 sản phẩm thì bấm <strong>Add product</strong>, một khối mới hiện ra để điền giống bước 5. Bấm <strong>Remove</strong> để bỏ một khối không dùng.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">7</div>
+        <div class="guide-sb">
           <h4>Gửi form</h4>
-          <p>Kiểm tra lại một lượt rồi bấm nút xanh <strong>Create ad set</strong>. Khi thấy dòng chữ xanh báo "Sent!" nghĩa là đã gửi thành công.</p>
+          <p>Kiểm tra lại một lượt rồi bấm nút xanh <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent!" nghĩa là đã gửi thành công.</p>
         </div>
       </div>
 
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Khối sản phẩm nào muốn chạy thì cần điền đủ cả link và ít nhất 1 ảnh.
+        Khối sản phẩm nào muốn chạy thì cần có link. Số ad của mỗi sản phẩm bằng số vị trí điền ở Image positions, để trống thì bằng số ảnh đang có trên trang sản phẩm.
       </div>
 
       <div class="guide-note">
@@ -1045,11 +991,11 @@
       </div>
 
       <div class="guide-note">
-        Ảnh chọn từ Dropbox, định dạng .jpg, .jpeg hoặc .png. Link sản phẩm dán nguyên từ trình duyệt là được.
+        Link sản phẩm dán nguyên từ trình duyệt là được. Ảnh Print image (file thiết kế) vẫn chọn từ Dropbox như cũ.
       </div>
 
       <div class="guide-note">
-        Mỗi sản phẩm chọn khoảng 6 ảnh quảng cáo là mức hợp lý, chọn nhiều hơn không cần thiết.
+        Mỗi sản phẩm lấy khoảng 6 ảnh quảng cáo là mức hợp lý, nhiều hơn không cần thiết.
       </div>
 
       <div class="guide-note">
@@ -1058,7 +1004,8 @@
           <li>Đã nhập Print ID.</li>
           <li>Đã chọn 1 Print image, hoặc chấp nhận dùng bộ chữ mặc định.</li>
           <li>Đã chọn đúng Product type group.</li>
-          <li>Mỗi khối sản phẩm muốn chạy đã có cả link và ít nhất 1 ảnh.</li>
+          <li>Đã điền Image positions (chung hoặc riêng từng sản phẩm), hoặc chấp nhận lấy toàn bộ ảnh.</li>
+          <li>Mỗi khối sản phẩm muốn chạy đã có link.</li>
         </ul>
       </div>
     </div>

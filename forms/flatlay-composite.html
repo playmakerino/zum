@@ -97,8 +97,8 @@ const GARMENTS = { romper:{mock:A.romper_mock, map:A.romper_map}, pajama:{mock:A
 const OFFX=[0,0,0,0,0,0,0,0,0];
 const OFFY=[0,0,0,0,0,0,0,0,0];
 const K_BASE=1.5;          // pattern strip width = K x garment width
-const OUT_AREA=1500*1860;  // output pixels (area)
-const SS=1.7;              // supersample factor for anti-aliasing
+const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
+const SS=1.8;              // supersample factor for anti-aliasing
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
 
 const $=id=>document.getElementById(id);
@@ -171,7 +171,7 @@ async function generate(){
   let Lref=255;
   if(okHex){
     const hist=new Uint32Array(256); let n=0;
-    for(let y=0;y<MH;y++){ const row=y*MW; for(let x=0;x<MW;x++){ if(Math.round(xd[(row+x)*4]/20)!==9) continue; const p=(row+x)*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; n++; } }
+    for(let y=0;y<MH;y+=2){ const row=y*MW; for(let x=0;x<MW;x+=2){ if(Math.round(xd[(row+x)*4]/20)!==9) continue; const p=(row+x)*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; n++; } }
     let acc=0; Lref=255; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=n*0.9){ Lref=v; break; } } if(Lref<1) Lref=1;
   }
 

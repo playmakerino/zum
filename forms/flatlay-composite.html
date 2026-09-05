@@ -3,52 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-</head>
-<body>
 <title>Flatlay Compositor</title>
 <style>
-  :root{
-    --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#ffffff; --accent:#2f6f4e; --focus:#2f6f4e;
-  }
-  :root:not([data-theme="light"]){}
+  :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; --focus:#6fcaa0; }
+    :root:not([data-theme="light"]){ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
   }
-  :root[data-theme="dark"]{ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; --focus:#6fcaa0; }
+  :root[data-theme="dark"]{ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
 
-  body{ background:var(--ground); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  body{ margin:0; background:var(--ground); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  [hidden]{ display:none!important; }
   .wrap{ display:flex; gap:40px; align-items:flex-start; padding:32px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
-  .controls{ width:300px; flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
+  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
   .field{ display:flex; flex-direction:column; gap:7px; }
-  label{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
+  label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
   select,input[type=file],input[type=text]{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; }
   input[type=file]{ padding:8px 10px; font-size:13px; }
-  select:focus-visible,input:focus-visible,button:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .trim{ display:flex; gap:10px; align-items:center; }
   .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
   .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
   .scale-head{ display:flex; justify-content:space-between; align-items:baseline; }
-  .scale-head .val{ font-family:ui-monospace,Menlo,monospace; letter-spacing:0; text-transform:none; color:var(--ink); font-weight:600; }
+  .scale-head .val{ font-family:ui-monospace,Menlo,monospace; color:var(--ink); font-weight:600; }
   input[type=range]{ width:100%; accent-color:var(--accent); }
   .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
   button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
-  button.primary{ border:1px solid var(--accent); color:var(--accent); }
-  button.primary:hover{ background:var(--accent); color:var(--ground); }
-  button.secondary{ border:1px solid var(--line); color:var(--mut); }
-  button.secondary:hover{ color:var(--ink); border-color:var(--ink); }
+  .primary{ border:1px solid var(--accent); color:var(--accent); }
+  .primary:hover{ background:var(--accent); color:var(--ground); }
+  .secondary{ border:1px solid var(--line); color:var(--mut); }
+  .secondary:hover{ color:var(--ink); border-color:var(--ink); }
   button:disabled{ opacity:.4; cursor:default; }
-  button:disabled:hover{ background:transparent; color:var(--mut); }
+  button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
   .msg{ font-size:12px; color:var(--mut); min-height:16px; }
   .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
   .shot{ margin:0; flex:1 1 300px; min-width:240px; display:flex; flex-direction:column; gap:8px; }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
-  .shot figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; text-align:center; }
-  .notebox{ border:1px dashed var(--line); border-radius:8px; padding:22px 18px; color:var(--mut); font-size:13px; line-height:1.5; text-align:center; }
-  .view .empty{ color:var(--mut); font-size:13px; padding:40px 0; }
-  canvas{ display:none; }
-  @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
+  figcaption{ text-align:center; }
+  .notebox{ border:1px dashed var(--line); border-radius:8px; padding:22px 18px; color:var(--mut); font-size:13px; text-align:center; }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <div class="controls">
@@ -91,175 +85,187 @@
   </div>
 </div>
 
-<canvas id="cv"></canvas>
-<script id="assets" type="application/json">{"romper_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-romper.jpg?v=1788601399","romper_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-romper.png?v=1788601403","pajama_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-pajama.jpg?v=1788601402","pajama_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-pajama.png?v=1788601405"}</script>
 <script>
-const A = JSON.parse(document.getElementById('assets').textContent);
-const GARMENTS = {
-  romper:{ flat:{mock:A.romper_mock, map:A.romper_map} },
-  pajama:{ flat:{mock:A.pajama_mock, map:A.pajama_map} },
+'use strict';
+const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+const GARMENTS={
+  romper:{ mock:CDN+'zum-flatlay-mock-romper.jpg?v=1788601399', map:CDN+'zum-flatlay-map-romper.png?v=1788601403' },
+  pajama:{ mock:CDN+'zum-flatlay-mock-pajama.jpg?v=1788601402', map:CDN+'zum-flatlay-map-pajama.png?v=1788601405' },
 };
-// Lệch pha tile theo từng mảnh vải: đường may cắt đứt pattern (không liền mạch giữa 2 mảnh khác nhau).
+// Map encoding: red channel / 20 -> panel id. 0 = background, 1..8 = fabric panels, 9 = trim.
+// Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
+// Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
 const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
 const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
-const K_BASE=1.5;          // pattern strip width = K x garment width
+const K_BASE=1.5;          // pattern strip width = K x garment bbox width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.8;              // supersample factor for anti-aliasing
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
+const TRIM_CEIL=1.15;
+const COLLAR_ID=6;
+const HEX_RE=/^#?([0-9a-f]{6})$/i;
 
 const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
-function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('image load failed')); i.src=src; }); }
+const nextPaint=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+const loadImg=src=>new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('image load failed: '+src)); i.src=src; });
+const parseHex=s=>{ const m=HEX_RE.exec(s.trim()); return m?m[1].toUpperCase():null; };
+const hexToRgb=h=>[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+
+// Draw img at w x h and return its pixels.
+function raster(img,w,h,smooth){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=smooth; x.drawImage(img,0,0,w,h);
+  return { w, h, data:x.getImageData(0,0,w,h).data };
+}
+function rasterArea(img,area,smooth){
+  const s=Math.sqrt(area/(img.width*img.height));
+  return raster(img, Math.max(1,Math.round(img.width*s)), Math.max(1,Math.round(img.height*s)), smooth);
+}
+function rasterWidth(img,w,smooth){ return raster(img, w, Math.max(1,Math.round(img.height*w/img.width)), smooth); }
 
 // --- trim auto-detect: same logic as zum_prd_form.html ---
 function rgbToHsv(r,g,b){ const max=Math.max(r,g,b),min=Math.min(r,g,b),c=max-min; let h=0; if(c!==0){ if(max===r)h=((g-b)/c+6)%6; else if(max===g)h=(b-r)/c+2; else h=(r-g)/c+4; h/=6; } return [h, max===0?0:c/max, max/255]; }
 function hsvToRgb(h,s,v){ const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s); return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(x=>Math.round(x*255)); }
-function toHex(rgb){ return '#'+rgb.map(x=>Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join(''); }
+const toHex=rgb=>'#'+rgb.map(x=>Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('');
 // dominant hue of the swatch, pulled into a range a garment trim can actually be
 function suggestTrimHex(img){
   try{
-    const n=64, c=document.createElement('canvas'); c.width=c.height=n;
-    const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=false; x.drawImage(img,0,0,n,n);
-    const d=x.getImageData(0,0,n,n).data, B=36;
+    const n=64, B=36, d=raster(img,n,n,false).data;
     const weight=new Float64Array(B), sum=new Float64Array(B*3), count=new Int32Array(B);
-    for(let i=0;i<d.length;i+=4){ if(d[i+3]<128) continue; const r=d[i],g=d[i+1],b=d[i+2]; const max=Math.max(r,g,b),min=Math.min(r,g,b),ch=max-min; if(max<40||ch/max<0.2) continue; let h; if(max===r)h=((g-b)/ch+6)%6; else if(max===g)h=(b-r)/ch+2; else h=(r-g)/ch+4; const k=Math.min(B-1,Math.floor(h/6*B)); weight[k]+=ch; sum[k*3]+=r; sum[k*3+1]+=g; sum[k*3+2]+=b; count[k]++; }
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<128) continue;
+      const r=d[i],g=d[i+1],b=d[i+2], max=Math.max(r,g,b), ch=max-Math.min(r,g,b);
+      if(max<40||ch/max<0.2) continue;
+      const k=Math.min(B-1,Math.floor(rgbToHsv(r,g,b)[0]*B));
+      weight[k]+=ch; sum[k*3]+=r; sum[k*3+1]+=g; sum[k*3+2]+=b; count[k]++;
+    }
     let top=-1,tw=0; for(let k=0;k<B;k++) if(weight[k]>tw){ tw=weight[k]; top=k; }
     if(top<0) return null;
-    const r=sum[top*3]/count[top], g=sum[top*3+1]/count[top], b=sum[top*3+2]/count[top];
-    const hsv=rgbToHsv(r,g,b); if(hsv[1]<0.15||hsv[2]<0.10) return null;
-    return toHex(hsvToRgb(hsv[0], Math.min(0.70,Math.max(0.25,hsv[1])), Math.min(0.86,Math.max(0.52,hsv[2]))));
-  }catch(e){ return null; }
+    const c=count[top], [h,s,v]=rgbToHsv(sum[top*3]/c, sum[top*3+1]/c, sum[top*3+2]/c);
+    if(s<0.15||v<0.10) return null;
+    return toHex(hsvToRgb(h, Math.min(0.70,Math.max(0.25,s)), Math.min(0.86,Math.max(0.52,v))));
+  }catch{ return null; }
 }
-function setTrim(hex){ $('trimColor').value=hex; $('trimHex').value=hex.toUpperCase(); }
+function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
 
-function rasterize(img, area, smooth){
-  const s=Math.sqrt(area/(img.width*img.height));
-  const w=Math.max(1,Math.round(img.width*s)), h=Math.max(1,Math.round(img.height*s));
-  const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d'); x.imageSmoothingEnabled=smooth; x.drawImage(img,0,0,w,h);
-  return { w, h, data:x.getImageData(0,0,w,h).data };
-}
-function rasterizeWidth(img, w, smooth){
-  const h=Math.max(1,Math.round(img.height*w/img.width));
-  const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d'); x.imageSmoothingEnabled=smooth; x.drawImage(img,0,0,w,h);
-  return { w, h, data:x.getImageData(0,0,w,h).data };
-}
-
-let patImg=null;
-
-// Composite one garment view. mode 'flat' sizes the motif from the garment bbox width
-// (baseline calibration); mode 'model' sizes it from sqrt(fabric area) x cal so the motif
-// keeps the SAME physical size as the flatlay regardless of pose/framing. Per-panel phase
-// offsets break the print at seams between different panels; per-panel PCA rotation aligns
-// the print to each panel's grain so motifs stay oriented even when the body isn't upright.
-// collar6 keeps the flatlay collar-inner hack (mirror + bleed on id 6); model maps use id 6
-// as an ordinary fabric panel.
-async function composeView(spec, opt, okHex, tr,tg,tb, collar6){
-  const CA=OUT_AREA*SS*SS;
-  const M   = rasterize(await loadImg(spec.mock), CA, true);
-  const MAP = rasterize(await loadImg(spec.map),  CA, false);
-  const MW=M.w, MH=M.h, md=M.data, xd=MAP.data;
-
-  // one pass over the map: bbox + fabric area (ids 1..8) + per-panel moments for PCA orientation
-  let minx=MW, maxx=0, area=0;
-  const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
-        sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
-  for(let y=0;y<MH;y++){ const row=y*MW; for(let x=0;x<MW;x++){ const k=Math.round(xd[(row+x)*4]/20);
-    if(k>=1&&k<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; area++; cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; } } }
-  const gw=Math.max(2, maxx-minx+1);
-  const patW = opt.mode==='model'
-    ? Math.max(2, Math.round(K_BASE*opt.scale*Math.sqrt(area)*opt.cal))
-    : Math.max(2, Math.round(K_BASE*opt.scale*gw));
-  const P=rasterizeWidth(patImg, patW, true);
-  const PW=P.w, PH=P.h, pd=P.data;
-
-  // per-panel centroid + major-axis angle; rotate sampling by -theta so the print follows the panel grain
-  const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10), sn=new Float64Array(10);
-  for(let k=1;k<=8;k++){ if(cnt[k]<50){ cs[k]=1; sn[k]=0; continue; }
-    cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
-    const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
-    const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
-
-  // trim reference: 90th percentile luminance of trim region (id 9)
-  let Lref=255;
-  if(okHex){
-    const hist=new Uint32Array(256); let n=0;
-    for(let y=0;y<MH;y+=2){ const row=y*MW; for(let x=0;x<MW;x+=2){ if(Math.round(xd[(row+x)*4]/20)!==9) continue; const p=(row+x)*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; n++; } }
-    let acc=0; Lref=255; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=n*0.9){ Lref=v; break; } } if(Lref<1) Lref=1;
-  }
-
-  const ox=[], oy=[]; for(let k=0;k<9;k++){ ox[k]=Math.floor(OFFX[k]*PW); oy[k]=Math.floor(OFFY[k]*PH); }
-
-  const big=$('cv'); big.width=MW; big.height=MH;
-  const bctx=big.getContext('2d');
-  const outImg=bctx.createImageData(MW,MH); const out=outImg.data;
-
-  for(let y=0;y<MH;y++){
-    const row=y*MW;
-    for(let x=0;x<MW;x++){
-      const o=(row+x)*4;
-      const r=md[o], gg=md[o+1], b=md[o+2];
-      const k=Math.round(xd[o]/20);
-      if(k===0||k>9){ out[o]=r; out[o+1]=gg; out[o+2]=b; out[o+3]=255; continue; }
-      if(k===9){
-        if(!okHex){ out[o]=r; out[o+1]=gg; out[o+2]=b; out[o+3]=255; continue; }
-        let f=((r*299+gg*587+b*114)/1000)/Lref; if(f<TRIM_FLOOR) f=TRIM_FLOOR; if(f>1.15) f=1.15;
-        out[o]=Math.min(255,tr*f)|0; out[o+1]=Math.min(255,tg*f)|0; out[o+2]=Math.min(255,tb*f)|0; out[o+3]=255;
-        continue;
-      }
-      const dx=x-cx[k], dy=y-cy[k];
-      const rx=dx*cs[k]+dy*sn[k], ry=-dx*sn[k]+dy*cs[k];   // rotate by -theta -> tile in panel-local axes
-      let tx=((Math.round(rx)+ox[k])%PW+PW)%PW; const ty=((Math.round(ry)+oy[k])%PH+PH)%PH;
-      if(collar6 && k===6) tx=PW-1-tx;                 // inside of the collar = wrong side of one-sided print -> mirror
-      const pp=(ty*PW+tx)*4;
-      let pr=pd[pp], pg=pd[pp+1], pb=pd[pp+2];
-      if(collar6 && k===6){ pr=pr*0.4+210*0.6; pg=pg*0.4+210*0.6; pb=pb*0.4+210*0.6; }  // faint bleed-through
-      out[o]=(r*pr)/255|0; out[o+1]=(gg*pg)/255|0; out[o+2]=(b*pb)/255|0; out[o+3]=255;
+// --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
+// One pass over the map yields: panel id per pixel, garment bbox width, per-panel centroid +
+// major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
+// luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
+const garmentCache=new Map();
+function analyzeGarment(key){
+  if(garmentCache.has(key)) return garmentCache.get(key);
+  const p=(async()=>{
+    const spec=GARMENTS[key], CA=OUT_AREA*SS*SS;
+    const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadImg(spec.map)]);
+    const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
+    const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
+    const ids=new Uint8Array(N);
+    const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
+          sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
+    const hist=new Uint32Array(256); let nTrim=0;
+    let minx=W, maxx=0;
+    for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
+      const k=((xd[i*4]+10)/20)|0; ids[i]=k;
+      if(k>=1&&k<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; }
+      else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
     }
-  }
-  bctx.putImageData(outImg,0,0);
-
-  // downscale for anti-aliasing
-  const ow=Math.round(MW/SS), oh=Math.round(MH/SS);
-  const disp=document.createElement('canvas'); disp.width=ow; disp.height=oh;
-  const dctx=disp.getContext('2d'); dctx.imageSmoothingEnabled=true; dctx.imageSmoothingQuality='high';
-  dctx.drawImage(big,0,0,ow,oh);
-  return {disp, gw, area};
+    const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
+    for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
+      cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
+      const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
+      const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
+    let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
+    return { w:W, h:H, mock:md, ids, gw:Math.max(2,maxx-minx+1), cx, cy, cs, sn, Lref:Math.max(1,Lref) };
+  })();
+  garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
+  return p;
 }
+
+// --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
+const big=document.createElement('canvas'), disp=document.createElement('canvas');
+function compose(G, pat, scale, trim){
+  const {w:W,h:H,mock:md,ids,cx,cy,cs,sn,Lref}=G;
+  const P=rasterWidth(pat, Math.max(2,Math.round(K_BASE*scale*G.gw)), true);
+  const PW=P.w, PH=P.h, pd=P.data;
+  const ox=OFFX.map(v=>Math.floor(v*PW)), oy=OFFY.map(v=>Math.floor(v*PH));
+  const out=new Uint8ClampedArray(md);            // background + (when no trim color) trim pixels stay as the mock
+  const [tr,tg,tb]=trim||[0,0,0];
+
+  for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
+    const k=ids[i]; if(k===0||k>9) continue;
+    const o=i*4, r=md[o], g=md[o+1], b=md[o+2];
+    if(k===9){
+      if(!trim) continue;
+      const f=Math.min(TRIM_CEIL, Math.max(TRIM_FLOOR, (r*299+g*587+b*114)/1000/Lref));
+      out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
+      continue;
+    }
+    const dx=x-cx[k], dy=y-cy[k];
+    const rx=dx*cs[k]+dy*sn[k], ry=-dx*sn[k]+dy*cs[k];   // rotate by -theta -> tile in panel-local axes
+    let tx=((Math.round(rx)+ox[k])%PW+PW)%PW; const ty=((Math.round(ry)+oy[k])%PH+PH)%PH;
+    if(k===COLLAR_ID) tx=PW-1-tx;                       // wrong side of the print -> mirror
+    const pp=(ty*PW+tx)*4;
+    let pr=pd[pp], pg=pd[pp+1], pb=pd[pp+2];
+    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
+    out[o]=(r*pr)/255|0; out[o+1]=(g*pg)/255|0; out[o+2]=(b*pb)/255|0;
+  }
+
+  big.width=W; big.height=H;
+  big.getContext('2d').putImageData(new ImageData(out,W,H),0,0);
+  disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
+  const dctx=disp.getContext('2d'); dctx.imageSmoothingQuality='high';
+  dctx.drawImage(big,0,0,disp.width,disp.height);
+  return disp;
+}
+
+// --- UI state ---
+let patImg=null, resultBlob=null, resultUrl=null, busy=false;
 
 async function generate(){
+  if(busy) return;
   if(!patImg){ msg('Choose a pattern file first.'); return; }
-  msg('Generating…'); await new Promise(r=>setTimeout(r,20));
+  busy=true; $('go').disabled=true;
+  msg('Generating…'); await nextPaint();
   const t0=performance.now();
-
-  const g=GARMENTS[$('garment').value];
-  const scale=parseFloat($('scale').value);
-  const hex=$('trimHex').value.replace(/^#/,'').trim();
-  const okHex=/^[0-9a-fA-F]{6}$/.test(hex);
-  const tr=okHex?parseInt(hex.slice(0,2),16):0, tg=okHex?parseInt(hex.slice(2,4),16):0, tb=okHex?parseInt(hex.slice(4,6),16):0;
-
-
-  const fr = await composeView(g.flat, {mode:'flat', scale}, okHex, tr,tg,tb, true);
-  window.__canvasFlat=fr.disp; $('result').src=fr.disp.toDataURL('image/png'); $('shotFlat').hidden=false;
-  $('shotModel').hidden=false;   // show the On-model note only after Generate
-
-  $('dl').disabled=false;
-  msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+  try{
+    const G=await analyzeGarment($('garment').value);
+    const hex=parseHex($('trimHex').value);
+    const c=compose(G, patImg, parseFloat($('scale').value), hex&&hexToRgb(hex));
+    const blob=await new Promise(res=>c.toBlob(res,'image/png'));
+    if(!blob) throw new Error('PNG encode failed');
+    if(resultUrl) URL.revokeObjectURL(resultUrl);
+    resultBlob=blob; resultUrl=URL.createObjectURL(blob);
+    $('result').src=resultUrl; $('shotFlat').hidden=false;
+    $('shotModel').hidden=false;   // show the On-model note only after Generate
+    $('dl').disabled=false;
+    msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+  }catch(err){ msg('Error: '+err.message); }
+  finally{ busy=false; $('go').disabled=false; }
 }
 
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
-$('trimHex').addEventListener('input', e=>{ const v=e.target.value.trim().replace(/^#/,''); if(/^[0-9a-fA-F]{6}$/.test(v)) $('trimColor').value='#'+v; });
+$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
 $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
-$('pattern').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; msg('Reading pattern…'); await new Promise(r=>setTimeout(r)); try{ patImg = window.createImageBitmap ? await createImageBitmap(f) : await loadImg(URL.createObjectURL(f)); const t=suggestTrimHex(patImg); if(t) setTrim(t); msg('Pattern '+patImg.width+'×'+patImg.height+(t?' · trim '+t.toUpperCase():'')); }catch{ msg('Could not read that image.'); } });
-$('go').addEventListener('click', ()=>{ generate().catch(err=>msg('Error: '+err.message)); });
+$('pattern').addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  msg('Reading pattern…'); await nextPaint();
+  try{
+    const img = window.createImageBitmap ? await createImageBitmap(f) : await loadImg(URL.createObjectURL(f));
+    if(patImg&&patImg.close) patImg.close();
+    patImg=img;
+    const t=suggestTrimHex(img); if(t) setTrim(t);
+    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
+  }catch{ msg('Could not read that image.'); }
+});
+$('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
-  const c=window.__canvasFlat; if(!c) return;
-  const bl=await new Promise(res=>c.toBlob(res,'image/png')); if(!bl) return;
+  if(!resultBlob) return;
   const name='flatlay-'+$('garment').value+'.png';
-  let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{ dl=null; }
-  if(dl){ try{ await dl.save({filename:name, data:bl}); }catch(e){ msg('Download '+(e&&e.code?e.code:'failed')); } }
-  else { const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+  let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
+  if(dl){ try{ await dl.save({filename:name, data:resultBlob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
+  else { const a=document.createElement('a'); a.href=resultUrl; a.download=name; a.click(); }
 });
 </script>
 

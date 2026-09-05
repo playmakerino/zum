@@ -426,18 +426,11 @@
     .flat-item.ready .flat-shot .ph { display: none; }
 
     .flat-cap {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
       margin-top: 6px;
       font-size: 12px;
       color: var(--text-sub);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .flat-cap span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .flat-cap a { color: var(--text-sub); text-decoration: none; flex: none; }
-    .flat-cap a:hover { color: var(--text); text-decoration: underline; }
-    .flat-cap a[hidden] { display: none; }
 
     .flat-msg { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 16px; }
     .flat-msg.error { color: var(--error); }
@@ -735,14 +728,14 @@
                 <img alt="Romper flatlay">
                 <div class="ph">Romper flatlay shows up here once a pattern is in</div>
               </div>
-              <figcaption class="flat-cap"><span>Convertible Zippy Romper</span><a href="#" download="flatlay-romper.jpg" hidden>Download</a></figcaption>
+              <figcaption class="flat-cap">Convertible Zippy Romper</figcaption>
             </figure>
             <figure class="flat-item" id="flatPajama">
               <div class="flat-shot">
                 <img alt="Pajama flatlay">
                 <div class="ph">Pajama flatlay shows up here once a pattern is in</div>
               </div>
-              <figcaption class="flat-cap"><span>Two-Piece Pajama Set</span><a href="#" download="flatlay-pajama.jpg" hidden>Download</a></figcaption>
+              <figcaption class="flat-cap">Two-Piece Pajama Set</figcaption>
             </figure>
           </div>
           <div class="flat-msg" id="flatMsg"></div>
@@ -1355,7 +1348,6 @@
       const url = URL.createObjectURL(blob);
       flat[key] = { blob, url };
       item.querySelector('img').src = url;
-      const a = item.querySelector('a'); a.href = url; a.hidden = false;
       item.classList.add('ready');
     }
 
@@ -1367,7 +1359,6 @@
         const item = document.getElementById(key === 'romper' ? 'flatRomper' : 'flatPajama');
         item.classList.remove('ready');
         item.querySelector('img').removeAttribute('src');
-        const a = item.querySelector('a'); a.removeAttribute('href'); a.hidden = true;
       }
       if (patImg && patImg.close) patImg.close();
       patImg = null;

@@ -96,7 +96,7 @@
 const A = JSON.parse(document.getElementById('assets').textContent);
 const GARMENTS = {
   romper:{ flat:{mock:A.romper_mock, map:A.romper_map}, model:{mock:A.romper_model_mock, map:A.romper_model_map} },
-  pajama:{ flat:{mock:A.pajama_mock, map:A.pajama_map}, model:{mock:A.pajama_model_mock, map:A.pajama_model_map} },
+  pajama:{ flat:{mock:A.pajama_mock, map:A.pajama_map} },
 };
 // Lệch pha tile theo từng mảnh vải: đường may cắt đứt pattern (không liền mạch giữa 2 mảnh khác nhau).
 const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
@@ -244,9 +244,12 @@ async function generate(){
   window.__canvasFlat=fr.disp; $('result').src=fr.disp.toDataURL('image/png'); $('shotFlat').hidden=false;
   msg('Flatlay done · rendering model…'); await new Promise(r=>setTimeout(r,20));
 
-  const cal = fr.gw/Math.sqrt(fr.area);   // keep model motif the same physical size as the flatlay
-  const mr = await composeView(g.model, {mode:'model', scale, cal}, okHex, tr,tg,tb, false);
-  window.__canvasModel=mr.disp; $('result2').src=mr.disp.toDataURL('image/png'); $('shotModel').hidden=false;
+  window.__canvasModel=null;
+  if(g.model){
+    const cal = fr.gw/Math.sqrt(fr.area);   // keep model motif the same physical size as the flatlay
+    const mr = await composeView(g.model, {mode:'model', scale, cal}, okHex, tr,tg,tb, false);
+    window.__canvasModel=mr.disp; $('result2').src=mr.disp.toDataURL('image/png'); $('shotModel').hidden=false;
+  } else { $('shotModel').hidden=true; }
 
   $('dl').disabled=false;
   msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');

@@ -351,6 +351,92 @@
       cursor: pointer;
     }
 
+    /* ---- flatlays, composited in the browser (ported from flatlay-composite.html) ----
+       Two previews side by side, same two columns as .fields so they line up with the
+       inputs above. The previews are what n8n receives as the flatlay photo, so they sit
+       right above the submit button: what you see is what gets sent. */
+    .flat { margin-top: 20px; }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .scale-row .scale-lbl { font-size: 13px; color: var(--text-sub); white-space: nowrap; }
+    .scale-row input[type=range] { flex: 1; min-width: 0; accent-color: #fff; }
+    .scale-row .val {
+      width: 44px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text-sub);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .flat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 560px) {
+      .flat-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .flat-shot {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-elevated);
+    }
+    .flat-shot img {
+      display: none;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      transition: opacity 0.2s;
+    }
+    .flat-item.ready .flat-shot img { display: block; }
+    /* previews built from older inputs fade while the new ones are being built */
+    .flat.stale .flat-item.ready .flat-shot img { opacity: 0.35; }
+
+    .flat-shot .ph {
+      position: absolute; inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+    .flat-item.ready .flat-shot .ph { display: none; }
+
+    .flat-cap {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .flat-cap span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .flat-cap a { color: var(--text-sub); text-decoration: none; flex: none; }
+    .flat-cap a:hover { color: var(--text); text-decoration: underline; }
+    .flat-cap a[hidden] { display: none; }
+
+    .flat-msg { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 16px; }
+    .flat-msg.error { color: var(--error); }
+    .flat-msg button {
+      background: none; border: none; padding: 0;
+      color: var(--text);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
     .submit-wrap { margin-top: 20px; }
 
     .submit-btn {
@@ -513,7 +599,7 @@
     <div class="panel col-form">
     <div class="header">
       <h1>Pattern → Products</h1>
-      <p>Upload a pattern swatch. Zumbamboo drafts get created with images, product type, design, niche. The result lands in Telegram.</p>
+      <p>Upload a pattern swatch. The flatlays are built right here in the browser, then Zumbamboo drafts get created with images, product type, design, niche. The result lands in Telegram.</p>
     </div>
 
     <div class="card">
@@ -611,6 +697,35 @@
 
       </div>
 
+      <div class="field flat" id="flat">
+        <div class="lbl-row">
+          <label for="motifScale">Flatlays</label>
+          <div class="auto-hint" style="display:block">Built here from the swatch, trim color and motif size. Sent as the flatlay photo.</div>
+        </div>
+        <div class="scale-row">
+          <span class="scale-lbl">Motif size</span>
+          <input type="range" id="motifScale" min="0.5" max="2" step="0.05" value="1">
+          <span class="val" id="motifScaleVal">1.00×</span>
+        </div>
+        <div class="flat-grid">
+          <figure class="flat-item" id="flatRomper">
+            <div class="flat-shot">
+              <img alt="Romper flatlay">
+              <div class="ph">Romper flatlay shows up here once a pattern is in</div>
+            </div>
+            <figcaption class="flat-cap"><span>Convertible Zippy Romper</span><a href="#" download="flatlay-romper.jpg" hidden>Download</a></figcaption>
+          </figure>
+          <figure class="flat-item" id="flatPajama">
+            <div class="flat-shot">
+              <img alt="Pajama flatlay">
+              <div class="ph">Pajama flatlay shows up here once a pattern is in</div>
+            </div>
+            <figcaption class="flat-cap"><span>Two-Piece Pajama Set</span><a href="#" download="flatlay-pajama.jpg" hidden>Download</a></figcaption>
+          </figure>
+        </div>
+        <div class="flat-msg" id="flatMsg"></div>
+      </div>
+
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" disabled>Create products</button>
       </div>
@@ -630,7 +745,10 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form";
+    // COMPOSITE form workflow (n8n IwCz50cciKPIjakZ): receives the two flatlays built below
+    // and never composes or generates a flatlay itself. The older Gemini-flatlay workflow
+    // is still live at /webhook/zum-prd-form (kZvHwfNZ6Gz1L5E4) if this one has to be rolled back.
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form-comp";
 
     // A browser page has no inbound URL, so n8n cannot push into it, and every status
     // read would be one more n8n execution. So there is no status read at all: the run
@@ -663,6 +781,10 @@
     const uploader   = document.getElementById('uploader');
     const patternId  = document.getElementById('patternId');
     const submitBtn  = document.getElementById('submitBtn');
+    const flatEl     = document.getElementById('flat');
+    const flatMsgEl  = document.getElementById('flatMsg');
+    const motifScale = document.getElementById('motifScale');
+    const motifScaleVal = document.getElementById('motifScaleVal');
 
     // populate niche + sub niche
     nicheSel.innerHTML = '<option value="">(none)</option>' +
@@ -701,15 +823,20 @@
         f = null;
       }
       selectedFile = f || null;
+      clearFlats();
       if (selectedFile) {
         pvImg.src = URL.createObjectURL(selectedFile);
         pvName.textContent = selectedFile.name;
         pvMeta.textContent = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
         uploadCell.classList.add('filled');
-        scrimFromImage(selectedFile);
+        patternLoad = loadPattern(selectedFile);
+        // the flatlays use the trim colour, and the swatch scan is what suggests it,
+        // so build them only after that scan has run
+        scrimFromImage(selectedFile).then(() => requestFlatlays(0));
       } else {
         uploadCell.classList.remove('filled');
         pvImg.removeAttribute('src');
+        patternLoad = null;
         clearScrim();
       }
       refreshSubmit();
@@ -807,7 +934,9 @@
       genderHint.style.display = 'block';
     }
 
+    // Resolves once the scan is done (or failed), so callers can wait for the trim suggestion.
     function scrimFromImage(file) {
+      return new Promise(resolve => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
@@ -862,9 +991,11 @@
           clearScrim();   // canvas can be tainted on the file:// origin
         }
         URL.revokeObjectURL(url);
+        resolve();
       };
-      img.onerror = () => { URL.revokeObjectURL(url); clearScrim(); };
+      img.onerror = () => { URL.revokeObjectURL(url); clearScrim(); resolve(); };
       img.src = url;
+      });
     }
 
     // the hint only claims the swatch as the source while the value still comes from it
@@ -873,6 +1004,7 @@
       trimColor.value = trimPicker.value;
       applyGenderFromTrim();
       validate(false);
+      requestFlatlays(500);
     });
 
     // sua gender bang tay -> khoa lai, tu gio doi trim khong ghi de nua
@@ -886,6 +1018,12 @@
       if (v) trimPicker.value = v;
       applyGenderFromTrim();
       validate(false);
+      if (v) requestFlatlays(500);
+    });
+
+    motifScale.addEventListener('input', () => {
+      motifScaleVal.textContent = parseFloat(motifScale.value).toFixed(2) + '×';
+      requestFlatlays(400);
     });
 
     [patternName, nicheSel, subNiche, uploader, patternId].forEach(el => el.addEventListener('input', () => validate(false)));
@@ -943,9 +1081,21 @@
 
       // the pending state lives in the button, so nothing in the form moves
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner"></span> Sending…';
 
       try {
+        // The flatlays must match the trim and motif size on screen right now. A pending
+        // rebuild (debounced, or still running) is finished here before anything is sent.
+        if (!flatReady()) {
+          submitBtn.innerHTML = '<span class="spinner"></span> Building flatlays…';
+          clearTimeout(flatTimer);
+          await generateFlatlays();
+          if (!flatReady()) {
+            toast('The flatlays are not ready: ' + (flatErr || 'try again in a moment.'), 'error');
+            return;
+          }
+        }
+        submitBtn.innerHTML = '<span class="spinner"></span> Sending…';
+
         const fd = new FormData();
         fd.append('task_id', taskId);
         fd.append('pattern_name', patternName.value.trim());
@@ -956,7 +1106,10 @@
         fd.append('uploader', uploader.value.trim());
         fd.append('pattern_id', patternId.value.trim());
         fd.append('gender', gender.value);
+        fd.append('motif_scale', motifScale.value);
         fd.append('pattern', selectedFile, selectedFile.name);
+        // one composited flatlay per product type; the workflow picks them by data-table product_type
+        for (const key of FLAT_KEYS) fd.append('flatlay_' + key, flat[key].blob, 'flatlay-' + key + '.jpg');
 
 
         const thumb = await makeThumb(selectedFile, 80);
@@ -1021,6 +1174,237 @@
         img.onerror = () => { URL.revokeObjectURL(url); resolve(''); };
         img.src = url;
       });
+    }
+
+    /* ---------------- flatlays ----------------
+       Ported from flatlay-composite.html. The pattern is tiled into each fabric panel of a
+       white mockup (mockup + panel map on the Shopify CDN), the trim is recoloured to the
+       trim hex, and the result is sent as the flatlay photo of each product. n8n therefore
+       never composes or generates a flatlay: the workflow only forwards the two JPEGs it
+       receives, so no full-size image ever sits in its heap (the composite-in-n8n attempt
+       died of exactly that, 2026-09-05). */
+
+    const CDN = 'https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+    const GARMENTS = {
+      romper: { mock: CDN + 'zum-flatlay-mock-romper.jpg?v=1788601399', map: CDN + 'zum-flatlay-map-romper.png?v=1788601403' },
+      pajama: { mock: CDN + 'zum-flatlay-mock-pajama.jpg?v=1788601402', map: CDN + 'zum-flatlay-map-pajama.png?v=1788601405' },
+    };
+    const FLAT_KEYS = ['romper', 'pajama'];
+    // Map encoding: red channel / 20 -> panel id. 0 = background, 1..8 = fabric panels, 9 = trim.
+    // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
+    // Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+    const OFFX = [0, 0.37, 0.71, 0.13, 0.58, 0.92, 0.26, 0.64, 0.45];
+    const OFFY = [0, 0.53, 0.19, 0.81, 0.34, 0.67, 0.08, 0.46, 0.88];
+    const K_BASE = 1.5;            // pattern strip width = K x garment bbox width
+    const OUT_AREA = 1900 * 2356;  // output pixels (~1900px wide) - crisp motifs
+    const SS = 1.8;                // supersample factor for anti-aliasing
+    const TRIM_FLOOR = 0.65;       // lift trim shadows (lighter inner collar)
+    const TRIM_CEIL = 1.15;
+    const COLLAR_ID = 6;
+    const JPEG_QUALITY = 0.92;     // ~1.5 MB per flatlay instead of ~8 MB as PNG; Shopify re-encodes anyway
+
+    const nextPaint = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    const loadImg = src => new Promise((res, rej) => {
+      const i = new Image(); i.crossOrigin = 'anonymous';
+      i.onload = () => res(i); i.onerror = () => rej(new Error('image load failed: ' + src)); i.src = src;
+    });
+    const hexToRgb = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+
+    // Draw img at w x h and return its pixels.
+    function raster(img, w, h, smooth) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = smooth; x.drawImage(img, 0, 0, w, h);
+      return { w, h, data: x.getImageData(0, 0, w, h).data };
+    }
+    function rasterArea(img, area, smooth) {
+      const s = Math.sqrt(area / (img.width * img.height));
+      return raster(img, Math.max(1, Math.round(img.width * s)), Math.max(1, Math.round(img.height * s)), smooth);
+    }
+    function rasterWidth(img, w, smooth) { return raster(img, w, Math.max(1, Math.round(img.height * w / img.width)), smooth); }
+
+    // --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
+    // One pass over the map yields: panel id per pixel, garment bbox width, per-panel centroid +
+    // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
+    // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
+    const garmentCache = new Map();
+    function analyzeGarment(key) {
+      if (garmentCache.has(key)) return garmentCache.get(key);
+      const p = (async () => {
+        const spec = GARMENTS[key], CA = OUT_AREA * SS * SS;
+        const [mockImg, mapImg] = await Promise.all([loadImg(spec.mock), loadImg(spec.map)]);
+        const M = rasterArea(mockImg, CA, true), MAP = rasterArea(mapImg, CA, false);
+        const W = M.w, H = M.h, md = M.data, xd = MAP.data, N = W * H;
+        const ids = new Uint8Array(N);
+        const cnt = new Float64Array(10), sx = new Float64Array(10), sy = new Float64Array(10),
+              sxx = new Float64Array(10), sxy = new Float64Array(10), syy = new Float64Array(10);
+        const hist = new Uint32Array(256); let nTrim = 0;
+        let minx = W, maxx = 0;
+        for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) {
+          const k = ((xd[i * 4] + 10) / 20) | 0; ids[i] = k;
+          if (k >= 1 && k <= 8) { if (x < minx) minx = x; if (x > maxx) maxx = x; cnt[k]++; sx[k] += x; sy[k] += y; sxx[k] += x * x; sxy[k] += x * y; syy[k] += y * y; }
+          else if (k === 9 && !((x | y) & 1)) { const p = i * 4; hist[((md[p] * 299 + md[p + 1] * 587 + md[p + 2] * 114) / 1000) | 0]++; nTrim++; }
+        }
+        const cx = new Float64Array(10), cy = new Float64Array(10), cs = new Float64Array(10).fill(1), sn = new Float64Array(10);
+        for (let k = 1; k <= 8; k++) { if (cnt[k] < 50) continue;
+          cx[k] = sx[k] / cnt[k]; cy[k] = sy[k] / cnt[k];
+          const vxx = sxx[k] / cnt[k] - cx[k] * cx[k], vyy = syy[k] / cnt[k] - cy[k] * cy[k], vxy = sxy[k] / cnt[k] - cx[k] * cy[k];
+          const th = 0.5 * Math.atan2(2 * vxy, vyy - vxx); cs[k] = Math.cos(th); sn[k] = Math.sin(th); }
+        let Lref = 255, acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= nTrim * 0.9) { Lref = v; break; } }
+        return { w: W, h: H, mock: md, ids, gw: Math.max(2, maxx - minx + 1), cx, cy, cs, sn, Lref: Math.max(1, Lref) };
+      })();
+      garmentCache.set(key, p); p.catch(() => garmentCache.delete(key));
+      return p;
+    }
+
+    // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
+    const big = document.createElement('canvas'), disp = document.createElement('canvas');
+    function compose(G, pat, scale, trim) {
+      const { w: W, h: H, mock: md, ids, cx, cy, cs, sn, Lref } = G;
+      const P = rasterWidth(pat, Math.max(2, Math.round(K_BASE * scale * G.gw)), true);
+      const PW = P.w, PH = P.h, pd = P.data;
+      const ox = OFFX.map(v => Math.floor(v * PW)), oy = OFFY.map(v => Math.floor(v * PH));
+      const out = new Uint8ClampedArray(md);            // background + (when no trim color) trim pixels stay as the mock
+      const [tr, tg, tb] = trim || [0, 0, 0];
+
+      for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) {
+        const k = ids[i]; if (k === 0 || k > 9) continue;
+        const o = i * 4, r = md[o], g = md[o + 1], b = md[o + 2];
+        if (k === 9) {
+          if (!trim) continue;
+          const f = Math.min(TRIM_CEIL, Math.max(TRIM_FLOOR, (r * 299 + g * 587 + b * 114) / 1000 / Lref));
+          out[o] = (tr * f) | 0; out[o + 1] = (tg * f) | 0; out[o + 2] = (tb * f) | 0;
+          continue;
+        }
+        const dx = x - cx[k], dy = y - cy[k];
+        const rx = dx * cs[k] + dy * sn[k], ry = -dx * sn[k] + dy * cs[k];   // rotate by -theta -> tile in panel-local axes
+        let tx = ((Math.round(rx) + ox[k]) % PW + PW) % PW; const ty = ((Math.round(ry) + oy[k]) % PH + PH) % PH;
+        if (k === COLLAR_ID) tx = PW - 1 - tx;                       // wrong side of the print -> mirror
+        const pp = (ty * PW + tx) * 4;
+        let pr = pd[pp], pg = pd[pp + 1], pb = pd[pp + 2];
+        if (k === COLLAR_ID) { pr = pr * 0.4 + 126; pg = pg * 0.4 + 126; pb = pb * 0.4 + 126; }  // faint bleed-through (0.6 x 210)
+        out[o] = (r * pr) / 255 | 0; out[o + 1] = (g * pg) / 255 | 0; out[o + 2] = (b * pb) / 255 | 0;
+      }
+
+      big.width = W; big.height = H;
+      big.getContext('2d').putImageData(new ImageData(out, W, H), 0, 0);
+      disp.width = Math.round(W / SS); disp.height = Math.round(H / SS);
+      const dctx = disp.getContext('2d'); dctx.imageSmoothingQuality = 'high';
+      dctx.drawImage(big, 0, 0, disp.width, disp.height);
+      return disp;
+    }
+
+    // --- state ---
+    let patImg = null;              // decoded swatch (ImageBitmap) for the selected file
+    let patternLoad = null;         // promise of that decode, awaited by the builder
+    const flat = { romper: null, pajama: null };   // { blob, url } per garment
+    let flatSig = '';               // inputs the current previews were built from
+    let flatBusy = false, flatPending = false, flatTimer = null, flatRun = null, flatErr = '';
+
+    // everything the previews depend on: which file, which trim, which motif size
+    function flatInputsSig() {
+      const f = selectedFile ? selectedFile.name + ':' + selectedFile.size + ':' + selectedFile.lastModified : '';
+      return f + '|' + (normHex(trimColor.value) || '') + '|' + motifScale.value;
+    }
+    function flatReady() {
+      return !!(selectedFile && flat.romper && flat.pajama && flatSig === flatInputsSig());
+    }
+
+    function flatMsg(text, kind) {
+      flatMsgEl.className = 'flat-msg' + (kind === 'error' ? ' error' : '');
+      flatMsgEl.textContent = text;
+      if (kind === 'error') {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = 'Retry';
+        b.addEventListener('click', () => { flatSig = ''; requestFlatlays(0); });
+        flatMsgEl.appendChild(document.createTextNode(' '));
+        flatMsgEl.appendChild(b);
+      }
+    }
+
+    async function loadPattern(file) {
+      patImg = null;
+      try {
+        const img = window.createImageBitmap ? await createImageBitmap(file) : await loadImg(URL.createObjectURL(file));
+        if (selectedFile !== file) { if (img.close) img.close(); return; }   // replaced while decoding
+        patImg = img;
+      } catch (e) {
+        patImg = null;
+      }
+    }
+
+    function setFlat(key, blob) {
+      const item = document.getElementById(key === 'romper' ? 'flatRomper' : 'flatPajama');
+      if (flat[key]) URL.revokeObjectURL(flat[key].url);
+      const url = URL.createObjectURL(blob);
+      flat[key] = { blob, url };
+      item.querySelector('img').src = url;
+      const a = item.querySelector('a'); a.href = url; a.hidden = false;
+      item.classList.add('ready');
+    }
+
+    function clearFlats() {
+      clearTimeout(flatTimer);
+      for (const key of FLAT_KEYS) {
+        if (flat[key]) URL.revokeObjectURL(flat[key].url);
+        flat[key] = null;
+        const item = document.getElementById(key === 'romper' ? 'flatRomper' : 'flatPajama');
+        item.classList.remove('ready');
+        item.querySelector('img').removeAttribute('src');
+        const a = item.querySelector('a'); a.removeAttribute('href'); a.hidden = true;
+      }
+      if (patImg && patImg.close) patImg.close();
+      patImg = null;
+      flatSig = ''; flatErr = '';
+      flatEl.classList.remove('stale');
+      flatMsg('');
+    }
+
+    // Debounced: trim typing and slider dragging fire many events; one build per pause.
+    function requestFlatlays(delay) {
+      clearTimeout(flatTimer);
+      if (!selectedFile || flatReady()) return;
+      if (flatBusy) { flatPending = true; return; }
+      flatEl.classList.toggle('stale', !!(flat.romper || flat.pajama));
+      flatTimer = setTimeout(generateFlatlays, delay || 0);
+    }
+
+    // Returns the promise of the running build, so submit can wait for it.
+    function generateFlatlays() {
+      if (flatBusy) { flatPending = true; return flatRun; }
+      if (!selectedFile) return Promise.resolve();
+      flatBusy = true; flatErr = '';
+      flatRun = (async () => {
+        const sig = flatInputsSig();
+        const t0 = performance.now();
+        flatMsg('Building flatlays…');
+        try {
+          await patternLoad;
+          if (!patImg) throw new Error('could not decode the pattern image');
+          const hex = normHex(trimColor.value);
+          const trim = hex ? hexToRgb(hex.slice(1)) : null;
+          const scale = parseFloat(motifScale.value) || 1;
+          for (const key of FLAT_KEYS) {
+            const G = await analyzeGarment(key);
+            await nextPaint();
+            const c = compose(G, patImg, scale, trim);
+            const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            if (!blob) throw new Error('JPEG encode failed');
+            if (sig !== flatInputsSig()) return;   // inputs changed under us; the pending run redoes it
+            setFlat(key, blob);
+            await nextPaint();
+          }
+          flatSig = sig;
+          flatEl.classList.remove('stale');
+          flatMsg('Flatlays ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
+        } catch (err) {
+          flatErr = err.message;
+          flatMsg('Could not build the flatlays: ' + err.message + '.', 'error');
+        } finally {
+          flatBusy = false;
+          if (flatPending) { flatPending = false; requestFlatlays(0); }
+        }
+      })();
+      return flatRun;
     }
 
     /* ---------------- task list ---------------- */

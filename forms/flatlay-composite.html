@@ -40,8 +40,10 @@
   button:disabled{ opacity:.4; cursor:default; }
   button:disabled:hover{ background:transparent; color:var(--mut); }
   .msg{ font-size:12px; color:var(--mut); min-height:16px; }
-  .view{ flex:1; min-width:280px; display:flex; }
-  .view img{ max-width:100%; max-height:82vh; display:block; margin:0 auto; }
+  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
+  .shot{ margin:0; flex:1 1 300px; min-width:240px; display:flex; flex-direction:column; gap:8px; }
+  .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
+  .shot figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; text-align:center; }
   .view .empty{ color:var(--mut); font-size:13px; padding:40px 0; }
   canvas{ display:none; }
   @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
@@ -76,26 +78,29 @@
     </div>
 
     <div class="actions">
-      <button class="primary" id="go">Generate flatlay</button>
-      <button class="secondary" id="dl" disabled>Download PNG</button>
+      <button class="primary" id="go">Generate</button>
+      <button class="secondary" id="dl" disabled>Download PNGs</button>
       <div class="msg" id="msg"></div>
     </div>
   </div>
 
   <div class="view">
-    <img id="result" alt="Composited flatlay" hidden>
-    <div class="empty" id="empty">Choose a pattern and generate.</div>
+    <figure class="shot" id="shotFlat" hidden><img id="result" alt="Composited flatlay"><figcaption>Flatlay</figcaption></figure>
+    <figure class="shot" id="shotModel" hidden><img id="result2" alt="Composited on model"><figcaption>On model</figcaption></figure>
   </div>
 </div>
 
 <canvas id="cv"></canvas>
-<script id="assets" type="application/json">{"romper_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-romper.jpg?v=1788601399","romper_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-romper.png?v=1788601403","pajama_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-pajama.jpg?v=1788601402","pajama_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-pajama.png?v=1788601405"}</script>
+<script id="assets" type="application/json">{"romper_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-romper.jpg?v=1788601399","romper_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-romper.png?v=1788601403","pajama_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-mock-pajama.jpg?v=1788601402","pajama_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-map-pajama.png?v=1788601405","romper_model_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-model-mock-romper.jpg?v=1788603216","romper_model_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-model-map-romper.png?v=1788603256","pajama_model_mock":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-model-mock-pajama.jpg?v=1788601868","pajama_model_map":"https://cdn.shopify.com/s/files/1/0704/3321/0621/files/zum-flatlay-model-map-pajama.png?v=1788601872"}</script>
 <script>
 const A = JSON.parse(document.getElementById('assets').textContent);
-const GARMENTS = { romper:{mock:A.romper_mock, map:A.romper_map}, pajama:{mock:A.pajama_mock, map:A.pajama_map} };
-// Tile liền mạch toàn thân: mọi mảnh cùng pha (không lệch pha theo đường may).
-const OFFX=[0,0,0,0,0,0,0,0,0];
-const OFFY=[0,0,0,0,0,0,0,0,0];
+const GARMENTS = {
+  romper:{ flat:{mock:A.romper_mock, map:A.romper_map}, model:{mock:A.romper_model_mock, map:A.romper_model_map} },
+  pajama:{ flat:{mock:A.pajama_mock, map:A.pajama_map}, model:{mock:A.pajama_model_mock, map:A.pajama_model_map} },
+};
+// Lệch pha tile theo từng mảnh vải: đường may cắt đứt pattern (không liền mạch giữa 2 mảnh khác nhau).
+const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
+const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const K_BASE=1.5;          // pattern strip width = K x garment width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.8;              // supersample factor for anti-aliasing
@@ -142,30 +147,38 @@ function rasterizeWidth(img, w, smooth){
 
 let patImg=null;
 
-async function generate(){
-  if(!patImg){ msg('Choose a pattern file first.'); return; }
-  msg('Generating…'); await new Promise(r=>setTimeout(r,20));
-  const t0=performance.now();
-
-  const g=GARMENTS[$('garment').value];
-  const scale=parseFloat($('scale').value);
-  const hex=$('trimHex').value.replace(/^#/,'').trim();
-  const okHex=/^[0-9a-fA-F]{6}$/.test(hex);
-  const tr=okHex?parseInt(hex.slice(0,2),16):0, tg=okHex?parseInt(hex.slice(2,4),16):0, tb=okHex?parseInt(hex.slice(4,6),16):0;
-
+// Composite one garment view. mode 'flat' sizes the motif from the garment bbox width
+// (baseline calibration); mode 'model' sizes it from sqrt(fabric area) x cal so the motif
+// keeps the SAME physical size as the flatlay regardless of pose/framing. Per-panel phase
+// offsets break the print at seams between different panels; per-panel PCA rotation aligns
+// the print to each panel's grain so motifs stay oriented even when the body isn't upright.
+// collar6 keeps the flatlay collar-inner hack (mirror + bleed on id 6); model maps use id 6
+// as an ordinary fabric panel.
+async function composeView(spec, opt, okHex, tr,tg,tb, collar6){
   const CA=OUT_AREA*SS*SS;
-  const M   = rasterize(await loadImg(g.mock), CA, true);   // mockup (smooth)
-  const MAP = rasterize(await loadImg(g.map),  CA, false);  // panel map, same size, nearest (ids intact)
+  const M   = rasterize(await loadImg(spec.mock), CA, true);
+  const MAP = rasterize(await loadImg(spec.map),  CA, false);
   const MW=M.w, MH=M.h, md=M.data, xd=MAP.data;
-  const idAt=(x,y)=>Math.round(xd[(y*MW+x)*4]/20);          // gray value = id*20
 
-  // garment width from fabric ids (1..8)
-  let minx=MW, maxx=0;
-  for(let y=0;y<MH;y++){ const row=y*MW; for(let x=0;x<MW;x++){ const id=Math.round(xd[(row+x)*4]/20); if(id>=1&&id<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; } } }
+  // one pass over the map: bbox + fabric area (ids 1..8) + per-panel moments for PCA orientation
+  let minx=MW, maxx=0, area=0;
+  const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
+        sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
+  for(let y=0;y<MH;y++){ const row=y*MW; for(let x=0;x<MW;x++){ const k=Math.round(xd[(row+x)*4]/20);
+    if(k>=1&&k<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; area++; cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; } } }
   const gw=Math.max(2, maxx-minx+1);
-  const patW=Math.max(2, Math.round(K_BASE*scale*gw));
+  const patW = opt.mode==='model'
+    ? Math.max(2, Math.round(K_BASE*opt.scale*Math.sqrt(area)*opt.cal))
+    : Math.max(2, Math.round(K_BASE*opt.scale*gw));
   const P=rasterizeWidth(patImg, patW, true);
   const PW=P.w, PH=P.h, pd=P.data;
+
+  // per-panel centroid + major-axis angle; rotate sampling by -theta so the print follows the panel grain
+  const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10), sn=new Float64Array(10);
+  for(let k=1;k<=8;k++){ if(cnt[k]<50){ cs[k]=1; sn[k]=0; continue; }
+    cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
+    const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
+    const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
 
   // trim reference: 90th percentile luminance of trim region (id 9)
   let Lref=255;
@@ -194,11 +207,13 @@ async function generate(){
         out[o]=Math.min(255,tr*f)|0; out[o+1]=Math.min(255,tg*f)|0; out[o+2]=Math.min(255,tb*f)|0; out[o+3]=255;
         continue;
       }
-      let tx=((x+ox[k])%PW+PW)%PW; const ty=((y+oy[k])%PH+PH)%PH;
-      if(k===6) tx=PW-1-tx;                 // inside of the collar = wrong side of one-sided print -> mirror
+      const dx=x-cx[k], dy=y-cy[k];
+      const rx=dx*cs[k]+dy*sn[k], ry=-dx*sn[k]+dy*cs[k];   // rotate by -theta -> tile in panel-local axes
+      let tx=((Math.round(rx)+ox[k])%PW+PW)%PW; const ty=((Math.round(ry)+oy[k])%PH+PH)%PH;
+      if(collar6 && k===6) tx=PW-1-tx;                 // inside of the collar = wrong side of one-sided print -> mirror
       const pp=(ty*PW+tx)*4;
       let pr=pd[pp], pg=pd[pp+1], pb=pd[pp+2];
-      if(k===6){ pr=pr*0.4+210*0.6; pg=pg*0.4+210*0.6; pb=pb*0.4+210*0.6; }  // faint bleed-through
+      if(collar6 && k===6){ pr=pr*0.4+210*0.6; pg=pg*0.4+210*0.6; pb=pb*0.4+210*0.6; }  // faint bleed-through
       out[o]=(r*pr)/255|0; out[o+1]=(gg*pg)/255|0; out[o+2]=(b*pb)/255|0; out[o+3]=255;
     }
   }
@@ -209,12 +224,32 @@ async function generate(){
   const disp=document.createElement('canvas'); disp.width=ow; disp.height=oh;
   const dctx=disp.getContext('2d'); dctx.imageSmoothingEnabled=true; dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,ow,oh);
+  return {disp, gw, area};
+}
 
-  const url=disp.toDataURL('image/png');
-  const img=$('result'); img.src=url; img.hidden=false; $('empty').hidden=true;
-  window.__flatlayCanvas=disp;
+async function generate(){
+  if(!patImg){ msg('Choose a pattern file first.'); return; }
+  msg('Generating…'); await new Promise(r=>setTimeout(r,20));
+  const t0=performance.now();
+
+  const g=GARMENTS[$('garment').value];
+  const scale=parseFloat($('scale').value);
+  const hex=$('trimHex').value.replace(/^#/,'').trim();
+  const okHex=/^[0-9a-fA-F]{6}$/.test(hex);
+  const tr=okHex?parseInt(hex.slice(0,2),16):0, tg=okHex?parseInt(hex.slice(2,4),16):0, tb=okHex?parseInt(hex.slice(4,6),16):0;
+
+
+  // flatlay first (defines the motif-size calibration), then model matched to it
+  const fr = await composeView(g.flat, {mode:'flat', scale}, okHex, tr,tg,tb, true);
+  window.__canvasFlat=fr.disp; $('result').src=fr.disp.toDataURL('image/png'); $('shotFlat').hidden=false;
+  msg('Flatlay done · rendering model…'); await new Promise(r=>setTimeout(r,20));
+
+  const cal = fr.gw/Math.sqrt(fr.area);   // keep model motif the same physical size as the flatlay
+  const mr = await composeView(g.model, {mode:'model', scale, cal}, okHex, tr,tg,tb, false);
+  window.__canvasModel=mr.disp; $('result2').src=mr.disp.toDataURL('image/png'); $('shotModel').hidden=false;
+
   $('dl').disabled=false;
-  msg(ow+'×'+oh+' · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+  msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
 }
 
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
@@ -222,11 +257,17 @@ $('trimHex').addEventListener('input', e=>{ const v=e.target.value.trim().replac
 $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
 $('pattern').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=async()=>{ try{ patImg=await loadImg(rd.result); const t=suggestTrimHex(patImg); if(t) setTrim(t); msg('Pattern '+patImg.width+'×'+patImg.height+(t?' · trim '+t.toUpperCase():'')); }catch{ msg('Could not read that image.'); } }; rd.readAsDataURL(f); });
 $('go').addEventListener('click', ()=>{ generate().catch(err=>msg('Error: '+err.message)); });
-$('dl').addEventListener('click', ()=>{ const c=window.__flatlayCanvas; if(!c) return; c.toBlob(async bl=>{ if(!bl) return; const name='flatlay-'+$('garment').value+'.png';
+$('dl').addEventListener('click', async ()=>{
+  const g=$('garment').value;
+  const items=[['flatlay',window.__canvasFlat],['model',window.__canvasModel]];
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{ dl=null; }
-  if(dl){ try{ await dl.save({filename:name, data:bl}); }catch(e){ msg('Download '+(e&&e.code?e.code:'failed')); } return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-},'image/png'); });
+  for(const [tag,c] of items){ if(!c) continue;
+    const bl=await new Promise(res=>c.toBlob(res,'image/png')); if(!bl) continue;
+    const name=tag+'-'+g+'.png';
+    if(dl){ try{ await dl.save({filename:name, data:bl}); }catch(e){ msg('Download '+(e&&e.code?e.code:'failed')); } }
+    else { const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); await new Promise(r=>setTimeout(r,300)); }
+  }
+});
 </script>
 
 </body>

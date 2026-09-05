@@ -597,7 +597,7 @@
     <div class="panel col-form">
     <div class="header">
       <h1>Pattern → Products</h1>
-      <p>Upload a pattern swatch. The flatlays are built right here in the browser, then Zumbamboo drafts get created with images, product type, design, niche. The result lands in Telegram.</p>
+      <p>Upload a swatch. Flatlays build here, Zumbamboo drafts get created, results land in Telegram.</p>
     </div>
 
     <div class="card">
@@ -612,7 +612,7 @@
                 <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
                 <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
               </svg>
-              <p>Drop the pattern<br>image here</p>
+              <p>Drop pattern<br>here</p>
               <p class="hint">png · jpg · webp</p>
             </div>
             <button type="button" id="pvRemove" title="Remove">
@@ -631,7 +631,7 @@
           <div class="field" id="fPatternId">
             <div class="lbl-row">
               <label for="patternId">Pattern ID</label>
-              <div class="auto-hint" id="patternIdHint" style="display:block">Goes on the swatch entry.</div>
+              <div class="auto-hint" id="patternIdHint" style="display:block">On the swatch.</div>
             </div>
             <input type="text" id="patternId" placeholder="Dub9707" autocomplete="off">
             <div class="err">Required.</div>
@@ -639,7 +639,7 @@
 
           <div class="field" id="fPattern">
             <label for="patternName">Pattern name</label>
-            <input type="text" id="patternName" placeholder="e.g. Birthday Dachshund" autocomplete="off">
+            <input type="text" id="patternName" placeholder="Birthday Dachshund" autocomplete="off">
             <div class="err">Required.</div>
           </div>
         </div>
@@ -651,7 +651,7 @@
       <div class="field" id="fTrim">
         <div class="lbl-row">
           <label for="trimColor">Trim color</label>
-          <div class="auto-hint" id="trimHint">Taken from the swatch.</div>
+          <div class="auto-hint" id="trimHint">From the swatch.</div>
         </div>
         <div class="trim-row">
           <input type="text" id="trimColor" placeholder="#8fb6d7" autocomplete="off">
@@ -663,7 +663,7 @@
       <div class="field" id="fGender">
         <div class="lbl-row">
           <label for="gender">Gender</label>
-          <div class="auto-hint" id="genderHint" style="display:block">Taken from the trim color.</div>
+          <div class="auto-hint" id="genderHint" style="display:block">From the trim.</div>
         </div>
         <select id="gender">
           <option value="boy">Boy</option>
@@ -679,7 +679,7 @@
 
       <div class="field" id="fSubNiche">
         <label for="subNiche">Sub niche <span class="opt">(optional)</span></label>
-        <input type="text" id="subNiche" list="subNicheList" placeholder="Type to search…" autocomplete="off">
+        <input type="text" id="subNiche" list="subNicheList" placeholder="Search…" autocomplete="off">
         <datalist id="subNicheList"></datalist>
         <div class="err">No sub niche with that name. Pick one from the list or leave it empty.</div>
       </div>
@@ -687,7 +687,7 @@
       <div class="field" id="fUploader">
         <div class="lbl-row">
           <label for="uploader">Uploader ID</label>
-          <div class="auto-hint" id="uploaderHint" style="display:block">Becomes a product tag.</div>
+          <div class="auto-hint" id="uploaderHint" style="display:block">A product tag.</div>
         </div>
         <input type="text" id="uploader" placeholder="Bùi" autocomplete="off">
         <div class="err">Required.</div>
@@ -705,8 +705,8 @@
     <div class="col-right">
       <div class="panel flat-panel" id="flat">
         <div class="tasks-head">
-          <h2>Flatlays</h2>
-          <span class="note">built here from the swatch, trim and motif size · sent as the flatlay photo</span>
+          <h2>Product images</h2>
+          <span class="note">from swatch, trim, motif size · on-model later</span>
         </div>
         <div class="flat-body">
           <div class="scale-row">
@@ -718,14 +718,14 @@
             <figure class="flat-item" id="flatRomper">
               <div class="flat-shot">
                 <img alt="Romper flatlay">
-                <div class="ph">Add a pattern to build this</div>
+                <div class="ph">Add a pattern</div>
               </div>
               <figcaption class="flat-cap">Romper · flatlay</figcaption>
             </figure>
             <figure class="flat-item" id="flatPajama">
               <div class="flat-shot">
                 <img alt="Pajama flatlay">
-                <div class="ph">Add a pattern to build this</div>
+                <div class="ph">Add a pattern</div>
               </div>
               <figcaption class="flat-cap">Pajama · flatlay</figcaption>
             </figure>
@@ -735,14 +735,14 @@
             <figure class="flat-item" id="modelRomper">
               <div class="flat-shot">
                 <img alt="Romper on model">
-                <div class="ph">Reserved, not built yet</div>
+                <div class="ph">Coming later</div>
               </div>
               <figcaption class="flat-cap">Romper · on model</figcaption>
             </figure>
             <figure class="flat-item" id="modelPajama">
               <div class="flat-shot">
                 <img alt="Pajama on model">
-                <div class="ph">Reserved, not built yet</div>
+                <div class="ph">Coming later</div>
               </div>
               <figcaption class="flat-cap">Pajama · on model</figcaption>
             </figure>
@@ -754,7 +754,7 @@
       <div class="panel tasks">
         <div class="tasks-head">
           <h2>Sent</h2>
-          <span class="note">results arrive on Telegram</span>
+          <span class="note">results in Telegram</span>
         </div>
         <div id="taskList"></div>
       </div>
@@ -838,7 +838,7 @@
     function setFile(f) {
       if (f && !ACCEPTED_TYPES.includes(f.type) &&
           !(!f.type && /\.(png|jpe?g|webp)$/i.test(f.name))) {
-        toast('Only png, jpg and webp work. ' + (f.type || f.name) + ' is not accepted.', 'error');
+        toast('Only png, jpg, webp.', 'error');
         f = null;
       }
       selectedFile = f || null;
@@ -1092,7 +1092,7 @@
 
     async function submitForm() {
       if (!validate(true)) {
-        toast('Fix the highlighted fields first.', 'error');
+        toast('Fix the highlighted fields.', 'error');
         return;
       }
 
@@ -1105,11 +1105,11 @@
         // The flatlays must match the trim and motif size on screen right now. A pending
         // rebuild (debounced, or still running) is finished here before anything is sent.
         if (!flatReady()) {
-          submitBtn.innerHTML = '<span class="spinner"></span> Building flatlays…';
+          submitBtn.innerHTML = '<span class="spinner"></span> Building…';
           clearTimeout(flatTimer);
           await generateFlatlays();
           if (!flatReady()) {
-            toast('The flatlays are not ready: ' + (flatErr || 'try again in a moment.'), 'error');
+            toast('Flatlays not ready: ' + (flatErr || 'try again.'), 'error');
             return;
           }
         }
@@ -1152,10 +1152,10 @@
         });
         renderTasks();
 
-        toast('Sent. Takes a few minutes. The result lands in Telegram.');
+        toast('Sent. Result comes to Telegram.');
         setFile(null);
       } catch (err) {
-        toast('Upload failed: ' + err.message + '. Check network or CORS (file:// origin is blocked).', 'error');
+        toast('Upload failed: ' + err.message, 'error');
       } finally {
         submitBtn.textContent = 'Create products';
         refreshSubmit();
@@ -1393,7 +1393,7 @@
       flatRun = (async () => {
         const sig = flatInputsSig();
         const t0 = performance.now();
-        flatMsg('Building flatlays…');
+        flatMsg('Building…');
         try {
           await patternLoad;
           if (!patImg) throw new Error('could not decode the pattern image');
@@ -1412,10 +1412,10 @@
           }
           flatSig = sig;
           flatEl.classList.remove('stale');
-          flatMsg('Flatlays ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
+          flatMsg('Ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
         } catch (err) {
           flatErr = err.message;
-          flatMsg('Could not build the flatlays: ' + err.message + '.', 'error');
+          flatMsg('Build failed: ' + err.message, 'error');
         } finally {
           flatBusy = false;
           if (flatPending) { flatPending = false; requestFlatlays(0); }
@@ -1451,7 +1451,7 @@
       if (list.length === 0) {
         el.innerHTML = '<div class="tasks-empty">' +
           '<h3>Nothing sent yet</h3>' +
-          '<p>Patterns you submit from this browser show up here.</p>' +
+          '<p>Your submissions show up here.</p>' +
         '</div>';
         return;
       }

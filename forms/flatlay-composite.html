@@ -56,6 +56,11 @@
     </div>
 
     <div class="field">
+      <label for="modelPick">Model photo</label>
+      <select id="modelPick"></select>
+    </div>
+
+    <div class="field">
       <label for="patternBtn">Pattern file</label>
       <div class="file">
         <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
@@ -96,12 +101,22 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and an on-model view: white mockup + panel map on the Shopify CDN.
 // The model maps were traced on the photo pixels themselves (SAM + colour threshold, see
 // zum-prd/prompt-test/model-map), so they align to the photo exactly; the mock is the original photo.
+const V=(mock,map)=>({ mock:CDN+mock, map:CDN+map });
 const GARMENTS={
-  romper:{ flat:{ mock:CDN+'zum-flatlay-mock-romper.jpg?v=1788601399', map:CDN+'zum-flatlay-map-romper.png?v=1788601403' },
-           model:{ mock:CDN+'zum-model-romper-4.jpg?v=1786080138', map:CDN+'zum-flatlay-model-map-romper-4.png?v=1788622378' } },
-  pajama:{ flat:{ mock:CDN+'zum-flatlay-mock-pajama.jpg?v=1788601402', map:CDN+'zum-flatlay-map-pajama.png?v=1788601405' },
-           model:{ mock:CDN+'zum-model-pajama-girl-1.jpg?v=1786088657', map:CDN+'zum-flatlay-model-map-pajama-girl-1.png?v=1788622995' } },
+  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403'),
+           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788626788'),
+                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788626790'),
+                    V('zum-model-romper-3.jpg?v=1786080000','zum-flatlay-model-map-romper-3.png?v=1788626791'),
+                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788626777') ] },
+  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788626780'),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788626782'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788626783'),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788626779'),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788626785'),
+                    V('zum-model-pajama-girl-3.jpg?v=1786079983','zum-flatlay-model-map-pajama-girl-3.png?v=1788626787') ] },
 };
+const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
 // Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
@@ -262,7 +277,7 @@ async function generate(){
     const GF=await analyzeGarment(g.flat);
     await showResult('flatlay', compose(GF, patImg, scale, trim), 'result', 'shotFlat');
     msg('Flatlay done · rendering on-model…'); await nextPaint();
-    const GM=await analyzeGarment(g.model);
+    const GM=await analyzeGarment(g.models[+$('modelPick').value]||g.models[0]);
     await showResult('model', compose(GM, patImg, scale, trim, GF.gw/Math.sqrt(GF.area)), 'result2', 'shotModel');
     $('dl').disabled=false;
     msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
@@ -273,6 +288,13 @@ async function generate(){
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
 $('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
 $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
+// model photo list follows the garment; a random one is preselected, like the form does on each upload
+function fillModelPick(){
+  const g=GARMENTS[$('garment').value], s=$('modelPick'); s.innerHTML='';
+  g.models.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=modelName(m); s.appendChild(o); });
+  s.value=Math.floor(Math.random()*g.models.length);
+}
+$('garment').addEventListener('change', fillModelPick); fillModelPick();
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;

@@ -88,20 +88,23 @@
     .col-form > * { position: relative; }
 
     /* thin scrollbars that only appear while the panel is hovered */
-    .col-form, #taskList {
+    .col-form, .col-right, #taskList {
       scrollbar-width: thin;
       scrollbar-color: transparent transparent;
     }
 
-    .col-form:hover, .tasks:hover #taskList { scrollbar-color: rgba(255,255,255,0.3) transparent; }
+    .col-form:hover, .col-right:hover, .tasks:hover #taskList { scrollbar-color: rgba(255,255,255,0.3) transparent; }
 
     .col-form::-webkit-scrollbar,
+    .col-right::-webkit-scrollbar,
     #taskList::-webkit-scrollbar { width: 12px; }
 
     .col-form::-webkit-scrollbar-track,
+    .col-right::-webkit-scrollbar-track,
     #taskList::-webkit-scrollbar-track { background: transparent; }
 
     .col-form::-webkit-scrollbar-thumb,
+    .col-right::-webkit-scrollbar-thumb,
     #taskList::-webkit-scrollbar-thumb {
       background: transparent;
       border: 4px solid transparent;
@@ -110,9 +113,11 @@
     }
 
     .col-form:hover::-webkit-scrollbar-thumb,
+    .col-right:hover::-webkit-scrollbar-thumb,
     .tasks:hover #taskList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); background-clip: padding-box; }
 
     .col-form:hover::-webkit-scrollbar-thumb:hover,
+    .col-right:hover::-webkit-scrollbar-thumb:hover,
     .tasks:hover #taskList::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); background-clip: padding-box; }
 
     .header { margin-bottom: 20px; }
@@ -359,10 +364,12 @@
       flex-direction: column;
       gap: 8px;
       min-height: 0;
+      /* four previews plus the Sent list do not fit one screen: the whole column scrolls,
+         the Sent list no longer keeps a scroller of its own */
+      overflow-y: auto;
     }
-    .col-right > .panel { height: auto; }
-    .flat-panel { flex: none; }
-    .col-right .tasks { flex: 1 1 auto; min-height: 180px; }
+    .col-right > .panel { height: auto; flex: none; }
+    .col-right .tasks, .col-right #taskList { overflow: visible; }
 
     /* ---- flatlays, composited in the browser (ported from flatlay-composite.html) ----
        Two previews side by side. They are what n8n receives as the flatlay photo:
@@ -595,8 +602,7 @@
       body { height: auto; min-height: 100vh; overflow: visible; }
       .container { grid-template-columns: minmax(0, 1fr); height: auto; }
       .panel { height: auto; }
-      .col-form, .tasks, #taskList { overflow: visible; }
-      .col-right .tasks { min-height: 0; }
+      .col-form, .col-right, .tasks, #taskList { overflow: visible; }
     }
   </style>
 </head>
@@ -736,6 +742,23 @@
                 <div class="ph">Pajama flatlay shows up here once a pattern is in</div>
               </div>
               <figcaption class="flat-cap">Two-Piece Pajama Set</figcaption>
+            </figure>
+            <!-- on-model slots: reserved, nothing renders here yet. The model panel map
+                 (garment, trim, skin traced by hand in Photoshop) does not exist for either
+                 mockup; once it does, wire these up the same way as the flatlays. -->
+            <figure class="flat-item" id="modelRomper">
+              <div class="flat-shot">
+                <img alt="Romper on model">
+                <div class="ph">On-model romper. Slot reserved, the model panel map is not made yet</div>
+              </div>
+              <figcaption class="flat-cap">Romper · on model</figcaption>
+            </figure>
+            <figure class="flat-item" id="modelPajama">
+              <div class="flat-shot">
+                <img alt="Pajama on model">
+                <div class="ph">On-model pajama. Slot reserved, the model panel map is not made yet</div>
+              </div>
+              <figcaption class="flat-cap">Pajama · on model</figcaption>
             </figure>
           </div>
           <div class="flat-msg" id="flatMsg"></div>

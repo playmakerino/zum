@@ -87,7 +87,7 @@
 
   <div class="view">
     <figure class="shot" id="shotFlat" hidden><img id="result" alt="Composited flatlay"><figcaption>Flatlay</figcaption></figure>
-    <figure class="shot" id="shotModel"><div class="notebox">On-model preview is not available yet. A panel map must be created manually in Photoshop for each mockup (precisely tracing the garment, trim and skin) before the on-model composite can render.</div><figcaption>On model</figcaption></figure>
+    <figure class="shot" id="shotModel" hidden><div class="notebox">On-model preview is not available yet. A panel map must be created manually in Photoshop for each mockup (precisely tracing the garment, trim and skin) before the on-model composite can render.</div><figcaption>On model</figcaption></figure>
   </div>
 </div>
 
@@ -242,6 +242,7 @@ async function generate(){
 
   const fr = await composeView(g.flat, {mode:'flat', scale}, okHex, tr,tg,tb, true);
   window.__canvasFlat=fr.disp; $('result').src=fr.disp.toDataURL('image/png'); $('shotFlat').hidden=false;
+  $('shotModel').hidden=false;   // show the On-model note only after Generate
 
   $('dl').disabled=false;
   msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
@@ -250,7 +251,7 @@ async function generate(){
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
 $('trimHex').addEventListener('input', e=>{ const v=e.target.value.trim().replace(/^#/,''); if(/^[0-9a-fA-F]{6}$/.test(v)) $('trimColor').value='#'+v; });
 $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
-$('pattern').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=async()=>{ try{ patImg=await loadImg(rd.result); const t=suggestTrimHex(patImg); if(t) setTrim(t); msg('Pattern '+patImg.width+'×'+patImg.height+(t?' · trim '+t.toUpperCase():'')); }catch{ msg('Could not read that image.'); } }; rd.readAsDataURL(f); });
+$('pattern').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; msg('Reading pattern…'); await new Promise(r=>setTimeout(r)); try{ patImg = window.createImageBitmap ? await createImageBitmap(f) : await loadImg(URL.createObjectURL(f)); const t=suggestTrimHex(patImg); if(t) setTrim(t); msg('Pattern '+patImg.width+'×'+patImg.height+(t?' · trim '+t.toUpperCase():'')); }catch{ msg('Could not read that image.'); } });
 $('go').addEventListener('click', ()=>{ generate().catch(err=>msg('Error: '+err.message)); });
 $('dl').addEventListener('click', async ()=>{
   const c=window.__canvasFlat; if(!c) return;

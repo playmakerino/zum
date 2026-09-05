@@ -17,8 +17,10 @@
   .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
   .field{ display:flex; flex-direction:column; gap:7px; }
   label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
-  select,input[type=file],input[type=text]{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; }
-  input[type=file]{ padding:8px 10px; font-size:13px; }
+  select,input[type=text],.file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
+  .file{ display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
+  .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
+  .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .trim{ display:flex; gap:10px; align-items:center; }
   .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
@@ -55,8 +57,12 @@
     </div>
 
     <div class="field">
-      <label for="pattern">Pattern file</label>
-      <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp">
+      <label for="patternBtn">Pattern file</label>
+      <div class="file">
+        <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
+        <button type="button" class="secondary" id="patternBtn">Choose file</button>
+        <span id="patternName">No file chosen</span>
+      </div>
     </div>
 
     <div class="field">
@@ -248,8 +254,10 @@ async function generate(){
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
 $('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
 $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
+$('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
+  $('patternName').textContent=f.name;
   msg('Reading pattern…'); await nextPaint();
   try{
     const img = window.createImageBitmap ? await createImageBitmap(f) : await loadImg(URL.createObjectURL(f));

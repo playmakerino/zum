@@ -707,7 +707,7 @@
       <div class="panel flat-panel" id="flat">
         <div class="tasks-head">
           <h2>Product images</h2>
-          <span class="note">from swatch, trim, motif size · on-model later</span>
+          <span class="note">from swatch, trim, motif size</span>
         </div>
         <div class="flat-body">
           <div class="scale-row">
@@ -730,20 +730,19 @@
               </div>
               <figcaption class="flat-cap">Pajama · flatlay</figcaption>
             </figure>
-            <!-- on-model slots: reserved, nothing renders here yet. The model panel map
-                 (garment, trim, skin traced by hand in Photoshop) does not exist for either
-                 mockup; once it does, wire these up the same way as the flatlays. -->
+            <!-- on-model previews: same compositor on the model photo + its panel map. They are
+                 shown for review only; the workflow still receives the two flatlays. -->
             <figure class="flat-item" id="modelRomper">
               <div class="flat-shot">
                 <img alt="Romper on model">
-                <div class="ph">Coming later</div>
+                <div class="ph">Add a pattern</div>
               </div>
               <figcaption class="flat-cap">Romper · on model</figcaption>
             </figure>
             <figure class="flat-item" id="modelPajama">
               <div class="flat-shot">
                 <img alt="Pajama on model">
-                <div class="ph">Coming later</div>
+                <div class="ph">Add a pattern</div>
               </div>
               <figcaption class="flat-cap">Pajama · on model</figcaption>
             </figure>
@@ -1205,14 +1204,22 @@
        died of exactly that, 2026-09-05). */
 
     const CDN = 'https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+    // Each garment: flatlay view (white mockup) + on-model view (model photo). The model maps were
+    // traced on the photo pixels (SAM + colour threshold, zum-prd/prompt-test/model-map), so they
+    // align exactly; the model mock is the original photo.
     const GARMENTS = {
-      romper: { mock: CDN + 'zum-flatlay-mock-romper.jpg?v=1788601399', map: CDN + 'zum-flatlay-map-romper.png?v=1788601403' },
-      pajama: { mock: CDN + 'zum-flatlay-mock-pajama.jpg?v=1788601402', map: CDN + 'zum-flatlay-map-pajama.png?v=1788601405' },
+      romper: { flat: { mock: CDN + 'zum-flatlay-mock-romper.jpg?v=1788601399', map: CDN + 'zum-flatlay-map-romper.png?v=1788601403' },
+                model: { mock: CDN + 'zum-model-romper-4.jpg?v=1786080138', map: CDN + 'zum-flatlay-model-map-romper-4.png?v=1788622378' } },
+      pajama: { flat: { mock: CDN + 'zum-flatlay-mock-pajama.jpg?v=1788601402', map: CDN + 'zum-flatlay-map-pajama.png?v=1788601405' },
+                model: { mock: CDN + 'zum-model-pajama-girl-1.jpg?v=1786088657', map: CDN + 'zum-flatlay-model-map-pajama-girl-1.png?v=1788622995' } },
     };
     const FLAT_KEYS = ['romper', 'pajama'];
-    // Map encoding: red channel / 20 -> panel id. 0 = background, 1..8 = fabric panels, 9 = trim.
+    // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
     // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
-    // Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+    // Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+    // Motif size: flatlay strip width = K_BASE x scale x garment bbox width. The model view uses
+    // sqrt(fabric area) x cal, cal = gw/sqrt(area) of the flatlay, so the motif keeps the same
+    // physical size on the body regardless of pose and framing.
     const OFFX = [0, 0.37, 0.71, 0.13, 0.58, 0.92, 0.26, 0.64, 0.45];
     const OFFY = [0, 0.53, 0.19, 0.81, 0.34, 0.67, 0.08, 0.46, 0.88];
     const K_BASE = 1.5;            // pattern strip width = K x garment bbox width
@@ -1247,10 +1254,10 @@
     // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
     // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
     const garmentCache = new Map();
-    function analyzeGarment(key) {
-      if (garmentCache.has(key)) return garmentCache.get(key);
+    function analyzeGarment(spec) {
+      if (garmentCache.has(spec.map)) return garmentCache.get(spec.map);
       const p = (async () => {
-        const spec = GARMENTS[key], CA = OUT_AREA * SS * SS;
+        const CA = OUT_AREA * SS * SS;
         const [mockImg, mapImg] = await Promise.all([loadImg(spec.mock), loadImg(spec.map)]);
         const M = rasterArea(mockImg, CA, true), MAP = rasterArea(mapImg, CA, false);
         const W = M.w, H = M.h, md = M.data, xd = MAP.data, N = W * H;
@@ -1270,17 +1277,20 @@
           const vxx = sxx[k] / cnt[k] - cx[k] * cx[k], vyy = syy[k] / cnt[k] - cy[k] * cy[k], vxy = sxy[k] / cnt[k] - cx[k] * cy[k];
           const th = 0.5 * Math.atan2(2 * vxy, vyy - vxx); cs[k] = Math.cos(th); sn[k] = Math.sin(th); }
         let Lref = 255, acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= nTrim * 0.9) { Lref = v; break; } }
-        return { w: W, h: H, mock: md, ids, gw: Math.max(2, maxx - minx + 1), cx, cy, cs, sn, Lref: Math.max(1, Lref) };
+        let area = 0; for (let k = 1; k <= 8; k++) area += cnt[k];
+        return { w: W, h: H, mock: md, ids, gw: Math.max(2, maxx - minx + 1), area: Math.max(1, area), cx, cy, cs, sn, Lref: Math.max(1, Lref) };
       })();
-      garmentCache.set(key, p); p.catch(() => garmentCache.delete(key));
+      garmentCache.set(spec.map, p); p.catch(() => garmentCache.delete(spec.map));
       return p;
     }
 
     // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
     const big = document.createElement('canvas'), disp = document.createElement('canvas');
-    function compose(G, pat, scale, trim) {
+    // cal (optional): model-view calibration = flatGw / sqrt(flatArea); without it the strip width comes from G.gw.
+    function compose(G, pat, scale, trim, cal) {
       const { w: W, h: H, mock: md, ids, cx, cy, cs, sn, Lref } = G;
-      const P = rasterWidth(pat, Math.max(2, Math.round(K_BASE * scale * G.gw)), true);
+      const patW = cal ? K_BASE * scale * Math.sqrt(G.area) * cal : K_BASE * scale * G.gw;
+      const P = rasterWidth(pat, Math.max(2, Math.round(patW)), true);
       const PW = P.w, PH = P.h, pd = P.data;
       const ox = OFFX.map(v => Math.floor(v * PW)), oy = OFFY.map(v => Math.floor(v * PH));
       const out = new Uint8ClampedArray(md);            // background + (when no trim color) trim pixels stay as the mock
@@ -1316,7 +1326,9 @@
     // --- state ---
     let patImg = null;              // decoded swatch (ImageBitmap) for the selected file
     let patternLoad = null;         // promise of that decode, awaited by the builder
-    const flat = { romper: null, pajama: null };   // { blob, url } per garment
+    const flat = { romper: null, pajama: null };   // { blob, url } per garment: what gets sent
+    const model = { romper: null, pajama: null };  // on-model previews, shown only
+    const SHOT_ID = { flat: { romper: 'flatRomper', pajama: 'flatPajama' }, model: { romper: 'modelRomper', pajama: 'modelPajama' } };
     let flatSig = '';               // inputs the current previews were built from
     let flatBusy = false, flatPending = false, flatTimer = null, flatRun = null, flatErr = '';
 
@@ -1352,21 +1364,23 @@
       }
     }
 
-    function setFlat(key, blob) {
-      const item = document.getElementById(key === 'romper' ? 'flatRomper' : 'flatPajama');
-      if (flat[key]) URL.revokeObjectURL(flat[key].url);
+    function setShot(view, key, blob) {
+      const store = view === 'flat' ? flat : model;
+      const item = document.getElementById(SHOT_ID[view][key]);
+      if (store[key]) URL.revokeObjectURL(store[key].url);
       const url = URL.createObjectURL(blob);
-      flat[key] = { blob, url };
+      store[key] = { blob, url };
       item.querySelector('img').src = url;
       item.classList.add('ready');
     }
 
     function clearFlats() {
       clearTimeout(flatTimer);
-      for (const key of FLAT_KEYS) {
-        if (flat[key]) URL.revokeObjectURL(flat[key].url);
-        flat[key] = null;
-        const item = document.getElementById(key === 'romper' ? 'flatRomper' : 'flatPajama');
+      for (const view of ['flat', 'model']) for (const key of FLAT_KEYS) {
+        const store = view === 'flat' ? flat : model;
+        if (store[key]) URL.revokeObjectURL(store[key].url);
+        store[key] = null;
+        const item = document.getElementById(SHOT_ID[view][key]);
         item.classList.remove('ready');
         item.querySelector('img').removeAttribute('src');
       }
@@ -1401,18 +1415,31 @@
           const hex = normHex(trimColor.value);
           const trim = hex ? hexToRgb(hex.slice(1)) : null;
           const scale = parseFloat(motifScale.value) || 1;
+          const encode = c => new Promise(res => c.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+          // flatlays first: they are what gets sent, and they define the motif-size calibration
+          const cal = {};
           for (const key of FLAT_KEYS) {
-            const G = await analyzeGarment(key);
+            const G = await analyzeGarment(GARMENTS[key].flat);
+            cal[key] = G.gw / Math.sqrt(G.area);
             await nextPaint();
-            const c = compose(G, patImg, scale, trim);
-            const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            const blob = await encode(compose(G, patImg, scale, trim));
             if (!blob) throw new Error('JPEG encode failed');
             if (sig !== flatInputsSig()) return;   // inputs changed under us; the pending run redoes it
-            setFlat(key, blob);
+            setShot('flat', key, blob);
             await nextPaint();
           }
-          flatSig = sig;
+          flatSig = sig;                            // submit may go ahead while the on-model views render
           flatEl.classList.remove('stale');
+          flatMsg('Flatlays ready · building on-model…');
+          for (const key of FLAT_KEYS) {
+            const G = await analyzeGarment(GARMENTS[key].model);
+            await nextPaint();
+            const blob = await encode(compose(G, patImg, scale, trim, cal[key]));
+            if (!blob) throw new Error('JPEG encode failed');
+            if (sig !== flatInputsSig()) return;
+            setShot('model', key, blob);
+            await nextPaint();
+          }
           flatMsg('Ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
         } catch (err) {
           flatErr = err.message;

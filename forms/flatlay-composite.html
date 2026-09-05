@@ -41,7 +41,6 @@
   .shot{ margin:0; flex:1 1 300px; min-width:240px; display:flex; flex-direction:column; gap:8px; }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
-  .notebox{ border:1px dashed var(--line); border-radius:8px; padding:22px 18px; color:var(--mut); font-size:13px; text-align:center; }
 </style>
 </head>
 <body>
@@ -87,20 +86,28 @@
 
   <div class="view">
     <figure class="shot" id="shotFlat" hidden><img id="result" alt="Composited flatlay"><figcaption>Flatlay</figcaption></figure>
-    <figure class="shot" id="shotModel" hidden><div class="notebox">On-model preview is not available yet. A panel map must be created manually in Photoshop for each mockup (precisely tracing the garment, trim and skin) before the on-model composite can render.</div><figcaption>On model</figcaption></figure>
+    <figure class="shot" id="shotModel" hidden><img id="result2" alt="Composited on model"><figcaption>On model</figcaption></figure>
   </div>
 </div>
 
 <script>
 'use strict';
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+// Each garment has a flatlay view and an on-model view: white mockup + panel map on the Shopify CDN.
+// The model maps were traced on the photo pixels themselves (SAM + colour threshold, see
+// zum-prd/prompt-test/model-map), so they align to the photo exactly; the mock is the original photo.
 const GARMENTS={
-  romper:{ mock:CDN+'zum-flatlay-mock-romper.jpg?v=1788601399', map:CDN+'zum-flatlay-map-romper.png?v=1788601403' },
-  pajama:{ mock:CDN+'zum-flatlay-mock-pajama.jpg?v=1788601402', map:CDN+'zum-flatlay-map-pajama.png?v=1788601405' },
+  romper:{ flat:{ mock:CDN+'zum-flatlay-mock-romper.jpg?v=1788601399', map:CDN+'zum-flatlay-map-romper.png?v=1788601403' },
+           model:{ mock:CDN+'zum-model-romper-4.jpg?v=1786080138', map:CDN+'zum-flatlay-model-map-romper-4.png?v=1788622378' } },
+  pajama:{ flat:{ mock:CDN+'zum-flatlay-mock-pajama.jpg?v=1788601402', map:CDN+'zum-flatlay-map-pajama.png?v=1788601405' },
+           model:{ mock:CDN+'zum-model-pajama-girl-1.jpg?v=1786088657', map:CDN+'zum-flatlay-model-map-pajama-girl-1.png?v=1788622995' } },
 };
-// Map encoding: red channel / 20 -> panel id. 0 = background, 1..8 = fabric panels, 9 = trim.
+// Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
-// Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+// Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+// Motif size: the flatlay sizes the pattern strip from the garment bbox width (K_BASE x scale x gw).
+// The model view sizes it from sqrt(fabric area) x cal, with cal = gw/sqrt(area) measured on the
+// flatlay, so the motif keeps the same physical size on the body regardless of pose and framing.
 const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
 const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const K_BASE=1.5;          // pattern strip width = K x garment bbox width
@@ -160,10 +167,10 @@ function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').valu
 // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
 // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
 const garmentCache=new Map();
-function analyzeGarment(key){
-  if(garmentCache.has(key)) return garmentCache.get(key);
+function analyzeGarment(spec){
+  if(garmentCache.has(spec.map)) return garmentCache.get(spec.map);
   const p=(async()=>{
-    const spec=GARMENTS[key], CA=OUT_AREA*SS*SS;
+    const CA=OUT_AREA*SS*SS;
     const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadImg(spec.map)]);
     const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
     const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
@@ -183,17 +190,20 @@ function analyzeGarment(key){
       const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
       const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
-    return { w:W, h:H, mock:md, ids, gw:Math.max(2,maxx-minx+1), cx, cy, cs, sn, Lref:Math.max(1,Lref) };
+    let area=0; for(let k=1;k<=8;k++) area+=cnt[k];
+    return { w:W, h:H, mock:md, ids, gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), cx, cy, cs, sn, Lref:Math.max(1,Lref) };
   })();
-  garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
+  garmentCache.set(spec.map,p); p.catch(()=>garmentCache.delete(spec.map));
   return p;
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
 const big=document.createElement('canvas'), disp=document.createElement('canvas');
-function compose(G, pat, scale, trim){
+// cal (optional): model view calibration = flatGw/sqrt(flatArea); without it the strip width comes from G.gw.
+function compose(G, pat, scale, trim, cal){
   const {w:W,h:H,mock:md,ids,cx,cy,cs,sn,Lref}=G;
-  const P=rasterWidth(pat, Math.max(2,Math.round(K_BASE*scale*G.gw)), true);
+  const patW = cal ? K_BASE*scale*Math.sqrt(G.area)*cal : K_BASE*scale*G.gw;
+  const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
   const ox=OFFX.map(v=>Math.floor(v*PW)), oy=OFFY.map(v=>Math.floor(v*PH));
   const out=new Uint8ClampedArray(md);            // background + (when no trim color) trim pixels stay as the mock
@@ -227,7 +237,16 @@ function compose(G, pat, scale, trim){
 }
 
 // --- UI state ---
-let patImg=null, resultBlob=null, resultUrl=null, busy=false;
+let patImg=null, busy=false;
+const results={ flatlay:null, model:null };   // { blob, url } per view
+
+async function showResult(view, canvas, imgId, figId){
+  const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+  if(!blob) throw new Error('PNG encode failed');
+  if(results[view]) URL.revokeObjectURL(results[view].url);
+  results[view]={ blob, url:URL.createObjectURL(blob) };
+  $(imgId).src=results[view].url; $(figId).hidden=false;
+}
 
 async function generate(){
   if(busy) return;
@@ -236,15 +255,15 @@ async function generate(){
   msg('Generating…'); await nextPaint();
   const t0=performance.now();
   try{
-    const G=await analyzeGarment($('garment').value);
-    const hex=parseHex($('trimHex').value);
-    const c=compose(G, patImg, parseFloat($('scale').value), hex&&hexToRgb(hex));
-    const blob=await new Promise(res=>c.toBlob(res,'image/png'));
-    if(!blob) throw new Error('PNG encode failed');
-    if(resultUrl) URL.revokeObjectURL(resultUrl);
-    resultBlob=blob; resultUrl=URL.createObjectURL(blob);
-    $('result').src=resultUrl; $('shotFlat').hidden=false;
-    $('shotModel').hidden=false;   // show the On-model note only after Generate
+    const g=GARMENTS[$('garment').value];
+    const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
+    const scale=parseFloat($('scale').value);
+    // flatlay first: it defines the motif-size calibration the model view follows
+    const GF=await analyzeGarment(g.flat);
+    await showResult('flatlay', compose(GF, patImg, scale, trim), 'result', 'shotFlat');
+    msg('Flatlay done · rendering on-model…'); await nextPaint();
+    const GM=await analyzeGarment(g.model);
+    await showResult('model', compose(GM, patImg, scale, trim, GF.gw/Math.sqrt(GF.area)), 'result2', 'shotModel');
     $('dl').disabled=false;
     msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
@@ -269,11 +288,14 @@ $('pattern').addEventListener('change', async e=>{
 });
 $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
-  if(!resultBlob) return;
-  const name='flatlay-'+$('garment').value+'.png';
+  const g=$('garment').value;
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
-  if(dl){ try{ await dl.save({filename:name, data:resultBlob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
-  else { const a=document.createElement('a'); a.href=resultUrl; a.download=name; a.click(); }
+  for(const view of ['flatlay','model']){
+    const r=results[view]; if(!r) continue;
+    const name=view+'-'+g+'.png';
+    if(dl){ try{ await dl.save({filename:name, data:r.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
+    else { const a=document.createElement('a'); a.href=r.url; a.download=name; a.click(); await new Promise(res=>setTimeout(res,300)); }
+  }
 });
 </script>
 

@@ -127,7 +127,7 @@ const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
 const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const K_BASE=1.5;          // pattern strip width = K x garment bbox width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
-const SS=1.8;              // supersample factor for anti-aliasing
+const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
 const TRIM_CEIL=1.15;
 const COLLAR_ID=6;
@@ -181,12 +181,16 @@ function suggestTrimHex(img){
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
 
 // --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
-// One pass over the map yields: panel id per pixel, garment bbox width, per-panel centroid +
+// One pass over the map yields: panel id per pixel, garment bbox (width for motif size, box for the
+// compose loop: on a model photo ~70% of the frame is background), per-panel centroid +
 // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
 // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
-const garmentCache=new Map();
+// LRU of a few garments: each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
+// from the decoded image, so switching between the 11 maps does not pile up 30MB pixel buffers.
+const garmentCache=new Map(), CACHE_MAX=4;
 function analyzeGarment(spec,opts){
-  if(garmentCache.has(spec.map)) return garmentCache.get(spec.map);
+  const key=spec.map+'|'+JSON.stringify(opts||null);
+  if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
   const p=(async()=>{
     const CA=OUT_AREA*SS*SS;
     const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadImg(spec.map)]);
@@ -196,10 +200,11 @@ function analyzeGarment(spec,opts){
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
     const hist=new Uint32Array(256); let nTrim=0;
-    let minx=W, maxx=0;
+    let minx=W, maxx=0, bx0=W, bx1=-1, by0=H, by1=-1;   // gw bbox (fabric only) / compose bbox (fabric + trim)
     let lineMask=null, dotMask=null; const linePx=[], dotPx=[];
     for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
       const k=((xd[i*4]+10)/20)|0; ids[i]=k;
+      if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; }
       else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(xd[i*4+1]>=AXIS_MIN){ (lineMask||(lineMask=new Uint8Array(N)))[i]=1; linePx.push(i); }
@@ -216,9 +221,10 @@ function analyzeGarment(spec,opts){
       const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
     let area=0; for(let k=1;k<=8;k++) area+=cnt[k];
-    return { w:W, h:H, mock:md, ids, gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), cx, cy, cs, sn, axes, Lref:Math.max(1,Lref) };
+    return { w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), cx, cy, cs, sn, axes, Lref:Math.max(1,Lref) };
   })();
-  garmentCache.set(spec.map,p); p.catch(()=>garmentCache.delete(spec.map));
+  garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
+  while(garmentCache.size>CACHE_MAX) garmentCache.delete(garmentCache.keys().next().value);
   return p;
 }
 
@@ -377,15 +383,17 @@ function axisUV(A,x,y){
 const big=document.createElement('canvas'), disp=document.createElement('canvas');
 // cal (optional): model view calibration = flatGw/sqrt(flatArea); without it the strip width comes from G.gw.
 function compose(G, pat, scale, trim, cal){
-  const {w:W,h:H,mock:md,ids,cx,cy,cs,sn,axes,Lref}=G;
+  const {w:W,h:H,ids,cx,cy,cs,sn,axes,Lref,box:[bx0,by0,bx1,by1]}=G;
   const patW = cal ? K_BASE*scale*Math.sqrt(G.area)*cal : K_BASE*scale*G.gw;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
-  const ox=OFFX.map(v=>Math.floor(v*PW)), oy=OFFY.map(v=>Math.floor(v*PH));
-  const out=new Uint8ClampedArray(md);            // background + (when no trim color) trim pixels stay as the mock
+  const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
+  // fresh mock raster each compose: it is written in place, so background + (when no trim color) trim pixels stay as the mock
+  const M=rasterArea(G.mockImg,OUT_AREA*SS*SS,true); if(M.w!==W||M.h!==H) throw new Error('mock raster size mismatch');
+  const md=M.data, out=md;
   const [tr,tg,tb]=trim||[0,0,0];
 
-  for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
     const k=ids[i]; if(k===0||k>9) continue;
     const o=i*4, r=md[o], g=md[o+1], b=md[o+2];
     if(k===9){
@@ -397,10 +405,15 @@ function compose(G, pat, scale, trim, cal){
     let rx, ry;
     if(axes[k]){ axisUV(axes[k],x,y); rx=AX_V; ry=AX_U; }   // curved panel: across / along the limb axis
     else { const dx=x-cx[k], dy=y-cy[k]; rx=dx*cs[k]+dy*sn[k]; ry=-dx*sn[k]+dy*cs[k]; }   // rotate by -theta -> tile in panel-local axes
-    let tx=((Math.round(rx)+ox[k])%PW+PW)%PW; const ty=((Math.round(ry)+oy[k])%PH+PH)%PH;
-    if(k===COLLAR_ID) tx=PW-1-tx;                       // wrong side of the print -> mirror
-    const pp=(ty*PW+tx)*4;
-    let pr=pd[pp], pg=pd[pp+1], pb=pd[pp+2];
+    // bilinear sample of the tiled strip (wraps on both axes)
+    let fx=rx+ox[k]; fx-=Math.floor(fx/PW)*PW; let fy=ry+oy[k]; fy-=Math.floor(fy/PH)*PH;
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx-=PW; }   // wrong side of the print -> mirror
+    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
+    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+    const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
+    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
+        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
+        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
     out[o]=(r*pr)/255|0; out[o+1]=(g*pg)/255|0; out[o+2]=(b*pb)/255|0;
   }

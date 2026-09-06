@@ -1241,9 +1241,12 @@
     const TRIM_FLOOR = 0.65;       // lift trim shadows (lighter inner collar)
     const TRIM_CEIL = 1.15;
     const COLLAR_ID = 6;
+    const AXIS_MIN=250;        // map G/B channel at/above this = limb axis line / its start dot (ids only reach R=180)
+    const MODEL_OPTS={ auto:true, wrap:true };   // model views: auto centerlines + tube wrap; the flatlay stays flat
     const JPEG_QUALITY = 0.92;     // ~1.5 MB per flatlay instead of ~8 MB as PNG; Shopify re-encodes anyway
 
-    const nextPaint = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    // rAF never fires in a hidden tab, so a timer fallback keeps generate() moving when the user switches away
+    const nextPaint=()=>new Promise(r=>{ let done=false; const go=()=>{ if(!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go,120); });
     const loadImg = src => new Promise((res, rej) => {
       const i = new Image(); i.crossOrigin = 'anonymous';
       i.onload = () => res(i); i.onerror = () => rej(new Error('image load failed: ' + src)); i.src = src;
@@ -1267,7 +1270,7 @@
     // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
     // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
     const garmentCache = new Map();
-    function analyzeGarment(spec) {
+    function analyzeGarment(spec, opts) {
       if (garmentCache.has(spec.map)) return garmentCache.get(spec.map);
       const p = (async () => {
         const CA = OUT_AREA * SS * SS;
@@ -1279,10 +1282,13 @@
               sxx = new Float64Array(10), sxy = new Float64Array(10), syy = new Float64Array(10);
         const hist = new Uint32Array(256); let nTrim = 0;
         let minx = W, maxx = 0;
+        let lineMask = null, dotMask = null; const linePx = [], dotPx = [];
         for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) {
           const k = ((xd[i * 4] + 10) / 20) | 0; ids[i] = k;
           if (k >= 1 && k <= 8) { if (x < minx) minx = x; if (x > maxx) maxx = x; cnt[k]++; sx[k] += x; sy[k] += y; sxx[k] += x * x; sxy[k] += x * y; syy[k] += y * y; }
           else if (k === 9 && !((x | y) & 1)) { const p = i * 4; hist[((md[p] * 299 + md[p + 1] * 587 + md[p + 2] * 114) / 1000) | 0]++; nTrim++; }
+              if(xd[i*4+1]>=AXIS_MIN){ (lineMask||(lineMask=new Uint8Array(N)))[i]=1; linePx.push(i); }
+              if(xd[i*4+2]>=AXIS_MIN){ (dotMask||(dotMask=new Uint8Array(N)))[i]=1; dotPx.push(i); }
         }
         const cx = new Float64Array(10), cy = new Float64Array(10), cs = new Float64Array(10).fill(1), sn = new Float64Array(10);
         for (let k = 1; k <= 8; k++) { if (cnt[k] < 50) continue;
@@ -1291,17 +1297,172 @@
           const th = 0.5 * Math.atan2(2 * vxy, vyy - vxx); cs[k] = Math.cos(th); sn[k] = Math.sin(th); }
         let Lref = 255, acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= nTrim * 0.9) { Lref = v; break; } }
         let area = 0; for (let k = 1; k <= 8; k++) area += cnt[k];
-        return { w: W, h: H, mock: md, ids, gw: Math.max(2, maxx - minx + 1), area: Math.max(1, area), cx, cy, cs, sn, Lref: Math.max(1, Lref) };
+        const axes=[];
+        if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) axes[d.k]=buildAxis(d.k,d.px,d.py,W,H,ids,cnt,!!(opts&&opts.wrap));
+        if(opts&&opts.auto) for(let k=1;k<=8;k++){ if(axes[k]||k===COLLAR_ID||cnt[k]<2000) continue;
+          const a=autoAxis(W,H,ids,k); if(a) axes[k]=buildAxis(k,a.px,a.py,W,H,ids,cnt,!!opts.wrap); }
+        return { w: W, h: H, mock: md, ids, gw: Math.max(2, maxx - minx + 1), area: Math.max(1, area), cx, cy, cs, sn, axes, Lref: Math.max(1, Lref) };
       })();
       garmentCache.set(spec.map, p); p.catch(() => garmentCache.delete(spec.map));
       return p;
+    }
+
+    // --- limb axes: each fabric panel gets a centerline; its pixels are mapped to curved coordinates
+    // (u = arc length along the line, v = signed perpendicular distance) so the print follows a bent
+    // arm/leg instead of one flat PCA angle. Two sources, drawn wins over auto:
+    //  * drawn in the map: G=255 line + B=255 dot at its start (traced by BFS from the dot, bucketed by
+    //    geodesic distance). The panel is the majority id under the line, so it may overshoot at the cuff.
+    //  * auto (model views): distance transform of the panel at 1/4 res, endpoints = extremes along the PCA
+    //    axis, cheapest path between them with cost ~ 1/distance-to-edge (hugs the middle), corner tails
+    //    trimmed, start = the higher end.
+    const AX_STEP=10;
+    function traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx){
+      const nb=[-W-1,-W,-W+1,-1,1,W-1,W,W+1];
+      const okStep=(i,j)=>Math.abs(i%W-j%W)<=1;   // 8-neighbour without wrapping across rows
+      const seeds=[];
+      for(const d0 of dotPx){ if(dotMask[d0]!==1) continue;
+        const q=[d0]; dotMask[d0]=2; let sxd=0,syd=0,n=0; const onLine=[];
+        for(let h=0;h<q.length;h++){ const i=q[h]; sxd+=i%W; syd+=(i/W)|0; n++; if(lineMask[i]) onLine.push(i);
+          for(const d of nb){ const j=i+d; if(j<0||j>=W*H||dotMask[j]!==1||!okStep(i,j)) continue; dotMask[j]=2; q.push(j); } }
+        if(onLine.length){ seeds.push(onLine); continue; }
+        const cx=sxd/n, cy=syd/n; let best=-1, bd=Infinity;
+        for(const i of linePx){ const dx=i%W-cx, dy=((i/W)|0)-cy, dd=dx*dx+dy*dy; if(dd<bd){ bd=dd; best=i; } }
+        if(best>=0) seeds.push([best]);
+      }
+      const out=[];
+      for(const seed of seeds){
+        const q=[], dist=[]; const bx=[], by=[], bn=[]; const idCnt=new Float64Array(10);
+        for(const i of seed){ if(lineMask[i]!==1) continue; lineMask[i]=2; q.push(i); dist.push(0); }
+        for(let h=0;h<q.length;h++){ const i=q[h], d0=dist[h], b=(d0/AX_STEP)|0;
+          while(bx.length<=b){ bx.push(0); by.push(0); bn.push(0); }
+          bx[b]+=i%W; by[b]+=(i/W)|0; bn[b]++; idCnt[ids[i]<=8?ids[i]:0]++;
+          for(const d of nb){ const j=i+d; if(j<0||j>=W*H||lineMask[j]!==1||!okStep(i,j)) continue; lineMask[j]=2; q.push(j); dist.push(d0+1); } }
+        let k=0; for(let t=1;t<=8;t++) if(idCnt[t]>idCnt[k]) k=t;
+        const px=[], py=[]; for(let b=0;b<bn.length;b++) if(bn[b]) { px.push(bx[b]/bn[b]); py.push(by[b]/bn[b]); }
+        if(k!==0&&px.length>=3) out.push({k,px,py});
+      }
+      return out;
+    }
+    // Binary heap keyed on cost, for the centerline search.
+    class MinHeap{ constructor(){ this.c=[]; this.i=[]; }
+      push(c,i){ const C=this.c,I=this.i; let p=C.length; C.push(c); I.push(i);
+        while(p>0){ const q=(p-1)>>1; if(C[q]<=C[p]) break; [C[p],C[q]]=[C[q],C[p]]; [I[p],I[q]]=[I[q],I[p]]; p=q; } }
+      pop(){ const C=this.c,I=this.i, c=C[0], i=I[0], lc=C.pop(), li=I.pop(); if(C.length){ C[0]=lc; I[0]=li; let p=0;
+        for(;;){ let l=2*p+1, r=l+1, m=p; if(l<C.length&&C[l]<C[m]) m=l; if(r<C.length&&C[r]<C[m]) m=r; if(m===p) break; [C[p],C[m]]=[C[m],C[p]]; [I[p],I[m]]=[I[m],I[p]]; p=m; } }
+        return [c,i]; }
+      get size(){ return this.c.length; } }
+    function autoAxis(W,H,ids,k){
+      const F=4, w=Math.ceil(W/F), h=Math.ceil(H/F), N=w*h;
+      const m=new Uint8Array(N); let n=0, mx=0, my=0;
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(ids[(y*F)*W+x*F]===k){ m[y*w+x]=1; n++; mx+=x; my+=y; } }
+      if(n<200) return null;
+      // keep only the largest connected piece: SAM masks carry islands, and the two endpoints must be joinable
+      { const lab=new Int32Array(N).fill(-1); let best=-1, bestN=0, L=0; const q=new Int32Array(N);
+        for(let i0=0;i0<N;i0++){ if(!m[i0]||lab[i0]>=0) continue; let qh=0, qt=0; q[qt++]=i0; lab[i0]=L; let c=0;
+          while(qh<qt){ const i=q[qh++]; c++; const x=i%w, y=(i/w)|0;
+            if(x>0&&m[i-1]&&lab[i-1]<0){ lab[i-1]=L; q[qt++]=i-1; } if(x<w-1&&m[i+1]&&lab[i+1]<0){ lab[i+1]=L; q[qt++]=i+1; }
+            if(y>0&&m[i-w]&&lab[i-w]<0){ lab[i-w]=L; q[qt++]=i-w; } if(y<h-1&&m[i+w]&&lab[i+w]<0){ lab[i+w]=L; q[qt++]=i+w; } }
+          if(c>bestN){ bestN=c; best=L; } L++; }
+        n=0; mx=0; my=0; for(let i=0;i<N;i++){ if(m[i]&&lab[i]!==best) m[i]=0; if(m[i]){ n++; mx+=i%w; my+=(i/w)|0; } } }
+      mx/=n; my/=n;
+      // chamfer 3-4 distance to the panel edge (image border counts as edge)
+      const dt=new Float32Array(N); for(let i=0;i<N;i++) dt[i]=m[i]?1e9:0;
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; if(!m[i]) continue; let d=dt[i];
+        if(y>0){ d=Math.min(d,dt[i-w]+3); if(x>0) d=Math.min(d,dt[i-w-1]+4); if(x<w-1) d=Math.min(d,dt[i-w+1]+4); } else d=Math.min(d,3);
+        if(x>0) d=Math.min(d,dt[i-1]+3); else d=Math.min(d,3); dt[i]=d; }
+      for(let y=h-1;y>=0;y--) for(let x=w-1;x>=0;x--){ const i=y*w+x; if(!m[i]) continue; let d=dt[i];
+        if(y<h-1){ d=Math.min(d,dt[i+w]+3); if(x>0) d=Math.min(d,dt[i+w-1]+4); if(x<w-1) d=Math.min(d,dt[i+w+1]+4); } else d=Math.min(d,3);
+        if(x<w-1) d=Math.min(d,dt[i+1]+3); else d=Math.min(d,3); dt[i]=d; }
+      // endpoints: extremes along the PCA major axis
+      let vxx=0,vyy=0,vxy=0; for(let i=0;i<N;i++){ if(!m[i]) continue; const dx=i%w-mx, dy=((i/w)|0)-my; vxx+=dx*dx; vyy+=dy*dy; vxy+=dx*dy; }
+      // a blob-like panel (torso) has no meaningful major axis: default to image-vertical, like the grain
+      const tr=vxx+vyy, det=vxx*vyy-vxy*vxy, disc=Math.sqrt(Math.max(0,tr*tr/4-det)), elong=(tr/2+disc)/Math.max(1e-9,tr/2-disc);
+      if(elong<2){   // torso: a straight vertical line through the centroid, from the top to the bottom of the panel
+        let y0=h, y1=0; for(let i=0;i<N;i++) if(m[i]){ const y=(i/w)|0; if(y<y0) y0=y; if(y>y1) y1=y; }
+        const px=[], py=[]; for(let y=y0*F; y<=y1*F; y+=AX_STEP){ px.push(mx*F+F/2); py.push(y); }
+        return px.length>=3 ? { px, py } : null; }
+      const th=0.5*Math.atan2(2*vxy, vxx-vyy), ux=Math.cos(th), uy=Math.sin(th);
+      let A=-1,B=-1,pa=Infinity,pb=-Infinity;
+      for(let i=0;i<N;i++){ if(!m[i]) continue; const p=(i%w-mx)*ux+(((i/w)|0)-my)*uy; if(p<pa){pa=p;A=i;} if(p>pb){pb=p;B=i;} }
+      // cheapest path A -> B, step cost = length / (distance-to-edge + 0.5) so it runs along the middle
+      const cost=new Float32Array(N).fill(Infinity), prev=new Int32Array(N).fill(-1), done=new Uint8Array(N);
+      const heap=new MinHeap(); cost[A]=0; heap.push(0,A);
+      const nb=[[-1,-1,1.414],[0,-1,1],[1,-1,1.414],[-1,0,1],[1,0,1],[-1,1,1.414],[0,1,1],[1,1,1.414]];
+      while(heap.size){ const [c,i]=heap.pop(); if(done[i]) continue; done[i]=1; if(i===B) break;
+        const x=i%w, y=(i/w)|0;
+        for(const [ox,oy,L] of nb){ const xx=x+ox, yy=y+oy; if(xx<0||yy<0||xx>=w||yy>=h) continue; const j=yy*w+xx; if(!m[j]||done[j]) continue;
+          const nc=c+L/(dt[j]/3+0.5); if(nc<cost[j]){ cost[j]=nc; prev[j]=i; heap.push(nc,j); } } }
+      if(prev[B]<0) return null;
+      const path=[]; for(let i=B;i>=0;i=prev[i]) path.push(i); path.reverse();
+      if(((path[0]/w)|0) > ((path[path.length-1]/w)|0)) path.reverse();   // start at the higher end
+      // resample every AX_STEP (in full-res px), keep the edge distance at each point for trimming
+      const px=[],py=[],pd=[]; let acc=AX_STEP, lx=0,ly=0;
+      for(let t=0;t<path.length;t++){ const x=path[t]%w, y=(path[t]/w)|0; if(t) acc+=Math.hypot(x-lx,y-ly)*F; lx=x; ly=y;
+        if(acc>=AX_STEP){ px.push(x*F+F/2); py.push(y*F+F/2); pd.push(dt[path[t]]/3*F); acc=0; } }
+      // trim the tails that dive toward a corner: drop leading/trailing points thinner than 70% of the
+      // local peak width, searched over ~2x that width (local, so a narrow leg is not judged by the torso)
+      const M=pd.length, half=M>>1;
+      const tail=(get)=>{ let win=6, pk=0, pi=0;
+        for(let r=0;r<2;r++){ pk=0; pi=0; for(let i=0;i<Math.min(half,win);i++) if(get(i)>pk){ pk=get(i); pi=i; } win=Math.round(2*pk/AX_STEP)+6; }
+        let cut=0; for(let i=0;i<pi;i++) if(get(i)<0.7*pk) cut=i+1; return cut; };
+      const s0=tail(i=>pd[i]), s1=M-1-tail(i=>pd[M-1-i]);
+      if(s1-s0<2) return null;
+      return { px:px.slice(s0,s1+1), py:py.slice(s0,s1+1) };
+    }
+    function buildAxis(k,px,py,W,H,ids,cnt,wrap){
+      let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
+      // Smooth the line over ~half the panel width: the (u,v) mapping folds where the bend radius is
+      // smaller than the distance to the axis, so a wide panel (romper torso+leg) needs a gentler axis.
+      const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW/2/AX_STEP)));
+      for(let pass=0;pass<3;pass++){ const qx=px.slice(), qy=py.slice();
+        for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
+      const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);
+      for(let j=0;j<n-1;j++){ const ex=px[j+1]-px[j], ey=py[j+1]-py[j], L=Math.hypot(ex,ey)||1; dx[j]=ex/L; dy[j]=ey/L; len[j]=L; s[j+1]=s[j]+L; }
+      // Tube wrap: per sample, walk the normal to each side until the panel ends -> half-width, and whether
+      // that edge is the silhouette (id 0: fabric curves away, print compresses toward it) or a seam to
+      // another panel (flat). f = silhouette fraction, smoothed so the two regimes blend along the limb.
+      const wP=new Float32Array(n), wN=new Float32Array(n), fP=new Float32Array(n), fN=new Float32Array(n), valid=new Uint8Array(n);
+      const maxW=Math.max(20,avgW*4);
+      const at=(x,y)=>{ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=W||yi>=H)?0:ids[yi*W+xi]; };
+      for(let j=0;j<n;j++){ const tj=Math.min(j,n-2), tx=dx[tj], ty=dy[tj], x0=px[j], y0=py[j];
+        if(at(x0,y0)!==k) continue; valid[j]=1;
+        let sP=1, hP=0; for(;sP<maxW;sP++){ const q=at(x0+sP*ty,y0-sP*tx); if(q!==k){ hP=q; break; } }
+        let sN=1, hN=0; for(;sN<maxW;sN++){ const q=at(x0-sN*ty,y0+sN*tx); if(q!==k){ hN=q; break; } }
+        wP[j]=sP; wN[j]=sN; fP[j]=(wrap&&hP===0)?1:0; fN[j]=(wrap&&hN===0)?1:0; }
+      for(let j=0;j<n;j++){ if(valid[j]) continue; let src=-1;
+        for(let d=1; d<n && src<0; d++){ if(j-d>=0&&valid[j-d]) src=j-d; else if(j+d<n&&valid[j+d]) src=j+d; }
+        if(src<0) break; wP[j]=wP[src]; wN[j]=wN[src]; fP[j]=fP[src]; fN[j]=fN[src]; }
+      const box=(arr,h)=>{ const q=arr.slice(); for(let j=0;j<n;j++){ let a=0,m=0; for(let o=-h;o<=h;o++){ const jj=Math.min(n-1,Math.max(0,j+o)); a+=q[jj]; m++; } arr[j]=a/m; } };
+      box(wP,3); box(wN,3); box(fP,hw); box(fN,hw);
+      // coarse grid of nearest sample index, refined per pixel in compose
+      const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
+      for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){ const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
+        for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
+      return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+    }
+    let AX_U=0, AX_V=0;
+    function axisUV(A,x,y){
+      const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
+      for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
+        const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
+        let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
+        const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
+        if(d2<best){ best=d2; bj=j; bt=t; AX_U=A.s[j]+t; AX_V=ex*dyj-ey*dxj; }
+      }
+      // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
+      const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=AX_V>=0;
+      const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
+      const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
+      if(f>0.001&&w>1){ const a=Math.abs(AX_V), r=a/w;
+        const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
+        AX_V=(pos?1:-1)*(a+f*(wrapped-a)); }
     }
 
     // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
     const big = document.createElement('canvas'), disp = document.createElement('canvas');
     // cal (optional): model-view calibration = flatGw / sqrt(flatArea); without it the strip width comes from G.gw.
     function compose(G, pat, scale, trim, cal) {
-      const { w: W, h: H, mock: md, ids, cx, cy, cs, sn, Lref } = G;
+      const { w: W, h: H, mock: md, ids, cx, cy, cs, sn, axes, Lref } = G;
       const patW = cal ? K_BASE * scale * Math.sqrt(G.area) * cal : K_BASE * scale * G.gw;
       const P = rasterWidth(pat, Math.max(2, Math.round(patW)), true);
       const PW = P.w, PH = P.h, pd = P.data;
@@ -1318,8 +1479,9 @@
           out[o] = (tr * f) | 0; out[o + 1] = (tg * f) | 0; out[o + 2] = (tb * f) | 0;
           continue;
         }
-        const dx = x - cx[k], dy = y - cy[k];
-        const rx = dx * cs[k] + dy * sn[k], ry = -dx * sn[k] + dy * cs[k];   // rotate by -theta -> tile in panel-local axes
+        let rx, ry;
+        if (axes[k]) { axisUV(axes[k], x, y); rx = AX_V; ry = AX_U; }   // curved panel: across / along the limb axis
+        else { const dx = x - cx[k], dy = y - cy[k]; rx = dx * cs[k] + dy * sn[k]; ry = -dx * sn[k] + dy * cs[k]; }   // rotate by -theta -> tile in panel-local axes
         let tx = ((Math.round(rx) + ox[k]) % PW + PW) % PW; const ty = ((Math.round(ry) + oy[k]) % PH + PH) % PH;
         if (k === COLLAR_ID) tx = PW - 1 - tx;                       // wrong side of the print -> mirror
         const pp = (ty * PW + tx) * 4;
@@ -1445,7 +1607,7 @@
           flatEl.classList.remove('stale');
           flatMsg('Flatlays ready · building on-model…');
           for (const key of FLAT_KEYS) {
-            const G = await analyzeGarment(GARMENTS[key].models[modelPick[key]]);
+            const G = await analyzeGarment(GARMENTS[key].models[modelPick[key]], MODEL_OPTS);
             await nextPaint();
             const blob = await encode(compose(G, patImg, scale, trim, cal[key]));
             if (!blob) throw new Error('JPEG encode failed');

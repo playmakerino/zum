@@ -131,8 +131,8 @@ const SS=1.8;              // supersample factor for anti-aliasing
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
 const TRIM_CEIL=1.15;
 const COLLAR_ID=6;
-const AXIS_MIN=250;
-const MODEL_OPTS={ auto:true, wrap:true };   // model views: auto centerlines + tube wrap; the flatlay stays flat        // map G/B channel at/above this = limb axis line / its start dot (ids only reach R=180)
+const AXIS_MIN=250;        // map G/B channel at/above this = limb axis line / its start dot (ids only reach R=180)
+const MODEL_OPTS={ auto:true, wrap:true };   // model views: auto centerlines + tube wrap; the flatlay stays flat
 const HEX_RE=/^#?([0-9a-f]{6})$/i;
 
 const $=id=>document.getElementById(id);

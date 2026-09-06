@@ -206,9 +206,9 @@ function analyzeGarment(spec,opts){
       if(xd[i*4+2]>=AXIS_MIN){ (dotMask||(dotMask=new Uint8Array(N)))[i]=1; dotPx.push(i); }
     }
     const axes=[];
-    if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) axes[d.k]=buildAxis(d.k,d.px,d.py,W,H,ids,cnt,!!(opts&&opts.wrap));
+    if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) axes[d.k]=[buildAxis(d.k,d.px,d.py,W,H,ids,cnt[d.k],!!(opts&&opts.wrap))];
     if(opts&&opts.auto) for(let k=1;k<=8;k++){ if(axes[k]||k===COLLAR_ID||cnt[k]<2000) continue;
-      const a=autoAxis(W,H,ids,k); if(a) axes[k]=buildAxis(k,a.px,a.py,W,H,ids,cnt,!!opts.wrap); }
+      const list=autoAxes(W,H,ids,k).map(a=>buildAxis(k,a.px,a.py,W,H,ids,a.area,!!opts.wrap,a)); if(list.length) axes[k]=list; }
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
       cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
@@ -266,20 +266,9 @@ class MinHeap{ constructor(){ this.c=[]; this.i=[]; }
     for(;;){ let l=2*p+1, r=l+1, m=p; if(l<C.length&&C[l]<C[m]) m=l; if(r<C.length&&C[r]<C[m]) m=r; if(m===p) break; [C[p],C[m]]=[C[m],C[p]]; [I[p],I[m]]=[I[m],I[p]]; p=m; } }
     return [c,i]; }
   get size(){ return this.c.length; } }
-function autoAxis(W,H,ids,k){
-  const F=4, w=Math.ceil(W/F), h=Math.ceil(H/F), N=w*h;
-  const m=new Uint8Array(N); let n=0, mx=0, my=0;
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(ids[(y*F)*W+x*F]===k){ m[y*w+x]=1; n++; mx+=x; my+=y; } }
-  if(n<200) return null;
-  // keep only the largest connected piece: SAM masks carry islands, and the two endpoints must be joinable
-  { const lab=new Int32Array(N).fill(-1); let best=-1, bestN=0, L=0; const q=new Int32Array(N);
-    for(let i0=0;i0<N;i0++){ if(!m[i0]||lab[i0]>=0) continue; let qh=0, qt=0; q[qt++]=i0; lab[i0]=L; let c=0;
-      while(qh<qt){ const i=q[qh++]; c++; const x=i%w, y=(i/w)|0;
-        if(x>0&&m[i-1]&&lab[i-1]<0){ lab[i-1]=L; q[qt++]=i-1; } if(x<w-1&&m[i+1]&&lab[i+1]<0){ lab[i+1]=L; q[qt++]=i+1; }
-        if(y>0&&m[i-w]&&lab[i-w]<0){ lab[i-w]=L; q[qt++]=i-w; } if(y<h-1&&m[i+w]&&lab[i+w]<0){ lab[i+w]=L; q[qt++]=i+w; } }
-      if(c>bestN){ bestN=c; best=L; } L++; }
-    n=0; mx=0; my=0; for(let i=0;i<N;i++){ if(m[i]&&lab[i]!==best) m[i]=0; if(m[i]){ n++; mx+=i%w; my+=(i/w)|0; } } }
-  mx/=n; my/=n;
+function pathAxis(m,w,h,F){
+  const N=w*h; let n=0, mx=0, my=0; for(let i=0;i<N;i++) if(m[i]){ n++; mx+=i%w; my+=(i/w)|0; }
+  if(n<200) return null; mx/=n; my/=n;
   // chamfer 3-4 distance to the panel edge (image border counts as edge)
   const dt=new Float32Array(N); for(let i=0;i<N;i++) dt[i]=m[i]?1e9:0;
   for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; if(!m[i]) continue; let d=dt[i];
@@ -324,11 +313,54 @@ function autoAxis(W,H,ids,k){
   if(s1-s0<2) return null;
   return { px:px.slice(s0,s1+1), py:py.slice(s0,s1+1) };
 }
-function buildAxis(k,px,py,W,H,ids,cnt,wrap){
+// 4-connected components of a low-res mask, largest first
+function components(m,w,h){
+  const N=w*h, lab=new Int32Array(N).fill(-1), q=new Int32Array(N), out=[]; let L=0;
+  for(let i0=0;i0<N;i0++){ if(!m[i0]||lab[i0]>=0) continue; let qh=0,qt=0; q[qt++]=i0; lab[i0]=L; const mk=new Uint8Array(N); let c=0;
+    while(qh<qt){ const i=q[qh++]; mk[i]=1; c++; const x=i%w, y=(i/w)|0;
+      if(x>0&&m[i-1]&&lab[i-1]<0){ lab[i-1]=L; q[qt++]=i-1; } if(x<w-1&&m[i+1]&&lab[i+1]<0){ lab[i+1]=L; q[qt++]=i+1; }
+      if(y>0&&m[i-w]&&lab[i-w]<0){ lab[i-w]=L; q[qt++]=i-w; } if(y<h-1&&m[i+w]&&lab[i+w]<0){ lab[i+w]=L; q[qt++]=i+w; } }
+    out.push({mask:mk,size:c}); L++; }
+  return out.sort((a,b)=>b.size-a.size);
+}
+// Auto centerlines for one panel. Usually one axis. A panel whose bottom rows hold two separate runs is
+// one piece of fabric with two legs (romper back): a straight torso axis clamped at the crotch plus one
+// bent axis per leg, each leg frame offset to the torso frame at its top so the print stays continuous
+// across the hip (compose blends the frames where they meet).
+function autoAxes(W,H,ids,k){
+  const F=4, w=Math.ceil(W/F), h=Math.ceil(H/F), N=w*h;
+  const m0=new Uint8Array(N); let n0=0;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(ids[(y*F)*W+x*F]===k){ m0[y*w+x]=1; n0++; }
+  if(n0<200) return [];
+  const big=components(m0,w,h)[0], m=big.mask, n=big.size;   // SAM masks carry islands
+  const minRun=Math.max(3,Math.round(w*0.02)), runs=new Uint8Array(h); let yTop=-1, yBot=-1;
+  for(let y=0;y<h;y++){ let r=0,len=0; for(let x=0;x<=w;x++){ if(x<w&&m[y*w+x]) len++; else { if(len>=minRun) r++; len=0; } } runs[y]=r; if(r){ if(yTop<0) yTop=y; yBot=y; } }
+  let y1=yBot; while(y1>yTop&&runs[y1]<2) y1--;          // lowest row with two runs
+  let yc=y1; while(yc>yTop&&runs[yc]>=2) yc--;            // crotch: first row above the two-run block
+  const span=yBot-yTop;
+  if(!(y1-yc>=0.15*span && yc-yTop>=0.15*span)){ const a=pathAxis(m,w,h,F); return a?[{px:a.px,py:a.py,area:n*F*F}]:[]; }
+  // one long axis per leg: a shared straight torso line (top -> crotch), then that leg's own path.
+  // Identical torso samples make the two frames coincide on the back, so the print is continuous there;
+  // they part gradually below the hip, and compose blends the frames where they meet.
+  let tx=0,tn=0; for(let y=yTop;y<=yc;y++) for(let x=0;x<w;x++) if(m[y*w+x]){ tx+=x; tn++; }
+  const cx=(tx/tn)*F+F/2;
+  const lm=new Uint8Array(N); for(let i=(yc+1)*w;i<N;i++) lm[i]=m[i];
+  const legs=components(lm,w,h).slice(0,2).filter(c=>c.size>=0.05*n), out=[];
+  for(const c of legs){
+    const mk=new Uint8Array(m); for(const o of legs) if(o!==c) for(let i=0;i<N;i++) if(o.mask[i]) mk[i]=0;   // torso + this leg
+    const a=pathAxis(mk,w,h,F); if(!a) continue;
+    const px=[], py=[]; for(let y=yTop*F;y<=yc*F;y+=AX_STEP){ px.push(cx); py.push(y); }
+    for(let j=0;j<a.px.length;j++) if(a.py[j]>yc*F+AX_STEP){ px.push(a.px[j]); py.push(a.py[j]); }
+    if(px.length>=3) out.push({px,py,area:(tn+c.size)*F*F});
+  }
+  if(!out.length){ const a=pathAxis(m,w,h,F); return a?[{px:a.px,py:a.py,area:n*F*F}]:[]; }
+  return out;
+}
+function buildAxis(k,px,py,W,H,ids,area,wrap,fl){
   let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
   // Smooth the line over ~half the panel width: the (u,v) mapping folds where the bend radius is
   // smaller than the distance to the axis, so a wide panel (romper torso+leg) needs a gentler axis.
-  const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW/2/AX_STEP)));
+  const avgW=area/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW/2/AX_STEP)));
   for(let pass=0;pass<3;pass++){ const qx=px.slice(), qy=py.slice();
     for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
   const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);
@@ -353,14 +385,15 @@ function buildAxis(k,px,py,W,H,ids,cnt,wrap){
   const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
   for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){ const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
-  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS,
+           U0:(fl&&fl.U0)||0, V0:(fl&&fl.V0)||0, clampStart:!!(fl&&fl.clampStart), clampEnd:!!(fl&&fl.clampEnd) };
 }
-let AX_U=0, AX_V=0;
+let AX_U=0, AX_V=0, AX_D=0;
 function axisUV(A,x,y){
   const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
     const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
-    let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
+    let t=rx*dxj+ry*dyj; if((j>0||A.clampStart)&&t<0) t=0; if((j<n-2||A.clampEnd)&&t>A.len[j]) t=A.len[j];   // extrapolate past free ends only
     const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
     if(d2<best){ best=d2; bj=j; bt=t; AX_U=A.s[j]+t; AX_V=ex*dyj-ey*dxj; }
   }
@@ -371,6 +404,14 @@ function axisUV(A,x,y){
   if(f>0.001&&w>1){ const a=Math.abs(AX_V), r=a/w;
     const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
     AX_V=(pos?1:-1)*(a+f*(wrapped-a)); }
+  AX_U+=A.U0; AX_V+=A.V0; AX_D=best;
+}
+// A panel with several axes (torso + legs): blend their frames by inverse distance^4, so each region
+// follows its own axis and the hand-over at the hip is continuous instead of a cut.
+function panelUV(list,x,y){
+  if(list.length===1){ axisUV(list[0],x,y); return; }
+  let su=0,sv=0,sw=0; for(const A of list){ axisUV(A,x,y); const g=1/(AX_D*AX_D+1); su+=AX_U*g; sv+=AX_V*g; sw+=g; }
+  AX_U=su/sw; AX_V=sv/sw;
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
@@ -395,7 +436,7 @@ function compose(G, pat, scale, trim, cal){
       continue;
     }
     let rx, ry;
-    if(axes[k]){ axisUV(axes[k],x,y); rx=AX_V; ry=AX_U; }   // curved panel: across / along the limb axis
+    if(axes[k]){ panelUV(axes[k],x,y); rx=AX_V; ry=AX_U; }   // curved panel: across / along the limb axis
     else { const dx=x-cx[k], dy=y-cy[k]; rx=dx*cs[k]+dy*sn[k]; ry=-dx*sn[k]+dy*cs[k]; }   // rotate by -theta -> tile in panel-local axes
     let tx=((Math.round(rx)+ox[k])%PW+PW)%PW; const ty=((Math.round(ry)+oy[k])%PH+PH)%PH;
     if(k===COLLAR_ID) tx=PW-1-tx;                       // wrong side of the print -> mirror

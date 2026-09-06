@@ -255,23 +255,46 @@ function traceAxes(W,H,ids,cnt,lineMask,linePx,dotMask,dotPx){
       for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
     const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);
     for(let j=0;j<n-1;j++){ const ex=px[j+1]-px[j], ey=py[j+1]-py[j], L=Math.hypot(ex,ey)||1; dx[j]=ex/L; dy[j]=ey/L; len[j]=L; s[j+1]=s[j]+L; }
+    // Tube wrap: per sample, walk the normal to each side until the panel ends -> half-width, and whether
+    // that edge is the silhouette (id 0: fabric curves away, print compresses toward it) or a seam to
+    // another panel (flat). f = silhouette fraction, smoothed so the two regimes blend along the limb.
+    const wP=new Float32Array(n), wN=new Float32Array(n), fP=new Float32Array(n), fN=new Float32Array(n), valid=new Uint8Array(n);
+    const maxW=Math.max(20,avgW*4);
+    const at=(x,y)=>{ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=W||yi>=H)?0:ids[yi*W+xi]; };
+    for(let j=0;j<n;j++){ const tj=Math.min(j,n-2), tx=dx[tj], ty=dy[tj], x0=px[j], y0=py[j];
+      if(at(x0,y0)!==k) continue; valid[j]=1;
+      let sP=1, hP=0; for(;sP<maxW;sP++){ const q=at(x0+sP*ty,y0-sP*tx); if(q!==k){ hP=q; break; } }
+      let sN=1, hN=0; for(;sN<maxW;sN++){ const q=at(x0-sN*ty,y0+sN*tx); if(q!==k){ hN=q; break; } }
+      wP[j]=sP; wN[j]=sN; fP[j]=hP===0?1:0; fN[j]=hN===0?1:0; }
+    for(let j=0;j<n;j++){ if(valid[j]) continue; let src=-1;
+      for(let d=1; d<n && src<0; d++){ if(j-d>=0&&valid[j-d]) src=j-d; else if(j+d<n&&valid[j+d]) src=j+d; }
+      if(src<0) break; wP[j]=wP[src]; wN[j]=wN[src]; fP[j]=fP[src]; fN[j]=fN[src]; }
+    const box=(arr,h)=>{ const q=arr.slice(); for(let j=0;j<n;j++){ let a=0,m=0; for(let o=-h;o<=h;o++){ const jj=Math.min(n-1,Math.max(0,j+o)); a+=q[jj]; m++; } arr[j]=a/m; } };
+    box(wP,3); box(wN,3); box(fP,hw); box(fN,hw);
     // coarse grid of nearest sample index, refined per pixel in compose
     const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
     for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){ const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
       for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
-    axes[k]={ n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, near, gw, CS };
+    axes[k]={ n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
   }
   return axes;
 }
 let AX_U=0, AX_V=0;
 function axisUV(A,x,y){
-  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity;
+  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
     const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
     let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
     const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
-    if(d2<best){ best=d2; AX_U=A.s[j]+t; AX_V=ex*dyj-ey*dxj; }
+    if(d2<best){ best=d2; bj=j; bt=t; AX_U=A.s[j]+t; AX_V=ex*dyj-ey*dxj; }
   }
+  // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
+  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=AX_V>=0;
+  const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
+  const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
+  if(f>0.001&&w>1){ const a=Math.abs(AX_V), r=a/w;
+    const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
+    AX_V=(pos?1:-1)*(a+f*(wrapped-a)); }
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---

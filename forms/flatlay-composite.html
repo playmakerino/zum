@@ -27,6 +27,7 @@
   .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
   .scale-head{ display:flex; justify-content:space-between; align-items:baseline; }
   .scale-head .val{ font-family:ui-monospace,Menlo,monospace; color:var(--ink); font-weight:600; }
+  .scale-head .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--mut); }
   input[type=range]{ width:100%; accent-color:var(--accent); }
   .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
   button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
@@ -56,11 +57,6 @@
     </div>
 
     <div class="field">
-      <label for="modelPick">Model photo</label>
-      <select id="modelPick"></select>
-    </div>
-
-    <div class="field">
       <label for="patternBtn">Pattern file</label>
       <div class="file">
         <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
@@ -78,6 +74,15 @@
     </div>
 
     <div class="field">
+      <div class="scale-head"><label for="gender">Gender</label><span class="hint" id="genderHint">From the trim.</span></div>
+      <select id="gender">
+        <option value="boy">Boy</option>
+        <option value="girl">Girl</option>
+        <option value="neutral" selected>Neutral</option>
+      </select>
+    </div>
+
+    <div class="field">
       <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
       <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
     </div>
@@ -89,9 +94,8 @@
     </div>
   </div>
 
-  <div class="view">
+  <div class="view" id="view">
     <figure class="shot" id="shotFlat" hidden><img id="result" alt="Composited flatlay"><figcaption>Flatlay</figcaption></figure>
-    <figure class="shot" id="shotModel" hidden><img id="result2" alt="Composited on model"><figcaption>On model</figcaption></figure>
   </div>
 </div>
 
@@ -109,14 +113,18 @@ const GARMENTS={
                     V('zum-model-romper-3.jpg?v=1786080000','zum-flatlay-model-map-romper-3.png?v=1788770844'),
                     V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788769682') ] },
   pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788626780'),
-                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788626782'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788626783'),
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788776571'),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788776644'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788776646'),
                     V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788626779'),
                     V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788626785'),
                     V('zum-model-pajama-girl-3.jpg?v=1786079983','zum-flatlay-model-map-pajama-girl-3.png?v=1788626787') ] },
 };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
+// model gender from the filename: boy / girl, or null when the photo is unisex (romper).
+const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
+// which models to render for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
+const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
 // Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
@@ -461,14 +469,29 @@ function compose(G, pat, scale, trim, cal){
 
 // --- UI state ---
 let patImg=null, busy=false;
-const results={ flatlay:null, model:null };   // { blob, url } per view
+const results={ flatlay:null, models:[] };   // flatlay:{blob,url}; models:[{name,blob,url,fig}]
 
-async function showResult(view, canvas, imgId, figId){
+async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
   if(!blob) throw new Error('PNG encode failed');
-  if(results[view]) URL.revokeObjectURL(results[view].url);
-  results[view]={ blob, url:URL.createObjectURL(blob) };
-  $(imgId).src=results[view].url; $(figId).hidden=false;
+  return { blob, url:URL.createObjectURL(blob) };
+}
+async function showFlat(canvas){
+  if(results.flatlay) URL.revokeObjectURL(results.flatlay.url);
+  results.flatlay=await toBlobURL(canvas);
+  $('result').src=results.flatlay.url; $('shotFlat').hidden=false;
+}
+function clearModels(){
+  for(const r of results.models){ URL.revokeObjectURL(r.url); r.fig.remove(); }
+  results.models.length=0;
+}
+async function showModel(m, canvas){
+  const r=await toBlobURL(canvas), name=modelName(m);
+  const fig=document.createElement('figure'); fig.className='shot';
+  const img=document.createElement('img'); img.alt='Composited on '+name;
+  const cap=document.createElement('figcaption'); cap.textContent='On model · '+name;
+  img.src=r.url; fig.append(img,cap); $('view').append(fig);
+  results.models.push({ ...r, name, fig });
 }
 
 async function generate(){
@@ -481,28 +504,45 @@ async function generate(){
     const g=GARMENTS[$('garment').value];
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
     const scale=parseFloat($('scale').value);
-    // flatlay first: it defines the motif-size calibration the model view follows
+    const mdls=modelsFor(g, $('gender').value);
+    clearModels();
+    // flatlay first: it defines the motif-size calibration the model views follow
     const GF=await analyzeGarment(g.flat);
-    await showResult('flatlay', compose(GF, patImg, scale, trim), 'result', 'shotFlat');
-    msg('Flatlay done · rendering on-model…'); await nextPaint();
-    const GM=await analyzeGarment(g.models[+$('modelPick').value]||g.models[0], MODEL_OPTS);
-    await showResult('model', compose(GM, patImg, scale, trim, GF.gw/Math.sqrt(GF.area)), 'result2', 'shotModel');
+    await showFlat(compose(GF, patImg, scale, trim));
+    const cal=GF.gw/Math.sqrt(GF.area);
+    for(let i=0;i<mdls.length;i++){
+      msg('Flatlay done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
+      const GM=await analyzeGarment(mdls[i], MODEL_OPTS);
+      await showModel(mdls[i], compose(GM, patImg, scale, trim, cal));
+    }
     $('dl').disabled=false;
-    msg('Done · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
 
-$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
-$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
-$('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
-// model photo list follows the garment; a random one is preselected, like the form does on each upload
-function fillModelPick(){
-  const g=GARMENTS[$('garment').value], s=$('modelPick'); s.innerHTML='';
-  g.models.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=modelName(m); s.appendChild(o); });
-  s.value=Math.floor(Math.random()*g.models.length);
+// --- gender: auto-derived from the trim hue (like zum_prd_form), locked once the user picks manually ---
+//   250-350 deg: violet -> magenta -> pink = girl;  90-249 deg: green -> teal -> blue = boy;  else = neutral
+let genderTouched=false;
+function genderFromHex(v){
+  const m=parseHex(v); if(!m) return null;
+  const [h,s,val]=rgbToHsv(...hexToRgb(m));
+  if(s<0.15||val<0.10) return 'neutral';   // too washed out to read a hue
+  const hd=h*360;
+  if(hd>=250&&hd<=350) return 'girl';
+  if(hd>=90&&hd<250) return 'boy';
+  return 'neutral';
 }
-$('garment').addEventListener('change', fillModelPick); fillModelPick();
+function applyGenderFromTrim(){
+  if(genderTouched) return;
+  const g=genderFromHex($('trimHex').value); if(!g) return;
+  $('gender').value=g; $('genderHint').style.display='';
+}
+$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
+
+$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
+$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
+$('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -512,7 +552,7 @@ $('pattern').addEventListener('change', async e=>{
     const img = window.createImageBitmap ? await createImageBitmap(f) : await loadImg(URL.createObjectURL(f));
     if(patImg&&patImg.close) patImg.close();
     patImg=img;
-    const t=suggestTrimHex(img); if(t) setTrim(t);
+    const t=suggestTrimHex(img); if(t){ setTrim(t); applyGenderFromTrim(); }
     msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
   }catch{ msg('Could not read that image.'); }
 });
@@ -520,13 +560,15 @@ $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   const g=$('garment').value;
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
-  for(const view of ['flatlay','model']){
-    const r=results[view]; if(!r) continue;
-    const name=view+'-'+g+'.png';
-    if(dl){ try{ await dl.save({filename:name, data:r.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
-    else { const a=document.createElement('a'); a.href=r.url; a.download=name; a.click(); await new Promise(res=>setTimeout(res,300)); }
+  const items=[];
+  if(results.flatlay) items.push({ name:'flatlay-'+g+'.png', blob:results.flatlay.blob, url:results.flatlay.url });
+  for(const r of results.models) items.push({ name:'model-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const it of items){
+    if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
+    else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
   }
 });
+applyGenderFromTrim();
 </script>
 
 </body>

@@ -104,7 +104,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 const V=(mock,map)=>({ mock:CDN+mock, map:CDN+map });
 const GARMENTS={
   romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403'),
-           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788626788'),
+           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788757766'),
                     V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788626790'),
                     V('zum-model-romper-3.jpg?v=1786080000','zum-flatlay-model-map-romper-3.png?v=1788626791'),
                     V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788626777') ] },
@@ -199,29 +199,34 @@ function analyzeGarment(spec,opts){
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
+    const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox
     const hist=new Uint32Array(256); let nTrim=0;
-    let minx=W, maxx=0, bx0=W, bx1=-1, by0=H, by1=-1;   // gw bbox (fabric only) / compose bbox (fabric + trim)
+    let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     let lineMask=null, dotMask=null; const linePx=[], dotPx=[];
     for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
       const k=((xd[i*4]+10)/20)|0; ids[i]=k;
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
-      if(k>=1&&k<=8){ if(x<minx)minx=x; if(x>maxx)maxx=x; cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; }
+      if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
+        cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; }
       else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(xd[i*4+1]>=AXIS_MIN){ (lineMask||(lineMask=new Uint8Array(N)))[i]=1; linePx.push(i); }
       if(xd[i*4+2]>=AXIS_MIN){ (dotMask||(dotMask=new Uint8Array(N)))[i]=1; dotPx.push(i); }
     }
-    const axes=[];
-    if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) axes[d.k]=buildAxis(d.k,d.px,d.py,W,H,ids,cnt,!!(opts&&opts.wrap));
-    if(opts&&opts.auto) for(let k=1;k<=8;k++){ if(axes[k]||k===COLLAR_ID||cnt[k]<2000) continue;
-      const a=autoAxis(W,H,ids,k); if(a) axes[k]=buildAxis(k,a.px,a.py,W,H,ids,cnt,!!opts.wrap); }
+    let minx=W, maxx=-1, area=0;   // gw bbox (fabric only) + fabric area
+    for(let k=1;k<=8;k++){ area+=cnt[k]; if(pbx0[k]<minx) minx=pbx0[k]; if(pbx1[k]>maxx) maxx=pbx1[k]; }
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
       cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
       const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
       const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
-    let area=0; for(let k=1;k<=8;k++) area+=cnt[k];
-    return { w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), cx, cy, cs, sn, axes, Lref:Math.max(1,Lref) };
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref) };
+    const wrap=!!(opts&&opts.wrap);
+    if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,wrap);
+    if(opts&&opts.auto) for(let k=1;k<=8;k++){ if(G.axes[k]||k===COLLAR_ID||cnt[k]<2000) continue;
+      const a=autoAxis(W,H,ids,k); if(a) G.axes[k]=buildAxis(k,a.px,a.py,G,wrap); }
+    G.ext=panelExtents(G);
+    return G;
   })();
   garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
   while(garmentCache.size>CACHE_MAX) garmentCache.delete(garmentCache.keys().next().value);
@@ -330,7 +335,8 @@ function autoAxis(W,H,ids,k){
   if(s1-s0<2) return null;
   return { px:px.slice(s0,s1+1), py:py.slice(s0,s1+1) };
 }
-function buildAxis(k,px,py,W,H,ids,cnt,wrap){
+function buildAxis(k,px,py,G,wrap){
+  const {w:W,h:H,ids,cnt,pbox:[pbx0,pby0,pbx1,pby1]}=G;
   let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
   // Smooth the line over ~half the panel width: the (u,v) mapping folds where the bend radius is
   // smaller than the distance to the axis, so a wide panel (romper torso+leg) needs a gentler axis.
@@ -355,39 +361,68 @@ function buildAxis(k,px,py,W,H,ids,cnt,wrap){
     if(src<0) break; wP[j]=wP[src]; wN[j]=wN[src]; fP[j]=fP[src]; fN[j]=fN[src]; }
   const box=(arr,h)=>{ const q=arr.slice(); for(let j=0;j<n;j++){ let a=0,m=0; for(let o=-h;o<=h;o++){ const jj=Math.min(n-1,Math.max(0,j+o)); a+=q[jj]; m++; } arr[j]=a/m; } };
   box(wP,3); box(wN,3); box(fP,hw); box(fN,hw);
-  // coarse grid of nearest sample index, refined per pixel in compose
+  // coarse grid of nearest sample index, refined per pixel in compose. Only the cells under the panel's
+  // bbox are filled: the grid is read for pixels of this panel only, so the rest of the frame never is.
   const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
-  for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){ const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
+  for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
+    const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
   return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
 }
-let AX_U=0, AX_V=0;
+// Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
+// Globals instead of a return value: this runs once per fabric pixel.
+let LX=0, LY=0;
 function axisUV(A,x,y){
   const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
     const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
     let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
     const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
-    if(d2<best){ best=d2; bj=j; bt=t; AX_U=A.s[j]+t; AX_V=ex*dyj-ey*dxj; }
+    if(d2<best){ best=d2; bj=j; bt=t; LY=A.s[j]+t; LX=ex*dyj-ey*dxj; }
   }
   // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
-  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=AX_V>=0;
+  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=LX>=0;
   const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
   const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
-  if(f>0.001&&w>1){ const a=Math.abs(AX_V), r=a/w;
+  if(f>0.001&&w>1){ const a=Math.abs(LX), r=a/w;
     const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
-    AX_V=(pos?1:-1)*(a+f*(wrapped-a)); }
+    LX=(pos?1:-1)*(a+f*(wrapped-a)); }
+}
+// Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
+// an axis, otherwise rotated by -theta so the tile follows the panel's grain.
+function localXY(G,k,x,y){
+  const A=G.axes[k];
+  if(A) axisUV(A,x,y);
+  else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
+}
+// Extent of each panel in its own tiling frame (min/max LX, LY). Garment-only, so it is measured once
+// here and cached with the garment; compose reads it to place the tile phase (seam avoidance).
+function panelExtents(G){
+  const {ids,w:W,box:[bx0,by0,bx1,by1]}=G;
+  const x0=new Float64Array(10).fill(Infinity), x1=new Float64Array(10).fill(-Infinity),
+        y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity);
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
+    localXY(G,k,x,y);
+    if(LX<x0[k])x0[k]=LX; if(LX>x1[k])x1[k]=LX; if(LY<y0[k])y0[k]=LY; if(LY>y1[k])y1[k]=LY; }
+  return { x0, x1, y0, y1 };
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
 const big=document.createElement('canvas'), disp=document.createElement('canvas');
 // cal (optional): model view calibration = flatGw/sqrt(flatArea); without it the strip width comes from G.gw.
 function compose(G, pat, scale, trim, cal){
-  const {w:W,h:H,ids,cx,cy,cs,sn,axes,Lref,box:[bx0,by0,bx1,by1]}=G;
+  const {w:W,h:H,ids,Lref,ext,box:[bx0,by0,bx1,by1]}=G;
   const patW = cal ? K_BASE*scale*Math.sqrt(G.area)*cal : K_BASE*scale*G.gw;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
+  // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
+  // phase so the single wrap boundary lands outside the panel (in the background) instead of slicing a
+  // motif mid-panel. OFFX/OFFY still seed the within-cell placement, so adjacent panels stay decorrelated.
+  // A panel wider or taller than the tile must repeat, so it keeps the plain OFFX*PW / OFFY*PH offset.
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
+  for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+    const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
+    const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
   // fresh mock raster each compose: it is written in place, so background + (when no trim color) trim pixels stay as the mock
   const M=rasterArea(G.mockImg,OUT_AREA*SS*SS,true); if(M.w!==W||M.h!==H) throw new Error('mock raster size mismatch');
   const md=M.data, out=md;
@@ -402,12 +437,10 @@ function compose(G, pat, scale, trim, cal){
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }
-    let rx, ry;
-    if(axes[k]){ axisUV(axes[k],x,y); rx=AX_V; ry=AX_U; }   // curved panel: across / along the limb axis
-    else { const dx=x-cx[k], dy=y-cy[k]; rx=dx*cs[k]+dy*sn[k]; ry=-dx*sn[k]+dy*cs[k]; }   // rotate by -theta -> tile in panel-local axes
-    // bilinear sample of the tiled strip (wraps on both axes)
-    let fx=rx+ox[k]; fx-=Math.floor(fx/PW)*PW; let fy=ry+oy[k]; fy-=Math.floor(fy/PH)*PH;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx-=PW; }   // wrong side of the print -> mirror
+    localXY(G,k,x,y);
+    // bilinear sample of the tiled strip (wraps on both axes; the >= guards catch float round-up to exactly PW/PH)
+    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }   // wrong side of the print -> mirror
     const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
     const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
     const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;

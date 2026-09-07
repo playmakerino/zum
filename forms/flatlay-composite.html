@@ -38,8 +38,8 @@
   button:disabled{ opacity:.4; cursor:default; }
   button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
   .msg{ font-size:12px; color:var(--mut); min-height:16px; }
-  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
-  .shot{ margin:0; flex:1 1 300px; min-width:240px; display:flex; flex-direction:column; gap:8px; }
+  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
+  .shot{ margin:0; flex:0 0 300px; max-width:300px; display:flex; flex-direction:column; gap:8px; }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
 </style>
@@ -68,8 +68,8 @@
     <div class="field">
       <label for="trimHex">Trim color</label>
       <div class="trim">
-        <input type="color" id="trimColor" value="#7fb2d9" aria-label="Trim color picker">
-        <input type="text" id="trimHex" value="#7FB2D9" spellcheck="false" aria-label="Trim color hex">
+        <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
+        <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
       </div>
     </div>
 

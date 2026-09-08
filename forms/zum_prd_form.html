@@ -1231,8 +1231,8 @@
     // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
     // Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
     // Motif size: flatlay strip width = K_BASE x scale x garment bbox width. The model view uses
-    // sqrt(fabric area) x cal, cal = gw/sqrt(area) of the flatlay, so the motif keeps the same
-    // physical size on the body regardless of pose and framing.
+    // the pose-robust body width (K_BASE x scale x bodyW x cal), cal = gw/bodyW of the flatlay, so
+    // checks-per-body-width match the flatlay in every pose.
     const OFFX = [0, 0.37, 0.71, 0.13, 0.58, 0.92, 0.26, 0.64, 0.45];
     const OFFY = [0, 0.53, 0.19, 0.81, 0.34, 0.67, 0.08, 0.46, 0.88];
     const K_BASE = 1.5;            // pattern strip width = K x garment bbox width
@@ -1287,11 +1287,13 @@
         const pbx0 = new Int32Array(10).fill(W), pby0 = new Int32Array(10).fill(H), pbx1 = new Int32Array(10).fill(-1), pby1 = new Int32Array(10).fill(-1);   // per-panel bbox
         const hist = new Uint32Array(256); let nTrim = 0;
         let bx0 = W, bx1 = -1, by0 = H, by1 = -1;   // compose bbox (fabric + trim)
+        const rminx = new Int32Array(H).fill(W), rmaxx = new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
         let lineMask = null, dotMask = null; const linePx = [], dotPx = [];
         for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++) {
           const k = ((xd[i * 4] + 10) / 20) | 0; ids[i] = k;
           if (k >= 1 && k <= 9) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
           if (k >= 1 && k <= 8) { if (x < pbx0[k]) pbx0[k] = x; if (x > pbx1[k]) pbx1[k] = x; if (y < pby0[k]) pby0[k] = y; if (y > pby1[k]) pby1[k] = y;
+            if (x < rminx[y]) rminx[y] = x; if (x > rmaxx[y]) rmaxx[y] = x;
             cnt[k]++; sx[k] += x; sy[k] += y; sxx[k] += x * x; sxy[k] += x * y; syy[k] += y * y; }
           else if (k === 9 && !((x | y) & 1)) { const p = i * 4; hist[((md[p] * 299 + md[p + 1] * 587 + md[p + 2] * 114) / 1000) | 0]++; nTrim++; }
           if (xd[i * 4 + 1] >= AXIS_MIN) { (lineMask || (lineMask = new Uint8Array(N)))[i] = 1; linePx.push(i); }
@@ -1299,13 +1301,19 @@
         }
         let minx = W, maxx = -1, area = 0;   // gw bbox (fabric only) + fabric area
         for (let k = 1; k <= 8; k++) { area += cnt[k]; if (pbx0[k] < minx) minx = pbx0[k]; if (pbx1[k] > maxx) maxx = pbx1[k]; }
+        // Body width for motif sizing: 70th percentile of per-row fabric run width. Pose-robust (thin limb
+        // rows sit low in the distribution; a splayed-limb bbox does not inflate it), and — unlike sqrt(area) —
+        // it scales with the garment the same way on a flat lay and on a body, so checks/body stays put per pose.
+        const rowW = []; for (let y = 0; y < H; y++) if (rmaxx[y] >= 0) rowW.push(rmaxx[y] - rminx[y] + 1);
+        rowW.sort((a, b) => a - b);
+        const bodyW = rowW.length ? rowW[Math.min(rowW.length - 1, Math.floor(rowW.length * 0.70))] : Math.max(2, maxx - minx + 1);
         const cx = new Float64Array(10), cy = new Float64Array(10), cs = new Float64Array(10).fill(1), sn = new Float64Array(10);
         for (let k = 1; k <= 8; k++) { if (cnt[k] < 50) continue;
           cx[k] = sx[k] / cnt[k]; cy[k] = sy[k] / cnt[k];
           const vxx = sxx[k] / cnt[k] - cx[k] * cx[k], vyy = syy[k] / cnt[k] - cy[k] * cy[k], vxy = sxy[k] / cnt[k] - cx[k] * cy[k];
           const th = 0.5 * Math.atan2(2 * vxy, vyy - vxx); cs[k] = Math.cos(th); sn[k] = Math.sin(th); }
         let Lref = 255, acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= nTrim * 0.9) { Lref = v; break; } }
-        const G = { w: W, h: H, mockImg, ids, box: [bx0, by0, bx1, by1], pbox: [pbx0, pby0, pbx1, pby1], gw: Math.max(2, maxx - minx + 1), area: Math.max(1, area), cnt, cx, cy, cs, sn, axes: [], ext: null, Lref: Math.max(1, Lref) };
+        const G = { w: W, h: H, mockImg, ids, box: [bx0, by0, bx1, by1], pbox: [pbx0, pby0, pbx1, pby1], gw: Math.max(2, maxx - minx + 1), area: Math.max(1, area), bodyW: Math.max(2, bodyW), cnt, cx, cy, cs, sn, axes: [], ext: null, Lref: Math.max(1, Lref) };
         const wrap = !!(opts && opts.wrap);
         if (lineMask && dotMask) for (const d of traceDrawn(W, H, ids, lineMask, linePx, dotMask, dotPx)) G.axes[d.k] = buildAxis(d.k, d.px, d.py, G, wrap);
         if (opts && opts.auto) for (let k = 1; k <= 8; k++) { if (G.axes[k] || k === COLLAR_ID || cnt[k] < 2000) continue;
@@ -1494,10 +1502,10 @@
 
     // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
     const big = document.createElement('canvas'), disp = document.createElement('canvas');
-    // cal (optional): model-view calibration = flatGw / sqrt(flatArea); without it the strip width comes from G.gw.
+    // cal (optional): model-view calibration = flatGw / flatBodyW; without it the strip width comes from G.gw.
     function compose(G, pat, scale, trim, cal) {
       const { w: W, h: H, ids, Lref, ext, box: [bx0, by0, bx1, by1] } = G;
-      const patW = cal ? K_BASE * scale * Math.sqrt(G.area) * cal : K_BASE * scale * G.gw;
+      const patW = cal ? K_BASE * scale * G.bodyW * cal : K_BASE * scale * G.gw;
       const P = rasterWidth(pat, Math.max(2, Math.round(patW)), true);
       const PW = P.w, PH = P.h, pd = P.data;
       // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
@@ -1641,7 +1649,7 @@
           const cal = {};
           for (const key of FLAT_KEYS) {
             const G = await analyzeGarment(GARMENTS[key].flat);
-            cal[key] = G.gw / Math.sqrt(G.area);
+            cal[key] = G.gw / G.bodyW;
             await nextPaint();
             const blob = await encode(compose(G, patImg, scale, trim));
             if (!blob) throw new Error('JPEG encode failed');

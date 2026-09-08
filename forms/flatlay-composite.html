@@ -153,6 +153,10 @@ const msg=m=>{ $('msg').textContent=m; };
 // rAF never fires in a hidden tab, so a timer fallback keeps generate() moving when the user switches away
 const nextPaint=()=>new Promise(r=>{ let done=false; const go=()=>{ if(!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go,120); });
 const loadImg=src=>new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('image load failed: '+src)); i.src=src; });
+// The panel map is an exact id image - it must NOT be chroma-subsampled. An <img> lets Shopify's CDN serve
+// WebP, whose 4:2:0 subsampling bleeds sharp colour edges (e.g. a drawn G axis line) into the R channel and
+// corrupts the id, printing thin stray-panel lines. Fetch it as PNG so every pixel's id stays exact.
+const loadPng=src=>fetch(src,{headers:{Accept:'image/png'}}).then(r=>{ if(!r.ok) throw new Error('map load failed: '+src); return r.blob(); }).then(createImageBitmap);
 const parseHex=s=>{ const m=HEX_RE.exec(s.trim()); return m?m[1].toUpperCase():null; };
 const hexToRgb=h=>[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
 
@@ -206,7 +210,7 @@ function analyzeGarment(spec,opts){
   if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
   const p=(async()=>{
     const CA=OUT_AREA*SS*SS;
-    const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadImg(spec.map)]);
+    const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
     const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
     const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
     const ids=new Uint8Array(N);

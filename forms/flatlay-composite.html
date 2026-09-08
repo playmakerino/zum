@@ -144,7 +144,6 @@ const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const K_BASE=1.5;          // pattern strip width = K x garment bbox width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
-const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
 const TRIM_CEIL=1.15;      // flatlay trim ceiling
 const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
 const TRIM_ROLL=0.22;      // compression slope above the knee
@@ -447,7 +446,7 @@ function compose(G, pat, scale, trim, cal){
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     if(k===9){
       if(!trim) continue;
-      let f=Math.max(TRIM_FLOOR, (r*299+g*587+b*114)/1000/Lref);
+      let f=(r*299+g*587+b*114)/1000/Lref;   // no shadow floor: a dark trim (charcoal) sat mostly under it and lost its whole weave
       if(cal){ if(f>TRIM_KNEE) f=TRIM_KNEE+(f-TRIM_KNEE)*TRIM_ROLL; if(f>TRIM_MCEIL) f=TRIM_MCEIL; }  // model view: roll off highlights so studio glare/satin doesn't survive the recolor
       else if(f>TRIM_CEIL) f=TRIM_CEIL;                                                              // flatlay: unchanged
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;

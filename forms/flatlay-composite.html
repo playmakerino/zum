@@ -117,7 +117,7 @@ const GARMENTS={
   pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
            models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788776571'),
                     V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788776644'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788845084'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788847136'),
                     V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788777409'),
                     V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788777411'),
                     V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788845085') ] },
@@ -249,7 +249,9 @@ function analyzeGarment(spec,opts){
       // The line is straight, so its own PCA direction is its angle - a vertical stroke gives vertical grain.
       const src = acnt[k]>=50 ? [acnt[k],asx[k],asy[k],asxx[k],asyy[k],asxy[k]] : [cnt[k],sx[k],sy[k],sxx[k],syy[k],sxy[k]];
       const n=src[0], mx=src[1]/n, my=src[2]/n, vxx=src[3]/n-mx*mx, vyy=src[4]/n-my*my, vxy=src[5]/n-mx*my;
-      const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
+      // Negated: localXY's along-grain axis is (-sn,cs), so the grain follows the major axis only with -th.
+      // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
+      const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
     const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, ext:null, Lref:Math.max(1,Lref) };
     G.ext=panelExtents(G);

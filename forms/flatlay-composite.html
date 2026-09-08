@@ -251,6 +251,18 @@ function analyzeGarment(spec,opts){
     if(lineMask&&dotMask) for(const d of traceDrawn(W,H,ids,lineMask,linePx,dotMask,dotPx)) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,wrap);
     if(opts&&opts.auto) for(let k=1;k<=8;k++){ if(G.axes[k]||blob[k]||k===COLLAR_ID||cnt[k]<2000) continue;
       const a=autoAxis(W,H,ids,k); if(a) G.axes[k]=buildAxis(k,a.px,a.py,G,wrap); }
+    // A nearly straight auto axis can still point the wrong way: at 1/4 res a wide, near-upright panel
+    // (torso) reads as a tilted blob and gets a diagonal spine that shears the grain into diamonds. When
+    // the spine is not actually curved, trust the panel's stable full-res PCA instead - rebuild it as a
+    // straight line through the centroid along the major axis (sn,cs), keeping the tube wrap but fixing
+    // the direction. A genuinely bent limb (curvature above the threshold) keeps its traced centerline.
+    if(opts&&opts.auto) for(let k=1;k<=8;k++){ const A=G.axes[k]; if(!A||k===COLLAR_ID) continue;
+      const n=A.px.length, ex=A.px[n-1]-A.px[0], ey=A.py[n-1]-A.py[0], el=Math.hypot(ex,ey)||1; let md=0;
+      for(let j=0;j<n;j++){ const perp=Math.abs((A.px[j]-A.px[0])*ey-(A.py[j]-A.py[0])*ex)/el; if(perp>md) md=perp; }
+      if(md/el>=0.035) continue;   // curved enough to be a real bent limb: keep the traced spine
+      const ux=sn[k], uy=cs[k], px=[], py=[];   // major-axis unit; straight line spanning the panel
+      for(let t=-el/2; t<=el/2; t+=AX_STEP){ px.push(cx[k]+t*ux); py.push(cy[k]+t*uy); }
+      if(px.length>=3) G.axes[k]=buildAxis(k,px,py,G,wrap); }
     G.ext=panelExtents(G);
     return G;
   })();

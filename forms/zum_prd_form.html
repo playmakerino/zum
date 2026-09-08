@@ -755,7 +755,7 @@ const GARMENTS={
   pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
            models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788776571'),
                     V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788776644'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788847136'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788851778'),
                     V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788777409'),
                     V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788777411'),
                     V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788845085') ] },
@@ -974,7 +974,7 @@ function traceDrawn(W,H,ids,linePx){
       for(const d of nb){ const j=i+d; if(j<0||j>=N||mark[j]!==2||!okStep(i,j)) continue; mark[j]=3; q.push(j); dist.push(d0+1); } }
     let k=0; for(let t=1;t<=8;t++) if(idCnt[t]>idCnt[k]) k=t;
     const px=[], py=[]; for(let b=0;b<bn.length;b++) if(bn[b]){ px.push(bx[b]/bn[b]); py.push(by[b]/bn[b]); }
-    if(k===0||px.length<3) continue;
+    if(k===0||px.length<8) continue;   // a speck on the map is not a stroke: under 8 samples (~80 px) is ignored
     if(py[0]>py[py.length-1]){ px.reverse(); py.reverse(); }   // start at the higher end
     out.push({ k, px, py, curve:curveOf(px,py) });
   }

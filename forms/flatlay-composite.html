@@ -265,8 +265,9 @@ function analyzeGarment(spec,model){
         if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
         if(!((x|y)&1)){ const p=i*4; fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
-        if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; linePx.push(i); } }
+        if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
+      if(xd[i*4+1]>=AXIS_MIN) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
     // Body width for motif sizing: 70th percentile of per-row fabric run width. Pose-robust (thin limb
     // rows sit low in the distribution; a splayed-limb bbox does not inflate it), and, unlike sqrt(area),
@@ -313,7 +314,9 @@ function analyzeGarment(spec,model){
 // The stroke is the G-maxed line traced as a polyline; only a stroke that actually bends (curvature >=
 // AX_CURVE) becomes an axis, a straight stroke just sets the grain angle. Tube wrap (model views): across
 // the axis, v is compressed toward a silhouette edge (fabric curving away from the camera) and left linear
-// toward a seam. Strokes are baked offline (zum-prd/prompt-test/model-map) and reviewed on an overlay.
+// toward a seam. Strokes are baked offline (zum-prd/prompt-test/model-map/bake_axes.py) and reviewed on an
+// overlay. Draw one stroke per panel, running the full length of the limb: the panel's mean width is
+// area / stroke length, and a half-length stroke doubles it and over-smooths the bend.
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };

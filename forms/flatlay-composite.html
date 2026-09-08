@@ -117,10 +117,10 @@ const GARMENTS={
   pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
            models:[ V('zum-model-pajama-boy-1.jpg?v=1786079944','zum-flatlay-model-map-pajama-boy-1.png?v=1788776571'),
                     V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788776644'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788776646'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788845084'),
                     V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788777409'),
                     V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788777411'),
-                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788839935') ] },
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788845085') ] },
 };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper).
@@ -144,6 +144,7 @@ const TRIM_KNEE=0.95;      // model view only: soft-knee onset for trim highligh
 const TRIM_ROLL=0.35;      // compression slope above the knee
 const TRIM_MCEIL=1.08;     // model view trim ceiling, below the flat one
 const COLLAR_ID=6;
+const AXIS_MIN=250;    // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const MODEL_OPTS={};   // model views share the flat-lay pipeline; kept as an analyze() cache-key discriminator
 const HEX_RE=/^#?([0-9a-f]{6})$/i;
 
@@ -215,12 +216,15 @@ function analyzeGarment(spec,opts){
     const hist=new Uint32Array(256); let nTrim=0;
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const rminx=new Int32Array(H).fill(W), rmaxx=new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
+    // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
+    const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
       const k=((xd[i*4]+10)/20)|0; ids[i]=k;
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
-        cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y; }
+        cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
+        if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
     }
     let minx=W, maxx=-1, area=0;   // gw bbox (fabric only) + fabric area
@@ -237,7 +241,10 @@ function analyzeGarment(spec,opts){
     // (A near-square panel has no dominant axis so its angle is unstable; the accepted cost of one rule.)
     for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
       cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
-      const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];
+      // A hand-drawn axis line on the map (>=50 maxed-G pixels) sets the grain for that panel; else PCA.
+      // The line is straight, so its own PCA direction is its angle - a vertical stroke gives vertical grain.
+      const src = acnt[k]>=50 ? [acnt[k],asx[k],asy[k],asxx[k],asyy[k],asxy[k]] : [cnt[k],sx[k],sy[k],sxx[k],syy[k],sxy[k]];
+      const n=src[0], mx=src[1]/n, my=src[2]/n, vxx=src[3]/n-mx*mx, vyy=src[4]/n-my*my, vxy=src[5]/n-mx*my;
       const th=0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
     const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw:Math.max(2,maxx-minx+1), area:Math.max(1,area), bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, ext:null, Lref:Math.max(1,Lref) };

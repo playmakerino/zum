@@ -120,7 +120,7 @@ const GARMENTS={
                     V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788776646'),
                     V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788777409'),
                     V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788777411'),
-                    V('zum-model-pajama-girl-3.jpg?v=1788839958','zum-flatlay-model-map-pajama-girl-3.png?v=1788839935') ] },
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788839935') ] },
 };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper).
@@ -139,7 +139,10 @@ const K_BASE=1.5;          // pattern strip width = K x garment bbox width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
-const TRIM_CEIL=1.15;
+const TRIM_CEIL=1.15;      // flatlay trim ceiling
+const TRIM_KNEE=0.95;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
+const TRIM_ROLL=0.35;      // compression slope above the knee
+const TRIM_MCEIL=1.08;     // model view trim ceiling, below the flat one
 const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G/B channel at/above this = limb axis line / its start dot (ids only reach R=180)
 const MODEL_OPTS={ auto:true, wrap:true };   // model views: auto centerlines + tube wrap; the flatlay stays flat
@@ -458,7 +461,9 @@ function compose(G, pat, scale, trim, cal){
     const o=i*4, r=md[o], g=md[o+1], b=md[o+2];
     if(k===9){
       if(!trim) continue;
-      const f=Math.min(TRIM_CEIL, Math.max(TRIM_FLOOR, (r*299+g*587+b*114)/1000/Lref));
+      let f=Math.max(TRIM_FLOOR, (r*299+g*587+b*114)/1000/Lref);
+      if(cal){ if(f>TRIM_KNEE) f=TRIM_KNEE+(f-TRIM_KNEE)*TRIM_ROLL; if(f>TRIM_MCEIL) f=TRIM_MCEIL; }  // model view: roll off highlights so studio glare/satin doesn't survive the recolor
+      else if(f>TRIM_CEIL) f=TRIM_CEIL;                                                              // flatlay: unchanged
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }

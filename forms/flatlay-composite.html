@@ -228,9 +228,9 @@ function genderFromHex(v){
 // compose loop: on a model photo ~70% of the frame is background), per-panel centroid +
 // major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
 // luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
-// LRU of a few garments: each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
+// LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
-const garmentCache=new Map(), CACHE_MAX=4;
+const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
 function analyzeGarment(spec){
   const key=spec.map;
   if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }

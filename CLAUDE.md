@@ -9,3 +9,9 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 | Thư mục | Việc |
 |---|---|
 | [`../zum-prd/`](../zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4`). **Tài liệu nằm ngoài repo này**, nhưng form của nó vẫn ở [`forms/zum_prd_form.html`](forms/zum_prd_form.html) |
+
+## Compositor flatlay: 2 file, 1 engine
+[`forms/flatlay-composite.html`](forms/flatlay-composite.html) (dev tool) và [`forms/zum_prd_form.html`](forms/zum_prd_form.html) (form production) chứa **cùng một khối engine byte-identical** giữa 2 dòng marker `// ===== SHARED BLOCK` … `// ===== END SHARED BLOCK =====`. Cả 2 vẫn là one-page HTML (khối được nhân đôi, không load script chung).
+- Sửa engine (compose, analyzeGarment, GARMENTS/`?v`, hằng số, colour helpers) **chỉ trong `flatlay-composite.html`** → `.\forms\sync-shared.ps1 -Push` → commit **cả 2 file**.
+- `.\forms\sync-shared.ps1` (không flag) diff 2 bản, exit 1 nếu lệch — chạy trước khi commit bất kỳ file nào trong 2 file này.
+- Code riêng từng trang (UI, webhook, NICHES) nằm ngoài khối; khối không được đụng DOM/state trang.

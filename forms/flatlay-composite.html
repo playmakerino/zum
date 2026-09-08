@@ -140,9 +140,9 @@ const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
 const TRIM_FLOOR=0.65;     // lift trim shadows (lighter inner collar)
 const TRIM_CEIL=1.15;      // flatlay trim ceiling
-const TRIM_KNEE=0.95;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
-const TRIM_ROLL=0.35;      // compression slope above the knee
-const TRIM_MCEIL=1.08;     // model view trim ceiling, below the flat one
+const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
+const TRIM_ROLL=0.22;      // compression slope above the knee
+const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
 const COLLAR_ID=6;
 const AXIS_MIN=250;    // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const MODEL_OPTS={};   // model views share the flat-lay pipeline; kept as an analyze() cache-key discriminator

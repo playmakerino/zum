@@ -810,7 +810,7 @@ const decodeFile=f=>window.createImageBitmap ? createImageBitmap(f) : loadImg(UR
 // Draw img at w x h and return its pixels.
 function raster(img,w,h,smooth){
   const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=smooth; x.drawImage(img,0,0,w,h);
+  const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=smooth; x.imageSmoothingQuality='high'; x.drawImage(img,0,0,w,h);
   return { w, h, data:x.getImageData(0,0,w,h).data };
 }
 function rasterArea(img,area,smooth){
@@ -860,8 +860,9 @@ function genderFromHex(v){
 // --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
 // One pass over the map yields: panel id per pixel, garment bbox (width for motif size, box for the
 // compose loop: on a model photo ~70% of the frame is background), per-panel centroid +
-// major-axis angle (PCA; the print is rotated to follow each panel's grain), and the trim
-// luminance reference (90th percentile of panel 9, sampled every 2nd pixel each axis).
+// major-axis angle (PCA; the print is rotated to follow each panel's grain), the trim
+// luminance reference (90th percentile of panel 9) and the fabric white reference (95th percentile
+// of each channel over panels 1..8), both sampled every 2nd pixel each axis.
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
@@ -878,6 +879,7 @@ function analyzeGarment(spec){
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
     const hist=new Uint32Array(256); let nTrim=0;
+    const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     let fx0=W, fx1=-1;                  // fabric-only bbox width = gw (motif size on the flatlay)
     const rminx=new Int32Array(H).fill(W), rmaxx=new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
@@ -889,6 +891,7 @@ function analyzeGarment(spec){
       if(k>=1&&k<=8){ if(x<fx0)fx0=x; if(x>fx1)fx1=x;
         if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
+        if(!((x|y)&1)){ const p=i*4; fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
         if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
     }
@@ -912,8 +915,13 @@ function analyzeGarment(spec){
       // Negated: the tiling frame's along-grain axis is (-sn,cs), so the grain follows the major axis only with -th.
       // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
       const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
-    let Lref=255, acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=nTrim*0.9){ Lref=v; break; } }
-    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], gw, bodyW:Math.max(2,bodyW), cx, cy, cs, sn, ext:null, Lref:Math.max(1,Lref) };
+    const pct=(h,n,q)=>{ let acc=0; for(let v=0;v<256;v++){ acc+=h[v]; if(acc>=n*q) return v; } return 255; };
+    const Lref=pct(hist,nTrim,0.9);
+    // Fabric white per channel: the print is multiplied by mock/Fref instead of mock/255, so the brightest
+    // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
+    // tints the print. Capped at 1 in compose: a print is never brighter than its file.
+    const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], gw, bodyW:Math.max(2,bodyW), cx, cy, cs, sn, ext:null, Lref:Math.max(1,Lref), Fref };
     G.ext=panelExtents(G);
     return G;
   })();
@@ -942,6 +950,7 @@ const big=document.createElement('canvas'), disp=document.createElement('canvas'
 // match the flatlay for every pose. Returns a canvas (W/SS x H/SS); the caller encodes it.
 function compose(G, pat, scale, trim, cal){
   const {w:W,h:H,ids,Lref,ext,cx,cy,cs,sn,box:[bx0,by0,bx1,by1]}=G;
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
   const patW = cal ? K_BASE*scale*G.bodyW*cal : K_BASE*scale*G.gw;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
@@ -980,7 +989,8 @@ function compose(G, pat, scale, trim, cal){
         pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
         pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
-    out[o]=(r*pr)/255|0; out[o+1]=(g*pg)/255|0; out[o+2]=(b*pb)/255|0;
+    let fr=r*iFr, fg=g*iFg, fb=b*iFb; if(fr>1) fr=1; if(fg>1) fg=1; if(fb>1) fb=1;   // multiply, normalised to the fabric white
+    out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
   }
 
   big.width=W; big.height=H;

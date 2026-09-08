@@ -152,8 +152,9 @@ const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
 const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
-const AX_MIN_ELONG=2;      // model views: only a panel this elongated (limb, not torso) gets an automatic curved axis
-const AX_CURVE=0.035;      // max deviation/chord above which an axis counts as bent (drawn stroke -> axis; auto axis kept curved)
+const AX_CURVE=0.035;      // max deviation/chord above which a drawn stroke counts as bent and becomes a curved axis
+const AX_SMOOTH=0.25;      // axis smoothing half-window as a fraction of the panel width (x3 passes): the (u,v) map folds where
+                           // the bend radius drops below the half-width; 0.25 keeps a 90 deg elbow fold-free yet visibly bent
 
 // --- colour helpers ---
 const HEX_RE=/^#?([0-9a-f]{6})$/i;
@@ -232,7 +233,7 @@ function genderFromHex(v){
 // major-axis angle (PCA; the print is rotated to follow each panel's grain), the trim
 // luminance reference (90th percentile of panel 9) and the fabric white reference (95th percentile
 // of each channel over panels 1..8), both sampled every 2nd pixel each axis.
-// model=true (on-model photo): limbs get automatic curved axes + tube wrap; the flatlay stays flat (see limb axes below).
+// model=true (on-model photo): a drawn curved axis also gets the tube wrap; the flatlay stays flat (see limb axes below).
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
@@ -274,14 +275,12 @@ function analyzeGarment(spec,model){
     rowW.sort((a,b)=>a-b);
     const gw=Math.max(2,fx1-fx0+1);
     const bodyW=rowW.length ? rowW[Math.min(rowW.length-1, Math.floor(rowW.length*0.70))] : gw;
-    const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10), elong=new Float64Array(10);
+    const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
     // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
     // (A near-square panel has no dominant axis so its angle is unstable; the accepted cost of one rule.)
     for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
       cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
-      { const vxx=sxx[k]/cnt[k]-cx[k]*cx[k], vyy=syy[k]/cnt[k]-cy[k]*cy[k], vxy=sxy[k]/cnt[k]-cx[k]*cy[k];   // panel elongation = major/minor eigenvalue
-        const tr=vxx+vyy, det=vxx*vyy-vxy*vxy, disc=Math.sqrt(Math.max(0,tr*tr/4-det)); elong[k]=(tr/2+disc)/Math.max(1e-9,tr/2-disc); }
       // A hand-drawn axis line on the map (>=50 maxed-G pixels) sets the grain for that panel; else PCA.
       // The line is straight, so its own PCA direction is its angle - a vertical stroke gives vertical grain.
       const src = acnt[k]>=50 ? [acnt[k],asx[k],asy[k],asxx[k],asyy[k],asxy[k]] : [cnt[k],sx[k],sy[k],sxx[k],syy[k],sxy[k]];
@@ -296,19 +295,11 @@ function analyzeGarment(spec,model){
     // tints the print. Capped at 1 in compose: a print is never brighter than its file.
     const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
     const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw, bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref };
-    // Limb axes (see below). A drawn stroke that bends becomes a curved axis in any view (a straight one
-    // already set the grain angle above). On a model photo, elongated panels without a stroke get an
-    // automatic centerline; both carry the tube wrap only in the model view.
+    // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
+    // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
+    // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
+    // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
-    if(model) for(let k=1;k<=8;k++){ if(G.axes[k]||acnt[k]>=50||k===COLLAR_ID||cnt[k]<2000||elong[k]<AX_MIN_ELONG) continue;
-      const a=autoAxis(W,H,ids,k); if(!a) continue;
-      // A nearly straight auto axis can still point slightly off (1/4-res path). Trust the panel's stable
-      // full-res PCA instead: a straight line through the centroid along the major axis (-sn,cs), keeping
-      // the tube wrap. A genuinely bent limb keeps its traced centerline.
-      let px=a.px, py=a.py;
-      if(curveOf(px,py)<AX_CURVE){ const el=Math.hypot(px[px.length-1]-px[0],py[py.length-1]-py[0]), ux=-sn[k], uy=cs[k]; px=[]; py=[];
-        for(let t=-el/2; t<=el/2; t+=AX_STEP){ px.push(cx[k]+t*ux); py.push(cy[k]+t*uy); } if(px.length<3) continue; }
-      G.axes[k]=buildAxis(k,px,py,G,true); }
     G.ext=panelExtents(G);
     return G;
   })();
@@ -316,18 +307,13 @@ function analyzeGarment(spec,model){
   while(garmentCache.size>CACHE_MAX) garmentCache.delete(garmentCache.keys().next().value);
   return p;
 }
-// --- limb axes: a fabric panel may get a centerline; its pixels are then mapped to curved coordinates
-// (u = arc length along the line, v = signed perpendicular distance) so the print follows a bent arm/leg
-// instead of one flat angle. Panels without an axis keep the PCA / drawn-angle rotation above. Sources:
-//  * drawn in the map (any view): the G-maxed stroke traced as a polyline. Only a stroke that actually
-//    bends (curvature >= AX_CURVE) becomes an axis; a straight stroke just sets the grain angle above.
-//  * auto (model views only): elongated panels (elong >= AX_MIN_ELONG, i.e. limbs, never a torso: the
-//    torso guesses were why this system was dropped once) get a centerline from a distance transform of
-//    the panel at 1/4 res: endpoints = extremes along the PCA axis, cheapest path between them with
-//    cost ~ 1/distance-to-edge (hugs the middle), corner tails trimmed, start = the higher end. A nearly
-//    straight auto axis is replaced by the panel's stable full-res PCA line (direction fixed, wrap kept).
-// Tube wrap (model views): across the axis, v is compressed toward a silhouette edge (fabric curving
-// away from the camera) and left linear toward a seam.
+// --- limb axes: a fabric panel may get a centerline drawn on the map; its pixels are then mapped to curved
+// coordinates (u = arc length along the line, v = signed perpendicular distance) so the print follows a bent
+// arm/leg instead of one flat angle. Panels without an axis keep the PCA / drawn-angle rotation above.
+// The stroke is the G-maxed line traced as a polyline; only a stroke that actually bends (curvature >=
+// AX_CURVE) becomes an axis, a straight stroke just sets the grain angle. Tube wrap (model views): across
+// the axis, v is compressed toward a silhouette edge (fabric curving away from the camera) and left linear
+// toward a seam. Strokes are baked offline (zum-prd/prompt-test/model-map) and reviewed on an overlay.
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
@@ -357,74 +343,13 @@ function traceDrawn(W,H,ids,linePx){
   }
   return out;
 }
-// Binary heap keyed on cost, for the centerline search.
-class MinHeap{ constructor(){ this.c=[]; this.i=[]; }
-  push(c,i){ const C=this.c,I=this.i; let p=C.length; C.push(c); I.push(i);
-    while(p>0){ const q=(p-1)>>1; if(C[q]<=C[p]) break; [C[p],C[q]]=[C[q],C[p]]; [I[p],I[q]]=[I[q],I[p]]; p=q; } }
-  pop(){ const C=this.c,I=this.i, c=C[0], i=I[0], lc=C.pop(), li=I.pop(); if(C.length){ C[0]=lc; I[0]=li; let p=0;
-    for(;;){ let l=2*p+1, r=l+1, m=p; if(l<C.length&&C[l]<C[m]) m=l; if(r<C.length&&C[r]<C[m]) m=r; if(m===p) break; [C[p],C[m]]=[C[m],C[p]]; [I[p],I[m]]=[I[m],I[p]]; p=m; } }
-    return [c,i]; }
-  get size(){ return this.c.length; } }
-function autoAxis(W,H,ids,k){
-  const F=4, w=Math.ceil(W/F), h=Math.ceil(H/F), N=w*h;
-  const m=new Uint8Array(N); let n=0, mx=0, my=0;
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(ids[(y*F)*W+x*F]===k){ m[y*w+x]=1; n++; mx+=x; my+=y; } }
-  if(n<200) return null;
-  // keep only the largest connected piece: SAM masks carry islands, and the two endpoints must be joinable
-  { const lab=new Int32Array(N).fill(-1); let best=-1, bestN=0, L=0; const q=new Int32Array(N);
-    for(let i0=0;i0<N;i0++){ if(!m[i0]||lab[i0]>=0) continue; let qh=0, qt=0; q[qt++]=i0; lab[i0]=L; let c=0;
-      while(qh<qt){ const i=q[qh++]; c++; const x=i%w, y=(i/w)|0;
-        if(x>0&&m[i-1]&&lab[i-1]<0){ lab[i-1]=L; q[qt++]=i-1; } if(x<w-1&&m[i+1]&&lab[i+1]<0){ lab[i+1]=L; q[qt++]=i+1; }
-        if(y>0&&m[i-w]&&lab[i-w]<0){ lab[i-w]=L; q[qt++]=i-w; } if(y<h-1&&m[i+w]&&lab[i+w]<0){ lab[i+w]=L; q[qt++]=i+w; } }
-      if(c>bestN){ bestN=c; best=L; } L++; }
-    n=0; mx=0; my=0; for(let i=0;i<N;i++){ if(m[i]&&lab[i]!==best) m[i]=0; if(m[i]){ n++; mx+=i%w; my+=(i/w)|0; } } }
-  mx/=n; my/=n;
-  // chamfer 3-4 distance to the panel edge (image border counts as edge)
-  const dt=new Float32Array(N); for(let i=0;i<N;i++) dt[i]=m[i]?1e9:0;
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; if(!m[i]) continue; let d=dt[i];
-    if(y>0){ d=Math.min(d,dt[i-w]+3); if(x>0) d=Math.min(d,dt[i-w-1]+4); if(x<w-1) d=Math.min(d,dt[i-w+1]+4); } else d=Math.min(d,3);
-    if(x>0) d=Math.min(d,dt[i-1]+3); else d=Math.min(d,3); dt[i]=d; }
-  for(let y=h-1;y>=0;y--) for(let x=w-1;x>=0;x--){ const i=y*w+x; if(!m[i]) continue; let d=dt[i];
-    if(y<h-1){ d=Math.min(d,dt[i+w]+3); if(x>0) d=Math.min(d,dt[i+w-1]+4); if(x<w-1) d=Math.min(d,dt[i+w+1]+4); } else d=Math.min(d,3);
-    if(x<w-1) d=Math.min(d,dt[i+1]+3); else d=Math.min(d,3); dt[i]=d; }
-  // endpoints: extremes along the PCA major axis of the largest piece; a blob has none -> no axis
-  let vxx=0,vyy=0,vxy=0; for(let i=0;i<N;i++){ if(!m[i]) continue; const dx=i%w-mx, dy=((i/w)|0)-my; vxx+=dx*dx; vyy+=dy*dy; vxy+=dx*dy; }
-  const tr=vxx+vyy, det=vxx*vyy-vxy*vxy, disc=Math.sqrt(Math.max(0,tr*tr/4-det)), elong=(tr/2+disc)/Math.max(1e-9,tr/2-disc);
-  if(elong<AX_MIN_ELONG) return null;
-  const th=0.5*Math.atan2(2*vxy, vxx-vyy), ux=Math.cos(th), uy=Math.sin(th);
-  let A=-1,B=-1,pa=Infinity,pb=-Infinity;
-  for(let i=0;i<N;i++){ if(!m[i]) continue; const p=(i%w-mx)*ux+(((i/w)|0)-my)*uy; if(p<pa){pa=p;A=i;} if(p>pb){pb=p;B=i;} }
-  // cheapest path A -> B, step cost = length / (distance-to-edge + 0.5) so it runs along the middle
-  const cost=new Float32Array(N).fill(Infinity), prev=new Int32Array(N).fill(-1), done=new Uint8Array(N);
-  const heap=new MinHeap(); cost[A]=0; heap.push(0,A);
-  const nb=[[-1,-1,1.414],[0,-1,1],[1,-1,1.414],[-1,0,1],[1,0,1],[-1,1,1.414],[0,1,1],[1,1,1.414]];
-  while(heap.size){ const [c,i]=heap.pop(); if(done[i]) continue; done[i]=1; if(i===B) break;
-    const x=i%w, y=(i/w)|0;
-    for(const [ox,oy,L] of nb){ const xx=x+ox, yy=y+oy; if(xx<0||yy<0||xx>=w||yy>=h) continue; const j=yy*w+xx; if(!m[j]||done[j]) continue;
-      const nc=c+L/(dt[j]/3+0.5); if(nc<cost[j]){ cost[j]=nc; prev[j]=i; heap.push(nc,j); } } }
-  if(prev[B]<0) return null;
-  const path=[]; for(let i=B;i>=0;i=prev[i]) path.push(i); path.reverse();
-  if(((path[0]/w)|0) > ((path[path.length-1]/w)|0)) path.reverse();   // start at the higher end
-  // resample every AX_STEP (in full-res px), keep the edge distance at each point for trimming
-  const px=[],py=[],pd=[]; let acc=AX_STEP, lx=0,ly=0;
-  for(let t=0;t<path.length;t++){ const x=path[t]%w, y=(path[t]/w)|0; if(t) acc+=Math.hypot(x-lx,y-ly)*F; lx=x; ly=y;
-    if(acc>=AX_STEP){ px.push(x*F+F/2); py.push(y*F+F/2); pd.push(dt[path[t]]/3*F); acc=0; } }
-  // trim the tails that dive toward a corner: drop leading/trailing points thinner than 70% of the
-  // local peak width, searched over ~2x that width (local, so a narrow leg is not judged by the torso)
-  const M=pd.length, half=M>>1;
-  const tail=(get)=>{ let win=6, pk=0, pi=0;
-    for(let r=0;r<2;r++){ pk=0; pi=0; for(let i=0;i<Math.min(half,win);i++) if(get(i)>pk){ pk=get(i); pi=i; } win=Math.round(2*pk/AX_STEP)+6; }
-    let cut=0; for(let i=0;i<pi;i++) if(get(i)<0.7*pk) cut=i+1; return cut; };
-  const s0=tail(i=>pd[i]), s1=M-1-tail(i=>pd[M-1-i]);
-  if(s1-s0<2) return null;
-  return { px:px.slice(s0,s1+1), py:py.slice(s0,s1+1) };
-}
 function buildAxis(k,px,py,G,wrap){
   const {w:W,h:H,ids,cnt,pbox:[pbx0,pby0,pbx1,pby1]}=G;
   let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
-  // Smooth the line over ~half the panel width: the (u,v) mapping folds where the bend radius is
-  // smaller than the distance to the axis, so a wide panel (romper torso+leg) needs a gentler axis.
-  const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW/2/AX_STEP)));
+  // Smooth the line over AX_SMOOTH x the panel width each side: the (u,v) mapping folds where the bend
+  // radius is smaller than the distance to the axis, so a wide panel needs a gentler axis, but too wide
+  // a window rounds an elbow away (the print then barely bends).
+  const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW*AX_SMOOTH/AX_STEP)));
   for(let pass=0;pass<3;pass++){ const qx=px.slice(), qy=py.slice();
     for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
   const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);

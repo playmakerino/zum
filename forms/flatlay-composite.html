@@ -149,6 +149,9 @@ const TRIM_CEIL=1.15;      // flatlay trim ceiling
 const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
 const TRIM_ROLL=0.22;      // compression slope above the knee
 const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
+const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
+                           // acts on this low-pass (broad glare, lit collar); the weave / zipper detail riding on it is kept as in the mock
+const TRIM_DETAIL_MIN=0.35; // model view: a pixel may sit this far under the floor through its own detail (crease, stitch) - not to black
 const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
@@ -295,7 +298,18 @@ function analyzeGarment(spec,model){
     // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
     // tints the print. Capped at 1 in compose: a print is never brighter than its file.
     const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
-    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw, bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref };
+    // Model view trim low-pass (see compose): masked 2-pass box blur of the trim luminance (non-trim
+    // neighbours excluded), 1 byte/px over the compose bbox only. The flatlay never uses it.
+    let tlo=null;
+    if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
+      const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
+      for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
+      const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+        for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+      const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
+      blur(v); blur(m);
+      tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw, bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
@@ -425,7 +439,7 @@ const big=document.createElement('canvas'), disp=document.createElement('canvas'
 // without it the strip width comes from G.gw. Model strip = K x scale x bodyW x cal, so checks-per-body-width
 // match the flatlay for every pose. Returns a canvas (W/SS x H/SS); the caller encodes it.
 function compose(G, pat, scale, trim, cal){
-  const {w:W,h:H,ids,Lref,ext,box:[bx0,by0,bx1,by1]}=G;
+  const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
   const patW = cal ? K_BASE*scale*G.bodyW*cal : K_BASE*scale*G.gw;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
@@ -447,9 +461,14 @@ function compose(G, pat, scale, trim, cal){
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     if(k===9){
       if(!trim) continue;
-      let f=Math.max(TRIM_FLOOR, (r*299+g*587+b*114)/1000/Lref);
-      if(cal){ if(f>TRIM_KNEE) f=TRIM_KNEE+(f-TRIM_KNEE)*TRIM_ROLL; if(f>TRIM_MCEIL) f=TRIM_MCEIL; }  // model view: roll off highlights so studio glare/satin doesn't survive the recolor
-      else if(f>TRIM_CEIL) f=TRIM_CEIL;                                                              // flatlay: unchanged
+      const lum=(r*299+g*587+b*114)/1000; let f;
+      if(cal&&tlo){ // model view: floor + knee act on the low-pass only (broad shadow, studio glare, lit collar); the detail
+                    // on top of it (weave, zipper, fold edges) is the mock's own ratio lum/lo and survives the recolor untouched.
+                    // A dark trim (charcoal) sits mostly under the floor, so clamping per pixel flattened its whole weave.
+        const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
+        if(fl<TRIM_FLOOR) fl=TRIM_FLOOR; if(fl>TRIM_KNEE) fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL;
+        f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_DETAIL_MIN) f=TRIM_DETAIL_MIN; }
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }         // flatlay: unchanged
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }

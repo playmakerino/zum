@@ -148,6 +148,9 @@ const TRIM_CEIL=1.15;      // flatlay trim ceiling
 const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
 const TRIM_ROLL=0.22;      // compression slope above the knee
 const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
+const TRIM_FLOOR=0.65;     // trim shadow floor: flatlay = hard clamp on f (mirrors TRIM_CEIL); model view = soft-knee onset on the low-pass
+                           // (mirrors TRIM_KNEE, same TRIM_ROLL), so a charcoal trim / shadowed cuff is lifted without flattening its weave
+const TRIM_MFLOOR=0.50;    // model view hard floor below the soft knee (mirrors TRIM_MCEIL)
 const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
                            // acts on this low-pass (broad glare, lit collar); the weave / stitching / fold detail riding on it is kept as in the mock
 const COLLAR_ID=6;
@@ -466,13 +469,14 @@ function compose(G, pat, scale, trim, cal){
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     if(k===9){
       if(!trim) continue;
-      const lum=(r*299+g*587+b*114)/1000; let f;   // no shadow floor: a dark trim (charcoal) sat mostly under it and lost its whole weave
-      if(cal&&tlo){ // model view: the knee rolls off the low-pass only (studio glare, lit collar); the detail on top of it
-                    // (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives the recolor untouched
+      const lum=(r*299+g*587+b*114)/1000; let f;
+      if(cal&&tlo){ // model view: knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
+                    // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
         const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
-        if(fl>TRIM_KNEE) fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL;
+        if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
+        else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
         f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
-      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; }                                          // flatlay: unchanged
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }       // flatlay: hard clamp both ends
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }

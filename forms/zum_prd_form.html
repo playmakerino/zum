@@ -6,6 +6,7 @@
   <title>Zum · Pattern → Products</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
@@ -812,11 +813,14 @@ const loadPng=src=>fetch(src,{headers:{Accept:'image/png'}}).then(r=>{ if(!r.ok)
 // decode a File/Blob once; the bitmap feeds every later draw (swatch scan, compositor, thumbnails)
 const decodeFile=f=>window.createImageBitmap ? createImageBitmap(f) : loadImg(URL.createObjectURL(f));
 
-// Draw img at w x h and return its pixels.
+// Draw img at w x h and return its pixels. One scratch canvas for every call: getImageData copies the
+// pixels out, so nothing keeps the canvas, and a fresh 30MB canvas per call (Safari frees them only on GC)
+// is what used to push a phone over its canvas memory budget mid-build.
+const scratch=document.createElement('canvas'), sctx=scratch.getContext('2d',{willReadFrequently:true});
 function raster(img,w,h,smooth){
-  const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=smooth; x.imageSmoothingQuality='high'; x.drawImage(img,0,0,w,h);
-  return { w, h, data:x.getImageData(0,0,w,h).data };
+  scratch.width=w; scratch.height=h;
+  sctx.imageSmoothingEnabled=smooth; sctx.imageSmoothingQuality='high'; sctx.drawImage(img,0,0,w,h);
+  return { w, h, data:sctx.getImageData(0,0,w,h).data };
 }
 function rasterArea(img,area,smooth){
   const s=Math.sqrt(area/(img.width*img.height));
@@ -893,16 +897,16 @@ function analyzeGarment(spec,model){
     const rminx=new Int32Array(H).fill(W), rmaxx=new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
-    for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
-      const k=((xd[i*4]+10)/20)|0; ids[i]=k;
+    for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
+      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<fx0)fx0=x; if(x>fx1)fx1=x; if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
-        if(!((x|y)&1)){ const p=i*4; fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
-        if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
-      else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
-      if(xd[i*4+1]>=AXIS_MIN) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
+        if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
+        if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
+      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
+      if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
     // Body width for motif sizing: 70th percentile of per-row fabric run width. Pose-robust (thin limb
     // rows sit low in the distribution; a splayed-limb bbox does not inflate it), and, unlike sqrt(area),
@@ -1066,7 +1070,8 @@ function panelExtents(G){
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
-const big=document.createElement('canvas'), disp=document.createElement('canvas');
+const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
+const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 // trim: [r,g,b] or null (keep the mock's own trim). cal (optional): model view calibration = flatGw/flatBodyW;
 // without it the strip width comes from G.gw. Model strip = K x scale x bodyW x cal, so checks-per-body-width
 // match the flatlay for every pose. Returns a canvas (W/SS x H/SS); the caller encodes it.
@@ -1084,8 +1089,11 @@ function compose(G, pat, scale, trim, cal){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // fresh mock raster each compose: it is written in place, so background + (when no trim color) trim pixels stay as the mock
-  const out=raster(G.mockImg,W,H,true).data;
+  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
+  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+  big.width=W; big.height=H;
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
+  const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
   for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
@@ -1118,10 +1126,9 @@ function compose(G, pat, scale, trim, cal){
     out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
   }
 
-  big.width=W; big.height=H;
-  big.getContext('2d').putImageData(new ImageData(out,W,H),0,0);
+  bctx.putImageData(img,0,0);
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
-  const dctx=disp.getContext('2d'); dctx.imageSmoothingQuality='high';
+  dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,disp.width,disp.height);
   return disp;
 }
@@ -1131,16 +1138,12 @@ function compose(G, pat, scale, trim, cal){
 
     const $ = id => document.getElementById(id);
 
-    let selectedFile = null;
-    let pvUrl = null;               // object URL behind the swatch tile
-
     const dropZone   = $('dropZone');
     const uploadCell = $('uploadCell');
     const fileInput  = $('fileInput');
     const pvImg      = $('pvImg');
     const pvName     = $('pvName');
     const pvMeta     = $('pvMeta');
-    const pvRemove   = $('pvRemove');
     const patternName= $('patternName');
     const trimColor  = $('trimColor');
     const trimPicker = $('trimPicker');
@@ -1157,14 +1160,25 @@ function compose(G, pat, scale, trim, cal){
     const motifScale = $('motifScale');
     const motifScaleVal = $('motifScaleVal');
 
+    let selectedFile = null;
+    let pvUrl = null;               // object URL behind the swatch tile
+    let patImg = null;              // decoded swatch (ImageBitmap) for the selected file
+    let patternLoad = null;         // promise of that decode, awaited by the builder
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     // populate niche + sub niche
     nicheSel.innerHTML = '<option value="">(none)</option>' +
       NICHES.map(n => '<option>' + escapeHtml(n) + '</option>').join('');
-
     $('subNicheList').innerHTML =
       SUB_NICHES.map(s => '<option value="' + escapeHtml(s[0]) + '"></option>').join('');
-
     const subNicheByName = new Map(SUB_NICHES.map(s => [s[0].toLowerCase(), GID_PREFIX + s[1]]));
+
+    /* ---------------- swatch file ---------------- */
 
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', e => {
@@ -1179,7 +1193,7 @@ function compose(G, pat, scale, trim, cal){
     });
     fileInput.addEventListener('change', () => { setFile(fileInput.files[0]); fileInput.value = ''; });
     // the button sits inside the drop zone, so its click would reopen the file picker
-    pvRemove.addEventListener('click', e => { e.stopPropagation(); setFile(null); });
+    $('pvRemove').addEventListener('click', e => { e.stopPropagation(); setFile(null); });
 
     // The run only survives what n8n's Edit Image decodes AND Gemini takes as inlineData:
     // png, jpeg, webp. All three verified end to end (2026-08-07). A plain image/* test
@@ -1196,12 +1210,12 @@ function compose(G, pat, scale, trim, cal){
       selectedFile = f || null;
       clearFlats();
       if (pvUrl) { URL.revokeObjectURL(pvUrl); pvUrl = null; }
+      uploadCell.classList.toggle('filled', !!selectedFile);
       if (selectedFile) {
         pvUrl = URL.createObjectURL(selectedFile);
         pvImg.src = pvUrl;
         pvName.textContent = selectedFile.name;
         pvMeta.textContent = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
-        uploadCell.classList.add('filled');
         pickModels();
         // One decode per file: the same bitmap feeds the swatch scan, the compositor and the Sent-list
         // thumbnail. The flatlays use the trim colour and the scan is what suggests it, so scan first.
@@ -1211,12 +1225,24 @@ function compose(G, pat, scale, trim, cal){
           requestFlatlays(0);
         });
       } else {
-        uploadCell.classList.remove('filled');
         pvImg.removeAttribute('src');
         patternLoad = null;
         clearScrim();
       }
-      refreshSubmit();
+      submitBtn.disabled = !selectedFile;
+    }
+
+    // resolves with the bitmap, or null when the file could not be decoded or was replaced meanwhile
+    async function loadPattern(file) {
+      patImg = null;
+      try {
+        const img = await decodeFile(file);
+        if (selectedFile !== file) { if (img.close) img.close(); return null; }   // replaced while decoding
+        patImg = img;
+        return img;
+      } catch (e) {
+        return null;
+      }
     }
 
     /* ---------------- swatch scan: page tint + trim suggestion ----------------
@@ -1250,6 +1276,14 @@ function compose(G, pat, scale, trim, cal){
       validate(false);
     }
 
+    /* ---------------- trim, gender, motif size ---------------- */
+
+    // '#rrggbb' lowercase (what the webhook and the colour picker take), or null
+    function normHex(v) {
+      const h = parseHex(v);
+      return h ? '#' + h.toLowerCase() : null;
+    }
+
     // Once the uploader picks a gender by hand it is never overwritten again.
     let genderTouched = false;
     function applyGenderFromTrim() {
@@ -1261,14 +1295,18 @@ function compose(G, pat, scale, trim, cal){
       pickModels(true);   // the callers rebuild the previews if the pick changed (it is part of flatInputsSig)
     }
 
-    // the hint only claims the swatch as the source while the value still comes from it
-    trimPicker.addEventListener('input', () => {
+    // One handler for both trim inputs: the hint only claims the swatch as the source while the
+    // value still comes from it, and a hand-typed hex only rebuilds once it parses.
+    function onTrimEdit(fromPicker) {
       trimHint.style.display = 'none';
-      trimColor.value = trimPicker.value;
+      const v = fromPicker ? trimPicker.value : normHex(trimColor.value);
+      if (fromPicker) trimColor.value = v; else if (v) trimPicker.value = v;
       applyGenderFromTrim();
       validate(false);
-      requestFlatlays(500);
-    });
+      if (v) requestFlatlays(500);
+    }
+    trimPicker.addEventListener('input', () => onTrimEdit(true));
+    trimColor.addEventListener('input', () => onTrimEdit(false));
 
     gender.addEventListener('change', () => {
       genderTouched = true;
@@ -1276,28 +1314,16 @@ function compose(G, pat, scale, trim, cal){
       pickModels(true);
       requestFlatlays(0);
     });
-    trimColor.addEventListener('input', () => {
-      trimHint.style.display = 'none';
-      const v = normHex(trimColor.value);
-      if (v) trimPicker.value = v;
-      applyGenderFromTrim();
-      validate(false);
-      if (v) requestFlatlays(500);
-    });
 
     motifScale.addEventListener('input', () => {
       motifScaleVal.textContent = parseFloat(motifScale.value).toFixed(2) + '×';
       requestFlatlays(400);
     });
 
+    /* ---------------- validation + submit ---------------- */
+
     [patternName, nicheSel, subNiche, uploader, patternId].forEach(el => el.addEventListener('input', () => validate(false)));
     nicheSel.addEventListener('change', () => validate(false));
-
-    // '#rrggbb' lowercase (what the webhook and the colour picker take), or null
-    function normHex(v) {
-      const h = parseHex(v);
-      return h ? '#' + h.toLowerCase() : null;
-    }
 
     function subNicheGid() {
       const v = subNiche.value.trim();
@@ -1323,12 +1349,7 @@ function compose(G, pat, scale, trim, cal){
         else if (pass) el.classList.remove('invalid');
         ok = ok && pass;
       }
-      refreshSubmit();
       return ok && !!selectedFile;
-    }
-
-    function refreshSubmit() {
-      submitBtn.disabled = !selectedFile;
     }
 
     submitBtn.addEventListener('click', submitForm);
@@ -1371,7 +1392,7 @@ function compose(G, pat, scale, trim, cal){
         fd.append('motif_scale', motifScale.value);
         fd.append('pattern', selectedFile, selectedFile.name);
         // one composited flatlay per product type; the workflow picks them by data-table product_type
-        for (const key of FLAT_KEYS) fd.append('flatlay_' + key, flat[key].blob, 'flatlay-' + key + '.jpg');
+        for (const key of FLAT_KEYS) fd.append('flatlay_' + key, shots.flat[key].blob, 'flatlay-' + key + '.jpg');
 
         const thumb = patImg ? makeThumb(patImg, 80) : '';
 
@@ -1400,7 +1421,7 @@ function compose(G, pat, scale, trim, cal){
         toast('Upload failed: ' + err.message, 'error');
       } finally {
         submitBtn.textContent = 'Create products';
-        refreshSubmit();
+        submitBtn.disabled = !selectedFile;
       }
     }
 
@@ -1446,11 +1467,11 @@ function compose(G, pat, scale, trim, cal){
       }
     }
 
-    let patImg = null;              // decoded swatch (ImageBitmap) for the selected file
-    let patternLoad = null;         // promise of that decode, awaited by the builder
-    const flat = { romper: null, pajama: null };   // { blob, url } per garment: what gets sent
-    const model = { romper: null, pajama: null };  // on-model previews, shown only
-    const SHOT_ID = { flat: { romper: 'flatRomper', pajama: 'flatPajama' }, model: { romper: 'modelRomper', pajama: 'modelPajama' } };
+    // shots[view][key] = { item, blob, url }: the <figure> and the JPEG shown in it. shots.flat is what
+    // gets sent; shots.model is shown only.
+    const shots = { flat: {}, model: {} };
+    for (const view in shots) for (const key of FLAT_KEYS)
+      shots[view][key] = { item: $(view + key[0].toUpperCase() + key.slice(1)), blob: null, url: null };
     let flatSig = '';               // inputs the current previews were built from
     let flatBusy = false, flatPending = false, flatTimer = null, flatRun = null, flatErr = '';
 
@@ -1460,7 +1481,7 @@ function compose(G, pat, scale, trim, cal){
       return f + '|' + (normHex(trimColor.value) || '') + '|' + motifScale.value + '|' + modelPick.romper + ',' + modelPick.pajama;
     }
     function flatReady() {
-      return !!(selectedFile && flat.romper && flat.pajama && flatSig === flatInputsSig());
+      return !!selectedFile && flatSig === flatInputsSig() && FLAT_KEYS.every(key => shots.flat[key].blob);
     }
 
     function flatMsg(text, kind) {
@@ -1475,39 +1496,18 @@ function compose(G, pat, scale, trim, cal){
       }
     }
 
-    // resolves with the bitmap, or null when the file could not be decoded or was replaced meanwhile
-    async function loadPattern(file) {
-      patImg = null;
-      try {
-        const img = await decodeFile(file);
-        if (selectedFile !== file) { if (img.close) img.close(); return null; }   // replaced while decoding
-        patImg = img;
-        return img;
-      } catch (e) {
-        return null;
-      }
-    }
-
+    // blob = null clears the shot back to its placeholder
     function setShot(view, key, blob) {
-      const store = view === 'flat' ? flat : model;
-      const item = $(SHOT_ID[view][key]);
-      if (store[key]) URL.revokeObjectURL(store[key].url);
-      const url = URL.createObjectURL(blob);
-      store[key] = { blob, url };
-      item.querySelector('img').src = url;
-      item.classList.add('ready');
+      const s = shots[view][key], img = s.item.querySelector('img');
+      if (s.url) URL.revokeObjectURL(s.url);
+      s.blob = blob; s.url = blob ? URL.createObjectURL(blob) : null;
+      if (blob) img.src = s.url; else img.removeAttribute('src');
+      s.item.classList.toggle('ready', !!blob);
     }
 
     function clearFlats() {
       clearTimeout(flatTimer);
-      for (const view of ['flat', 'model']) for (const key of FLAT_KEYS) {
-        const store = view === 'flat' ? flat : model;
-        if (store[key]) URL.revokeObjectURL(store[key].url);
-        store[key] = null;
-        const item = $(SHOT_ID[view][key]);
-        item.classList.remove('ready');
-        item.querySelector('img').removeAttribute('src');
-      }
+      for (const view in shots) for (const key of FLAT_KEYS) setShot(view, key, null);
       if (patImg && patImg.close) patImg.close();
       patImg = null;
       flatSig = ''; flatErr = '';
@@ -1520,7 +1520,7 @@ function compose(G, pat, scale, trim, cal){
       clearTimeout(flatTimer);
       if (!selectedFile || flatReady()) return;
       if (flatBusy) { flatPending = true; return; }
-      flatEl.classList.toggle('stale', !!(flat.romper || flat.pajama));
+      flatEl.classList.toggle('stale', FLAT_KEYS.some(key => shots.flat[key].blob));
       flatTimer = setTimeout(generateFlatlays, delay || 0);
     }
 
@@ -1539,30 +1539,30 @@ function compose(G, pat, scale, trim, cal){
           const hex = parseHex(trimColor.value);
           const trim = hex ? hexToRgb(hex) : null;
           const scale = parseFloat(motifScale.value) || 1;
-          const encode = c => new Promise(res => c.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+          // one garment view: analyse (cached per map), compose, encode, show. false = inputs changed
+          // under us; the pending run redoes it.
+          const build = async (view, key, spec, model, cal) => {
+            const G = await analyzeGarment(spec, model);
+            await nextPaint();
+            const blob = await new Promise(res => compose(G, patImg, scale, trim, cal).toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            if (!blob) throw new Error('JPEG encode failed');
+            if (sig !== flatInputsSig()) return null;
+            setShot(view, key, blob);
+            await nextPaint();
+            return G;
+          };
           // flatlays first: they are what gets sent, and they define the motif-size calibration
           const cal = {};
           for (const key of FLAT_KEYS) {
-            const G = await analyzeGarment(GARMENTS[key].flat);
+            const G = await build('flat', key, GARMENTS[key].flat, false);
+            if (!G) return;
             cal[key] = G.gw / G.bodyW;
-            await nextPaint();
-            const blob = await encode(compose(G, patImg, scale, trim));
-            if (!blob) throw new Error('JPEG encode failed');
-            if (sig !== flatInputsSig()) return;   // inputs changed under us; the pending run redoes it
-            setShot('flat', key, blob);
-            await nextPaint();
           }
           flatSig = sig;                            // submit may go ahead while the on-model views render
           flatEl.classList.remove('stale');
           flatMsg('Flatlays ready · building on-model…');
           for (const key of FLAT_KEYS) {
-            const G = await analyzeGarment(GARMENTS[key].models[modelPick[key]], true);
-            await nextPaint();
-            const blob = await encode(compose(G, patImg, scale, trim, cal[key]));
-            if (!blob) throw new Error('JPEG encode failed');
-            if (sig !== flatInputsSig()) return;
-            setShot('model', key, blob);
-            await nextPaint();
+            if (!await build('model', key, GARMENTS[key].models[modelPick[key]], true, cal[key])) return;
           }
           flatMsg('Ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
         } catch (err) {
@@ -1585,15 +1585,19 @@ function compose(G, pat, scale, trim, cal){
     }
 
     function rememberTask(t) {
-      const list = myTasks();
-      list.unshift(t);
-      const kept = list.slice(0, 40);
+      const kept = [t, ...myTasks()].slice(0, 40);
       try {
         localStorage.setItem(LS_KEY, JSON.stringify(kept));
       } catch (e) {
         // out of quota: keep the records, drop the thumbnails
         try { localStorage.setItem(LS_KEY, JSON.stringify(kept.map(x => Object.assign({}, x, { thumb: '' })))); } catch (e2) {}
       }
+    }
+
+    function clock(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     }
 
     function renderTasks() {
@@ -1622,18 +1626,6 @@ function compose(G, pat, scale, trim, cal){
           '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
         '</div>';
       }).join('');
-    }
-
-    function clock(ts) {
-      if (!ts) return '';
-      const d = new Date(ts);
-      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    }
-
-    function escapeHtml(s) {
-      return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     renderTasks();

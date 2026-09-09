@@ -15,3 +15,4 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 - Sửa engine (compose, analyzeGarment, GARMENTS/`?v`, hằng số, colour helpers) **chỉ trong `flatlay-composite.html`** → `.\forms\sync-shared.ps1 -Push` → commit **cả 2 file**.
 - `.\forms\sync-shared.ps1` (không flag) diff 2 bản, exit 1 nếu lệch — chạy trước khi commit bất kỳ file nào trong 2 file này.
 - Code riêng từng trang (UI, webhook, NICHES) nằm ngoài khối; khối không được đụng DOM/state trang.
+- **Sửa engine mà không được đổi output** (refactor, tối ưu): `node forms/regress-engine.js run <page> before.json` trên bản đã commit → sửa → `run … after.json` → `compare before.json after.json` phải in `IDENTICAL`. Chạy engine thật trong node-canvas trên đủ 12 garment, ~30s/lần, cần `NODE_PATH` trỏ tới thư mục có package `canvas`.

@@ -178,11 +178,14 @@ const loadPng=src=>fetch(src,{headers:{Accept:'image/png'}}).then(r=>{ if(!r.ok)
 // decode a File/Blob once; the bitmap feeds every later draw (swatch scan, compositor, thumbnails)
 const decodeFile=f=>window.createImageBitmap ? createImageBitmap(f) : loadImg(URL.createObjectURL(f));
 
-// Draw img at w x h and return its pixels.
+// Draw img at w x h and return its pixels. One scratch canvas for every call: getImageData copies the
+// pixels out, so nothing keeps the canvas, and a fresh 30MB canvas per call (Safari frees them only on GC)
+// is what used to push a phone over its canvas memory budget mid-build.
+const scratch=document.createElement('canvas'), sctx=scratch.getContext('2d',{willReadFrequently:true});
 function raster(img,w,h,smooth){
-  const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d',{willReadFrequently:true}); x.imageSmoothingEnabled=smooth; x.imageSmoothingQuality='high'; x.drawImage(img,0,0,w,h);
-  return { w, h, data:x.getImageData(0,0,w,h).data };
+  scratch.width=w; scratch.height=h;
+  sctx.imageSmoothingEnabled=smooth; sctx.imageSmoothingQuality='high'; sctx.drawImage(img,0,0,w,h);
+  return { w, h, data:sctx.getImageData(0,0,w,h).data };
 }
 function rasterArea(img,area,smooth){
   const s=Math.sqrt(area/(img.width*img.height));
@@ -259,16 +262,16 @@ function analyzeGarment(spec,model){
     const rminx=new Int32Array(H).fill(W), rmaxx=new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
-    for(let y=0, i=0; y<H; y++) for(let x=0; x<W; x++, i++){
-      const k=((xd[i*4]+10)/20)|0; ids[i]=k;
+    for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
+      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<fx0)fx0=x; if(x>fx1)fx1=x; if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
-        if(!((x|y)&1)){ const p=i*4; fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
-        if(xd[i*4+1]>=AXIS_MIN){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
-      else if(k===9 && !((x|y)&1)){ const p=i*4; hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
-      if(xd[i*4+1]>=AXIS_MIN) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
+        if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
+        if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
+      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
+      if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
     // Body width for motif sizing: 70th percentile of per-row fabric run width. Pose-robust (thin limb
     // rows sit low in the distribution; a splayed-limb bbox does not inflate it), and, unlike sqrt(area),
@@ -432,7 +435,8 @@ function panelExtents(G){
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
-const big=document.createElement('canvas'), disp=document.createElement('canvas');
+const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
+const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 // trim: [r,g,b] or null (keep the mock's own trim). cal (optional): model view calibration = flatGw/flatBodyW;
 // without it the strip width comes from G.gw. Model strip = K x scale x bodyW x cal, so checks-per-body-width
 // match the flatlay for every pose. Returns a canvas (W/SS x H/SS); the caller encodes it.
@@ -450,8 +454,11 @@ function compose(G, pat, scale, trim, cal){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // fresh mock raster each compose: it is written in place, so background + (when no trim color) trim pixels stay as the mock
-  const out=raster(G.mockImg,W,H,true).data;
+  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
+  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+  big.width=W; big.height=H;
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
+  const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
   for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
@@ -484,10 +491,9 @@ function compose(G, pat, scale, trim, cal){
     out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
   }
 
-  big.width=W; big.height=H;
-  big.getContext('2d').putImageData(new ImageData(out,W,H),0,0);
+  bctx.putImageData(img,0,0);
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
-  const dctx=disp.getContext('2d'); dctx.imageSmoothingQuality='high';
+  dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,disp.width,disp.height);
   return disp;
 }

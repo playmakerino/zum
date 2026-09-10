@@ -524,6 +524,9 @@
       if (adFiles.length === 0) {
         return showStatus('error', '&#9888; Add at least one ad image.');
       }
+      if (!printFile) {
+        return showStatus('error', '&#9888; Add a print image.');
+      }
 
       const badNames = adFiles.filter(f => !FILE_RE.test(f.name)).map(f => f.name);
       if (badNames.length) {

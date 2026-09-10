@@ -556,7 +556,7 @@
           <a class="form-chip" data-val="single" data-tip="Create ads for one product at a time">Single product</a>
           <a class="form-chip" data-val="theme" data-tip="Apply one print theme across multiple products">By print theme</a>
           <a class="form-chip" data-val="type" data-tip="Group products by their type group">By type group</a>
-          <a class="form-chip" data-val="oneprint" data-tip="One print across products, one ABO campaign, each product its own ad set">One print</a>
+          <a class="form-chip" data-val="oneprint" data-tip="One print applied to several products">One print</a>
         </div>
       </div>
     </nav>
@@ -779,6 +779,9 @@
       if (products.length === 0)
         return showStatus('error', 'Please add at least one product with a URL.');
 
+      if (!state.print_file)
+        return showStatus('error', 'Please choose a print image.');
+
       // Multipart: text fields + optional print image file (n8n reads it as binary "print_image")
       const fd = new FormData();
       fd.append('ad_set_name', ad_set_name);
@@ -923,7 +926,7 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Print image</span>: ảnh file thiết kế (tùy chọn)</h4>
+          <h4><span class="g-field">Print image</span>: ảnh file thiết kế</h4>
           <p>Bấm <strong>Select image</strong> rồi chọn 1 ảnh file thiết kế của bản in trên máy (không phải ảnh chụp sản phẩm). Chỉ chọn 1 ảnh, định dạng .jpg, .jpeg hoặc .png.</p>
           <p style="margin-top:7px">Có ảnh thì AI nhìn ảnh để viết chữ quảng cáo riêng cho bản in này. Bỏ trống thì bỏ qua bước AI, ad dùng bộ chữ mặc định đã lưu sẵn theo từng loại sản phẩm.</p>
         </div>

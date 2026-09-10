@@ -333,7 +333,7 @@
           <a class="form-chip" data-val="single" data-tip="Create ads for one product at a time">Single product</a>
           <a class="form-chip" data-val="theme" data-tip="Apply one print theme across multiple products">By print theme</a>
           <a class="form-chip" data-val="type" data-tip="Group products by their type group">By type group</a>
-          <a class="form-chip" data-val="oneprint" data-tip="One print across products, one ABO campaign, each product its own ad set">One print</a>
+          <a class="form-chip" data-val="oneprint" data-tip="One print applied to several products">One print</a>
         </div>
       </div>
     </nav>
@@ -453,7 +453,7 @@
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-img">
-          <label class="row-inline-label">Print image (optional)</label>
+          <label class="row-inline-label">Print image</label>
           <div class="row-img" data-rid="${rid}"></div>
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
@@ -543,6 +543,9 @@
 
       if (rows.length === 0) {
         return showStatus('error', '&#9888; Need at least one row with both a Print ID and a Product URL.');
+      }
+      if (rows.some(r => !r.file)) {
+        return showStatus('error', '&#9888; Every product needs a print image.');
       }
 
       // One shared value for every product, so each meta row carries it too
@@ -739,8 +742,8 @@
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Ảnh print / flatlay</span> (tùy chọn)</h4>
-          <p>Ô vuông dấu cộng ở cuối mỗi dòng để chọn 1 ảnh bản in gốc hoặc ảnh flatlay từ máy. Ảnh này không bắt buộc, dùng để AI viết nội dung quảng cáo sát hơn. Nếu cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu thì nên thêm. Không thêm thì hệ thống vẫn chạy với nội dung mặc định theo loại sản phẩm.</p>
+          <h4><span class="g-field">Ảnh print / flatlay</span></h4>
+          <p>Ô vuông dấu cộng ở cuối mỗi dòng để chọn 1 ảnh bản in gốc hoặc ảnh flatlay từ máy. Mỗi sản phẩm cần 1 ảnh, dùng để AI viết nội dung quảng cáo sát với hình vẽ, chữ, chi tiết personalized, chi tiết thêu.</p>
         </div>
       </div>
 

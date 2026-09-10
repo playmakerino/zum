@@ -45,8 +45,6 @@
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
   /* v2 */
-  .note{ font-size:12px; color:var(--mut); border:1px dashed var(--line); border-radius:7px; padding:8px 10px; }
-  .note a{ color:var(--accent); }
   .group{ border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:12px; }
   .group h3{ margin:0; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
   label.check{ text-transform:none; letter-spacing:0; font-weight:400; font-size:13px; color:var(--ink); display:flex; gap:8px; align-items:center; }
@@ -61,7 +59,6 @@
 
 <div class="wrap">
   <div class="controls">
-    <div class="note"><b>Demo v2.</b> Bản v1 cộng 4 thứ mockup Photoshop có: tone Linear Burn/Soft Light, Displace nếp nhăn, feather mép, hình thang (homography). Engine ở đây <b>không</b> sync sang form. Bản chính: <a href="pattern-mockup.html">pattern-mockup.html</a>.</div>
     <div class="field">
       <label for="garment">Garment</label>
       <select id="garment">
@@ -141,7 +138,6 @@
         </div>
       </div>
       <label class="check"><input type="checkbox" id="showQuad" checked> Vẽ khung lên ảnh</label>
-      <div class="msg" id="quadMsg">Bấm "Chọn 4 góc" rồi bấm 4 điểm trên một ảnh: trên-trái, trên-phải, dưới-phải, dưới-trái. Panel đó bỏ xoay/trục, dùng homography. Lưu trong trình duyệt.</div>
     </div>
 
     <div class="actions">
@@ -733,10 +729,10 @@ async function generate(){
 let pick=null;
 const CORNER=['trên-trái','trên-phải','dưới-phải','dưới-trái'];
 $('quadPick').addEventListener('click', ()=>{
-  if(!results.flats.length&&!results.models.length){ $('quadMsg').textContent='Generate trước rồi mới chọn góc trên ảnh.'; return; }
+  if(!results.flats.length&&!results.models.length){ msg('Generate trước rồi mới chọn góc trên ảnh.'); return; }
   pick={ k:$('quadPanel').value, map:null, pts:[] };
   document.querySelectorAll('.shot img').forEach(i=>i.classList.add('picking'));
-  $('quadMsg').textContent='Panel '+pick.k+': bấm điểm 1 ('+CORNER[0]+') trên một ảnh.';
+  msg('Panel '+pick.k+': bấm điểm 1 ('+CORNER[0]+') trên một ảnh.');
 });
 $('view').addEventListener('click', e=>{
   const img=e.target.closest('img'); if(!pick||!img) return;
@@ -745,9 +741,9 @@ $('view').addEventListener('click', e=>{
   pick.map=map;
   const rc=img.getBoundingClientRect();
   pick.pts.push([(e.clientX-rc.left)/rc.width,(e.clientY-rc.top)/rc.height]);
-  if(pick.pts.length<4){ $('quadMsg').textContent='Panel '+pick.k+': bấm điểm '+(pick.pts.length+1)+' ('+CORNER[pick.pts.length]+').'; return; }
+  if(pick.pts.length<4){ msg('Panel '+pick.k+': bấm điểm '+(pick.pts.length+1)+' ('+CORNER[pick.pts.length]+').'); return; }
   (QUADS[map]=QUADS[map]||{})[pick.k]=pick.pts; saveQuads();
-  $('quadMsg').textContent='Đã lưu panel '+pick.k+' cho '+map.split('/').pop().split('?')[0]+'. Đang render lại…';
+  msg('Đã lưu panel '+pick.k+' cho '+map.split('/').pop().split('?')[0]+'. Đang render lại…');
   pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
   generate();
 });
@@ -755,7 +751,7 @@ $('quadClear').addEventListener('click', ()=>{
   const g=GARMENTS[$('garment').value]; let n=0;
   for(const v of [...g.flats,...g.models]) if(QUADS[v.map]){ delete QUADS[v.map]; n++; }
   saveQuads(); pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
-  $('quadMsg').textContent=n?'Đã xoá hình thang của '+n+' ảnh. Generate lại để thấy.':'Garment này chưa có hình thang nào.';
+  msg(n?'Đã xoá hình thang của '+n+' ảnh. Generate lại để thấy.':'Garment này chưa có hình thang nào.');
 });
 
 // --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---

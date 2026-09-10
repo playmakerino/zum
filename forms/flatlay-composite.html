@@ -55,6 +55,9 @@
       <select id="garment">
         <option value="romper">Convertible Zippy Romper</option>
         <option value="pajama">Two-Piece Pajama Set</option>
+        <option value="pajamaLong">Two-Piece Pajama Set · Long Sleeve</option>
+        <option value="menPajama">Men's Pajama Set</option>
+        <option value="womenPajama">Women's Pajama Set</option>
       </select>
     </div>
 
@@ -103,15 +106,25 @@
 
 <script>
 'use strict';
-// ===== SHARED BLOCK: compositor engine - byte-identical in flatlay-composite.html and zum_prd_form.html =====
-// Edit it in flatlay-composite.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
-// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
-// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
+// ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
+// CDN, the V() helper, the GARMENTS table, FLAT_KEYS and the model-pick helpers below are page-local:
+// this dev tool lists more garments (the second pajama flatlay + men/women pajama) than the production
+// form, which stays on romper + the kids pajama. The compositor ENGINE that reads them is byte-identical
+// in both files (the SHARED BLOCK further down, kept equal by sync-shared.ps1) and never references these.
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
 const V=(mock,map)=>({ mock:CDN+mock, map:CDN+map });
+// Shared kids-pajama model photos: both the short-sleeve (pajama) and the long-sleeve (pajamaLong)
+// flatlay entries preview the print on the same six children; only the flatlay mock/map differ.
+const PAJAMA_KIDS_MODELS=[
+  V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141'),
+  V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249'),
+  V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256'),
+  V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276'),
+  V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282'),
+  V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289') ];
 const GARMENTS={
   romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403'),
            models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187'),
@@ -119,19 +132,39 @@ const GARMENTS={
                     V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407'),
                     V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243') ] },
   pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141'),
-                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256'),
-                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276'),
-                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282'),
-                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289') ] },
+           models:PAJAMA_KIDS_MODELS },
+  // second flatlay of the kids pajama: two-piece long-sleeve set; same six kids models as pajama above
+  pajamaLong:{ flat:V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256'),
+               models:PAJAMA_KIDS_MODELS },
+  menPajama:{ flat:V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328'),
+              models:[ V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345'),
+                       V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347'),
+                       V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348'),
+                       V('zum-model-pajama-men-4.jpg?v=1789030337','zum-flatlay-model-map-pajama-men-4.png?v=1789030351'),
+                       V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352'),
+                       V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354'),
+                       V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356') ] },
+  womenPajama:{ flat:V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368'),
+                models:[ V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383'),
+                         V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385'),
+                         V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387'),
+                         V('zum-model-pajama-women-4.jpg?v=1789030375','zum-flatlay-model-map-pajama-women-4.png?v=1789030388'),
+                         V('zum-model-pajama-women-5.jpg?v=1789030377','zum-flatlay-model-map-pajama-women-5.png?v=1789030390'),
+                         V('zum-model-pajama-women-6.jpg?v=1789030379','zum-flatlay-model-map-pajama-women-6.png?v=1789030392'),
+                         V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393') ] },
 };
-const FLAT_KEYS=Object.keys(GARMENTS);   // 'romper','pajama' - one flatlay per product type
+const FLAT_KEYS=Object.keys(GARMENTS);
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
-// model gender from the filename: boy / girl, or null when the photo is unisex (romper).
+// model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
 // which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
 const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
+// ===== END GARMENT DATA =====
+
+// ===== SHARED BLOCK: compositor engine - byte-identical in flatlay-composite.html and zum_prd_form.html =====
+// Edit it in flatlay-composite.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
+// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
+// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
 
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.

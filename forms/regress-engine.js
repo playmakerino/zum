@@ -33,8 +33,11 @@ function compare(a, b) {
 }
 
 const html = fs.readFileSync(arg1, 'utf8');
-const a = html.indexOf('// ===== SHARED BLOCK'), b = html.indexOf('// ===== END SHARED BLOCK =====');
-if (a < 0 || b < a) throw new Error('shared-block markers missing in ' + arg1);
+// The page-local GARMENT DATA block (CDN, V, GARMENTS, FLAT_KEYS, model helpers) sits just above the SHARED
+// BLOCK engine; eval both together so GARMENTS/FLAT_KEYS/modelName resolve. The engine itself stays equal
+// across pages (sync-shared.ps1); the garment table differs (the dev tool lists more garments than the form).
+const a = html.indexOf('// ===== GARMENT DATA'), b = html.indexOf('// ===== END SHARED BLOCK =====');
+if (a < 0 || b < a) throw new Error('garment-data / shared-block markers missing in ' + arg1);
 const shared = html.slice(a, b);
 
 const document = { createElement: () => createCanvas(1, 1) };

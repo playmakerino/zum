@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """motif-r.py: r (pattern width / mock width) for new mock + map views of a garment.
 
-Every view in the GARMENT DATA of flatlay-composite.html / zum_prd_form.html carries r: the pattern file is
+Every view in the GARMENT DATA of pattern-mockup.html / zum_prd_form.html carries r: the pattern file is
 rastered to r x mock width and tiled into the fabric panels. So r is "how many mock widths one repeat of
 the pattern spans": r = 0.5 -> the pattern repeats twice across the mock width, r = 2 -> one repeat is
 twice as wide as the whole mock. A bigger r = a bigger motif.
@@ -18,7 +18,7 @@ top laid at an angle measures the same as an upright one. The torso panel is map
 
 The anchor is any existing view of the SAME garment whose r is already in GARMENT DATA (its first
 flatlay, normally). A brand-new garment has no anchor: set the r of its first flatlay by eye in
-flatlay-composite.html (0.76 is a good start for a flatlay whose top spans ~27% of the width), then anchor
+pattern-mockup.html (0.76 is a good start for a flatlay whose top spans ~27% of the width), then anchor
 the other views on it.
 
 Usage (maps as local paths, full URLs, or bare CDN filenames with their ?v):

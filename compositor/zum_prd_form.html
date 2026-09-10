@@ -328,7 +328,7 @@
     }
     .col-right > .panel { flex: none; }
 
-    /* ---- flatlays, composited in the browser (ported from flatlay-composite.html) ----
+    /* ---- flatlays, composited in the browser (ported from pattern-mockup.html) ----
        Two previews side by side. They are what n8n receives as the flatlay photo:
        what you see is what gets sent. */
     .flat-body { padding: 16px 24px 20px; }
@@ -740,7 +740,7 @@
 
 // ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
 // CDN, the V() helper, the GARMENTS table, FLAT_KEYS and the model-pick helpers below are page-local:
-// the dev tool (flatlay-composite.html) lists more garments (a second pajama flatlay + men/women pajama)
+// the dev tool (pattern-mockup.html) lists more garments (a second pajama flatlay + men/women pajama)
 // than this production form, which stays on romper + the kids pajama. The compositor ENGINE that reads
 // them is byte-identical in both files (the SHARED BLOCK further down, kept equal by sync-shared.ps1).
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
@@ -772,8 +772,8 @@ const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy
 const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
 // ===== END GARMENT DATA =====
 
-// ===== SHARED BLOCK: compositor engine - byte-identical in flatlay-composite.html and zum_prd_form.html =====
-// Edit it in flatlay-composite.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
+// ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html and zum_prd_form.html =====
+// Edit it in pattern-mockup.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
 // .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
 // a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
 

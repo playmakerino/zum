@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern Mockup</title>
+<style>
+  :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
+  }
+  :root[data-theme="dark"]{ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
+
+  body{ margin:0; background:var(--ground); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  [hidden]{ display:none!important; }
+  .wrap{ display:flex; gap:40px; align-items:flex-start; padding:32px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
+  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
+  .field{ display:flex; flex-direction:column; gap:7px; }
+  label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
+  select,input[type=text],.file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
+  .file{ display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
+  .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
+  .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .trim{ display:flex; gap:10px; align-items:center; }
+  .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
+  .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
+  .scale-head{ display:flex; justify-content:space-between; align-items:baseline; }
+  .scale-head .val{ font-family:ui-monospace,Menlo,monospace; color:var(--ink); font-weight:600; }
+  .scale-head .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--mut); }
+  input[type=range]{ width:100%; accent-color:var(--accent); }
+  .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+  button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
+  .primary{ border:1px solid var(--accent); color:var(--accent); }
+  .primary:hover{ background:var(--accent); color:var(--ground); }
+  .secondary{ border:1px solid var(--line); color:var(--mut); }
+  .secondary:hover{ color:var(--ink); border-color:var(--ink); }
+  button:disabled{ opacity:.4; cursor:default; }
+  button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
+  .msg{ font-size:12px; color:var(--mut); min-height:16px; }
+  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
+  .shot{ margin:0; flex:0 0 calc((100% - 40px)/3); max-width:calc((100% - 40px)/3); display:flex; flex-direction:column; gap:8px; }
+  @media (max-width:820px){ .shot{ flex-basis:calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); } }
+  @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
+  .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
+  figcaption{ text-align:center; }
+  .foot{ max-width:1180px; margin:0 auto; padding:0 32px 32px; font-size:12px; color:var(--mut); }
+  .foot a{ color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="field">
+      <label for="garment">Garment</label>
+      <select id="garment">
+        <option value="romper">Convertible Zippy Romper</option>
+        <option value="pajama">Two-Piece Pajama Set</option>
+        <option value="menPajama">Men's Pajama Set</option>
+        <option value="womenPajama">Women's Pajama Set</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="patternBtn">Pattern file</label>
+      <div class="file">
+        <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
+        <button type="button" class="secondary" id="patternBtn">Choose file</button>
+        <span id="patternName">No file chosen</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="trimHex">Trim color</label>
+      <div class="trim">
+        <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
+        <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
+      </div>
+    </div>
+
+    <div class="field" id="genderField">
+      <div class="scale-head"><label for="gender">Gender</label><span class="hint" id="genderHint">From the trim.</span></div>
+      <select id="gender">
+        <option value="boy">Boy</option>
+        <option value="girl">Girl</option>
+        <option value="neutral" selected>Neutral</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
+      <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="go">Generate</button>
+      <button class="secondary" id="dl" disabled>Download PNGs</button>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view"></div>
+</div>
+<p class="foot">Demo v2 (tone Photoshop · Displace nếp nhăn · feather mép · hình thang): <a href="pattern-mockup-v2.html">pattern-mockup-v2.html</a></p>
+
+<script>
+'use strict';
+// ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
+// CDN, the V() helper, the GARMENTS table, FLAT_KEYS and the model-pick helpers below are page-local:
+// this dev tool lists more garments (the second pajama flatlay + men/women pajama) than the production
+// form, which stays on romper + the kids pajama. The compositor ENGINE that reads them is byte-identical
+// in both files (the SHARED BLOCK further down, kept equal by sync-shared.ps1) and never references these.
+const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+// Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
+// maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
+// so they align to the photo exactly; the mock is the original photo.
+const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+// A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
+// pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
+// first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
+// (pattern px = r x mock W), multiplied by the Motif-size slider. Each mock is tuned by eye on its own,
+// because the photos are cropped very differently (a body spanning 40% of the frame vs 99%). Within a
+// garment the values keep checks-per-chest equal: r scales with the top's torso width on the map
+// (forms/motif-r.py derives them from one anchor view; romper keeps its 2026-09-10 seed values).
+const GARMENTS={
+  romper:{ flats:[ V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403',0.853) ],
+           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
+                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380),
+                    V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
+                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
+  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405',0.764),
+                   V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256',0.784) ],
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.611),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476) ] },
+  // men's & women's pajama: two flatlays (the white mockup + the flat-laid -1 photo), then six on-model
+  // photos (-2..-7).
+  menPajama:{ flats:[ V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328',0.758),
+                      V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345',1.240) ],
+              models:[ V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347',0.667),
+                       V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348',1.112),
+                       V('zum-model-pajama-men-4.jpg?v=1789030337','zum-flatlay-model-map-pajama-men-4.png?v=1789030351',1.544),
+                       V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352',1.321),
+                       V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354',1.404),
+                       V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356',1.637) ] },
+  womenPajama:{ flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368',0.779),
+                        V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',1.136) ],
+                models:[ V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385',0.693),
+                         V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',1.055),
+                         V('zum-model-pajama-women-4.jpg?v=1789030375','zum-flatlay-model-map-pajama-women-4.png?v=1789030388',1.569),
+                         V('zum-model-pajama-women-5.jpg?v=1789030377','zum-flatlay-model-map-pajama-women-5.png?v=1789030390',0.952),
+                         V('zum-model-pajama-women-6.jpg?v=1789030379','zum-flatlay-model-map-pajama-women-6.png?v=1789030392',1.133),
+                         V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393',1.184) ] },
+};
+const FLAT_KEYS=Object.keys(GARMENTS);
+const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
+const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
+// model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
+const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
+// which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
+const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
+// ===== END GARMENT DATA =====
+
+// ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html and zum_prd_form.html =====
+// Edit it in pattern-mockup.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
+// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
+// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
+
+// Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
+// Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
+// Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+// Motif size: the pattern is rastered to r x mock width (r = the view's own number in the page's GARMENT
+// DATA x the Motif-size slider) and tiled. Nothing is derived from the garment's extent on the map.
+const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
+const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
+const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
+const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
+const TRIM_CEIL=1.15;      // flatlay trim ceiling
+const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
+const TRIM_ROLL=0.22;      // compression slope above the knee
+const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
+const TRIM_FLOOR=0.65;     // trim shadow floor: flatlay = hard clamp on f (mirrors TRIM_CEIL); model view = soft-knee onset on the low-pass
+                           // (mirrors TRIM_KNEE, same TRIM_ROLL), so a charcoal trim / shadowed cuff is lifted without flattening its weave
+const TRIM_MFLOOR=0.50;    // model view hard floor below the soft knee (mirrors TRIM_MCEIL)
+const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
+                           // acts on this low-pass (broad glare, lit collar); the weave / stitching / fold detail riding on it is kept as in the mock
+const COLLAR_ID=6;
+const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
+const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
+const AX_CURVE=0.035;      // max deviation/chord above which a drawn stroke counts as bent and becomes a curved axis
+const AX_SMOOTH=0.25;      // axis smoothing half-window as a fraction of the panel width (x3 passes): the (u,v) map folds where
+                           // the bend radius drops below the half-width; 0.25 keeps a 90 deg elbow fold-free yet visibly bent
+
+// --- colour helpers ---
+const HEX_RE=/^#?([0-9a-f]{6})$/i;
+const parseHex=s=>{ const m=HEX_RE.exec(String(s||'').trim()); return m?m[1].toUpperCase():null; };   // 'RRGGBB' or null
+const hexToRgb=h=>[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+const toHex=rgb=>'#'+rgb.map(x=>Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('');
+// HSV, never HSL: the HSL denominator (2 - max - min) collapses near white, so rgb(255,250,240) reads as
+// fully saturated and a pale cream swatch came out as a solid brown band. HSV reads that cream as 0.06.
+function rgbToHsv(r,g,b){ const max=Math.max(r,g,b),min=Math.min(r,g,b),c=max-min; let h=0; if(c!==0){ if(max===r)h=((g-b)/c+6)%6; else if(max===g)h=(b-r)/c+2; else h=(r-g)/c+4; h/=6; } return [h, max===0?0:c/max, max/255]; }
+function hsvToRgb(h,s,v){ const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s); return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(x=>Math.round(x*255)); }
+
+// --- image helpers ---
+// rAF never fires in a hidden tab, so a timer fallback keeps a build moving when the user switches away
+const nextPaint=()=>new Promise(r=>{ let done=false; const go=()=>{ if(!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go,120); });
+const loadImg=src=>new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('image load failed: '+src)); i.src=src; });
+// The panel map is an exact id image - it must NOT be chroma-subsampled. An <img> lets Shopify's CDN serve
+// WebP, whose 4:2:0 subsampling bleeds sharp colour edges (e.g. a drawn G axis line) into the R channel and
+// corrupts the id, printing thin stray-panel lines. Fetch it as PNG so every pixel's id stays exact.
+const loadPng=src=>fetch(src,{headers:{Accept:'image/png'}}).then(r=>{ if(!r.ok) throw new Error('map load failed: '+src); return r.blob(); }).then(createImageBitmap);
+// decode a File/Blob once; the bitmap feeds every later draw (swatch scan, compositor, thumbnails)
+const decodeFile=f=>window.createImageBitmap ? createImageBitmap(f) : loadImg(URL.createObjectURL(f));
+
+// Draw img at w x h and return its pixels. One scratch canvas for every call: getImageData copies the
+// pixels out, so nothing keeps the canvas, and a fresh 30MB canvas per call (Safari frees them only on GC)
+// is what used to push a phone over its canvas memory budget mid-build.
+const scratch=document.createElement('canvas'), sctx=scratch.getContext('2d',{willReadFrequently:true});
+function raster(img,w,h,smooth){
+  scratch.width=w; scratch.height=h;
+  sctx.imageSmoothingEnabled=smooth; sctx.imageSmoothingQuality='high'; sctx.drawImage(img,0,0,w,h);
+  return { w, h, data:sctx.getImageData(0,0,w,h).data };
+}
+function rasterArea(img,area,smooth){
+  const s=Math.sqrt(area/(img.width*img.height));
+  return raster(img, Math.max(1,Math.round(img.width*s)), Math.max(1,Math.round(img.height*s)), smooth);
+}
+function rasterWidth(img,w,smooth){ return raster(img, w, Math.max(1,Math.round(img.height*w/img.width)), smooth); }
+
+// --- swatch colour: dominant hue -> trim suggestion, gender ---
+// 64x64 nearest-neighbour sample (area-averaging blends every motif into the light ground a swatch sits on,
+// so each cell lands near white and every pattern reports the same colour), hue histogram weighted by
+// chroma, mean colour of the heaviest bin: a single most-saturated pixel is noise, the dominant hue is what
+// the eye reads. null when the swatch has no readable hue (grey / black / white).
+function dominantColor(img){
+  try{
+    const n=64, B=36, d=raster(img,n,n,false).data;
+    const weight=new Float64Array(B), sum=new Float64Array(B*3), count=new Int32Array(B);
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<128) continue;
+      const r=d[i],g=d[i+1],b=d[i+2], max=Math.max(r,g,b), ch=max-Math.min(r,g,b);
+      if(max<40||ch/max<0.2) continue;   // near-black or near-grey: no hue
+      const k=Math.min(B-1,Math.floor(rgbToHsv(r,g,b)[0]*B));
+      weight[k]+=ch; sum[k*3]+=r; sum[k*3+1]+=g; sum[k*3+2]+=b; count[k]++;
+    }
+    let top=-1,tw=0; for(let k=0;k<B;k++) if(weight[k]>tw){ tw=weight[k]; top=k; }
+    if(top<0) return null;
+    const c=count[top]; return [sum[top*3]/c, sum[top*3+1]/c, sum[top*3+2]/c];
+  }catch{ return null; }
+}
+// That colour pulled into the range a garment trim can actually be: never near-white, never near-black,
+// never fully saturated. '#rrggbb' lowercase, or null when the colour is too washed out to name a hue.
+function trimHexFrom(r,g,b){
+  const [h,s,v]=rgbToHsv(r,g,b);
+  if(s<0.15||v<0.10) return null;
+  return toHex(hsvToRgb(h, Math.min(0.70,Math.max(0.25,s)), Math.min(0.86,Math.max(0.52,v))));
+}
+// Gender from the trim hue: 250-350 deg violet -> magenta -> pink = girl; 90-249 deg green -> teal -> blue = boy;
+// the rest (yellow, orange, red, brown) and anything too washed out to read a hue = neutral. null = not a hex.
+function genderFromHex(v){
+  const m=parseHex(v); if(!m) return null;
+  const [h,s,val]=rgbToHsv(...hexToRgb(m));
+  if(s<0.15||val<0.10) return 'neutral';
+  const hd=h*360;
+  return hd>=250&&hd<=350 ? 'girl' : hd>=90&&hd<250 ? 'boy' : 'neutral';
+}
+
+// --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
+// One pass over the map yields: panel id per pixel, garment bbox (width for motif size, box for the
+// compose loop: on a model photo ~70% of the frame is background), per-panel centroid +
+// major-axis angle (PCA; the print is rotated to follow each panel's grain), the trim
+// luminance reference (90th percentile of panel 9) and the fabric white reference (95th percentile
+// of each channel over panels 1..8), both sampled every 2nd pixel each axis.
+// model=true (on-model photo): a drawn curved axis also gets the tube wrap; the flatlay stays flat (see limb axes below).
+// LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
+// from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
+const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
+function analyzeGarment(spec,model){
+  const key=spec.map+(model?'|model':'');
+  if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
+  const p=(async()=>{
+    const CA=OUT_AREA*SS*SS;
+    const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
+    const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
+    if(mapImg.close) mapImg.close();   // the id raster is all that is kept of the map
+    const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
+    const ids=new Uint8Array(N);
+    const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
+          sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
+    const hist=new Uint32Array(256); let nTrim=0;
+    const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
+    let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
+    const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
+    const linePx=[];                    // every G-maxed pixel, traced into strokes below
+    // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
+    const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
+    for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
+      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
+      if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
+        cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
+        if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
+        if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
+      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
+      if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
+    }
+    const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
+    // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
+    // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
+    // (A near-square panel has no dominant axis so its angle is unstable; the accepted cost of one rule.)
+    for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
+      cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
+      // A hand-drawn axis line on the map (>=50 maxed-G pixels) sets the grain for that panel; else PCA.
+      // The line is straight, so its own PCA direction is its angle - a vertical stroke gives vertical grain.
+      const src = acnt[k]>=50 ? [acnt[k],asx[k],asy[k],asxx[k],asyy[k],asxy[k]] : [cnt[k],sx[k],sy[k],sxx[k],syy[k],sxy[k]];
+      const n=src[0], mx=src[1]/n, my=src[2]/n, vxx=src[3]/n-mx*mx, vyy=src[4]/n-my*my, vxy=src[5]/n-mx*my;
+      // Negated: the tiling frame's along-grain axis is (-sn,cs), so the grain follows the major axis only with -th.
+      // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
+      const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
+    const pct=(h,n,q)=>{ let acc=0; for(let v=0;v<256;v++){ acc+=h[v]; if(acc>=n*q) return v; } return 255; };
+    const Lref=pct(hist,nTrim,0.9);
+    // Fabric white per channel: the print is multiplied by mock/Fref instead of mock/255, so the brightest
+    // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
+    // tints the print. Capped at 1 in compose: a print is never brighter than its file.
+    const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
+    // Model view trim low-pass (see compose): masked 2-pass box blur of the trim luminance (non-trim
+    // neighbours excluded), 1 byte/px over the compose bbox only. The flatlay never uses it.
+    let tlo=null;
+    if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
+      const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
+      for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
+      const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+        for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+      const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
+      blur(v); blur(m);
+      tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
+    // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
+    // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
+    // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
+    if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
+    G.ext=panelExtents(G);
+    return G;
+  })();
+  garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
+  while(garmentCache.size>CACHE_MAX) garmentCache.delete(garmentCache.keys().next().value);
+  return p;
+}
+// --- limb axes: a fabric panel may get a centerline drawn on the map; its pixels are then mapped to curved
+// coordinates (u = arc length along the line, v = signed perpendicular distance) so the print follows a bent
+// arm/leg instead of one flat angle. Panels without an axis keep the PCA / drawn-angle rotation above.
+// The stroke is the G-maxed line traced as a polyline; only a stroke that actually bends (curvature >=
+// AX_CURVE) becomes an axis, a straight stroke just sets the grain angle. Tube wrap (model views): across
+// the axis, v is compressed toward a silhouette edge (fabric curving away from the camera) and left linear
+// toward a seam. Strokes are baked offline (zum-prd/prompt-test/model-map/bake_axes.py) and reviewed on an
+// overlay. Draw one stroke per panel, running the full length of the limb: the panel's mean width is
+// area / stroke length, and a half-length stroke doubles it and over-smooths the bend.
+// max perpendicular deviation of a polyline from its chord, over the chord length
+const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
+  for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
+// Drawn strokes: 8-connected components of G-maxed pixels -> ordered polyline (BFS from the pixel farthest
+// from the stroke's centroid, bucketed every AX_STEP of geodesic distance), panel = majority id under it.
+function traceDrawn(W,H,ids,linePx){
+  const N=W*H, mark=new Uint8Array(N); for(const i of linePx) mark[i]=1;
+  const nb=[-W-1,-W,-W+1,-1,1,W-1,W,W+1], okStep=(i,j)=>Math.abs(i%W-j%W)<=1;   // no wrapping across rows
+  const out=[];
+  for(const i0 of linePx){ if(mark[i0]!==1) continue;
+    const comp=[i0]; mark[i0]=2; let sx=0, sy=0;
+    for(let h=0;h<comp.length;h++){ const i=comp[h]; sx+=i%W; sy+=(i/W)|0;
+      for(const d of nb){ const j=i+d; if(j<0||j>=N||mark[j]!==1||!okStep(i,j)) continue; mark[j]=2; comp.push(j); } }
+    if(comp.length<50) continue;
+    const mx=sx/comp.length, my=sy/comp.length; let s=i0, bd=-1;
+    for(const i of comp){ const dx=i%W-mx, dy=((i/W)|0)-my, dd=dx*dx+dy*dy; if(dd>bd){ bd=dd; s=i; } }
+    const q=[s], dist=[0]; mark[s]=3; const bx=[], by=[], bn=[], idCnt=new Float64Array(10);
+    for(let h=0;h<q.length;h++){ const i=q[h], d0=dist[h], b=(d0/AX_STEP)|0;
+      while(bx.length<=b){ bx.push(0); by.push(0); bn.push(0); }
+      bx[b]+=i%W; by[b]+=(i/W)|0; bn[b]++; idCnt[ids[i]<=8?ids[i]:0]++;
+      for(const d of nb){ const j=i+d; if(j<0||j>=N||mark[j]!==2||!okStep(i,j)) continue; mark[j]=3; q.push(j); dist.push(d0+1); } }
+    let k=0; for(let t=1;t<=8;t++) if(idCnt[t]>idCnt[k]) k=t;
+    const px=[], py=[]; for(let b=0;b<bn.length;b++) if(bn[b]){ px.push(bx[b]/bn[b]); py.push(by[b]/bn[b]); }
+    if(k===0||px.length<8) continue;   // a speck on the map is not a stroke: under 8 samples (~80 px) is ignored
+    if(py[0]>py[py.length-1]){ px.reverse(); py.reverse(); }   // start at the higher end
+    out.push({ k, px, py, curve:curveOf(px,py) });
+  }
+  return out;
+}
+function buildAxis(k,px,py,G,wrap){
+  const {w:W,h:H,ids,cnt,pbox:[pbx0,pby0,pbx1,pby1]}=G;
+  let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
+  // Smooth the line over AX_SMOOTH x the panel width each side: the (u,v) mapping folds where the bend
+  // radius is smaller than the distance to the axis, so a wide panel needs a gentler axis, but too wide
+  // a window rounds an elbow away (the print then barely bends).
+  const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW*AX_SMOOTH/AX_STEP)));
+  for(let pass=0;pass<3;pass++){ const qx=px.slice(), qy=py.slice();
+    for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
+  const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);
+  for(let j=0;j<n-1;j++){ const ex=px[j+1]-px[j], ey=py[j+1]-py[j], L=Math.hypot(ex,ey)||1; dx[j]=ex/L; dy[j]=ey/L; len[j]=L; s[j+1]=s[j]+L; }
+  // Tube wrap: per sample, walk the normal to each side until the panel ends -> half-width, and whether
+  // that edge is the silhouette (id 0: fabric curves away, print compresses toward it) or a seam to
+  // another panel (flat). f = silhouette fraction, smoothed so the two regimes blend along the limb.
+  const wP=new Float32Array(n), wN=new Float32Array(n), fP=new Float32Array(n), fN=new Float32Array(n), valid=new Uint8Array(n);
+  const maxW=Math.max(20,avgW*4);
+  const at=(x,y)=>{ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=W||yi>=H)?0:ids[yi*W+xi]; };
+  for(let j=0;j<n;j++){ const tj=Math.min(j,n-2), tx=dx[tj], ty=dy[tj], x0=px[j], y0=py[j];
+    if(at(x0,y0)!==k) continue; valid[j]=1;
+    let sP=1, hP=0; for(;sP<maxW;sP++){ const q=at(x0+sP*ty,y0-sP*tx); if(q!==k){ hP=q; break; } }
+    let sN=1, hN=0; for(;sN<maxW;sN++){ const q=at(x0-sN*ty,y0+sN*tx); if(q!==k){ hN=q; break; } }
+    wP[j]=sP; wN[j]=sN; fP[j]=(wrap&&hP===0)?1:0; fN[j]=(wrap&&hN===0)?1:0; }
+  for(let j=0;j<n;j++){ if(valid[j]) continue; let src=-1;
+    for(let d=1; d<n && src<0; d++){ if(j-d>=0&&valid[j-d]) src=j-d; else if(j+d<n&&valid[j+d]) src=j+d; }
+    if(src<0) break; wP[j]=wP[src]; wN[j]=wN[src]; fP[j]=fP[src]; fN[j]=fN[src]; }
+  const box=(arr,h)=>{ const q=arr.slice(); for(let j=0;j<n;j++){ let a=0,m=0; for(let o=-h;o<=h;o++){ const jj=Math.min(n-1,Math.max(0,j+o)); a+=q[jj]; m++; } arr[j]=a/m; } };
+  box(wP,3); box(wN,3); box(fP,hw); box(fN,hw);
+  // coarse grid of nearest sample index, refined per pixel in compose. Only the cells under the panel's
+  // bbox are filled: the grid is read for pixels of this panel only, so the rest of the frame never is.
+  const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
+  for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
+    const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
+    for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+}
+// Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
+// Globals instead of a return value: this runs once per fabric pixel.
+let LX=0, LY=0;
+function axisUV(A,x,y){
+  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
+  for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
+    const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
+    let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
+    const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
+    if(d2<best){ best=d2; bj=j; bt=t; LY=A.s[j]+t; LX=ex*dyj-ey*dxj; }
+  }
+  // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
+  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=LX>=0;
+  const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
+  const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
+  if(f>0.001&&w>1){ const a=Math.abs(LX), r=a/w;
+    const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
+    LX=(pos?1:-1)*(a+f*(wrapped-a)); }
+}
+// Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
+// an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
+function localXY(G,k,x,y){
+  const A=G.axes[k];
+  if(A) axisUV(A,x,y);
+  else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
+}
+// Extent of each panel in its own tiling frame (min/max LX, LY). Garment-only, so it is measured once
+// here and cached with the garment; compose reads it to place the tile phase (seam avoidance).
+function panelExtents(G){
+  const {ids,w:W,box:[bx0,by0,bx1,by1]}=G;
+  const x0=new Float64Array(10).fill(Infinity), x1=new Float64Array(10).fill(-Infinity),
+        y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity);
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
+    localXY(G,k,x,y);
+    if(LX<x0[k])x0[k]=LX; if(LX>x1[k])x1[k]=LX; if(LY<y0[k])y0[k]=LY; if(LY>y1[k])y1[k]=LY; }
+  return { x0, x1, y0, y1 };
+}
+
+// --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
+const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
+const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
+// ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
+// trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
+function compose(G, pat, ratio, trim){
+  const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
+  const patW = ratio*W;
+  const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
+  const PW=P.w, PH=P.h, pd=P.data;
+  // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
+  // phase so the single wrap boundary lands outside the panel (in the background) instead of slicing a
+  // motif mid-panel. OFFX/OFFY still seed the within-cell placement, so adjacent panels stay decorrelated.
+  // A panel wider or taller than the tile must repeat, so it keeps the plain OFFX*PW / OFFY*PH offset.
+  const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
+  for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+    const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
+    const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
+  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
+  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+  big.width=W; big.height=H;
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
+  const img=bctx.getImageData(0,0,W,H), out=img.data;
+  const [tr,tg,tb]=trim||[0,0,0];
+
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
+    const k=ids[i]; if(k===0||k>9) continue;
+    const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
+    if(k===9){
+      if(!trim) continue;
+      const lum=(r*299+g*587+b*114)/1000; let f;
+      if(tlo){ // model view (tlo is only built for one): knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
+                    // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
+        const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
+        if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
+        else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
+        f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }       // flatlay: hard clamp both ends
+      out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
+      continue;
+    }
+    localXY(G,k,x,y);
+    // bilinear sample of the tiled strip (wraps on both axes; the >= guards catch float round-up to exactly PW/PH)
+    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }   // wrong side of the print -> mirror
+    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
+    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+    const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
+    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
+        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
+        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
+    let fr=r*iFr, fg=g*iFg, fb=b*iFb; if(fr>1) fr=1; if(fg>1) fg=1; if(fb>1) fb=1;   // multiply, normalised to the fabric white
+    out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
+  }
+
+  bctx.putImageData(img,0,0);
+  disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
+  dctx.imageSmoothingQuality='high';
+  dctx.drawImage(big,0,0,disp.width,disp.height);
+  return disp;
+}
+// ===== END SHARED BLOCK =====
+
+// ===== page: dev tool UI (this file only) =====
+const $=id=>document.getElementById(id);
+const msg=m=>{ $('msg').textContent=m; };
+function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
+
+let patImg=null, busy=false;
+const results={ flats:[], models:[] };   // each: {name,blob,url,fig} - flats:[...]+models:[...], all shown in #view
+
+async function toBlobURL(canvas){
+  const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+  if(!blob) throw new Error('PNG encode failed');
+  return { blob, url:URL.createObjectURL(blob) };
+}
+function clearShots(list){
+  for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
+  list.length=0;
+}
+// one composited shot figure appended to #view; bucket is results.flats or results.models
+async function showShot(bucket, canvas, name, caption){
+  const r=await toBlobURL(canvas);
+  const fig=document.createElement('figure'); fig.className='shot';
+  const img=document.createElement('img'); img.alt=caption;
+  const cap=document.createElement('figcaption'); cap.textContent=caption;
+  img.src=r.url; fig.append(img,cap); $('view').append(fig);
+  bucket.push({ ...r, name, fig });
+}
+
+async function generate(){
+  if(busy) return;
+  if(!patImg){ msg('Choose a pattern file first.'); return; }
+  busy=true; $('go').disabled=true;
+  msg('Generating…'); await nextPaint();
+  const t0=performance.now();
+  try{
+    const g=GARMENTS[$('garment').value];
+    const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
+    const scale=parseFloat($('scale').value);
+    const mdls=modelsFor(g, $('gender').value);
+    clearShots(results.flats); clearShots(results.models);
+    // motif size per view = the view's own r (GARMENT DATA) x the slider
+    for(let i=0;i<g.flats.length;i++){
+      if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
+      const GF=await analyzeGarment(g.flats[i]);
+      await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay');
+    }
+    for(let i=0;i<mdls.length;i++){
+      msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
+      const GM=await analyzeGarment(mdls[i], true);
+      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), modelName(mdls[i]), 'On model · '+modelName(mdls[i]));
+    }
+    $('dl').disabled=false;
+    msg('Done · '+g.flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+  }catch(err){ msg('Error: '+err.message); }
+  finally{ busy=false; $('go').disabled=false; }
+}
+
+// --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---
+let genderTouched=false;
+function applyGenderFromTrim(){
+  if(genderTouched || $('gender').disabled) return;
+  const g=genderFromHex($('trimHex').value); if(!g) return;
+  $('gender').value=g; $('genderHint').style.display='';
+}
+$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
+
+// Men's / Women's pajama have a single fixed set of adult models, so the Gender picker does nothing for
+// them: disable and grey the field while one is selected (every model is unisex, so modelsFor returns all).
+const GENDERLESS=new Set(['menPajama','womenPajama']);
+function syncGenderField(){
+  const off=GENDERLESS.has($('garment').value);
+  $('gender').disabled=off;
+  const f=$('genderField'); f.style.opacity=off?'0.4':''; f.style.pointerEvents=off?'none':'';
+  if(off) $('genderHint').style.display='none';
+}
+$('garment').addEventListener('change', syncGenderField);
+
+$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
+$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
+$('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
+$('patternBtn').addEventListener('click', ()=>$('pattern').click());
+$('pattern').addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  $('patternName').textContent=f.name;
+  msg('Reading pattern…'); await nextPaint();
+  try{
+    const img=await decodeFile(f);
+    if(patImg&&patImg.close) patImg.close();
+    patImg=img;
+    const c=dominantColor(img), t=c&&trimHexFrom(...c);
+    if(t){ setTrim(t); applyGenderFromTrim(); }
+    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
+  }catch{ msg('Could not read that image.'); }
+});
+$('go').addEventListener('click', generate);
+$('dl').addEventListener('click', async ()=>{
+  let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
+  const items=[];
+  for(const r of results.flats) items.push({ name:'flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const r of results.models) items.push({ name:'model-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const it of items){
+    if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
+    else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
+  }
+});
+applyGenderFromTrim();
+syncGenderField();
+</script>
+
+</body>
+</html>

@@ -13,9 +13,9 @@
 // CDN in the OS temp dir), and hashes every analysis field plus the composed pixels of two compose() calls
 // per garment (with trim, and without). ~30 s per run. Deterministic, so the same page
 // twice gives the same json. Typical use:
-//   node regress-engine.js run flatlay-composite.html before.json   (on the committed page)
+//   node regress-engine.js run pattern-mockup.html before.json   (on the committed page)
 //   ...edit the block...
-//   node regress-engine.js run flatlay-composite.html after.json && node regress-engine.js compare before.json after.json
+//   node regress-engine.js run pattern-mockup.html after.json && node regress-engine.js compare before.json after.json
 // Needs the `canvas` npm package resolvable from here (npm i canvas in a scratch dir, then NODE_PATH=<dir>/node_modules).
 // The block only needs document.createElement('canvas'), Image, createImageBitmap and fetch, all shimmed below.
 'use strict';

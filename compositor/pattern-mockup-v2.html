@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flatlay Compositor</title>
+<title>Pattern Mockup v2 (demo)</title>
 <style>
   :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
   @media (prefers-color-scheme: dark){
@@ -44,12 +44,24 @@
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
+  /* v2 */
+  .note{ font-size:12px; color:var(--mut); border:1px dashed var(--line); border-radius:7px; padding:8px 10px; }
+  .note a{ color:var(--accent); }
+  .group{ border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:12px; }
+  .group h3{ margin:0; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
+  label.check{ text-transform:none; letter-spacing:0; font-weight:400; font-size:13px; color:var(--ink); display:flex; gap:8px; align-items:center; }
+  .shot img{ height:auto; max-height:none; }   /* the img box equals the bitmap: corner picks map 1:1 */
+  .shot img.picking{ cursor:crosshair; outline:2px solid #ff2d8a; }
+  .row{ display:flex; gap:8px; }
+  .row select{ flex:1; }
+  .row button{ flex:none; padding:8px 10px; font-size:12px; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <div class="controls">
+    <div class="note"><b>Demo v2.</b> Bản v1 cộng 4 thứ mockup Photoshop có: tone Linear Burn/Soft Light, Displace nếp nhăn, feather mép, hình thang (homography). Engine ở đây <b>không</b> sync sang form. Bản chính: <a href="pattern-mockup.html">pattern-mockup.html</a>.</div>
     <div class="field">
       <label for="garment">Garment</label>
       <select id="garment">
@@ -89,6 +101,47 @@
     <div class="field">
       <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
       <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="group">
+      <h3>1 · Tone nếp nhăn</h3>
+      <div class="field">
+        <label for="tone">Công thức</label>
+        <select id="tone">
+          <option value="ps" selected>Photoshop: LB → shadow LB → highlight SL</option>
+          <option value="mul">v1: multiply / Fref</option>
+        </select>
+      </div>
+      <div class="field"><div class="scale-head"><label for="lbO">Pattern Linear Burn</label><span class="val" id="lbOVal">0.90</span></div><input type="range" id="lbO" min="0" max="1" step="0.05" value="0.9"></div>
+      <div class="field"><div class="scale-head"><label for="shO">Shadow Linear Burn</label><span class="val" id="shOVal">0.60</span></div><input type="range" id="shO" min="0" max="1" step="0.05" value="0.6"></div>
+      <div class="field"><div class="scale-head"><label for="hiO">Highlight Soft Light</label><span class="val" id="hiOVal">1.00</span></div><input type="range" id="hiO" min="0" max="1" step="0.05" value="1"></div>
+      <label class="check"><input type="checkbox" id="autoSh" checked> Giảm shadow khi pattern đậm</label>
+      <label class="check"><input type="checkbox" id="fref" checked> Chuẩn hoá trắng vải (Fref) trước khi blend</label>
+    </div>
+
+    <div class="group">
+      <h3>2 · Displace nếp nhăn</h3>
+      <div class="field"><div class="scale-head"><label for="dispAmp">Độ dịch (px)</label><span class="val" id="dispAmpVal">8</span></div><input type="range" id="dispAmp" min="0" max="30" step="1" value="8"></div>
+      <div class="field"><div class="scale-head"><label for="dispBlur">Blur map (px)</label><span class="val" id="dispBlurVal">6</span></div><input type="range" id="dispBlur" min="1" max="30" step="1" value="6"></div>
+    </div>
+
+    <div class="group">
+      <h3>3 · Mép mềm</h3>
+      <div class="field"><div class="scale-head"><label for="feather">Feather (px)</label><span class="val" id="featherVal">3</span></div><input type="range" id="feather" min="0" max="12" step="1" value="3"></div>
+    </div>
+
+    <div class="group">
+      <h3>4 · Hình thang (homography)</h3>
+      <div class="field">
+        <label for="quadPanel">Panel id</label>
+        <div class="row">
+          <select id="quadPanel"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+          <button type="button" class="secondary" id="quadPick">Chọn 4 góc</button>
+          <button type="button" class="secondary" id="quadClear">Xoá</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="showQuad" checked> Vẽ khung lên ảnh</label>
+      <div class="msg" id="quadMsg">Bấm "Chọn 4 góc" rồi bấm 4 điểm trên một ảnh: trên-trái, trên-phải, dưới-phải, dưới-trái. Panel đó bỏ xoay/trục, dùng homography. Lưu trong trình duyệt.</div>
     </div>
 
     <div class="actions">
@@ -162,10 +215,9 @@ const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy
 const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
 // ===== END GARMENT DATA =====
 
-// ===== SHARED BLOCK: compositor engine - byte-identical in flatlay-composite.html and zum_prd_form.html =====
-// Edit it in flatlay-composite.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
-// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
-// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
+// ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
+// Additions over v1 are marked "v2:". The END SHARED BLOCK marker is kept so regress-engine.js render works on this page.
+// Nothing in here touches the DOM or page state: it reads images + an options object and returns pixels.
 
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
@@ -335,7 +387,7 @@ function analyzeGarment(spec,model){
       const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
       blur(v); blur(m);
       tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
-    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    const G={ key:spec.map, H:null, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
@@ -443,6 +495,8 @@ function axisUV(A,x,y){
 // Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
 // an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
 function localXY(G,k,x,y){
+  const Q=G.H&&G.H[k];   // v2: a picked quad replaces the axis / rotation for that panel
+  if(Q){ const h=Q.h, d=h[6]*x+h[7]*y+1; LX=(h[0]*x+h[1]*y+h[2])/d-Q.w/2; LY=(h[3]*x+h[4]*y+h[5])/d-Q.hh/2; return; }
   const A=G.axes[k];
   if(A) axisUV(A,x,y);
   else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
@@ -462,64 +516,150 @@ function panelExtents(G){
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
 const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
 const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
+
+// ---- v2 helpers ----
+const V2_DEFAULT={ tone:'ps', lbO:0.9, shO:0.6, hiO:1.0, autoSh:true, fref:true, dispAmp:8, dispBlur:6, feather:3, quads:null, showQuad:true };
+// Photoshop tone chain for one channel (0..1): pattern p Linear-Burned onto the mock P at lb opacity, then
+// the mock Linear-Burned again at sh (the "shadow" layer), then the mock Soft-Lighted at hi (the "highlight" layer).
+function toneP(p,P,lb,sh,hi){
+  const r1=P+lb*(Math.max(0,P+p-1)-P);
+  const r2=r1+sh*(Math.max(0,r1+P-1)-r1);
+  const D=r2<=0.25?((16*r2-12)*r2+4)*r2:Math.sqrt(r2);
+  const sl=P<=0.5 ? r2-(1-2*P)*r2*(1-r2) : r2+(2*P-1)*(D-r2);
+  return r2+hi*(sl-r2);
+}
+// masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
+// the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
+function blurMasked(W,x0,y0,x1,y1,r,src,msk){
+  const BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
+  for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++,j++) if(msk(i)){ v[j]=src(i); m[j]=1; }
+  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+  const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
+  blur(v); blur(m);
+  for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
+  return v;
+}
+// Grow fabric ids (1..8) outward by f pixels (4-neighbour), so a feathered edge has a panel to sample. Trim (9) neither grows nor is overwritten.
+function dilateIds(ids,W,H,x0,y0,x1,y1,f){
+  const ok=q=>q>=1&&q<=8; let cur=ids;
+  for(let p=0;p<f;p++){ const nx=Uint8Array.from(cur);
+    for(let y=y0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++){ if(cur[i]!==0) continue;
+      let k=0; if(x>0&&ok(cur[i-1]))k=cur[i-1]; else if(x<W-1&&ok(cur[i+1]))k=cur[i+1]; else if(y>0&&ok(cur[i-W]))k=cur[i-W]; else if(y<H-1&&ok(cur[i+W]))k=cur[i+W];
+      if(k) nx[i]=k; }
+    cur=nx; }
+  return cur;
+}
+// 4-point homography src->dst (each [[x,y]x4]); returns h[0..8] with h[8]=1. Direct 8x8 Gaussian elimination.
+function homography(src,dst){
+  const A=[], B=[];
+  for(let i=0;i<4;i++){ const [x,y]=src[i], [u,v]=dst[i];
+    A.push([x,y,1,0,0,0,-u*x,-u*y]); B.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]); B.push(v); }
+  for(let c=0;c<8;c++){ let p=c; for(let r=c+1;r<8;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]]; [B[c],B[p]]=[B[p],B[c]]; const d=A[c][c]||1e-12;
+    for(let r=0;r<8;r++){ if(r===c) continue; const f=A[r][c]/d; if(!f) continue; for(let k=c;k<8;k++) A[r][k]-=f*A[c][k]; B[r]-=f*B[c]; } }
+  const h=B.map((b,i)=>b/(A[i][i]||1e-12)); h.push(1); return h;
+}
+// quads {k:[[nx,ny]x4]} (normalised to the mock, TL TR BR BL) -> {k:{h,w,hh}}: the quad maps onto a w x hh
+// rectangle, w = the longer of the top/bottom edges, hh = the longer side, so the wide end keeps the flat motif size.
+function buildQuads(q,W,H){
+  if(!q) return null; const out={}; let any=false;
+  for(const k in q){ const P=q[k].map(([x,y])=>[x*W,y*H]), L=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+    const w=Math.max(L(P[0],P[1]),L(P[3],P[2])), hh=Math.max(L(P[0],P[3]),L(P[1],P[2]));
+    if(w<2||hh<2) continue;
+    out[k]={ h:homography(P,[[0,0],[w,0],[w,hh],[0,hh]]), w, hh }; any=true; }
+  return any?out:null;
+}
+
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
-// trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
-function compose(G, pat, ratio, trim){
-  const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
-  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
+// trim: [r,g,b] or null (keep the mock's own trim). opt: v2 options (see V2_DEFAULT). Returns a canvas (W/SS x H/SS).
+function compose(G, pat, ratio, trim, opt){
+  opt=Object.assign({},V2_DEFAULT,opt||{});
+  const {w:W,h:H,ids,Lref,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
+  const iFr=opt.fref?1/G.Fref[0]:1/255, iFg=opt.fref?1/G.Fref[1]:1/255, iFb=opt.fref?1/G.Fref[2]:1/255;
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
-  // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
-  // phase so the single wrap boundary lands outside the panel (in the background) instead of slicing a
-  // motif mid-panel. OFFX/OFFY still seed the within-cell placement, so adjacent panels stay decorrelated.
-  // A panel wider or taller than the tile must repeat, so it keeps the plain OFFX*PW / OFFY*PH offset.
+  // v2: homography per panel replaces axis / PCA for that panel; extents re-measured because the frame changed
+  G.H=buildQuads(opt.quads&&opt.quads[G.key],W,H);
+  const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
-  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+  // v2: shadow opacity follows the pattern's mean luminance when autoSh: a dark print would go black in every fold
+  let shO=opt.shO;
+  if(opt.autoSh){ let s=0,n=0; for(let i=0;i<pd.length;i+=16){ s+=(pd[i]*299+pd[i+1]*587+pd[i+2]*114)/1000; n++; } shO*=Math.max(0.25,Math.min(1,(s/n/255)/0.7)); }
+
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
   const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
-  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
-    const k=ids[i]; if(k===0||k>9) continue;
+  // v2 fields, cached on the garment per radius: displacement low-pass of the mock luminance (fabric + trim only),
+  // feather alpha (fraction of fabric among non-trim pixels) + dilated ids over the box grown by the feather.
+  const fpx=Math.round(opt.feather*SS), dpx=Math.max(1,Math.round(opt.dispBlur*SS)), amp=opt.dispAmp*SS;
+  const ex0=Math.max(0,bx0-fpx), ey0=Math.max(0,by0-fpx), ex1=Math.min(W-1,bx1+fpx), ey1=Math.min(H-1,by1+fpx), EW=ex1-ex0+1;
+  const c=G.v2||(G.v2={});
+  if(amp>0 && c.dR!==dpx){ c.dR=dpx;
+    c.dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
+    let s=0,n=0; for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]>=1&&ids[i]<=8){ s+=c.dl[j]; n++; } c.dMean=n?s/n:128; }
+  if(c.fR!==fpx){ c.fR=fpx;
+    if(fpx>0){ c.idsF=dilateIds(ids,W,H,ex0,ey0,ex1,ey1,fpx); c.alpha=blurMasked(W,ex0,ey0,ex1,ey1,fpx, i=>(ids[i]>=1&&ids[i]<=8)?1:0, i=>ids[i]!==9); }
+    else { c.idsF=ids; c.alpha=null; } }
+  const idsF=c.idsF, alpha=c.alpha, dl=amp>0?c.dl:null, dMean=c.dMean||0;
+
+  for(let y=ey0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++){
+    const k0=ids[i], k=idsF[i]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
-    if(k===9){
+    if(k0===9){
       if(!trim) continue;
       const lum=(r*299+g*587+b*114)/1000; let f;
-      if(tlo){ // model view (tlo is only built for one): knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
-                    // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
+      if(tlo){
         const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
         if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
         else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
         f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
-      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }       // flatlay: hard clamp both ends
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }
-    localXY(G,k,x,y);
-    // bilinear sample of the tiled strip (wraps on both axes; the >= guards catch float round-up to exactly PW/PH)
+    if(k===9) continue;
+    // v2: Displace, image space, before the panel frame - the blurred mock luminance drives both axes like a
+    // grayscale Photoshop displacement map (bright pushes one way, dark the other, the fabric mean stays put)
+    let xs=x, ys=y;
+    if(dl && x>=bx0&&x<=bx1&&y>=by0&&y<=by1){ const d=(dl[(y-by0)*BW+(x-bx0)]-dMean)/255*amp; xs=x+d; ys=y+d; }
+    localXY(G,k,xs,ys);
     let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }   // wrong side of the print -> mirror
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }
     const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
     const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
     const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
     let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
         pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
         pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
-    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
-    let fr=r*iFr, fg=g*iFg, fb=b*iFb; if(fr>1) fr=1; if(fg>1) fg=1; if(fb>1) fb=1;   // multiply, normalised to the fabric white
-    out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
+    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
+    let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
+    let R,Gc,Bc;
+    if(opt.tone==='ps'){ R=toneP(pr/255,Pr,opt.lbO,shO,opt.hiO)*255; Gc=toneP(pg/255,Pg,opt.lbO,shO,opt.hiO)*255; Bc=toneP(pb/255,Pb,opt.lbO,shO,opt.hiO)*255; }
+    else { R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb; }
+    // v2: feather - the edge pixel keeps a share of the mock (inside) or takes a share of the print (outside)
+    if(alpha){ const a=alpha[(y-ey0)*EW+(x-ex0)]; if(a<0.999){ R=r+a*(R-r); Gc=g+a*(Gc-g); Bc=b+a*(Bc-b); } }
+    out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
   }
 
   bctx.putImageData(img,0,0);
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
   dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,disp.width,disp.height);
+  // v2: picked quads drawn on top (demo aid; off = the plain composite)
+  const qs=opt.showQuad&&opt.quads&&opt.quads[G.key];
+  if(qs){ dctx.save(); dctx.lineWidth=3; dctx.strokeStyle='#ff2d8a'; dctx.fillStyle='#ff2d8a'; dctx.font='bold 28px sans-serif';
+    for(const k in qs){ const Pq=qs[k]; dctx.beginPath();
+      Pq.forEach(([nx,ny],j)=>{ const X=nx*disp.width, Y=ny*disp.height; j?dctx.lineTo(X,Y):dctx.moveTo(X,Y); }); dctx.closePath(); dctx.stroke();
+      Pq.forEach(([nx,ny],j)=>dctx.fillText(String(j+1)+(j?'':' · panel '+k), nx*disp.width+6, ny*disp.height-6)); }
+    dctx.restore(); }
   return disp;
 }
 // ===== END SHARED BLOCK =====
@@ -530,7 +670,18 @@ const msg=m=>{ $('msg').textContent=m; };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 
 let patImg=null, busy=false;
-const results={ flats:[], models:[] };   // each: {name,blob,url,fig} - flats:[...]+models:[...], all shown in #view
+const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
+
+// v2 options from the panel; quads persist per map URL in localStorage
+const QK='pm2-quads'; let QUADS={}; try{ QUADS=JSON.parse(localStorage.getItem(QK)||'{}')||{}; }catch{}
+const saveQuads=()=>{ try{ localStorage.setItem(QK,JSON.stringify(QUADS)); }catch{} };
+function readOpt(){ return { tone:$('tone').value, lbO:+$('lbO').value, shO:+$('shO').value, hiO:+$('hiO').value,
+  autoSh:$('autoSh').checked, fref:$('fref').checked, dispAmp:+$('dispAmp').value, dispBlur:+$('dispBlur').value,
+  feather:+$('feather').value, quads:QUADS, showQuad:$('showQuad').checked }; }
+for(const id of ['lbO','shO','hiO','dispAmp','dispBlur','feather']){
+  const fmt=v=>(id==='dispAmp'||id==='dispBlur'||id==='feather')?String(v):v.toFixed(2);
+  $(id).addEventListener('input', e=>{ $(id+'Val').textContent=fmt(parseFloat(e.target.value)); });
+}
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -541,11 +692,10 @@ function clearShots(list){
   for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
   list.length=0;
 }
-// one composited shot figure appended to #view; bucket is results.flats or results.models
-async function showShot(bucket, canvas, name, caption){
+async function showShot(bucket, canvas, name, caption, spec){
   const r=await toBlobURL(canvas);
-  const fig=document.createElement('figure'); fig.className='shot';
-  const img=document.createElement('img'); img.alt=caption;
+  const fig=document.createElement('figure'); fig.className='shot'; fig.dataset.map=spec.map;
+  const img=document.createElement('img'); img.alt=caption; if(pick) img.classList.add('picking');
   const cap=document.createElement('figcaption'); cap.textContent=caption;
   img.src=r.url; fig.append(img,cap); $('view').append(fig);
   bucket.push({ ...r, name, fig });
@@ -560,25 +710,53 @@ async function generate(){
   try{
     const g=GARMENTS[$('garment').value];
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const scale=parseFloat($('scale').value);
+    const scale=parseFloat($('scale').value), opt=readOpt();
     const mdls=modelsFor(g, $('gender').value);
     clearShots(results.flats); clearShots(results.models);
-    // motif size per view = the view's own r (GARMENT DATA) x the slider
     for(let i=0;i<g.flats.length;i++){
       if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
       const GF=await analyzeGarment(g.flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay');
+      await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim, opt), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay', g.flats[i]);
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), modelName(mdls[i]), 'On model · '+modelName(mdls[i]));
+      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, opt), modelName(mdls[i]), 'On model · '+modelName(mdls[i]), mdls[i]);
     }
     $('dl').disabled=false;
     msg('Done · '+g.flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
+
+// --- v2: quad picking. Click "Chọn 4 góc", then 4 points on ONE shot (TL, TR, BR, BL), normalised to the image ---
+let pick=null;
+const CORNER=['trên-trái','trên-phải','dưới-phải','dưới-trái'];
+$('quadPick').addEventListener('click', ()=>{
+  if(!results.flats.length&&!results.models.length){ $('quadMsg').textContent='Generate trước rồi mới chọn góc trên ảnh.'; return; }
+  pick={ k:$('quadPanel').value, map:null, pts:[] };
+  document.querySelectorAll('.shot img').forEach(i=>i.classList.add('picking'));
+  $('quadMsg').textContent='Panel '+pick.k+': bấm điểm 1 ('+CORNER[0]+') trên một ảnh.';
+});
+$('view').addEventListener('click', e=>{
+  const img=e.target.closest('img'); if(!pick||!img) return;
+  const map=img.closest('figure').dataset.map;
+  if(pick.map&&pick.map!==map) pick.pts=[];   // moved to another shot: start that one over
+  pick.map=map;
+  const rc=img.getBoundingClientRect();
+  pick.pts.push([(e.clientX-rc.left)/rc.width,(e.clientY-rc.top)/rc.height]);
+  if(pick.pts.length<4){ $('quadMsg').textContent='Panel '+pick.k+': bấm điểm '+(pick.pts.length+1)+' ('+CORNER[pick.pts.length]+').'; return; }
+  (QUADS[map]=QUADS[map]||{})[pick.k]=pick.pts; saveQuads();
+  $('quadMsg').textContent='Đã lưu panel '+pick.k+' cho '+map.split('/').pop().split('?')[0]+'. Đang render lại…';
+  pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
+  generate();
+});
+$('quadClear').addEventListener('click', ()=>{
+  const g=GARMENTS[$('garment').value]; let n=0;
+  for(const v of [...g.flats,...g.models]) if(QUADS[v.map]){ delete QUADS[v.map]; n++; }
+  saveQuads(); pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
+  $('quadMsg').textContent=n?'Đã xoá hình thang của '+n+' ảnh. Generate lại để thấy.':'Garment này chưa có hình thang nào.';
+});
 
 // --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---
 let genderTouched=false;
@@ -588,9 +766,6 @@ function applyGenderFromTrim(){
   $('gender').value=g; $('genderHint').style.display='';
 }
 $('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
-
-// Men's / Women's pajama have a single fixed set of adult models, so the Gender picker does nothing for
-// them: disable and grey the field while one is selected (every model is unisex, so modelsFor returns all).
 const GENDERLESS=new Set(['menPajama','womenPajama']);
 function syncGenderField(){
   const off=GENDERLESS.has($('garment').value);
@@ -621,8 +796,8 @@ $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
   const items=[];
-  for(const r of results.flats) items.push({ name:'flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
-  for(const r of results.models) items.push({ name:'model-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const r of results.flats) items.push({ name:'v2-flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const r of results.models) items.push({ name:'v2-model-'+r.name+'.png', blob:r.blob, url:r.url });
   for(const it of items){
     if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
     else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
@@ -630,6 +805,7 @@ $('dl').addEventListener('click', async ()=>{
 });
 applyGenderFromTrim();
 syncGenderField();
+</script>
 </script>
 
 </body>

@@ -7,7 +7,7 @@
 // It extracts the block between the "// ===== SHARED BLOCK" / "// ===== END SHARED BLOCK" markers, runs it
 // in node-canvas over every garment in GARMENTS (2 flatlays + 10 model photos, mocks and maps cached from the
 // CDN in the OS temp dir), and hashes every analysis field plus the composed pixels of two compose() calls
-// per garment (with trim + model calibration, and without). ~30 s per run. Deterministic, so the same page
+// per garment (with trim, and without). ~30 s per run. Deterministic, so the same page
 // twice gives the same json. Typical use:
 //   node regress-engine.js run flatlay-composite.html before.json   (on the committed page)
 //   ...edit the block...
@@ -85,16 +85,14 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
     const flats = g.flats || [g.flat];   // dev tool: flats:[...]; form: flat (single)
     const specs = [...flats.map((f, i) => [flats.length > 1 ? 'flat' + (i + 1) : 'flat', f, false]),
                    ...g.models.map(m => [eng.modelName(m), m, true])];
-    let cal = null;
     for (const [name, spec, model] of specs) {
       const s = { mock: await cached(spec.mock), map: await cached(spec.map) };
       const t0 = Date.now();
       const G = await eng.analyzeGarment(s, model);
       const analyzeMs = Date.now() - t0;
-      if (!model && cal === null) cal = G.gw / G.bodyW;   // first flatlay calibrates the models
       const arr = x => Array.from(x);
       const rec = {
-        w: G.w, h: G.h, ids: h(G.ids), box: G.box, gw: G.gw, bodyW: G.bodyW, Lref: G.Lref, Fref: G.Fref,
+        w: G.w, h: G.h, ids: h(G.ids), box: G.box, Lref: G.Lref, Fref: G.Fref,
         cnt: hj(arr(G.cnt)), cx: hj(arr(G.cx)), cy: hj(arr(G.cy)), cs: hj(arr(G.cs)), sn: hj(arr(G.sn)),
         pbox: hj(G.pbox.map(arr)), ext: hj([G.ext.x0, G.ext.x1, G.ext.y0, G.ext.y1].map(arr)),
         axes: G.axes.map((A, k) => A ? { k, n: A.n, px: h(A.px), py: h(A.py), s: h(A.s), wP: h(A.wP), wN: h(A.wN), fP: h(A.fP), fN: h(A.fN), near: h(A.near) } : null).filter(Boolean),
@@ -102,7 +100,7 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
       };
       for (const [sc, tr] of [[1.0, trim], [0.7, null]]) {
         const t1 = Date.now();
-        const disp = eng.compose(G, patImg, sc, tr, model ? cal : undefined);
+        const disp = eng.compose(G, patImg, sc * spec.r, tr);   // sc = the Motif-size slider
         const d = disp.getContext('2d').getImageData(0, 0, disp.width, disp.height).data;
         rec.runs.push({ sc, trim: !!tr, w: disp.width, h: disp.height, px: h(d), ms: Date.now() - t1 });
       }

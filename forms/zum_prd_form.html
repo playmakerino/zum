@@ -746,21 +746,23 @@
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
-// so they align to the photo exactly; the mock is the original photo.
-const V=(mock,map)=>({ mock:CDN+mock, map:CDN+map });
+// so they align to the photo exactly; the mock is the original photo. Every view carries r: the pattern
+// raster width as a fraction of the mock width (pattern px = r x mock W), multiplied by the Motif-size
+// slider; each mock is tuned by eye on its own. Same values as the dev tool for the views it shares.
+const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 const GARMENTS={
-  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403'),
-           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187'),
-                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193'),
-                    V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407'),
-                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243') ] },
-  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141'),
-                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249'),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256'),
-                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276'),
-                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282'),
-                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289') ] },
+  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403',0.853),
+           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
+                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380),
+                    V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
+                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
+  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405',0.764),
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.475),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.534),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.717),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.623),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.379),
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.516) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);   // 'romper','pajama' - one flatlay per product type
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
@@ -778,12 +780,10 @@ const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return se
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
 // Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
-// Motif size: the flatlay sizes the pattern strip from the garment bbox width (K_BASE x scale x gw).
-// The model view sizes it from the pose-robust body width (K_BASE x scale x bodyW x cal), with
-// cal = gw/bodyW measured on the flatlay, so checks-per-body-width match the flatlay in every pose.
+// Motif size: the pattern is rastered to r x mock width (r = the view's own number in the page's GARMENT
+// DATA x the Motif-size slider) and tiled. Nothing is derived from the garment's extent on the map.
 const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
 const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
-const K_BASE=1.5;          // pattern strip width = K x garment bbox width
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
 const TRIM_CEIL=1.15;      // flatlay trim ceiling
@@ -901,30 +901,20 @@ function analyzeGarment(spec,model){
     const hist=new Uint32Array(256); let nTrim=0;
     const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
-    let fx0=W, fx1=-1;                  // fabric-only bbox width = gw (motif size on the flatlay)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
     const linePx=[];                    // every G-maxed pixel, traced into strokes below
-    const rminx=new Int32Array(H).fill(W), rmaxx=new Int32Array(H).fill(-1);   // per-row fabric run (motif-size body width)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
-      if(k>=1&&k<=8){ if(x<fx0)fx0=x; if(x>fx1)fx1=x; if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
-        if(x<rminx[y])rminx[y]=x; if(x>rmaxx[y])rmaxx[y]=x;
+      if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
         if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
         if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
-    // Body width for motif sizing: 70th percentile of per-row fabric run width. Pose-robust (thin limb
-    // rows sit low in the distribution; a splayed-limb bbox does not inflate it), and, unlike sqrt(area),
-    // it scales with the garment the same way on a flat lay and on a body, so checks/body stays put per pose.
-    const rowW=[]; for(let y=0;y<H;y++) if(rmaxx[y]>=0) rowW.push(rmaxx[y]-rminx[y]+1);
-    rowW.sort((a,b)=>a-b);
-    const gw=Math.max(2,fx1-fx0+1);
-    const bodyW=rowW.length ? rowW[Math.min(rowW.length-1, Math.floor(rowW.length*0.70))] : gw;
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
     // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
@@ -955,7 +945,7 @@ function analyzeGarment(spec,model){
       const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
       blur(v); blur(m);
       tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
-    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], gw, bodyW:Math.max(2,bodyW), cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
@@ -1082,13 +1072,12 @@ function panelExtents(G){
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
 const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
 const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
-// trim: [r,g,b] or null (keep the mock's own trim). cal (optional): model view calibration = flatGw/flatBodyW;
-// without it the strip width comes from G.gw. Model strip = K x scale x bodyW x cal, so checks-per-body-width
-// match the flatlay for every pose. Returns a canvas (W/SS x H/SS); the caller encodes it.
-function compose(G, pat, scale, trim, cal){
+// ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
+// trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
+function compose(G, pat, ratio, trim){
   const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
-  const patW = cal ? K_BASE*scale*G.bodyW*cal : K_BASE*scale*G.gw;
+  const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
   // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
@@ -1112,7 +1101,7 @@ function compose(G, pat, scale, trim, cal){
     if(k===9){
       if(!trim) continue;
       const lum=(r*299+g*587+b*114)/1000; let f;
-      if(cal&&tlo){ // model view: knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
+      if(tlo){ // model view (tlo is only built for one): knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
                     // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
         const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
         if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
@@ -1552,28 +1541,25 @@ function compose(G, pat, scale, trim, cal){
           const scale = parseFloat(motifScale.value) || 1;
           // one garment view: analyse (cached per map), compose, encode, show. false = inputs changed
           // under us; the pending run redoes it.
-          const build = async (view, key, spec, model, cal) => {
+          const build = async (view, key, spec, model) => {
             const G = await analyzeGarment(spec, model);
             await nextPaint();
-            const blob = await new Promise(res => compose(G, patImg, scale, trim, cal).toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            const blob = await new Promise(res => compose(G, patImg, scale * spec.r, trim).toBlob(res, 'image/jpeg', JPEG_QUALITY));
             if (!blob) throw new Error('JPEG encode failed');
             if (sig !== flatInputsSig()) return null;
             setShot(view, key, blob);
             await nextPaint();
             return G;
           };
-          // flatlays first: they are what gets sent, and they define the motif-size calibration
-          const cal = {};
+          // flatlays first: they are what gets sent
           for (const key of FLAT_KEYS) {
-            const G = await build('flat', key, GARMENTS[key].flat, false);
-            if (!G) return;
-            cal[key] = G.gw / G.bodyW;
+            if (!await build('flat', key, GARMENTS[key].flat, false)) return;
           }
           flatSig = sig;                            // submit may go ahead while the on-model views render
           flatEl.classList.remove('stale');
           flatMsg('Flatlays ready · building on-model…');
           for (const key of FLAT_KEYS) {
-            if (!await build('model', key, GARMENTS[key].models[modelPick[key]], true, cal[key])) return;
+            if (!await build('model', key, GARMENTS[key].models[modelPick[key]], true)) return;
           }
           flatMsg('Ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
         } catch (err) {

@@ -82,14 +82,16 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
   const trim = eng.hexToRgb('4678C8');
   for (const key of eng.FLAT_KEYS) {
     const g = eng.GARMENTS[key];
-    const specs = [['flat', g.flat, false], ...g.models.map(m => [eng.modelName(m), m, true])];
+    const flats = g.flats || [g.flat];   // dev tool: flats:[...]; form: flat (single)
+    const specs = [...flats.map((f, i) => [flats.length > 1 ? 'flat' + (i + 1) : 'flat', f, false]),
+                   ...g.models.map(m => [eng.modelName(m), m, true])];
     let cal = null;
     for (const [name, spec, model] of specs) {
       const s = { mock: await cached(spec.mock), map: await cached(spec.map) };
       const t0 = Date.now();
       const G = await eng.analyzeGarment(s, model);
       const analyzeMs = Date.now() - t0;
-      if (!model) cal = G.gw / G.bodyW;
+      if (!model && cal === null) cal = G.gw / G.bodyW;   // first flatlay calibrates the models
       const arr = x => Array.from(x);
       const rec = {
         w: G.w, h: G.h, ids: h(G.ids), box: G.box, gw: G.gw, bodyW: G.bodyW, Lref: G.Lref, Fref: G.Fref,

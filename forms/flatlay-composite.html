@@ -55,7 +55,6 @@
       <select id="garment">
         <option value="romper">Convertible Zippy Romper</option>
         <option value="pajama">Two-Piece Pajama Set</option>
-        <option value="pajamaLong">Two-Piece Pajama Set · Long Sleeve</option>
         <option value="menPajama">Men's Pajama Set</option>
         <option value="womenPajama">Women's Pajama Set</option>
       </select>
@@ -78,7 +77,7 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" id="genderField">
       <div class="scale-head"><label for="gender">Gender</label><span class="hint" id="genderHint">From the trim.</span></div>
       <select id="gender">
         <option value="boy">Boy</option>
@@ -99,9 +98,7 @@
     </div>
   </div>
 
-  <div class="view" id="view">
-    <figure class="shot" id="shotFlat" hidden><img id="result" alt="Composited flatlay"><figcaption>Flatlay</figcaption></figure>
-  </div>
+  <div class="view" id="view"></div>
 </div>
 
 <script>
@@ -116,27 +113,25 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
 const V=(mock,map)=>({ mock:CDN+mock, map:CDN+map });
-// Shared kids-pajama model photos: both the short-sleeve (pajama) and the long-sleeve (pajamaLong)
-// flatlay entries preview the print on the same six children; only the flatlay mock/map differ.
-const PAJAMA_KIDS_MODELS=[
-  V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141'),
-  V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249'),
-  V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256'),
-  V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276'),
-  V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282'),
-  V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289') ];
+// A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
+// Two-Piece Pajama Set has two flatlay mockups here, both composited and previewed on the same six
+// children; the production form ships only the first. Single-flatlay garments use a one-element flats
+// array. flatName() derives a unique download filename from each flatlay mock (captions number them).
 const GARMENTS={
-  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403'),
+  romper:{ flats:[ V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403') ],
            models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187'),
                     V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193'),
                     V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407'),
                     V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243') ] },
-  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
-           models:PAJAMA_KIDS_MODELS },
-  // second flatlay of the kids pajama: two-piece long-sleeve set; same six kids models as pajama above
-  pajamaLong:{ flat:V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256'),
-               models:PAJAMA_KIDS_MODELS },
-  menPajama:{ flat:V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328'),
+  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405'),
+                   V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256') ],
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141'),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249'),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256'),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276'),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282'),
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289') ] },
+  menPajama:{ flats:[ V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328') ],
               models:[ V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345'),
                        V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347'),
                        V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348'),
@@ -144,7 +139,7 @@ const GARMENTS={
                        V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352'),
                        V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354'),
                        V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356') ] },
-  womenPajama:{ flat:V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368'),
+  womenPajama:{ flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368') ],
                 models:[ V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383'),
                          V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385'),
                          V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387'),
@@ -154,6 +149,7 @@ const GARMENTS={
                          V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393') ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
+const flatName=f=>f.mock.split('/').pop().replace(/^zum-flatlay-mock-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -542,29 +538,25 @@ const msg=m=>{ $('msg').textContent=m; };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 
 let patImg=null, busy=false;
-const results={ flatlay:null, models:[] };   // flatlay:{blob,url}; models:[{name,blob,url,fig}]
+const results={ flats:[], models:[] };   // each: {name,blob,url,fig} - flats:[...]+models:[...], all shown in #view
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
   if(!blob) throw new Error('PNG encode failed');
   return { blob, url:URL.createObjectURL(blob) };
 }
-async function showFlat(canvas){
-  if(results.flatlay) URL.revokeObjectURL(results.flatlay.url);
-  results.flatlay=await toBlobURL(canvas);
-  $('result').src=results.flatlay.url; $('shotFlat').hidden=false;
+function clearShots(list){
+  for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
+  list.length=0;
 }
-function clearModels(){
-  for(const r of results.models){ URL.revokeObjectURL(r.url); r.fig.remove(); }
-  results.models.length=0;
-}
-async function showModel(m, canvas){
-  const r=await toBlobURL(canvas), name=modelName(m);
+// one composited shot figure appended to #view; bucket is results.flats or results.models
+async function showShot(bucket, canvas, name, caption){
+  const r=await toBlobURL(canvas);
   const fig=document.createElement('figure'); fig.className='shot';
-  const img=document.createElement('img'); img.alt='Composited on '+name;
-  const cap=document.createElement('figcaption'); cap.textContent='On model · '+name;
+  const img=document.createElement('img'); img.alt=caption;
+  const cap=document.createElement('figcaption'); cap.textContent=caption;
   img.src=r.url; fig.append(img,cap); $('view').append(fig);
-  results.models.push({ ...r, name, fig });
+  bucket.push({ ...r, name, fig });
 }
 
 async function generate(){
@@ -578,18 +570,22 @@ async function generate(){
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
     const scale=parseFloat($('scale').value);
     const mdls=modelsFor(g, $('gender').value);
-    clearModels();
-    // flatlay first: it defines the motif-size calibration the model views follow
-    const GF=await analyzeGarment(g.flat);
-    await showFlat(compose(GF, patImg, scale, trim));
-    const cal=GF.gw/GF.bodyW;
+    clearShots(results.flats); clearShots(results.models);
+    // flatlays first; the first one defines the motif-size calibration the model views follow
+    let cal=null;
+    for(let i=0;i<g.flats.length;i++){
+      if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
+      const GF=await analyzeGarment(g.flats[i]);
+      await showShot(results.flats, compose(GF, patImg, scale, trim), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay');
+      if(i===0) cal=GF.gw/GF.bodyW;
+    }
     for(let i=0;i<mdls.length;i++){
-      msg('Flatlay done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
+      msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showModel(mdls[i], compose(GM, patImg, scale, trim, cal));
+      await showShot(results.models, compose(GM, patImg, scale, trim, cal), modelName(mdls[i]), 'On model · '+modelName(mdls[i]));
     }
     $('dl').disabled=false;
-    msg('Done · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+g.flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
@@ -597,11 +593,22 @@ async function generate(){
 // --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---
 let genderTouched=false;
 function applyGenderFromTrim(){
-  if(genderTouched) return;
+  if(genderTouched || $('gender').disabled) return;
   const g=genderFromHex($('trimHex').value); if(!g) return;
   $('gender').value=g; $('genderHint').style.display='';
 }
 $('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
+
+// Men's / Women's pajama have a single fixed set of adult models, so the Gender picker does nothing for
+// them: disable and grey the field while one is selected (every model is unisex, so modelsFor returns all).
+const GENDERLESS=new Set(['menPajama','womenPajama']);
+function syncGenderField(){
+  const off=GENDERLESS.has($('garment').value);
+  $('gender').disabled=off;
+  const f=$('genderField'); f.style.opacity=off?'0.4':''; f.style.pointerEvents=off?'none':'';
+  if(off) $('genderHint').style.display='none';
+}
+$('garment').addEventListener('change', syncGenderField);
 
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
 $('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
@@ -622,10 +629,9 @@ $('pattern').addEventListener('change', async e=>{
 });
 $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
-  const g=$('garment').value;
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
   const items=[];
-  if(results.flatlay) items.push({ name:'flatlay-'+g+'.png', blob:results.flatlay.blob, url:results.flatlay.url });
+  for(const r of results.flats) items.push({ name:'flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
   for(const r of results.models) items.push({ name:'model-'+r.name+'.png', blob:r.blob, url:r.url });
   for(const it of items){
     if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
@@ -633,6 +639,7 @@ $('dl').addEventListener('click', async ()=>{
   }
 });
 applyGenderFromTrim();
+syncGenderField();
 </script>
 
 </body>

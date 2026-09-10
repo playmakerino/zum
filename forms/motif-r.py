@@ -1,28 +1,34 @@
 #!/usr/bin/env python
-"""motif-r.py: the r value (pattern width / mock width) for a new mock + map set.
+"""motif-r.py: r (pattern width / mock width) for new mock + map views of a garment.
 
-Every view in the GARMENT DATA of flatlay-composite.html / zum_prd_form.html carries r: the pattern is
-rastered to r x mock width and tiled. This prints r for one flatlay and any number of on-model views of the
-same garment, from their panel maps (red channel / 20 = panel id, 1..8 = fabric), so the checks-per-body
-size on every model matches the flatlay:
+Every view in the GARMENT DATA of flatlay-composite.html / zum_prd_form.html carries r: the pattern file is
+rastered to r x mock width and tiled into the fabric panels. So r is "how many mock widths one repeat of
+the pattern spans": r = 0.5 -> the pattern repeats twice across the mock width, r = 2 -> one repeat is
+twice as wide as the whole mock. A bigger r = a bigger motif.
 
-    r_model = r_flat x (W_flat / bodyW_flat) x (bodyW_model / W_model)
+Photos of one garment are cropped very differently (the body spans 40% of one frame and 99% of another),
+so r differs per view. This tool keeps the motif the same size ON THE GARMENT across views: it measures
+the top's torso panel width on each map and scales r with it.
 
-bodyW = 70th percentile of the per-row fabric run width (pose-robust body width). r_flat comes from
---flat-r when the flatlay already exists in production (tuned by eye), else from the pre-2026-09-10 rule
-1.5 x fabric-bbox-width x k / W (k = 0.62 for a mockup that lays the top + pants side by side, else 1).
+    r_new = r_ref x (torsoW_new / W_new) / (torsoW_ref / W_ref)
 
-Usage (maps as local paths, full URLs, or bare CDN filenames):
-    python motif-r.py --flat zum-flatlay-map-pajama.png?v=1788601405 zum-flatlay-model-map-pajama-boy-1.png?v=1788949141 ...
-    python motif-r.py --flat new-flat-map.png --flat-r 0.80 new-model-map-1.png new-model-map-2.png
-    python motif-r.py --flat wide-layout-map.png --k 0.62
+torsoW = extent of the torso panel across its own narrow axis (PCA minor axis, 2.5..97.5 percentile), so a
+top laid at an angle measures the same as an upright one. The torso panel is map id 1 on every pajama map
+(red channel / 20 = panel id); pass --panel for a garment mapped differently.
+
+The anchor is any existing view of the SAME garment whose r is already in GARMENT DATA (its first
+flatlay, normally). A brand-new garment has no anchor: set the r of its first flatlay by eye in
+flatlay-composite.html (0.76 is a good start for a flatlay whose top spans ~27% of the width), then anchor
+the other views on it.
+
+Usage (maps as local paths, full URLs, or bare CDN filenames with their ?v):
+    python motif-r.py --ref zum-flatlay-map-men-pajama.png?v=1789030328 --ref-r 0.758 new-model-map-8.png new-model-map-9.png
 """
 import argparse, os, sys, tempfile
 import numpy as np
 from PIL import Image
 
 CDN = 'https://cdn.shopify.com/s/files/1/0704/3321/0621/files/'
-K_BASE = 1.5
 
 def fetch(src):
     if os.path.exists(src): return src
@@ -34,33 +40,32 @@ def fetch(src):
         r = requests.get(url, timeout=120); r.raise_for_status(); open(p, 'wb').write(r.content)
     return p
 
-def analyze(src):
+def torso(src, panel):
     a = np.asarray(Image.open(fetch(src)).convert('RGB'))
     ids = (a[:, :, 0].astype(np.int32) + 10) // 20
-    fab = (ids >= 1) & (ids <= 8)
-    if not fab.any(): sys.exit(f'{src}: no fabric panel (ids 1..8) in the red channel')
-    cols = np.where(fab.any(0))[0]; gw = int(cols[-1] - cols[0] + 1)
-    rw = []
-    for y in np.where(fab.any(1))[0]:
-        xs = np.where(fab[y])[0]; rw.append(int(xs[-1] - xs[0] + 1))
-    rw.sort(); bodyW = rw[min(len(rw) - 1, int(len(rw) * 0.70))]
-    return dict(W=a.shape[1], H=a.shape[0], gw=gw, bodyW=bodyW)
+    ys, xs = np.where(ids == panel)
+    if len(xs) < 1000: sys.exit(f'{src}: panel {panel} has {len(xs)} px (map not a panel map, or wrong --panel)')
+    xs = xs[::3].astype(float); ys = ys[::3].astype(float)
+    mx, my = xs.mean(), ys.mean()
+    w, v = np.linalg.eigh(np.cov(np.vstack([xs - mx, ys - my])))
+    minor = v[:, 0]                       # eigenvector of the smaller variance = across the torso
+    proj = (xs - mx) * minor[0] + (ys - my) * minor[1]
+    tw = float(np.percentile(proj, 97.5) - np.percentile(proj, 2.5))
+    return dict(W=a.shape[1], H=a.shape[0], torsoW=tw, frac=tw / a.shape[1])
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--flat', required=True, help='flatlay panel map')
-    ap.add_argument('--flat-r', type=float, help='r already used for this flatlay in production (else derived)')
-    ap.add_argument('--k', type=float, default=1.0, help='flatlay layout multiplier when deriving r (0.62 = pieces side by side)')
-    ap.add_argument('models', nargs='*', help='on-model panel maps of the same garment')
+    ap.add_argument('--ref', required=True, help='panel map of an existing view of the same garment')
+    ap.add_argument('--ref-r', type=float, required=True, help='the r that view has in GARMENT DATA')
+    ap.add_argument('--panel', type=int, default=1, help='map id of the torso panel (default 1)')
+    ap.add_argument('maps', nargs='+', help='panel maps of the new views')
     a = ap.parse_args()
-    F = analyze(a.flat)
-    rf = a.flat_r if a.flat_r is not None else K_BASE * F['gw'] * a.k / F['W']
     name = lambda s: os.path.basename(s.split('?')[0])
-    print(f"{'view':48s} {'W':>5s} {'H':>5s} {'gw':>5s} {'bodyW':>5s}   r")
-    print(f"{name(a.flat):48s} {F['W']:5d} {F['H']:5d} {F['gw']:5d} {F['bodyW']:5d}   {rf:.3f}" + ('' if a.flat_r is not None else f"   (derived, k={a.k})"))
-    for m in a.models:
-        M = analyze(m)
-        rm = rf * (F['W'] / F['bodyW']) * (M['bodyW'] / M['W'])
-        print(f"{name(m):48s} {M['W']:5d} {M['H']:5d} {M['gw']:5d} {M['bodyW']:5d}   {rm:.3f}")
+    F = torso(a.ref, a.panel)
+    print(f"{'view':48s} {'W':>5s} {'H':>5s} {'torsoW':>7s} {'torso/W':>7s}   r")
+    print(f"{name(a.ref):48s} {F['W']:5d} {F['H']:5d} {F['torsoW']:7.0f} {F['frac']:7.3f}   {a.ref_r:.3f}   (anchor)")
+    for m in a.maps:
+        M = torso(m, a.panel)
+        print(f"{name(m):48s} {M['W']:5d} {M['H']:5d} {M['torsoW']:7.0f} {M['frac']:7.3f}   {a.ref_r * M['frac'] / F['frac']:.3f}")
 
 if __name__ == '__main__': main()

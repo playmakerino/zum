@@ -3,6 +3,10 @@
 //
 //   node regress-engine.js run <page.html> <out.json>     run the block of that page over all garments
 //   node regress-engine.js compare <a.json> <b.json>      diff two runs (exit 1 when any hash differs)
+//   node regress-engine.js render <page.html> <outdir> [garmentKey] [r-overrides.json]
+//                                                       write a gingham composite of every view as JPEG (eyeball
+//                                                       motif size; overrides = {"<view name>": r} tried in place
+//                                                       of the page's r without editing GARMENT DATA)
 //
 // It extracts the block between the "// ===== SHARED BLOCK" / "// ===== END SHARED BLOCK" markers, runs it
 // in node-canvas over every garment in GARMENTS (2 flatlays + 10 model photos, mocks and maps cached from the
@@ -18,9 +22,9 @@
 const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
 const { createCanvas, loadImage, Image, ImageData } = require('canvas');
 
-const [,, cmd, arg1, arg2] = process.argv;
+const [,, cmd, arg1, arg2, arg3, arg4] = process.argv;
 if (cmd === 'compare') { process.exit(compare(arg1, arg2)); }
-if (cmd !== 'run' || !arg1 || !arg2) { console.error('usage: run <page.html> <out.json> | compare <a.json> <b.json>'); process.exit(2); }
+if (!['run', 'render'].includes(cmd) || !arg1 || !arg2) { console.error('usage: run <page.html> <out.json> | compare <a.json> <b.json> | render <page.html> <outdir> [key] [overrides.json]'); process.exit(2); }
 
 function compare(a, b) {
   const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (k === 'ms' || k === 'analyzeMs') ? undefined : v));
@@ -70,10 +74,42 @@ function makePattern() {
   }
   return c;
 }
+// 8x8 gingham, 480px tile: count checks across the chest to compare motif size between views
+function makeGingham() {
+  const n = 480, cell = 60, c = createCanvas(n, n), d = c.getContext('2d');
+  d.fillStyle = '#ffffff'; d.fillRect(0, 0, n, n);
+  for (let gy = 0; gy < n; gy += cell) for (let gx = 0; gx < n; gx += cell) {
+    const i = (gx / cell) & 1, j = (gy / cell) & 1;
+    d.fillStyle = i === j ? (i ? '#e02020' : '#ffffff') : 'rgba(224,32,32,0.45)'; d.fillRect(gx, gy, cell, cell);
+  }
+  return c;
+}
 const h = buf => crypto.createHash('sha1').update(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength)).digest('hex').slice(0, 16);
 const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex').slice(0, 16);
 
 (async () => {
+  if (cmd === 'render') {
+    fs.mkdirSync(arg2, { recursive: true });
+    const ov = arg4 ? JSON.parse(fs.readFileSync(arg4, 'utf8')) : {};
+    const patImg = await loadImage(makeGingham().toBuffer('image/png'));
+    for (const key of eng.FLAT_KEYS) {
+      if (arg3 && key !== arg3) continue;
+      const g = eng.GARMENTS[key], flats = g.flats || [g.flat];
+      const specs = [...flats.map((f, i) => ['flat' + (i + 1), f, false]), ...g.models.map(m => [eng.modelName(m), m, true])];
+      for (const [name, spec, model] of specs) {
+        const s = { mock: await cached(spec.mock), map: await cached(spec.map) };
+        const G = await eng.analyzeGarment(s, model);
+        const r = ov[name] !== undefined ? ov[name] : spec.r;
+        const disp = eng.compose(G, patImg, r, null);
+        const outW = 900, small = createCanvas(outW, Math.round(disp.height * outW / disp.width));
+        small.getContext('2d').drawImage(disp, 0, 0, small.width, small.height);
+        const f = path.join(arg2, key + '-' + name + '.jpg');
+        fs.writeFileSync(f, small.toBuffer('image/jpeg', { quality: 0.85 }));
+        console.log(f, 'r=' + r.toFixed(3));
+      }
+    }
+    return;
+  }
   const out = {};
   const patImg = await loadImage(makePattern().toBuffer('image/png'));
   const c = eng.dominantColor(patImg); out.dominant = c; out.trimHex = c && eng.trimHexFrom(...c);

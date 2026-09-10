@@ -117,9 +117,9 @@ const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
 // first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
 // (pattern px = r x mock W), multiplied by the Motif-size slider. Each mock is tuned by eye on its own,
-// because the photos are cropped very differently (a body spanning 40% of the frame vs 99%). The values
-// below reproduce the former garment-analysis sizing (K_BASE x fabric bbox / body width x cal) on the day
-// r replaced it (2026-09-10); retune per mock as needed.
+// because the photos are cropped very differently (a body spanning 40% of the frame vs 99%). Within a
+// garment the values keep checks-per-chest equal: r scales with the top's torso width on the map
+// (forms/motif-r.py derives them from one anchor view; romper keeps its 2026-09-10 seed values).
 const GARMENTS={
   romper:{ flats:[ V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403',0.853) ],
            models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
@@ -127,31 +127,31 @@ const GARMENTS={
                     V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
                     V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
   pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405',0.764),
-                   V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256',0.764) ],
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.475),
-                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.534),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.717),
-                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.623),
-                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.379),
-                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.516) ] },
+                   V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256',0.784) ],
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.611),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476) ] },
   // men's & women's pajama: two flatlays (the white mockup + the flat-laid -1 photo), then six on-model
   // photos (-2..-7).
   menPajama:{ flats:[ V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328',0.758),
-                      V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345',0.753) ],
-              models:[ V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347',0.696),
-                       V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348',1.502),
-                       V('zum-model-pajama-men-4.jpg?v=1789030337','zum-flatlay-model-map-pajama-men-4.png?v=1789030351',1.891),
-                       V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352',1.812),
-                       V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354',1.704),
-                       V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356',1.786) ] },
+                      V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345',1.240) ],
+              models:[ V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347',0.667),
+                       V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348',1.112),
+                       V('zum-model-pajama-men-4.jpg?v=1789030337','zum-flatlay-model-map-pajama-men-4.png?v=1789030351',1.544),
+                       V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352',1.321),
+                       V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354',1.404),
+                       V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356',1.637) ] },
   womenPajama:{ flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368',0.779),
-                        V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',0.799) ],
-                models:[ V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385',0.583),
-                         V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',1.396),
-                         V('zum-model-pajama-women-4.jpg?v=1789030375','zum-flatlay-model-map-pajama-women-4.png?v=1789030388',2.009),
-                         V('zum-model-pajama-women-5.jpg?v=1789030377','zum-flatlay-model-map-pajama-women-5.png?v=1789030390',1.287),
-                         V('zum-model-pajama-women-6.jpg?v=1789030379','zum-flatlay-model-map-pajama-women-6.png?v=1789030392',1.577),
-                         V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393',1.392) ] },
+                        V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',1.136) ],
+                models:[ V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385',0.693),
+                         V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',1.055),
+                         V('zum-model-pajama-women-4.jpg?v=1789030375','zum-flatlay-model-map-pajama-women-4.png?v=1789030388',1.569),
+                         V('zum-model-pajama-women-5.jpg?v=1789030377','zum-flatlay-model-map-pajama-women-5.png?v=1789030390',0.952),
+                         V('zum-model-pajama-women-6.jpg?v=1789030379','zum-flatlay-model-map-pajama-women-6.png?v=1789030392',1.133),
+                         V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393',1.184) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');

@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zum · Pattern → Products</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* registering --scrim as a real colour lets the tint cross-fade instead of snapping */
+    @property --scrim {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: transparent;
+    }
+
+    :root { transition: --scrim 0.4s ease; }
+
+    :root {
+      /* page is pure black; every panel is its own #121212 surface on top of it */
+      --page: #000000;
+      --bg: #121212;
+      --surface-elevated: #242424;
+      /* green is reserved for the single primary action. Nothing else may use it. */
+      --accent: #1ED760;
+      --accent-hover: #3BE477;
+      --text: #FFFFFF;
+      --text-sub: #b3b3b3;
+      --text-muted: #6A6A6A;
+      --row-hover: rgba(255,255,255,0.1);
+      --error: #E22134;
+      --divider: rgba(255,255,255,0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      /* set from the uploaded swatch only, no artwork, no tint */
+      --scrim: transparent;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--page);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 8px;
+    }
+
+    /* app shell: two panels side by side, 8px gutter; the page scrolls as one */
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      display: grid;
+      /* two balanced columns: the form and the image previews get equal room */
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+      /* columns keep their own height instead of stretching to the taller one */
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--bg);
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .col-form {
+      padding: 24px;
+    }
+
+    /* the scrim takes its colour from the uploaded swatch, not from a fixed brand green */
+    .col-form::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 280px;
+      background: linear-gradient(180deg, var(--scrim) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .col-form > * { position: relative; }
+
+    .header { margin-bottom: 20px; }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* the swatch tile and the two fields that name it share one row: Pattern ID + Pattern
+       name are what identifies the artwork sitting next to them. Same two columns as
+       .fields below, so they are exactly as wide as Sub niche and Uploader ID and sit in
+       the same vertical line */
+    /* stretch, not start: the square tile is the taller item, so stretching lets the field
+       column fill that same height and line its last field up with the bottom of the tile */
+    .upload-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 560px) {
+      .upload-row { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* the tile is a fixed 160px square, and the two fields beside it are shorter than that.
+       space-between pushes Pattern name to the bottom of the stretched column, so its
+       bottom edge sits exactly on the bottom edge of the tile */
+    .upload-side {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .upload-side .field:first-child { margin-top: 0; }
+
+    /* the cell is half the form wide and the tile only takes 160px of it, so the file
+       name and size go in the leftover space instead of covering the swatch */
+    .upload-cell {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .drop-zone {
+      position: relative;
+      flex: none;
+      width: 160px;
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 2px dashed #727272;
+      border-radius: 8px;
+      padding: 10px;
+      overflow: hidden;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .drop-zone:hover {
+      border-color: #fff;
+      background-color: rgba(255,255,255,0.04);
+    }
+
+    /* an armed drop target is an active state, so it earns the accent */
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background-color: rgba(30,215,96,0.08);
+    }
+
+    .drop-zone:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    /* once the swatch is in, the tile IS the swatch, and the dashed invitation is gone.
+       The state lives on .upload-cell because the caption is a sibling of the tile now */
+    .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(255,255,255,0.14); }
+    .upload-cell.filled .dz-prompt { display: none; }
+
+    /* scoped to the prompt: an unscoped .drop-zone svg also hits the remove button's
+       glyph and shoves it off centre with the margin below */
+    .dz-prompt svg {
+      width: 24px; height: 24px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      transition: color 0.2s;
+    }
+
+    .drop-zone:hover .dz-prompt svg { color: #fff; }
+    .drop-zone.drag-over .dz-prompt svg { color: var(--accent); }
+
+    .drop-zone p { font-size: 13px; color: var(--text-sub); line-height: 1.4; }
+    .drop-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    .dz-img {
+      display: none;
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .upload-cell.filled .dz-img { display: block; }
+
+    .preview {
+      display: none;
+      min-width: 0;
+      flex: 1;
+      padding-top: 2px;
+    }
+
+    .upload-cell.filled .preview { display: block; }
+
+    /* white, not accent: green belongs to the submit button alone. A playing track earns
+       green because it marks one row among many, and a single staged file marks nothing */
+    .preview .pv-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+      /* the column is narrow, and there is vertical room to spare, so wrap instead of
+         cutting the name off with an ellipsis */
+      overflow-wrap: anywhere;
+    }
+    .preview .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
+
+    #pvRemove {
+      display: none;
+      position: absolute; top: 6px; right: 6px;
+      width: 26px; height: 26px;
+      border: none; border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: #fff; cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    .upload-cell.filled #pvRemove { display: flex; }
+    #pvRemove svg { width: 12px; height: 12px; display: block; }
+    #pvRemove:hover { background: rgba(0,0,0,0.9); }
+
+    /* two fields per row; the error text sits inside the cell so a wrong value in one
+       column never shifts the other */
+    .fields {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 560px) {
+      .fields { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .field { margin-top: 16px; }
+    .fields .field { margin-top: 0; }
+
+    /* sentence-case bold, the way Encore labels form fields, no uppercase tracking */
+    .field label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .field label .opt {
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .field input[type=text],
+    .field select {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 4px;
+      border: 1px solid #727272;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color .1s ease;
+    }
+
+    .field select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a7a7a7' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 36px;
+    }
+
+    .field input[type=text]:hover,
+    .field select:hover { border-color: #fff; }
+
+    .field input[type=text]:focus,
+    .field select:focus { outline: none; border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+
+    .field.invalid input[type=text],
+    .field.invalid input[type=text]:hover { border-color: var(--error); }
+
+    .field .err { margin-top: 6px; font-size: 13px; color: var(--error); display: none; }
+    .field.invalid .err { display: block; }
+
+    .auto-hint { margin-top: 6px; font-size: 12px; color: var(--text-muted); display: none; }
+    .field.invalid .auto-hint { display: none; }
+
+    /* the hint sits on the label line, to its right: it explains where the value came
+       from, so it belongs with the name of the field and not under the input */
+    .lbl-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .lbl-row label { margin-bottom: 0; }
+    .lbl-row .auto-hint { margin-top: 0; }
+
+    .trim-row { display: flex; gap: 10px; }
+    .trim-row input[type=text] { flex: 1; }
+
+    .trim-row input[type=color] {
+      flex: none;
+      width: 44px; height: 44px;
+      padding: 2px;
+      border: 1px solid #727272;
+      border-radius: 4px;
+      background: var(--bg);
+      cursor: pointer;
+    }
+
+    /* ---- right column: flatlays on top, Sent list below ----
+       The column is a flex stack. The flatlay panel takes the height its two previews
+       need; the Sent panel fills what is left and keeps its own scroller. */
+    .col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .col-right > .panel { flex: none; }
+
+    /* ---- flatlays, composited in the browser (ported from flatlay-composite.html) ----
+       Two previews side by side. They are what n8n receives as the flatlay photo:
+       what you see is what gets sent. */
+    .flat-body { padding: 16px 24px 20px; }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .scale-row .scale-lbl { font-size: 13px; color: var(--text-sub); white-space: nowrap; }
+    .scale-row input[type=range] { flex: 1; min-width: 0; accent-color: #fff; }
+    .scale-row .val {
+      width: 44px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text-sub);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .flat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 560px) {
+      .flat-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .flat-shot {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-elevated);
+    }
+    .flat-shot img {
+      display: none;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      transition: opacity 0.2s;
+    }
+    .flat-item.ready .flat-shot img { display: block; }
+    /* previews built from older inputs fade while the new ones are being built */
+    .flat-panel.stale .flat-item.ready .flat-shot img { opacity: 0.35; }
+
+    .flat-shot .ph {
+      position: absolute; inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+    .flat-item.ready .flat-shot .ph { display: none; }
+
+    .flat-cap {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-sub);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .flat-msg { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 16px; }
+    .flat-msg.error { color: var(--error); }
+    .flat-msg button {
+      background: none; border: none; padding: 0;
+      color: var(--text);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .submit-wrap { margin-top: 20px; }
+
+    .submit-btn {
+      width: 100%;
+      max-width: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto;
+      background: var(--accent);
+      border: none;
+      color: #000;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 500px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: scale(1.04);
+    }
+
+    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+
+    .submit-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* result lands in a floating toast so the form never reflows under the button */
+    .toast {
+      position: fixed;
+      left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(10px);
+      max-width: 560px;
+      background: #fff;
+      color: #000;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 50;
+    }
+
+    .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--error); color: #fff; }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- task list ---- */
+
+    .tasks {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tasks-head {
+      flex: none;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 20px 24px 12px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .tasks-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+
+    .tasks-head .note { font-size: 12px; color: var(--text-muted); }
+
+    #taskList {
+      flex: 1;
+      padding: 8px 16px 16px;
+    }
+
+    /* track-list row: transparent, background only on hover, not a card */
+    .task {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .task:hover { background: var(--row-hover); }
+
+    .task .thumb {
+      width: 40px; height: 40px;
+      border-radius: 4px;
+      object-fit: cover;
+      background: var(--surface-elevated);
+    }
+
+    .task .body { min-width: 0; }
+
+    .task .t-title {
+      font-size: 14px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task .t-sub {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task .t-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tasks-empty { padding: 48px 24px; text-align: center; }
+    .tasks-empty h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .tasks-empty p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+
+    /* Narrow screens: the two panels stack instead of sitting side by side. The 1fr
+       track for Sent shrinks to ~0 once the form column alone fills the viewport, so
+       the panel is there but has no width to draw in. */
+    @media (max-width: 900px) {
+      .container { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel col-form">
+    <div class="header">
+      <h1>Pattern → Products</h1>
+      <p>Upload a swatch. Flatlays build here, Zumbamboo drafts get created, results land in Telegram.</p>
+    </div>
+
+      <div class="upload-row">
+
+        <div class="upload-cell" id="uploadCell">
+          <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload pattern image">
+            <img class="dz-img" id="pvImg" alt="">
+            <div class="dz-prompt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 16V4m0 0l-4 4m4-4l4 4"/>
+                <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+              </svg>
+              <p>Drop pattern<br>here</p>
+              <p class="hint">png · jpg · webp</p>
+            </div>
+            <button type="button" id="pvRemove" title="Remove">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" style="display:none" />
+          </div>
+
+          <div class="preview" id="preview">
+            <div class="pv-name" id="pvName"></div>
+            <div class="pv-meta" id="pvMeta"></div>
+          </div>
+        </div>
+
+        <div class="upload-side">
+          <div class="field" id="fPatternId">
+            <div class="lbl-row">
+              <label for="patternId">Pattern ID</label>
+              <div class="auto-hint" id="patternIdHint" style="display:block">On the swatch.</div>
+            </div>
+            <input type="text" id="patternId" placeholder="Dub9707" autocomplete="off">
+            <div class="err">Required.</div>
+          </div>
+
+          <div class="field" id="fPattern">
+            <label for="patternName">Pattern name</label>
+            <input type="text" id="patternName" placeholder="Birthday Dachshund" autocomplete="off">
+            <div class="err">Required.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="fields">
+
+      <div class="field" id="fTrim">
+        <div class="lbl-row">
+          <label for="trimColor">Trim color</label>
+          <div class="auto-hint" id="trimHint">From the swatch.</div>
+        </div>
+        <div class="trim-row">
+          <input type="text" id="trimColor" placeholder="#8fb6d7" autocomplete="off">
+          <input type="color" id="trimPicker" value="#8fb6d7">
+        </div>
+        <div class="err">Use a hex color like #8fb6d7.</div>
+      </div>
+
+      <div class="field" id="fGender">
+        <div class="lbl-row">
+          <label for="gender">Gender</label>
+          <div class="auto-hint" id="genderHint" style="display:block">From the trim.</div>
+        </div>
+        <select id="gender">
+          <option value="boy">Boy</option>
+          <option value="girl">Girl</option>
+          <option value="neutral" selected>Neutral</option>
+        </select>
+      </div>
+
+      <div class="field" id="fNiche">
+        <label for="niche">Niche <span class="opt">(optional)</span></label>
+        <select id="niche"></select>
+      </div>
+
+      <div class="field" id="fSubNiche">
+        <label for="subNiche">Sub niche <span class="opt">(optional)</span></label>
+        <input type="text" id="subNiche" list="subNicheList" placeholder="Search…" autocomplete="off">
+        <datalist id="subNicheList"></datalist>
+        <div class="err">No sub niche with that name. Pick one from the list or leave it empty.</div>
+      </div>
+
+      <div class="field" id="fUploader">
+        <div class="lbl-row">
+          <label for="uploader">Uploader ID</label>
+          <div class="auto-hint" id="uploaderHint" style="display:block">A product tag.</div>
+        </div>
+        <input type="text" id="uploader" placeholder="Bùi" autocomplete="off">
+        <div class="err">Required.</div>
+      </div>
+
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" disabled>Create products</button>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <div class="panel flat-panel" id="flat">
+        <div class="tasks-head">
+          <h2>Product images</h2>
+          <span class="note">from swatch, trim, motif size</span>
+        </div>
+        <div class="flat-body">
+          <div class="scale-row">
+            <span class="scale-lbl">Motif size</span>
+            <input type="range" id="motifScale" min="0.5" max="2" step="0.05" value="1" aria-label="Motif size">
+            <span class="val" id="motifScaleVal">1.00×</span>
+          </div>
+          <div class="flat-grid">
+            <figure class="flat-item" id="flatRomper">
+              <div class="flat-shot">
+                <img alt="Romper flatlay">
+                <div class="ph">Add a pattern</div>
+              </div>
+              <figcaption class="flat-cap">Romper · flatlay</figcaption>
+            </figure>
+            <figure class="flat-item" id="flatPajama">
+              <div class="flat-shot">
+                <img alt="Pajama flatlay">
+                <div class="ph">Add a pattern</div>
+              </div>
+              <figcaption class="flat-cap">Pajama · flatlay</figcaption>
+            </figure>
+            <!-- on-model previews: same compositor on the model photo + its panel map. They are
+                 shown for review only; the workflow still receives the two flatlays. -->
+            <figure class="flat-item" id="modelRomper">
+              <div class="flat-shot">
+                <img alt="Romper on model">
+                <div class="ph">Add a pattern</div>
+              </div>
+              <figcaption class="flat-cap">Romper · on model</figcaption>
+            </figure>
+            <figure class="flat-item" id="modelPajama">
+              <div class="flat-shot">
+                <img alt="Pajama on model">
+                <div class="ph">Add a pattern</div>
+              </div>
+              <figcaption class="flat-cap">Pajama · on model</figcaption>
+            </figure>
+          </div>
+          <div class="flat-msg" id="flatMsg"></div>
+        </div>
+      </div>
+
+      <div class="panel tasks">
+        <div class="tasks-head">
+          <h2>Sent</h2>
+          <span class="note">results in Telegram</span>
+        </div>
+        <div id="taskList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // COMPOSITE form workflow (n8n IwCz50cciKPIjakZ): receives the two flatlays built below
+    // and never composes or generates a flatlay itself. The older Gemini-flatlay workflow
+    // is still live at /webhook/zum-prd-form (kZvHwfNZ6Gz1L5E4) if this one has to be rolled back.
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/zum-prd-form-comp";
+
+    // A browser page has no inbound URL, so n8n cannot push into it, and every status
+    // read would be one more n8n execution. So there is no status read at all: the run
+    // reports itself over Telegram, and the list below is only a local record of what
+    // was sent from this browser. Submit costs exactly one execution, nothing else does.
+    const GID_PREFIX = "gid://shopify/Metaobject/";
+
+    // Generated from the live Shopify store. Regenerate with gen-zum-form-data.ps1
+    const NICHES = /*__NICHE_DATA__*/["4 of July","Abstract","Activities & Fun","Animals","Back To School","Birthday","Black History Month","Black Pride","Characters","Christmas","Construction","Easter","Faith","Fall","Father's day","Floral","Food","Halloween","Hanukkah","Happy Three Kings' Day","Hebrews","Hispanic","Jobs","Juneteenth","Mardi Gras","Mother's Day","Nature","New Year","Others","Passover","Pride Month","Ramadan","Rosh Hashanah","Solid","Sports","St. Patrick's Day","Summer","Thanksgiving","Transportation","Universe","Valentine's Day"];
+    const SUB_NICHES = /*__SUBNICHE_DATA__*/[["250th America","184522932477"],["Accordion","195078914301"],["Activities","184527749373"],["Affirmations","184524374269"],["Afikoman","184526602493"],["African","195025502461"],["Airplane","184526635261"],["All Colorable","184527782141"],["Alligator","184525259005"],["Aloha","184527814909"],["Alphabet","184523129085"],["Animals","184523751677"],["Apple","184527847677"],["Architect","194729607421"],["Art","184523161853"],["Astronaut","184526668029"],["Autism","184526700797"],["Avocado","184526733565"],["Axolotl","184524112125"],["Ballerina","184527880445"],["Ballet","184527913213"],["Balloon","184525816061"],["Balls","184527945981"],["Bananas","184525848829"],["Baseball","184523456765"],["Basketball","184526766333"],["Beach","184523325693"],["Bear","184522965245"],["Beardie","184527978749"],["Beaver","184528011517"],["Bee","184528044285"],["Beer","184526799101"],["Bicycle","195079471357"],["Bike","184528077053"],["Bird","192927662333"],["Birth Flower","184528109821"],["Bluebonnet","191380357373"],["Boho","201491316989"],["Boot","201253880061"],["Bowling","184528142589"],["Bows","184525881597"],["Bracelet","184528175357"],["Bugs","184528208125"],["Builder","184525914365"],["Bunny","184524669181"],["Butterfly","184524701949"],["Cactus","184528240893"],["Camo","184528273661"],["Camper Van","201919824125"],["Camping","184523784445"],["Candy","184525947133"],["Capybara","184525291773"],["Caravan","195080945917"],["Cardinal","188328870141"],["Cars","184524144893"],["Cartoon","184524734717"],["Cat","184523194621"],["Celestial","184528306429"],["Characters","184525324541"],["Cheerleader","184526831869"],["Cherry","184526864637"],["Chicken","184525979901"],["Christian","184522703101"],["Christmas Lights","184528339197"],["Christmas Tree","184528371965"],["Cinco De Mayo","184524767485"],["Colorable","184523227389"],["Computer","184526012669"],["Construction","184523030781"],["Coquette Bowl","184528404733"],["Cow","192110231805"],["Cowboy","184528437501"],["Cowgirl","184528470269"],["Crawfish","184524177661"],["Crayon","184528503037"],["Crocodile","184524800253"],["Cross","195077669117"],["Crow","195006234877"],["Cupcakes","184528535805"],["Custom Pet Photo","184523620605"],["Custom Photo","184522998013"],["Dachshund","184523981053"],["Daisy","195077538045"],["Deer","184523489533"],["Desert","184528568573"],["Dinosaur","184522834173"],["Disco Ball","184526045437"],["Disney","184526078205"],["Doctor","184528601341"],["Dog","184522866941"],["Donut","184524833021"],["Doodle","184524407037"],["Doodle Letters","184526897405"],["Dragon","184526930173"],["Dragonfly","188307767549"],["Dreamcatcher","195027730685"],["Drinks","184526110973"],["Duck","184526143741"],["Dumpling","184528634109"],["Eagle","201254863101"],["Eggs","184528666877"],["Elephant","184526176509"],["Elf","184528699645"],["Evil Eye","184528732413"],["Fair Isle","184526962941"],["Faith","184525357309"],["Fall","185817465085"],["Family","184526995709"],["Farm","188307931389"],["Farm Animals","184523391229"],["Festival","184527028477"],["Fiesta Navidad","184524865789"],["Firefighters","184528765181"],["Fireflies","184524898557"],["Firework","184525390077"],["First 4th of July","184528797949"],["First Christmas","184523522301"],["First Hanukkah","184528830717"],["First Passover","184528863485"],["Fish","195011346685"],["Fishing","184523063549"],["Flag","196791369981"],["Flamingo","184526209277"],["Floral","184528896253"],["Flower","184522899709"],["Folk Art","201919758589"],["Food","184523423997"],["Football","184524439805"],["Forest","184524472573"],["Fox","188308455677"],["Frog","184525422845"],["Fruits","184523915517"],["Funny","184527061245"],["Galaxy","184528929021"],["Game","184526242045"],["Garden","184523817213"],["Geese","184526274813"],["Gingerbread","184525455613"],["Giraffe","188308553981"],["Gnome","184528961789"],["Golf","184523948285"],["Goose","184523260157"],["Guinea Pigs","184528994557"],["Guitar","195078848765"],["Gummy Bears","184529027325"],["Hat","201253847293"],["Heart","184523686141"],["Hibicus","195077406973"],["Highland Cow","184529060093"],["Hippie","184529092861"],["Hispanic","184529125629"],["Honey","184529158397"],["Horoscope","184529191165"],["Horse","184531157245"],["Hot Dog","184527094013"],["Human Rights","184529223933"],["Hummingbird","184527126781"],["Hunting","184525488381"],["Ice Cream","184524931325"],["Initials","184529256701"],["Insects","188069511421"],["Islam","184524964093"],["Jesus","184523849981"],["Jewish","184529289469"],["Jobs","184525521149"],["Kente","184529322237"],["Kiss","184529355005"],["Koala","184529387773"],["Kwanzaa","184525553917"],["Lady Bugs","184525586685"],["Lake","184526307581"],["Landmark","184527159549"],["Lavender","195077505277"],["Leaves","184527192317"],["Lemons","184526340349"],["Letters","184523718909"],["LGBTQ+","185350684925"],["Lighthouse","188308619517"],["Longhorn Bull","201252962557"],["Louisiana","184529420541"],["Lucky","184529453309"],["Lunar New Year","184527225085"],["Magnolia","191431311613"],["Mahjong","200495431933"],["Mallard Duck","184524210429"],["Map","184523096317"],["Marshmallow","184529486077"],["Medical","184529518845"],["Mermaid","184524243197"],["Mexico Culture","184527257853"],["Milk","184524275965"],["Minecraft","184529551613"],["Monster Truck","184523555069"],["Monsters","184525619453"],["Moon","184524996861"],["Moroccan Arabic","195080290557"],["Motorcycle","184527290621"],["Mountains","184529584381"],["Mushrooms","184529617149"],["Music","201921036541"],["Name Collage","184529649917"],["Native American","188308685053"],["Nautical","201251324157"],["New Year","184529682685"],["Nursery","184527323389"],["Nutcracker","184523358461"],["Ocean","188308881661"],["Ocean Animals","184523292925"],["Old School","184527356157"],["Ornaments","184529715453"],["Otter","184529748221"],["Owl","188218081533"],["Parrot","195006202109"],["Party","184529780989"],["Pasta","184529813757"],["Patchwork","184525652221"],["Patriotic","184529846525"],["Penguin","184529879293"],["Peony","195077603581"],["Pets","184524505341"],["Pickle","184529912061"],["Pigs","184529944829"],["Pilot","184529977597"],["Pizza","184527388925"],["Plaid","184525029629"],["Plane","184530010365"],["Plant","195076948221"],["Police","184530043133"],["Popcorn","184530075901"],["Preppy","184525062397"],["Princess","184526373117"],["Psychedelic","201492300029"],["Pumpkin","184525684989"],["Rabbit","184524538109"],["Racoon","202181574909"],["Rainbow","184523882749"],["Reading","191875350781"],["Reindeer","184527421693"],["Retro","184525717757"],["Robot","184530108669"],["Rockstar","184530141437"],["Rose","195077439741"],["Rugby","184530174205"],["Sailing","184530206973"],["Salamander","184530239741"],["Santa","184524308733"],["School","184526405885"],["School Sport","201220718845"],["School Things","184523587837"],["Science","184530272509"],["Sea Animals","184524013821"],["Seagull","184525095165"],["Seashell","201239101693"],["Sewing","195083075837"],["Shabbat","184530338045"],["Shamrock","184530370813"],["Shapes","184524341501"],["Sharks","184527454461"],["Sheep","184530403581"],["Skeleton","184530436349"],["Sloth","184526438653"],["Snake","201492431101"],["Snow","184527487229"],["Soccer","184522801405"],["Softball","184524570877"],["Solid","184522735869"],["Spaceship","195081011453"],["Spider","184530501885"],["Spooky","184524046589"],["Spring","184530534653"],["Stag","201251848445"],["Star","184530567421"],["Stockings","184530600189"],["Stranger Things","184530632957"],["Strawberry","184526471421"],["Sun","184525127933"],["Sunflower","184527519997"],["Teddy Bear","184527552765"],["Teeth","184524603645"],["Tennis","184525160701"],["Texas","184530665725"],["Text","184524636413"],["Toile","184526504189"],["Toile De Jouy","184527585533"],["Tools","184530698493"],["Tornado","184530731261"],["Toys","184526536957"],["Tractor","184530764029"],["Train","184527618301"],["Treats","184527651069"],["Tree of Life","188309111037"],["Truck","184527683837"],["Turtle","184523653373"],["Unicorn","184525193469"],["Universe","184530796797"],["Van","195079405821"],["Vegetable","184525750525"],["Vehicle","184530829565"],["Veterans","184530862333"],["Viking","184530895101"],["Vintage","184527716605"],["Water Gun","184530927869"],["Watercolor","184530960637"],["Welcome Home","198015582461"],["Western","184524079357"],["Whale","195011117309"],["Wild Animals","184526569725"],["Winnie The Pooh","184530993405"],["Winter Tree","184531026173"],["Wood","184531058941"],["Woodland Animals","195011444989"],["World","184531091709"],["World Cup 2026","184525783293"],["Yeti","184531124477"],["Zodiac","184525226237"]];
+
+// ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
+// CDN, the V() helper, the GARMENTS table, FLAT_KEYS and the model-pick helpers below are page-local:
+// the dev tool (flatlay-composite.html) lists more garments (a second pajama flatlay + men/women pajama)
+// than this production form, which stays on romper + the kids pajama. The compositor ENGINE that reads
+// them is byte-identical in both files (the SHARED BLOCK further down, kept equal by sync-shared.ps1).
+const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
+// Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
+// maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
+// so they align to the photo exactly; the mock is the original photo. Every view carries r: the pattern
+// raster width as a fraction of the mock width (pattern px = r x mock W), multiplied by the Motif-size
+// slider; each mock is tuned by eye on its own. Same values as the dev tool for the views it shares.
+const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+const GARMENTS={
+  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403',0.853),
+           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
+                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380),
+                    V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
+                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
+  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405',0.764),
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
+                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
+                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.611),
+                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
+                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
+                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476) ] },
+};
+const FLAT_KEYS=Object.keys(GARMENTS);   // 'romper','pajama' - one flatlay per product type
+const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
+// model gender from the filename: boy / girl, or null when the photo is unisex (romper).
+const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
+// which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
+const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
+// ===== END GARMENT DATA =====
+
+// ===== SHARED BLOCK: compositor engine - byte-identical in flatlay-composite.html and zum_prd_form.html =====
+// Edit it in flatlay-composite.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
+// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
+// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
+
+// Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
+// Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
+// Model maps never use id 6. Per-panel tile phase offsets: seams cut the print, so adjacent panels must not line up.
+// Motif size: the pattern is rastered to r x mock width (r = the view's own number in the page's GARMENT
+// DATA x the Motif-size slider) and tiled. Nothing is derived from the garment's extent on the map.
+const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
+const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
+const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
+const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
+const TRIM_CEIL=1.15;      // flatlay trim ceiling
+const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
+const TRIM_ROLL=0.22;      // compression slope above the knee
+const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
+const TRIM_FLOOR=0.65;     // trim shadow floor: flatlay = hard clamp on f (mirrors TRIM_CEIL); model view = soft-knee onset on the low-pass
+                           // (mirrors TRIM_KNEE, same TRIM_ROLL), so a charcoal trim / shadowed cuff is lifted without flattening its weave
+const TRIM_MFLOOR=0.50;    // model view hard floor below the soft knee (mirrors TRIM_MCEIL)
+const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
+                           // acts on this low-pass (broad glare, lit collar); the weave / stitching / fold detail riding on it is kept as in the mock
+const COLLAR_ID=6;
+const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
+const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
+const AX_CURVE=0.035;      // max deviation/chord above which a drawn stroke counts as bent and becomes a curved axis
+const AX_SMOOTH=0.25;      // axis smoothing half-window as a fraction of the panel width (x3 passes): the (u,v) map folds where
+                           // the bend radius drops below the half-width; 0.25 keeps a 90 deg elbow fold-free yet visibly bent
+
+// --- colour helpers ---
+const HEX_RE=/^#?([0-9a-f]{6})$/i;
+const parseHex=s=>{ const m=HEX_RE.exec(String(s||'').trim()); return m?m[1].toUpperCase():null; };   // 'RRGGBB' or null
+const hexToRgb=h=>[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+const toHex=rgb=>'#'+rgb.map(x=>Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('');
+// HSV, never HSL: the HSL denominator (2 - max - min) collapses near white, so rgb(255,250,240) reads as
+// fully saturated and a pale cream swatch came out as a solid brown band. HSV reads that cream as 0.06.
+function rgbToHsv(r,g,b){ const max=Math.max(r,g,b),min=Math.min(r,g,b),c=max-min; let h=0; if(c!==0){ if(max===r)h=((g-b)/c+6)%6; else if(max===g)h=(b-r)/c+2; else h=(r-g)/c+4; h/=6; } return [h, max===0?0:c/max, max/255]; }
+function hsvToRgb(h,s,v){ const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s); return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(x=>Math.round(x*255)); }
+
+// --- image helpers ---
+// rAF never fires in a hidden tab, so a timer fallback keeps a build moving when the user switches away
+const nextPaint=()=>new Promise(r=>{ let done=false; const go=()=>{ if(!done){ done=true; setTimeout(r,0); } }; requestAnimationFrame(go); setTimeout(go,120); });
+const loadImg=src=>new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=()=>rej(new Error('image load failed: '+src)); i.src=src; });
+// The panel map is an exact id image - it must NOT be chroma-subsampled. An <img> lets Shopify's CDN serve
+// WebP, whose 4:2:0 subsampling bleeds sharp colour edges (e.g. a drawn G axis line) into the R channel and
+// corrupts the id, printing thin stray-panel lines. Fetch it as PNG so every pixel's id stays exact.
+const loadPng=src=>fetch(src,{headers:{Accept:'image/png'}}).then(r=>{ if(!r.ok) throw new Error('map load failed: '+src); return r.blob(); }).then(createImageBitmap);
+// decode a File/Blob once; the bitmap feeds every later draw (swatch scan, compositor, thumbnails)
+const decodeFile=f=>window.createImageBitmap ? createImageBitmap(f) : loadImg(URL.createObjectURL(f));
+
+// Draw img at w x h and return its pixels. One scratch canvas for every call: getImageData copies the
+// pixels out, so nothing keeps the canvas, and a fresh 30MB canvas per call (Safari frees them only on GC)
+// is what used to push a phone over its canvas memory budget mid-build.
+const scratch=document.createElement('canvas'), sctx=scratch.getContext('2d',{willReadFrequently:true});
+function raster(img,w,h,smooth){
+  scratch.width=w; scratch.height=h;
+  sctx.imageSmoothingEnabled=smooth; sctx.imageSmoothingQuality='high'; sctx.drawImage(img,0,0,w,h);
+  return { w, h, data:sctx.getImageData(0,0,w,h).data };
+}
+function rasterArea(img,area,smooth){
+  const s=Math.sqrt(area/(img.width*img.height));
+  return raster(img, Math.max(1,Math.round(img.width*s)), Math.max(1,Math.round(img.height*s)), smooth);
+}
+function rasterWidth(img,w,smooth){ return raster(img, w, Math.max(1,Math.round(img.height*w/img.width)), smooth); }
+
+// --- swatch colour: dominant hue -> trim suggestion, gender ---
+// 64x64 nearest-neighbour sample (area-averaging blends every motif into the light ground a swatch sits on,
+// so each cell lands near white and every pattern reports the same colour), hue histogram weighted by
+// chroma, mean colour of the heaviest bin: a single most-saturated pixel is noise, the dominant hue is what
+// the eye reads. null when the swatch has no readable hue (grey / black / white).
+function dominantColor(img){
+  try{
+    const n=64, B=36, d=raster(img,n,n,false).data;
+    const weight=new Float64Array(B), sum=new Float64Array(B*3), count=new Int32Array(B);
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<128) continue;
+      const r=d[i],g=d[i+1],b=d[i+2], max=Math.max(r,g,b), ch=max-Math.min(r,g,b);
+      if(max<40||ch/max<0.2) continue;   // near-black or near-grey: no hue
+      const k=Math.min(B-1,Math.floor(rgbToHsv(r,g,b)[0]*B));
+      weight[k]+=ch; sum[k*3]+=r; sum[k*3+1]+=g; sum[k*3+2]+=b; count[k]++;
+    }
+    let top=-1,tw=0; for(let k=0;k<B;k++) if(weight[k]>tw){ tw=weight[k]; top=k; }
+    if(top<0) return null;
+    const c=count[top]; return [sum[top*3]/c, sum[top*3+1]/c, sum[top*3+2]/c];
+  }catch{ return null; }
+}
+// That colour pulled into the range a garment trim can actually be: never near-white, never near-black,
+// never fully saturated. '#rrggbb' lowercase, or null when the colour is too washed out to name a hue.
+function trimHexFrom(r,g,b){
+  const [h,s,v]=rgbToHsv(r,g,b);
+  if(s<0.15||v<0.10) return null;
+  return toHex(hsvToRgb(h, Math.min(0.70,Math.max(0.25,s)), Math.min(0.86,Math.max(0.52,v))));
+}
+// Gender from the trim hue: 250-350 deg violet -> magenta -> pink = girl; 90-249 deg green -> teal -> blue = boy;
+// the rest (yellow, orange, red, brown) and anything too washed out to read a hue = neutral. null = not a hex.
+function genderFromHex(v){
+  const m=parseHex(v); if(!m) return null;
+  const [h,s,val]=rgbToHsv(...hexToRgb(m));
+  if(s<0.15||val<0.10) return 'neutral';
+  const hd=h*360;
+  return hd>=250&&hd<=350 ? 'girl' : hd>=90&&hd<250 ? 'boy' : 'neutral';
+}
+
+// --- garment analysis: independent of pattern/scale/trim, so computed once per garment ---
+// One pass over the map yields: panel id per pixel, garment bbox (width for motif size, box for the
+// compose loop: on a model photo ~70% of the frame is background), per-panel centroid +
+// major-axis angle (PCA; the print is rotated to follow each panel's grain), the trim
+// luminance reference (90th percentile of panel 9) and the fabric white reference (95th percentile
+// of each channel over panels 1..8), both sampled every 2nd pixel each axis.
+// model=true (on-model photo): a drawn curved axis also gets the tube wrap; the flatlay stays flat (see limb axes below).
+// LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
+// from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
+const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
+function analyzeGarment(spec,model){
+  const key=spec.map+(model?'|model':'');
+  if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
+  const p=(async()=>{
+    const CA=OUT_AREA*SS*SS;
+    const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
+    const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
+    if(mapImg.close) mapImg.close();   // the id raster is all that is kept of the map
+    const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
+    const ids=new Uint8Array(N);
+    const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
+          sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
+    const hist=new Uint32Array(256); let nTrim=0;
+    const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
+    let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
+    const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
+    const linePx=[];                    // every G-maxed pixel, traced into strokes below
+    // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
+    const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
+    for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
+      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
+      if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
+        cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
+        if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
+        if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
+      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
+      if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
+    }
+    const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
+    // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
+    // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
+    // (A near-square panel has no dominant axis so its angle is unstable; the accepted cost of one rule.)
+    for(let k=1;k<=8;k++){ if(cnt[k]<50) continue;
+      cx[k]=sx[k]/cnt[k]; cy[k]=sy[k]/cnt[k];
+      // A hand-drawn axis line on the map (>=50 maxed-G pixels) sets the grain for that panel; else PCA.
+      // The line is straight, so its own PCA direction is its angle - a vertical stroke gives vertical grain.
+      const src = acnt[k]>=50 ? [acnt[k],asx[k],asy[k],asxx[k],asyy[k],asxy[k]] : [cnt[k],sx[k],sy[k],sxx[k],syy[k],sxy[k]];
+      const n=src[0], mx=src[1]/n, my=src[2]/n, vxx=src[3]/n-mx*mx, vyy=src[4]/n-my*my, vxy=src[5]/n-mx*my;
+      // Negated: the tiling frame's along-grain axis is (-sn,cs), so the grain follows the major axis only with -th.
+      // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
+      const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
+    const pct=(h,n,q)=>{ let acc=0; for(let v=0;v<256;v++){ acc+=h[v]; if(acc>=n*q) return v; } return 255; };
+    const Lref=pct(hist,nTrim,0.9);
+    // Fabric white per channel: the print is multiplied by mock/Fref instead of mock/255, so the brightest
+    // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
+    // tints the print. Capped at 1 in compose: a print is never brighter than its file.
+    const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
+    // Model view trim low-pass (see compose): masked 2-pass box blur of the trim luminance (non-trim
+    // neighbours excluded), 1 byte/px over the compose bbox only. The flatlay never uses it.
+    let tlo=null;
+    if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
+      const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
+      for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
+      const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+        for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+      const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
+      blur(v); blur(m);
+      tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
+    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
+    // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
+    // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
+    // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
+    if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
+    G.ext=panelExtents(G);
+    return G;
+  })();
+  garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
+  while(garmentCache.size>CACHE_MAX) garmentCache.delete(garmentCache.keys().next().value);
+  return p;
+}
+// --- limb axes: a fabric panel may get a centerline drawn on the map; its pixels are then mapped to curved
+// coordinates (u = arc length along the line, v = signed perpendicular distance) so the print follows a bent
+// arm/leg instead of one flat angle. Panels without an axis keep the PCA / drawn-angle rotation above.
+// The stroke is the G-maxed line traced as a polyline; only a stroke that actually bends (curvature >=
+// AX_CURVE) becomes an axis, a straight stroke just sets the grain angle. Tube wrap (model views): across
+// the axis, v is compressed toward a silhouette edge (fabric curving away from the camera) and left linear
+// toward a seam. Strokes are baked offline (zum-prd/prompt-test/model-map/bake_axes.py) and reviewed on an
+// overlay. Draw one stroke per panel, running the full length of the limb: the panel's mean width is
+// area / stroke length, and a half-length stroke doubles it and over-smooths the bend.
+// max perpendicular deviation of a polyline from its chord, over the chord length
+const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
+  for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
+// Drawn strokes: 8-connected components of G-maxed pixels -> ordered polyline (BFS from the pixel farthest
+// from the stroke's centroid, bucketed every AX_STEP of geodesic distance), panel = majority id under it.
+function traceDrawn(W,H,ids,linePx){
+  const N=W*H, mark=new Uint8Array(N); for(const i of linePx) mark[i]=1;
+  const nb=[-W-1,-W,-W+1,-1,1,W-1,W,W+1], okStep=(i,j)=>Math.abs(i%W-j%W)<=1;   // no wrapping across rows
+  const out=[];
+  for(const i0 of linePx){ if(mark[i0]!==1) continue;
+    const comp=[i0]; mark[i0]=2; let sx=0, sy=0;
+    for(let h=0;h<comp.length;h++){ const i=comp[h]; sx+=i%W; sy+=(i/W)|0;
+      for(const d of nb){ const j=i+d; if(j<0||j>=N||mark[j]!==1||!okStep(i,j)) continue; mark[j]=2; comp.push(j); } }
+    if(comp.length<50) continue;
+    const mx=sx/comp.length, my=sy/comp.length; let s=i0, bd=-1;
+    for(const i of comp){ const dx=i%W-mx, dy=((i/W)|0)-my, dd=dx*dx+dy*dy; if(dd>bd){ bd=dd; s=i; } }
+    const q=[s], dist=[0]; mark[s]=3; const bx=[], by=[], bn=[], idCnt=new Float64Array(10);
+    for(let h=0;h<q.length;h++){ const i=q[h], d0=dist[h], b=(d0/AX_STEP)|0;
+      while(bx.length<=b){ bx.push(0); by.push(0); bn.push(0); }
+      bx[b]+=i%W; by[b]+=(i/W)|0; bn[b]++; idCnt[ids[i]<=8?ids[i]:0]++;
+      for(const d of nb){ const j=i+d; if(j<0||j>=N||mark[j]!==2||!okStep(i,j)) continue; mark[j]=3; q.push(j); dist.push(d0+1); } }
+    let k=0; for(let t=1;t<=8;t++) if(idCnt[t]>idCnt[k]) k=t;
+    const px=[], py=[]; for(let b=0;b<bn.length;b++) if(bn[b]){ px.push(bx[b]/bn[b]); py.push(by[b]/bn[b]); }
+    if(k===0||px.length<8) continue;   // a speck on the map is not a stroke: under 8 samples (~80 px) is ignored
+    if(py[0]>py[py.length-1]){ px.reverse(); py.reverse(); }   // start at the higher end
+    out.push({ k, px, py, curve:curveOf(px,py) });
+  }
+  return out;
+}
+function buildAxis(k,px,py,G,wrap){
+  const {w:W,h:H,ids,cnt,pbox:[pbx0,pby0,pbx1,pby1]}=G;
+  let plen=0; for(let j=1;j<px.length;j++) plen+=Math.hypot(px[j]-px[j-1],py[j]-py[j-1]);
+  // Smooth the line over AX_SMOOTH x the panel width each side: the (u,v) mapping folds where the bend
+  // radius is smaller than the distance to the axis, so a wide panel needs a gentler axis, but too wide
+  // a window rounds an elbow away (the print then barely bends).
+  const avgW=cnt[k]/Math.max(1,plen), hw=Math.max(1,Math.min(60,Math.round(avgW*AX_SMOOTH/AX_STEP)));
+  for(let pass=0;pass<3;pass++){ const qx=px.slice(), qy=py.slice();
+    for(let j=0;j<qx.length;j++){ let ax=0,ay=0,m=0; for(let o=-hw;o<=hw;o++){ const jj=Math.min(qx.length-1,Math.max(0,j+o)); ax+=qx[jj]; ay+=qy[jj]; m++; } px[j]=ax/m; py[j]=ay/m; } }
+  const n=px.length, s=new Float32Array(n), dx=new Float32Array(n), dy=new Float32Array(n), len=new Float32Array(n);
+  for(let j=0;j<n-1;j++){ const ex=px[j+1]-px[j], ey=py[j+1]-py[j], L=Math.hypot(ex,ey)||1; dx[j]=ex/L; dy[j]=ey/L; len[j]=L; s[j+1]=s[j]+L; }
+  // Tube wrap: per sample, walk the normal to each side until the panel ends -> half-width, and whether
+  // that edge is the silhouette (id 0: fabric curves away, print compresses toward it) or a seam to
+  // another panel (flat). f = silhouette fraction, smoothed so the two regimes blend along the limb.
+  const wP=new Float32Array(n), wN=new Float32Array(n), fP=new Float32Array(n), fN=new Float32Array(n), valid=new Uint8Array(n);
+  const maxW=Math.max(20,avgW*4);
+  const at=(x,y)=>{ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=W||yi>=H)?0:ids[yi*W+xi]; };
+  for(let j=0;j<n;j++){ const tj=Math.min(j,n-2), tx=dx[tj], ty=dy[tj], x0=px[j], y0=py[j];
+    if(at(x0,y0)!==k) continue; valid[j]=1;
+    let sP=1, hP=0; for(;sP<maxW;sP++){ const q=at(x0+sP*ty,y0-sP*tx); if(q!==k){ hP=q; break; } }
+    let sN=1, hN=0; for(;sN<maxW;sN++){ const q=at(x0-sN*ty,y0+sN*tx); if(q!==k){ hN=q; break; } }
+    wP[j]=sP; wN[j]=sN; fP[j]=(wrap&&hP===0)?1:0; fN[j]=(wrap&&hN===0)?1:0; }
+  for(let j=0;j<n;j++){ if(valid[j]) continue; let src=-1;
+    for(let d=1; d<n && src<0; d++){ if(j-d>=0&&valid[j-d]) src=j-d; else if(j+d<n&&valid[j+d]) src=j+d; }
+    if(src<0) break; wP[j]=wP[src]; wN[j]=wN[src]; fP[j]=fP[src]; fN[j]=fN[src]; }
+  const box=(arr,h)=>{ const q=arr.slice(); for(let j=0;j<n;j++){ let a=0,m=0; for(let o=-h;o<=h;o++){ const jj=Math.min(n-1,Math.max(0,j+o)); a+=q[jj]; m++; } arr[j]=a/m; } };
+  box(wP,3); box(wN,3); box(fP,hw); box(fN,hw);
+  // coarse grid of nearest sample index, refined per pixel in compose. Only the cells under the panel's
+  // bbox are filled: the grid is read for pixels of this panel only, so the rest of the frame never is.
+  const CS=8, gw=Math.ceil(W/CS), gh=Math.ceil(H/CS), near=new Int16Array(gw*gh);
+  for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
+    const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
+    for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+}
+// Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
+// Globals instead of a return value: this runs once per fabric pixel.
+let LX=0, LY=0;
+function axisUV(A,x,y){
+  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
+  for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
+    const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
+    let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
+    const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
+    if(d2<best){ best=d2; bj=j; bt=t; LY=A.s[j]+t; LX=ex*dyj-ey*dxj; }
+  }
+  // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
+  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=LX>=0;
+  const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
+  const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
+  if(f>0.001&&w>1){ const a=Math.abs(LX), r=a/w;
+    const wrapped = r<1 ? w*Math.asin(r) : w*1.5708+(a-w)*1.5;
+    LX=(pos?1:-1)*(a+f*(wrapped-a)); }
+}
+// Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
+// an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
+function localXY(G,k,x,y){
+  const A=G.axes[k];
+  if(A) axisUV(A,x,y);
+  else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
+}
+// Extent of each panel in its own tiling frame (min/max LX, LY). Garment-only, so it is measured once
+// here and cached with the garment; compose reads it to place the tile phase (seam avoidance).
+function panelExtents(G){
+  const {ids,w:W,box:[bx0,by0,bx1,by1]}=G;
+  const x0=new Float64Array(10).fill(Infinity), x1=new Float64Array(10).fill(-Infinity),
+        y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity);
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
+    localXY(G,k,x,y);
+    if(LX<x0[k])x0[k]=LX; if(LX>x1[k])x1[k]=LX; if(LY<y0[k])y0[k]=LY; if(LY>y1[k])y1[k]=LY; }
+  return { x0, x1, y0, y1 };
+}
+
+// --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
+const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
+const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
+// ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
+// trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
+function compose(G, pat, ratio, trim){
+  const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
+  const patW = ratio*W;
+  const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
+  const PW=P.w, PH=P.h, pd=P.data;
+  // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
+  // phase so the single wrap boundary lands outside the panel (in the background) instead of slicing a
+  // motif mid-panel. OFFX/OFFY still seed the within-cell placement, so adjacent panels stay decorrelated.
+  // A panel wider or taller than the tile must repeat, so it keeps the plain OFFX*PW / OFFY*PH offset.
+  const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
+  for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+    const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
+    const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
+  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
+  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+  big.width=W; big.height=H;
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
+  const img=bctx.getImageData(0,0,W,H), out=img.data;
+  const [tr,tg,tb]=trim||[0,0,0];
+
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
+    const k=ids[i]; if(k===0||k>9) continue;
+    const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
+    if(k===9){
+      if(!trim) continue;
+      const lum=(r*299+g*587+b*114)/1000; let f;
+      if(tlo){ // model view (tlo is only built for one): knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
+                    // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
+        const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
+        if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
+        else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
+        f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }       // flatlay: hard clamp both ends
+      out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
+      continue;
+    }
+    localXY(G,k,x,y);
+    // bilinear sample of the tiled strip (wraps on both axes; the >= guards catch float round-up to exactly PW/PH)
+    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }   // wrong side of the print -> mirror
+    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
+    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+    const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
+    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
+        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
+        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
+    let fr=r*iFr, fg=g*iFg, fb=b*iFb; if(fr>1) fr=1; if(fg>1) fg=1; if(fb>1) fb=1;   // multiply, normalised to the fabric white
+    out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
+  }
+
+  bctx.putImageData(img,0,0);
+  disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
+  dctx.imageSmoothingQuality='high';
+  dctx.drawImage(big,0,0,disp.width,disp.height);
+  return disp;
+}
+// ===== END SHARED BLOCK =====
+
+    /* ---------------- form ---------------- */
+
+    const $ = id => document.getElementById(id);
+
+    const dropZone   = $('dropZone');
+    const uploadCell = $('uploadCell');
+    const fileInput  = $('fileInput');
+    const pvImg      = $('pvImg');
+    const pvName     = $('pvName');
+    const pvMeta     = $('pvMeta');
+    const patternName= $('patternName');
+    const trimColor  = $('trimColor');
+    const trimPicker = $('trimPicker');
+    const trimHint   = $('trimHint');
+    const gender     = $('gender');
+    const genderHint = $('genderHint');
+    const nicheSel   = $('niche');
+    const subNiche   = $('subNiche');
+    const uploader   = $('uploader');
+    const patternId  = $('patternId');
+    const submitBtn  = $('submitBtn');
+    const flatEl     = $('flat');
+    const flatMsgEl  = $('flatMsg');
+    const motifScale = $('motifScale');
+    const motifScaleVal = $('motifScaleVal');
+
+    let selectedFile = null;
+    let pvUrl = null;               // object URL behind the swatch tile
+    let patImg = null;              // decoded swatch (ImageBitmap) for the selected file
+    let patternLoad = null;         // promise of that decode, awaited by the builder
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // populate niche + sub niche
+    nicheSel.innerHTML = '<option value="">(none)</option>' +
+      NICHES.map(n => '<option>' + escapeHtml(n) + '</option>').join('');
+    $('subNicheList').innerHTML =
+      SUB_NICHES.map(s => '<option value="' + escapeHtml(s[0]) + '"></option>').join('');
+    const subNicheByName = new Map(SUB_NICHES.map(s => [s[0].toLowerCase(), GID_PREFIX + s[1]]));
+
+    /* ---------------- swatch file ---------------- */
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      setFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { setFile(fileInput.files[0]); fileInput.value = ''; });
+    // the button sits inside the drop zone, so its click would reopen the file picker
+    $('pvRemove').addEventListener('click', e => { e.stopPropagation(); setFile(null); });
+
+    // The run only survives what n8n's Edit Image decodes AND Gemini takes as inlineData:
+    // png, jpeg, webp. All three verified end to end (2026-08-07). A plain image/* test
+    // let heic off an iPhone, avif, gif and svg through here to die inside the workflow,
+    // and the accept="" list never covers drag-and-drop.
+    const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+    function setFile(f) {
+      if (f && !ACCEPTED_TYPES.includes(f.type) &&
+          !(!f.type && /\.(png|jpe?g|webp)$/i.test(f.name))) {
+        toast('Only png, jpg, webp.', 'error');
+        f = null;
+      }
+      selectedFile = f || null;
+      clearFlats();
+      if (pvUrl) { URL.revokeObjectURL(pvUrl); pvUrl = null; }
+      uploadCell.classList.toggle('filled', !!selectedFile);
+      if (selectedFile) {
+        pvUrl = URL.createObjectURL(selectedFile);
+        pvImg.src = pvUrl;
+        pvName.textContent = selectedFile.name;
+        pvMeta.textContent = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+        pickModels();
+        // One decode per file: the same bitmap feeds the swatch scan, the compositor and the Sent-list
+        // thumbnail. The flatlays use the trim colour and the scan is what suggests it, so scan first.
+        patternLoad = loadPattern(selectedFile).then(img => {
+          if (!img) return;
+          scanSwatch(img);
+          requestFlatlays(0);
+        });
+      } else {
+        pvImg.removeAttribute('src');
+        patternLoad = null;
+        clearScrim();
+      }
+      submitBtn.disabled = !selectedFile;
+    }
+
+    // resolves with the bitmap, or null when the file could not be decoded or was replaced meanwhile
+    async function loadPattern(file) {
+      patImg = null;
+      try {
+        const img = await decodeFile(file);
+        if (selectedFile !== file) { if (img.close) img.close(); return null; }   // replaced while decoding
+        patImg = img;
+        return img;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /* ---------------- swatch scan: page tint + trim suggestion ----------------
+       The page tint comes from the artwork, and only from the artwork: no swatch
+       uploaded means no tint at all, the way Home and Search stay flat. */
+
+    function clearScrim() {
+      document.documentElement.style.setProperty('--scrim', 'transparent');
+    }
+
+    // The scrim keeps only the hue and real chroma of the swatch, rebuilt dark.
+    function setScrim(r, g, b) {
+      const [h, s, v] = rgbToHsv(r, g, b);
+      // too little colour to name a hue, so leave the panel flat rather than invent one
+      if (s < 0.15 || v < 0.10) { clearScrim(); return; }
+      const out = hsvToRgb(h, Math.min(0.62, Math.max(0.35, s)), 0.30);
+      document.documentElement.style.setProperty('--scrim', 'rgb(' + out.join(',') + ')');
+    }
+
+    // Every drop rewrites the trim field, including over a value typed by hand.
+    function scanSwatch(img) {
+      const c = dominantColor(img);
+      if (!c) { clearScrim(); return; }        // genuinely colourless swatch
+      setScrim(...c);
+      const hex = trimHexFrom(...c);
+      if (!hex) return;
+      trimColor.value = hex;
+      trimPicker.value = hex;
+      trimHint.style.display = 'block';
+      applyGenderFromTrim();
+      validate(false);
+    }
+
+    /* ---------------- trim, gender, motif size ---------------- */
+
+    // '#rrggbb' lowercase (what the webhook and the colour picker take), or null
+    function normHex(v) {
+      const h = parseHex(v);
+      return h ? '#' + h.toLowerCase() : null;
+    }
+
+    // Once the uploader picks a gender by hand it is never overwritten again.
+    let genderTouched = false;
+    function applyGenderFromTrim() {
+      if (genderTouched) return;
+      const g = genderFromHex(trimColor.value);
+      if (!g) return;
+      gender.value = g;
+      genderHint.style.display = 'block';
+      pickModels(true);   // the callers rebuild the previews if the pick changed (it is part of flatInputsSig)
+    }
+
+    // One handler for both trim inputs: the hint only claims the swatch as the source while the
+    // value still comes from it, and a hand-typed hex only rebuilds once it parses.
+    function onTrimEdit(fromPicker) {
+      trimHint.style.display = 'none';
+      const v = fromPicker ? trimPicker.value : normHex(trimColor.value);
+      if (fromPicker) trimColor.value = v; else if (v) trimPicker.value = v;
+      applyGenderFromTrim();
+      validate(false);
+      if (v) requestFlatlays(500);
+    }
+    trimPicker.addEventListener('input', () => onTrimEdit(true));
+    trimColor.addEventListener('input', () => onTrimEdit(false));
+
+    gender.addEventListener('change', () => {
+      genderTouched = true;
+      genderHint.style.display = 'none';
+      pickModels(true);
+      requestFlatlays(0);
+    });
+
+    motifScale.addEventListener('input', () => {
+      motifScaleVal.textContent = parseFloat(motifScale.value).toFixed(2) + '×';
+      requestFlatlays(400);
+    });
+
+    /* ---------------- validation + submit ---------------- */
+
+    [patternName, nicheSel, subNiche, uploader, patternId].forEach(el => el.addEventListener('input', () => validate(false)));
+    nicheSel.addEventListener('change', () => validate(false));
+
+    function subNicheGid() {
+      const v = subNiche.value.trim();
+      if (!v) return '';
+      return subNicheByName.get(v.toLowerCase()) || null;   // null = typed but unknown
+    }
+
+    // field wrapper id -> its check. Sub niche is optional but must name a real entry when typed.
+    const FIELD_CHECKS = [
+      ['fPattern',   () => patternName.value.trim().length > 0],
+      ['fTrim',      () => !!normHex(trimColor.value)],
+      ['fSubNiche',  () => subNicheGid() !== null],
+      ['fUploader',  () => uploader.value.trim().length > 0],
+      ['fPatternId', () => patternId.value.trim().length > 0],
+    ];
+
+    // show=true marks every failing field; show=false only clears fields that became valid
+    function validate(show) {
+      let ok = true;
+      for (const [id, check] of FIELD_CHECKS) {
+        const pass = check(), el = $(id);
+        if (show) el.classList.toggle('invalid', !pass);
+        else if (pass) el.classList.remove('invalid');
+        ok = ok && pass;
+      }
+      return ok && !!selectedFile;
+    }
+
+    submitBtn.addEventListener('click', submitForm);
+
+    async function submitForm() {
+      if (!validate(true)) {
+        toast('Fix the highlighted fields.', 'error');
+        return;
+      }
+
+      const taskId = 'zum-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+      // the pending state lives in the button, so nothing in the form moves
+      submitBtn.disabled = true;
+
+      try {
+        // The flatlays must match the trim and motif size on screen right now. A pending
+        // rebuild (debounced, or still running) is finished here before anything is sent.
+        if (!flatReady()) {
+          submitBtn.innerHTML = '<span class="spinner"></span> Building…';
+          clearTimeout(flatTimer);
+          await generateFlatlays();
+          if (!flatReady()) {
+            toast('Flatlays not ready: ' + (flatErr || 'try again.'), 'error');
+            return;
+          }
+        }
+        submitBtn.innerHTML = '<span class="spinner"></span> Sending…';
+
+        const fd = new FormData();
+        fd.append('task_id', taskId);
+        fd.append('pattern_name', patternName.value.trim());
+        fd.append('trim_color', normHex(trimColor.value));
+        fd.append('niche', nicheSel.value);
+        fd.append('sub_niche', subNiche.value.trim());
+        fd.append('sub_niche_gid', subNicheGid() || '');
+        fd.append('uploader', uploader.value.trim());
+        fd.append('pattern_id', patternId.value.trim());
+        fd.append('gender', gender.value);
+        fd.append('motif_scale', motifScale.value);
+        fd.append('pattern', selectedFile, selectedFile.name);
+        // one composited flatlay per product type; the workflow picks them by data-table product_type
+        for (const key of FLAT_KEYS) fd.append('flatlay_' + key, shots.flat[key].blob, 'flatlay-' + key + '.jpg');
+
+        const thumb = patImg ? makeThumb(patImg, 80) : '';
+
+        // No custom header, so this stays a simple request and never triggers a CORS preflight
+        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          toast('Error ' + res.status + ': ' + errText.slice(0, 150), 'error');
+          return;
+        }
+
+        rememberTask({
+          task_id: taskId,
+          pattern_name: patternName.value.trim(),
+          niche: nicheSel.value,
+          sub_niche: subNiche.value.trim(),
+          submitted_at: Date.now(),
+          thumb: thumb,
+        });
+        renderTasks();
+
+        toast('Sent. Result comes to Telegram.');
+        setFile(null);
+      } catch (err) {
+        toast('Upload failed: ' + err.message, 'error');
+      } finally {
+        submitBtn.textContent = 'Create products';
+        submitBtn.disabled = !selectedFile;
+      }
+    }
+
+    let toastTimer = null;
+
+    function toast(msg, type) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.className = 'toast on' + (type === 'error' ? ' error' : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = 'toast' + (type === 'error' ? ' error' : ''); }, type === 'error' ? 6000 : 4000);
+    }
+
+    // 80px square (40 CSS px at 2x) jpeg, ~2 KB each, 40 of them fit in localStorage
+    function makeThumb(img, size) {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const s = Math.min(img.width, img.height);
+        c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        return c.toDataURL('image/jpeg', 0.7);
+      } catch (e) { return ''; }
+    }
+
+    /* ---------------- flatlays ----------------
+       Built by the shared compositor above: the pattern is tiled into each fabric panel of a
+       white mockup, the trim is recoloured to the trim hex, and the result is sent as the flatlay
+       photo of each product. n8n therefore never composes or generates a flatlay: the workflow only
+       forwards the two JPEGs it receives, so no full-size image ever sits in its heap (the
+       composite-in-n8n attempt died of exactly that, 2026-09-05). The on-model previews use the
+       same compositor on a model photo; they are shown for review only. */
+
+    const JPEG_QUALITY = 0.92;     // ~1.5 MB per flatlay instead of ~8 MB as PNG; Shopify re-encodes anyway
+
+    // one model photo per garment, drawn at random from the photos that fit the Gender field (modelsFor:
+    // neutral = all, boy/girl = that gender + unisex). keep=true re-draws only a photo that no longer fits.
+    const modelPick = { romper: 0, pajama: 0 };
+    function pickModels(keep) {
+      for (const key of FLAT_KEYS) {
+        const all = GARMENTS[key].models, pool = modelsFor(GARMENTS[key], gender.value);
+        if (keep && pool.includes(all[modelPick[key]])) continue;
+        modelPick[key] = all.indexOf(pool[Math.floor(Math.random() * pool.length)]);
+      }
+    }
+
+    // shots[view][key] = { item, blob, url }: the <figure> and the JPEG shown in it. shots.flat is what
+    // gets sent; shots.model is shown only.
+    const shots = { flat: {}, model: {} };
+    for (const view in shots) for (const key of FLAT_KEYS)
+      shots[view][key] = { item: $(view + key[0].toUpperCase() + key.slice(1)), blob: null, url: null };
+    let flatSig = '';               // inputs the current previews were built from
+    let flatBusy = false, flatPending = false, flatTimer = null, flatRun = null, flatErr = '';
+
+    // everything the previews depend on: which file, which trim, which motif size, which model photos
+    function flatInputsSig() {
+      const f = selectedFile ? selectedFile.name + ':' + selectedFile.size + ':' + selectedFile.lastModified : '';
+      return f + '|' + (normHex(trimColor.value) || '') + '|' + motifScale.value + '|' + modelPick.romper + ',' + modelPick.pajama;
+    }
+    function flatReady() {
+      return !!selectedFile && flatSig === flatInputsSig() && FLAT_KEYS.every(key => shots.flat[key].blob);
+    }
+
+    function flatMsg(text, kind) {
+      flatMsgEl.className = 'flat-msg' + (kind === 'error' ? ' error' : '');
+      flatMsgEl.textContent = text;
+      if (kind === 'error') {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = 'Retry';
+        b.addEventListener('click', () => { flatSig = ''; requestFlatlays(0); });
+        flatMsgEl.appendChild(document.createTextNode(' '));
+        flatMsgEl.appendChild(b);
+      }
+    }
+
+    // blob = null clears the shot back to its placeholder
+    function setShot(view, key, blob) {
+      const s = shots[view][key], img = s.item.querySelector('img');
+      if (s.url) URL.revokeObjectURL(s.url);
+      s.blob = blob; s.url = blob ? URL.createObjectURL(blob) : null;
+      if (blob) img.src = s.url; else img.removeAttribute('src');
+      s.item.classList.toggle('ready', !!blob);
+    }
+
+    function clearFlats() {
+      clearTimeout(flatTimer);
+      for (const view in shots) for (const key of FLAT_KEYS) setShot(view, key, null);
+      if (patImg && patImg.close) patImg.close();
+      patImg = null;
+      flatSig = ''; flatErr = '';
+      flatEl.classList.remove('stale');
+      flatMsg('');
+    }
+
+    // Debounced: trim typing and slider dragging fire many events; one build per pause.
+    function requestFlatlays(delay) {
+      clearTimeout(flatTimer);
+      if (!selectedFile || flatReady()) return;
+      if (flatBusy) { flatPending = true; return; }
+      flatEl.classList.toggle('stale', FLAT_KEYS.some(key => shots.flat[key].blob));
+      flatTimer = setTimeout(generateFlatlays, delay || 0);
+    }
+
+    // Returns the promise of the running build, so submit can wait for it.
+    function generateFlatlays() {
+      if (flatBusy) { flatPending = true; return flatRun; }
+      if (!selectedFile) return Promise.resolve();
+      flatBusy = true; flatErr = '';
+      flatRun = (async () => {
+        const sig = flatInputsSig();
+        const t0 = performance.now();
+        flatMsg('Building…');
+        try {
+          await patternLoad;
+          if (!patImg) throw new Error('could not decode the pattern image');
+          const hex = parseHex(trimColor.value);
+          const trim = hex ? hexToRgb(hex) : null;
+          const scale = parseFloat(motifScale.value) || 1;
+          // one garment view: analyse (cached per map), compose, encode, show. false = inputs changed
+          // under us; the pending run redoes it.
+          const build = async (view, key, spec, model) => {
+            const G = await analyzeGarment(spec, model);
+            await nextPaint();
+            const blob = await new Promise(res => compose(G, patImg, scale * spec.r, trim).toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            if (!blob) throw new Error('JPEG encode failed');
+            if (sig !== flatInputsSig()) return null;
+            setShot(view, key, blob);
+            await nextPaint();
+            return G;
+          };
+          // flatlays first: they are what gets sent
+          for (const key of FLAT_KEYS) {
+            if (!await build('flat', key, GARMENTS[key].flat, false)) return;
+          }
+          flatSig = sig;                            // submit may go ahead while the on-model views render
+          flatEl.classList.remove('stale');
+          flatMsg('Flatlays ready · building on-model…');
+          for (const key of FLAT_KEYS) {
+            if (!await build('model', key, GARMENTS[key].models[modelPick[key]], true)) return;
+          }
+          flatMsg('Ready · ' + ((performance.now() - t0) / 1000).toFixed(1) + 's');
+        } catch (err) {
+          flatErr = err.message;
+          flatMsg('Build failed: ' + err.message, 'error');
+        } finally {
+          flatBusy = false;
+          if (flatPending) { flatPending = false; requestFlatlays(0); }
+        }
+      })();
+      return flatRun;
+    }
+
+    /* ---------------- task list ---------------- */
+
+    const LS_KEY = 'zum_prd_tasks';
+
+    function myTasks() {
+      try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+    }
+
+    function rememberTask(t) {
+      const kept = [t, ...myTasks()].slice(0, 40);
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify(kept));
+      } catch (e) {
+        // out of quota: keep the records, drop the thumbnails
+        try { localStorage.setItem(LS_KEY, JSON.stringify(kept.map(x => Object.assign({}, x, { thumb: '' })))); } catch (e2) {}
+      }
+    }
+
+    function clock(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function renderTasks() {
+      const list = myTasks();
+      const el = $('taskList');
+
+      if (list.length === 0) {
+        el.innerHTML = '<div class="tasks-empty">' +
+          '<h3>Nothing sent yet</h3>' +
+          '<p>Your submissions show up here.</p>' +
+        '</div>';
+        return;
+      }
+
+      el.innerHTML = list.map(local => {
+        const sub = [local.niche, local.sub_niche].filter(Boolean).join(' · ');
+
+        return '<div class="task">' +
+          (local.thumb
+            ? '<img class="thumb" src="' + escapeHtml(local.thumb) + '" alt="">'
+            : '<div class="thumb"></div>') +
+          '<div class="body">' +
+            '<div class="t-title">' + escapeHtml(local.pattern_name || '(no name)') + '</div>' +
+            '<div class="t-sub">' + escapeHtml(sub || 'sent') + '</div>' +
+          '</div>' +
+          '<div class="t-time">' + escapeHtml(clock(local.submitted_at)) + '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>

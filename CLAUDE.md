@@ -12,7 +12,8 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 
 ## Compositor flatlay: 2 file, 1 engine
 [`forms/flatlay-composite.html`](forms/flatlay-composite.html) (dev tool) và [`forms/zum_prd_form.html`](forms/zum_prd_form.html) (form production) chứa **cùng một khối engine byte-identical** giữa 2 dòng marker `// ===== SHARED BLOCK` … `// ===== END SHARED BLOCK =====`. Cả 2 vẫn là one-page HTML (khối được nhân đôi, không load script chung).
-- Sửa engine (compose, analyzeGarment, GARMENTS/`?v`, hằng số, colour helpers) **chỉ trong `flatlay-composite.html`** → `.\forms\sync-shared.ps1 -Push` → commit **cả 2 file**.
+- Sửa engine (compose, analyzeGarment, hằng số, colour helpers) **chỉ trong `flatlay-composite.html`** → `.\forms\sync-shared.ps1 -Push` → commit **cả 2 file**.
 - `.\forms\sync-shared.ps1` (không flag) diff 2 bản, exit 1 nếu lệch — chạy trước khi commit bất kỳ file nào trong 2 file này.
+- **`GARMENTS`/`?v` KHÔNG còn trong shared block** (từ 2026-09-10): nằm ở khối page-local `// ===== GARMENT DATA =====` ngay trên SHARED BLOCK, KHÁC nhau giữa 2 file — dev tool 5 garment (thêm pajama long-sleeve + men/women pajama), form giữ 2 (romper + kids pajama). Thêm garment vào dev tool: sửa GARMENT DATA của `flatlay-composite.html` + thêm `<option>` dropdown, **KHÔNG -Push** (form thiếu ô grid → crash). Bump `?v` cũng sửa ở GARMENT DATA từng file.
 - Code riêng từng trang (UI, webhook, NICHES) nằm ngoài khối; khối không được đụng DOM/state trang.
 - **Sửa engine mà không được đổi output** (refactor, tối ưu): `node forms/regress-engine.js run <page> before.json` trên bản đã commit → sửa → `run … after.json` → `compare before.json after.json` phải in `IDENTICAL`. Chạy engine thật trong node-canvas trên đủ 12 garment, ~30s/lần, cần `NODE_PATH` trỏ tới thư mục có package `canvas`.

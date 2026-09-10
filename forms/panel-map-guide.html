@@ -55,7 +55,7 @@
   </ul>
   <div class="grp">Ảnh trả</div>
   <ul>
-    <li>File PNG map xám, cùng tỷ lệ ảnh gốc (phóng ×3), tên <code>zum-model-map-&lt;tên ảnh&gt;</code>.</li>
+    <li>File PNG map xám, cùng tỷ lệ khung với ảnh gốc (phóng ×2–×3 cho nét), tên <code>zum-model-map-&lt;tên ảnh&gt;</code>.</li>
     <li>Kèm giá trị <code>r</code> (cỡ motif) của mock đó, đặt luôn vào cuối tên file: <code>...-r1.24.png</code> (xem mục Bàn giao).</li>
   </ul>
 </div>
@@ -132,7 +132,7 @@
 
 <h2>Kích thước, kiểm tra, bàn giao</h2>
 <ul>
-  <li><b>Kích thước:</b> map phải đúng tỷ lệ ảnh gốc (phóng bội số nguyên, ví dụ ×3: ảnh 1024×1280 → map 3072×3840). Lệch tỷ lệ so với ảnh sẽ làm hoạ tiết in bị xô lệch (shear). File PNG ≤ 25 MP (nếu lớn hơn, upload lên Shopify sẽ âm thầm giữ ảnh cũ).</li>
+  <li><b>Kích thước:</b> map phải <b>cùng tỷ lệ khung với ảnh gốc</b>, nếu không hoạ tiết in sẽ bị xô lệch (shear). Không cần đúng một cỡ cố định; cách chắc chắn là phóng cả rộng và cao cùng một số nguyên (×2 hoặc ×3) để tỷ lệ khớp tuyệt đối, không bị làm tròn, và ảnh đủ nét.</li>
   <li><b>Tự kiểm tra:</b> mở Histogram (Expanded, RGB), chỉ nên có vài cột đứng rời nhau, không loang. Phóng 300% soi khe giữa tay và thân, cổ tay sát bàn tay, chỗ vải bị tay che. Nơi có vẽ nét trục, kiểm tra kênh Green có đúng 255 không.</li>
   <li><b>Bàn giao:</b> mỗi ảnh trả một file map PNG. Đặt tên: thêm <code>map-</code> sau <code>zum-model-</code> (ví dụ <code>zum-model-romper-4</code> → <code>zum-model-map-romper-4</code>).</li>
 </ul>

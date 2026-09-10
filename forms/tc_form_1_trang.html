@@ -236,7 +236,7 @@
       margin-top: 8px; text-align: right;
     }
 
-    /* Print/flatlay slot holds a single tile, same size as an ad thumbnail */
+    /* Print image slot holds a single tile, same size as an ad thumbnail */
     .print-slot {
       display: grid;
       grid-template-columns: var(--tile);
@@ -409,7 +409,7 @@
     // ============================================================
 
     let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
-    let printFile = null;  // single print/flatlay reference | null
+    let printFile = null;  // single print image (design file) | null
 
     function updateCount() {
       const n = adFiles.length;
@@ -470,7 +470,7 @@
       countEl.textContent = adFiles.length ? `${adFiles.length} ${adFiles.length === 1 ? 'image' : 'images'}` : '';
     }
 
-    // ---------- Print / flatlay reference ----------
+    // ---------- Print image reference ----------
     function setPrintImage(fileListObj) {
       const f = fileListObj && fileListObj[0];
       if (!f || !f.type.startsWith('image/')) return;
@@ -839,7 +839,7 @@
         <div class="guide-num">3</div>
         <div class="guide-sb">
           <h4><span class="g-field">Print Image</span>: ảnh tham chiếu</h4>
-          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc hoặc ảnh flatlay, dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
+          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
         </div>
       </div>
 

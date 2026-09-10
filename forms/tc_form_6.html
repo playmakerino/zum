@@ -408,7 +408,7 @@
               </button>
             </div>
             <input type="file" id="print_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" onchange="onPrintFile(this)" />
-            <div class="field-hint">Print / flatlay reference.</div>
+            <div class="field-hint">Print design reference.</div>
           </div>
           <div>
             <div class="field-lbl">Image positions (shared)</div>
@@ -458,7 +458,7 @@
     // ============================================================
 
     let rowSeq = 0;
-    let printFile = null;   // one shared print / flatlay reference for the whole submit
+    let printFile = null;   // one shared print image (design file) for the whole submit
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -503,7 +503,7 @@
       updateCount();
     }
 
-    // ---------- Shared print / flatlay image (required) ----------
+    // ---------- Shared print image, design file (required) ----------
     function onPrintFile(input) {
       const f = input.files && input.files[0];
       if (!f) return;
@@ -703,7 +703,7 @@
         <div class="guide-num">2</div>
         <div class="guide-sb">
           <h4><span class="g-field">Print image</span>: ảnh bản in</h4>
-          <p>Bấm <strong>Select image</strong> để chọn 1 ảnh bản in gốc hoặc ảnh flatlay từ máy. Ảnh này dùng chung cho mọi sản phẩm, làm tham chiếu để nội dung quảng cáo sát với hình vẽ, chữ, chi tiết personalized, chi tiết thêu.</p>
+          <p>Bấm <strong>Select image</strong> để chọn ảnh bản in gốc (file thiết kế) từ máy. Ảnh này dùng chung cho mọi sản phẩm, làm tham chiếu để nội dung quảng cáo sát với hình vẽ, chữ, chi tiết personalized, chi tiết thêu.</p>
         </div>
       </div>
 

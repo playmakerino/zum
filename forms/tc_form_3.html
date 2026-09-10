@@ -161,7 +161,7 @@
       color: var(--error); border-color: var(--error); background: var(--error-soft);
     }
 
-    /* Optional per-row print/flatlay image */
+    /* Per-row print image (design file) */
     .row-img { width: 42px; height: 42px; }
     .row-img .img-add {
       width: 42px; height: 42px;
@@ -410,7 +410,7 @@
     </div>
   </div>
 
-  <!-- shared hidden file input for the per-row optional print/flatlay image -->
+  <!-- shared hidden file input for the per-row print image -->
   <input type="file" id="rowImgInput" accept="image/*" style="display:none" />
 
   <script>
@@ -421,7 +421,7 @@
     // ============================================================
 
     let rowSeq = 0;
-    const rowFiles = {};   // rid -> File (optional print/flatlay reference)
+    const rowFiles = {};   // rid -> File (print image, design file)
     let activeRid = null;  // rid waiting for the shared file picker
 
     function escapeHtml(s) {
@@ -474,7 +474,7 @@
       updateCount();
     }
 
-    // ---------- Optional per-row print/flatlay image ----------
+    // ---------- Per-row print image ----------
     function pickRowImg(rid) {
       activeRid = rid;
       document.getElementById('rowImgInput').click();
@@ -507,7 +507,7 @@
       } else {
         const add = document.createElement('div');
         add.className = 'img-add';
-        add.title = 'Add print / flatlay image (optional)';
+        add.title = 'Add print image';
         add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
         add.onclick = () => pickRowImg(rid);
         slot.appendChild(add);
@@ -742,8 +742,8 @@
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Ảnh print / flatlay</span></h4>
-          <p>Ô vuông dấu cộng ở cuối mỗi dòng để chọn 1 ảnh bản in gốc hoặc ảnh flatlay từ máy. Mỗi sản phẩm cần 1 ảnh, làm tham chiếu để nội dung quảng cáo sát với hình vẽ, chữ, chi tiết personalized, chi tiết thêu.</p>
+          <h4><span class="g-field">Ảnh bản in</span></h4>
+          <p>Ô vuông dấu cộng ở cuối mỗi dòng để chọn 1 ảnh bản in gốc (file thiết kế) từ máy. Mỗi sản phẩm cần 1 ảnh, làm tham chiếu để nội dung quảng cáo sát với hình vẽ, chữ, chi tiết personalized, chi tiết thêu.</p>
         </div>
       </div>
 

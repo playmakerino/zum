@@ -145,7 +145,7 @@
 
 <h2>Kích thước, kiểm tra, bàn giao</h2>
 <ul>
-  <li><b>Kích thước:</b> map phải <b>cùng tỷ lệ khung với ảnh gốc</b>, nếu không hoạ tiết in sẽ bị xô lệch (shear). Không cần đúng một cỡ cố định; cách chắc chắn là phóng cả rộng và cao cùng một số nguyên (×2 hoặc ×3) để tỷ lệ khớp tuyệt đối, không bị làm tròn, và ảnh đủ nét.</li>
+  <li><b>Kích thước:</b> để map đúng bằng kích thước ảnh gốc, hoặc phóng cả hai chiều cùng một số nguyên (×2, ×3). Đừng resize thành kích thước tùy ý: lệch tỷ lệ so với ảnh sẽ làm hoạ tiết in bị xô (shear). Giữ file <b>≤ 25 MP</b> (rộng × cao ÷ 1 triệu); quá 25 MP thì upload lên Shopify âm thầm giữ ảnh cũ, nên ảnh gốc lớn chỉ cần ×2.</li>
   <li><b>Tự kiểm tra:</b> mở Histogram (Expanded, RGB), chỉ nên có vài cột đứng rời nhau, không loang. Phóng 300% soi khe giữa tay và thân, cổ tay sát bàn tay, chỗ vải bị tay che. Nơi có vẽ nét trục, kiểm tra kênh Green có đúng 255 không.</li>
   <li><b>Bàn giao:</b> mỗi ảnh trả một file map PNG. Đặt tên: thêm <code>map-</code> sau <code>zum-model-</code> (ví dụ <code>zum-model-romper-4</code> → <code>zum-model-map-romper-4</code>), kèm <code>r</code> ở cuối.</li>
 </ul>

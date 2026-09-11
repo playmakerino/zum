@@ -859,7 +859,7 @@
       if (products.length === 0)
         return showStatus('error', 'Please add at least one product with a URL and images.');
 
-      if (!state.print_file)
+      if (!dropbox_print_image)
         return showStatus('error', 'Please choose a print image.');
 
       const payload = { ad_set_name, product_type_group, dropbox_print_image, products };

@@ -5,3 +5,6 @@ dashboards/meta-api-notes.md
 # dependencies & runtime cache
 node_modules/
 .cache-*.json
+
+# zum-prd moved in locally (source only), not part of this repo
+compositor/zum-prd/

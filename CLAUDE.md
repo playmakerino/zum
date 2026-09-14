@@ -8,7 +8,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 
 | Thư mục | Việc |
 |---|---|
-| [`../zum-prd/`](../zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4`). **Tài liệu nằm ngoài repo này**, nhưng form của nó vẫn ở [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) |
+| [`compositor/zum-prd/`](compositor/zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4`). **Folder local-only, gitignore, KHÔNG push** (đã chuyển vào đây 2026-09-14, chỉ source ~90MB, bỏ ảnh sinh); form của nó vẫn ở [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) |
 
 ## Compositor flatlay: 2 file, 1 engine
 [`compositor/pattern-mockup.html`](compositor/pattern-mockup.html) (dev tool) và [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) (form production) chứa **cùng một khối engine byte-identical** giữa 2 dòng marker `// ===== SHARED BLOCK` … `// ===== END SHARED BLOCK =====`. Cả 2 vẫn là one-page HTML (khối được nhân đôi, không load script chung).

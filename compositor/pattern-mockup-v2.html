@@ -58,11 +58,6 @@
 <div class="wrap">
   <div class="controls">
     <div class="field">
-      <label>Garment</label>
-      <div class="file"><span style="color:var(--ink)">Twirl Dress Bodysuit · on-model twirl-dress-1 + romper-1</span></div>
-    </div>
-
-    <div class="field">
       <label for="patternBtn">Pattern file</label>
       <div class="file">
         <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
@@ -92,7 +87,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // so they align to the photo exactly; the mock is the original photo.
 // Homography corners live IN THE MAP (B >= 250 dots on the panel, 4 per panel), not here: whoever traces a map sets
 // them without touching this file. Map convention: R = id x 20, G >= 250 = grain axis stroke, B >= 250 = corner dot.
-const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
 // first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
@@ -105,9 +100,9 @@ const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789549750',1),
+               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789549750',1,'Dress'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
-                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634) ] },
+                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };
 const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);
@@ -446,7 +441,9 @@ const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 // lbO 1.0: at 0.9 a white mock bleeds 10% white into the print (pale). hiO 0: Soft Light with the raw mock as the top layer
 // turns a white fabric into sqrt(x) (0.19 -> 0.43), washing the print out; after Fref there is no highlight above the fabric
 // white to lift anyway. Shadow LB 0.6 is what keeps the folds deeper than v1's multiply.
-const V2_DEFAULT={ tone:'ps', lbO:1.0, shO:0.6, hiO:0, autoSh:true, fref:true, dispAmp:8, dispBlur:6, feather:3, quads:null, showQuad:true };
+// shO 0.25: at 0.6 a mock with real shading (romper-1: fabric at 0.5-0.7 in folds and under the basket) went black,
+// LB alone is already darker than multiply there; a flat bright mock (twirl dress, 0.85-1.0) barely notices either value.
+const V2_DEFAULT={ tone:'ps', lbO:1.0, shO:0.25, hiO:0, autoSh:true, fref:true, dispAmp:8, dispBlur:6, feather:3, quads:null, showQuad:true };
 // Photoshop tone chain for one channel (0..1): pattern p Linear-Burned onto the mock P at lb opacity, then
 // the mock Linear-Burned again at sh (the "shadow" layer), then the mock Soft-Lighted at hi (the "highlight" layer).
 function toneP(p,P,lb,sh,hi){
@@ -600,7 +597,7 @@ const msg=m=>{ $('msg').textContent=m; };
 let patImg=null, busy=false;
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-// Fixed levels (the former sliders/checkboxes): Photoshop tone LB 1.0 / shadow LB 0.6 / highlight SL off,
+// Fixed levels (the former sliders/checkboxes): Photoshop tone LB 1.0 / shadow LB 0.25 / highlight SL off,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
 function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
 // v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
@@ -647,7 +644,7 @@ async function generate(){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
       for(const [lab,o,pre] of ENGINES)
-        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+lab, mdls[i]);
+        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');

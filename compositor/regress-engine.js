@@ -8,11 +8,13 @@
 //                                                       motif size; overrides = {"<view name>": r} tried in place
 //                                                       of the page's r without editing GARMENT DATA)
 //
-// It extracts the block between the "// ===== SHARED BLOCK" / "// ===== END SHARED BLOCK" markers, runs it
-// in node-canvas over every garment in GARMENTS (2 flatlays + 10 model photos, mocks and maps cached from the
-// CDN in the OS temp dir), and hashes every analysis field plus the composed pixels of two compose() calls
-// per garment (with trim, and without). ~30 s per run. Deterministic, so the same page
-// twice gives the same json. Typical use:
+// It extracts the block between the "// ===== GARMENT DATA" / "// ===== END SHARED BLOCK" markers (garment table +
+// engine; on pattern-mockup-v2.html the engine header reads "V2 ENGINE" but the end marker is the same), runs it
+// in node-canvas over every view of every garment in GARMENTS (flatlays + model photos, mocks and maps cached from the
+// CDN in the OS temp dir), and hashes every analysis field (ids, boxes, grain, axes incl. the swept-frame normals,
+// fans, trim / fabric references) plus the composed pixels of two compose() calls per view (with trim, and without).
+// ~1 min per run. Deterministic, so the same page twice gives the same json. Baseline for the current engine:
+// commit 62cb81b (fan + fold displace + feather + swept axis landed there, so earlier runs are not comparable). Typical use:
 //   node regress-engine.js run pattern-mockup.html before.json   (on the committed page)
 //   ...edit the block...
 //   node regress-engine.js run pattern-mockup.html after.json && node regress-engine.js compare before.json after.json
@@ -131,7 +133,8 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
         w: G.w, h: G.h, ids: h(G.ids), box: G.box, Lref: G.Lref, Fref: G.Fref,
         cnt: hj(arr(G.cnt)), cx: hj(arr(G.cx)), cy: hj(arr(G.cy)), cs: hj(arr(G.cs)), sn: hj(arr(G.sn)),
         pbox: hj(G.pbox.map(arr)), ext: hj([G.ext.x0, G.ext.x1, G.ext.y0, G.ext.y1].map(arr)),
-        axes: G.axes.map((A, k) => A ? { k, n: A.n, px: h(A.px), py: h(A.py), s: h(A.s), wP: h(A.wP), wN: h(A.wN), fP: h(A.fP), fN: h(A.fN), near: h(A.near) } : null).filter(Boolean),
+        axes: G.axes.map((A, k) => A ? { k, n: A.n, px: h(A.px), py: h(A.py), s: h(A.s), nx: h(A.nx), ny: h(A.ny), wP: h(A.wP), wN: h(A.wN), fP: h(A.fP), fN: h(A.fN), near: h(A.near) } : null).filter(Boolean),
+        fans: G.fans ? G.fans.map((F, k) => F ? { k, cx: +F.cx.toFixed(3), cy: +F.cy.toFixed(3), bx: +F.bx.toFixed(6), by: +F.by.toFixed(6), R0: +F.R0.toFixed(3) } : null).filter(Boolean) : null,
         tlo: G.tlo ? h(G.tlo) : null, analyzeMs, runs: [],
       };
       for (const [sc, tr] of [[1.0, trim], [0.7, null]]) {

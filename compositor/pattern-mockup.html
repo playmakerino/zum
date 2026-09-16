@@ -213,6 +213,7 @@ const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
 const AX_CURVE=0.035;      // max deviation/chord above which a drawn stroke counts as bent and becomes a curved axis
+const AX_RMIN=2;           // min bend radius of the curved-axis normal field, in panel half-widths (fold guard, see buildAxis)
 const AX_SMOOTH=0.25;      // axis smoothing half-window as a fraction of the panel width (x3 passes): the (u,v) map folds where
                            // the bend radius drops below the half-width; 0.25 keeps a 90 deg elbow fold-free yet visibly bent
 
@@ -493,8 +494,19 @@ function buildAxis(k,px,py,G,wrap){
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
   // one normal per NODE (mean of the two adjacent segment normals, unit), interpolated along each segment in
   // axisUV so the iso-u lines rotate continuously through a bend instead of jumping at every joint.
-  const nx=new Float32Array(n), ny=new Float32Array(n);
-  for(let j=0;j<n;j++){ const a=Math.max(0,j-1), b=Math.min(n-2,j); let vx=dy[a]+dy[b], vy=-dx[a]-dx[b]; const L=Math.hypot(vx,vy)||1; nx[j]=vx/L; ny[j]=vy/L; }
+  const nx=new Float32Array(n), ny=new Float32Array(n), th=new Float64Array(n);
+  for(let j=0;j<n;j++){ const a=Math.max(0,j-1), b=Math.min(n-2,j); th[j]=Math.atan2(-dx[a]-dx[b], dy[a]+dy[b]);
+    if(j){ let d=th[j]-th[j-1]; th[j]=th[j-1]+Math.atan2(Math.sin(d),Math.cos(d)); } }   // unwrapped
+  // Fold guard: the iso-u lines of a bend meet at its centre of curvature, R = len / dtheta from the axis, and the print
+  // on the inner side is compressed by (R - v) / R. Where the stroke bends tighter than the panel is wide (a hip on a
+  // seated pant leg: R ~ 1.3 W) that compression runs to zero at the inner edge and the print collapses into a fan.
+  // Cap the normal rotation per segment so R >= AX_RMIN x the local half-width, spreading the turn over neighbouring
+  // nodes: the axis keeps its true path, only the normals turn more gently (no worse than AX_SMOOTH already does).
+  const cap=new Float64Array(n-1); for(let j=0;j<n-1;j++) cap[j]=len[j]/(AX_RMIN*Math.max(1,wP[j],wN[j],wP[j+1],wN[j+1]));
+  for(let it=0;it<200;it++){ let moved=false;
+    for(let j=0;j<n-1;j++){ const d=th[j+1]-th[j], ad=Math.abs(d); if(ad>cap[j]+1e-6){ const e=(ad-cap[j])/2*(d>0?1:-1); th[j]+=e; th[j+1]-=e; moved=true; } }
+    if(!moved) break; }
+  for(let j=0;j<n;j++){ nx[j]=Math.cos(th[j]); ny[j]=Math.sin(th[j]); }
   return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, nx, ny, wP, wN, fP, fN, near, gw, CS };
 }
 // Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
@@ -509,13 +521,17 @@ function axisUV(A,x,y){
   // With continuous normals the outer side stretches evenly and the inner side compresses evenly, fold-free while |v| < bend radius.
   const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let bestKey=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
-    const rx=x-A.px[j], ry=y-A.py[j], L=A.len[j], dxj=A.dx[j], dyj=A.dy[j];
-    const ax=A.nx[j], ay=A.ny[j], bx=A.nx[j+1]-ax, by=A.ny[j+1]-ay;
+    const rx=x-A.px[j], ry=y-A.py[j], L=A.len[j], dxj=A.dx[j], dyj=A.dy[j], t0=(rx*dxj+ry*dyj)/L;
+    // Past either end of the stroke (a half-length stroke leaves the thigh above a shin stroke) the frame is the end
+    // segment extended straight with the END node's normal held fixed, as the old projection did: interpolating the
+    // normal at tau < 0 turns it the wrong way and the iso-u lines converge on the stroke's end (a fan on the thigh).
+    const end=(j===0&&t0<0)||(j===n-2&&t0>1);
+    const ax=end?(j===0?A.nx[0]:A.nx[n-1]):A.nx[j], ay=end?(j===0?A.ny[0]:A.ny[n-1]):A.ny[j], bx=end?0:A.nx[j+1]-ax, by=end?0:A.ny[j+1]-ay;
     const C=rx*ay-ry*ax, B=(rx*by-ry*bx)-L*(dxj*ay-dyj*ax), Aq=-L*(dxj*by-dyj*bx);
     let tau;
     if(Math.abs(Aq)<1e-7*Math.abs(B)){ if(B===0) continue; tau=-C/B; }
     else { const disc=B*B-4*Aq*C; if(disc<0) continue;
-      const q=-0.5*(B+(B>=0?1:-1)*Math.sqrt(disc)), t1=q/Aq, t2=q!==0?C/q:t1, t0=(rx*dxj+ry*dyj)/L;   // stable pair, keep the root nearest the plain projection
+      const q=-0.5*(B+(B>=0?1:-1)*Math.sqrt(disc)), t1=q/Aq, t2=q!==0?C/q:t1;   // stable pair, keep the root nearest the plain projection
       tau=Math.abs(t1-t0)<=Math.abs(t2-t0)?t1:t2; }
     let pen=0;   // extrapolate only past the axis ends; inside, a tau outside [0,1] belongs to a neighbour segment
     if(tau<0){ if(j>0){ pen=-tau*L; tau=0; } } else if(tau>1){ if(j<n-2){ pen=(tau-1)*L; tau=1; } }

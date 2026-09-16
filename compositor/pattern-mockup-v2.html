@@ -477,9 +477,11 @@ const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 // in every fold) while a bright flat mock (twirl dress) never showed the difference. shO 0.25 deepens folds a little.
 // hiO 0.8 on the HIGH-PASS (not the raw mock: that turned white fabric into sqrt(x) and washed the print out): ridges
 // and weave lighten the print, valleys darken it - the PSD's Multiply+Screen pair, the cure for 'print pasted on top'.
-// dispAmp 10 / blur 8: 8 px was 0.3% of the width, invisible on the gathers; 14 made straight stripes wobble.
+// dispAmp 12 / blur 8, gradient-driven: the old luminance-driven shift moved the print diagonally as a whole and
+// only wobbled straight lines; the gradient form compresses the print on fold flanks (see compose).
 const HP_RANGE=40;   // mock luminance +-40 above/below its local mean = full Soft Light swing
-const V2_DEFAULT={ tone:'ps', lbO:0, shO:0.25, hiO:0.8, autoSh:true, fref:true, dispAmp:10, dispBlur:8, feather:3, quads:null, showQuad:true };
+const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full dispAmp shift; steeper is clamped
+const V2_DEFAULT={ tone:'ps', lbO:0, shO:0.25, hiO:0.8, autoSh:true, fref:true, dispAmp:12, dispBlur:8, feather:3, quads:null, showQuad:true };
 // Photoshop tone chain for one channel (0..1): pattern p Linear-Burned onto the mock P at lb opacity, then
 // the mock Linear-Burned again at sh (the "shadow" layer), then the mock Soft-Lighted at hi (the "highlight" layer).
 // p = print, P = mock normalised to the fabric white, hp = mock high-pass (-1..1, 0 = local mean).
@@ -595,10 +597,15 @@ function compose(G, pat, ratio, trim, opt){
       continue;
     }
     if(k===9) continue;
-    // v2: Displace, image space, before the panel frame - the blurred mock luminance drives both axes like a
-    // grayscale Photoshop displacement map (bright pushes one way, dark the other, the fabric mean stays put)
+    // v2: Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
+    // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
+    // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
+    // where it flattens toward a ridge it is traversed slower (the ridge shows the print at full size).
     let xs=x, ys=y;
-    if(dl && x>=bx0&&x<=bx1&&y>=by0&&y<=by1){ const d=(dl[(y-by0)*BW+(x-bx0)]-dMean)/255*amp; xs=x+d; ys=y+d; }
+    if(dl && x>bx0&&x<bx1&&y>by0&&y<by1){ const j=(y-by0)*BW+(x-bx0);
+      let gx=(dl[j+1]-dl[j-1])*(0.5/DISP_GREF), gy=(dl[j+BW]-dl[j-BW])*(0.5/DISP_GREF);
+      if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
+      xs=x+gx*amp; ys=y+gy*amp; }
     localXY(G,k,xs,ys);
     let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
     if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }

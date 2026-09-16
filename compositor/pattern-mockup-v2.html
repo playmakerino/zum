@@ -426,21 +426,41 @@ function buildAxis(k,px,py,G,wrap){
   for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
     const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
-  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+  // v2: one normal per NODE (mean of the two adjacent segment normals, unit), interpolated along each segment in
+  // axisUV so the iso-u lines rotate continuously through a bend instead of jumping at every joint.
+  const nx=new Float32Array(n), ny=new Float32Array(n);
+  for(let j=0;j<n;j++){ const a=Math.max(0,j-1), b=Math.min(n-2,j); let vx=dy[a]+dy[b], vy=-dx[a]-dx[b]; const L=Math.hypot(vx,vy)||1; nx[j]=vx/L; ny[j]=vy/L; }
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, nx, ny, wP, wN, fP, fN, near, gw, CS };
 }
 // Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
 // Globals instead of a return value: this runs once per fabric pixel.
 let LX=0, LY=0;
 function axisUV(A,x,y){
-  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
+  // v2 swept frame: on segment j the normal is n(tau) = n_j + tau (n_j+1 - n_j), tau = t/len, and the iso-u line at tau
+  // passes through p_j + tau len d_j with direction n(tau). The pixel sits on that line when
+  // (r - tau len d) x n(tau) = 0, a quadratic in tau (linear when the two node normals agree, i.e. a straight run).
+  // A polyline with fixed per-segment normals left a wedge (u frozen, print smeared) outside every joint and an overlap
+  // (u jumps, print torn) inside it, v x dtheta wide, repeating every AX_STEP px along a bend: the sawtooth on curved limbs.
+  // With continuous normals the outer side stretches evenly and the inner side compresses evenly, fold-free while |v| < bend radius.
+  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let bestKey=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
-    const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
-    let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
-    const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
-    if(d2<best){ best=d2; bj=j; bt=t; LY=A.s[j]+t; LX=ex*dyj-ey*dxj; }
+    const rx=x-A.px[j], ry=y-A.py[j], L=A.len[j], dxj=A.dx[j], dyj=A.dy[j];
+    const ax=A.nx[j], ay=A.ny[j], bx=A.nx[j+1]-ax, by=A.ny[j+1]-ay;
+    const C=rx*ay-ry*ax, B=(rx*by-ry*bx)-L*(dxj*ay-dyj*ax), Aq=-L*(dxj*by-dyj*bx);
+    let tau;
+    if(Math.abs(Aq)<1e-7*Math.abs(B)){ if(B===0) continue; tau=-C/B; }
+    else { const disc=B*B-4*Aq*C; if(disc<0) continue;
+      const q=-0.5*(B+(B>=0?1:-1)*Math.sqrt(disc)), t1=q/Aq, t2=q!==0?C/q:t1, t0=(rx*dxj+ry*dyj)/L;   // stable pair, keep the root nearest the plain projection
+      tau=Math.abs(t1-t0)<=Math.abs(t2-t0)?t1:t2; }
+    let pen=0;   // extrapolate only past the axis ends; inside, a tau outside [0,1] belongs to a neighbour segment
+    if(tau<0){ if(j>0){ pen=-tau*L; tau=0; } } else if(tau>1){ if(j<n-2){ pen=(tau-1)*L; tau=1; } }
+    const nxT=ax+tau*bx, nyT=ay+tau*by, nl=Math.hypot(nxT,nyT)||1;
+    const v=((rx-tau*L*dxj)*nxT+(ry-tau*L*dyj)*nyT)/nl;
+    const key=pen>0 ? 1e12+pen : Math.abs(v);   // a segment that owns the pixel wins; several (fold) -> nearest axis; none -> least overshoot
+    if(key<bestKey){ bestKey=key; bj=j; bt=tau; LY=A.s[j]+tau*L; LX=v; }
   }
   // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
-  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=LX>=0;
+  const fr=bt, j1=bj+1, pos=LX>=0;
   const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
   const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
   if(f>0.001&&w>1){ const a=Math.abs(LX), r=a/w;

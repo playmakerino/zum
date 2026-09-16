@@ -118,7 +118,8 @@ const modelsFor=g=>g.models;
 // ===== END GARMENT DATA =====
 
 // ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
-// Additions over v1 are marked "v2:". The END SHARED BLOCK marker is kept so regress-engine.js render works on this page.
+// Only addition over the shared block: perspective homography from cyan corner dots (marked "v2:"), and SS 2.0.
+// The END SHARED BLOCK marker is kept so regress-engine.js render works on this page.
 // Nothing in here touches the DOM or page state: it reads images + an options object and returns pixels.
 
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
@@ -324,7 +325,7 @@ function analyzeGarment(spec,model){
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
     // v2: a panel whose four dots are blue (B only) is a fan, not a perspective quad: centre = where the two
     // side edges TL-BL / TR-BR meet, tile x = arc length at the waist radius, tile y = radius. See fanFromQuad().
-    G.fans=null; G.fanOn=true;
+    G.fans=null;
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
       const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
@@ -470,7 +471,7 @@ function axisUV(A,x,y){
 // Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
 // an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
 function localXY(G,k,x,y){
-  const F=G.fanOn&&G.fans&&G.fans[k], Q=G.H&&G.H[k];   // v2: fan (two strokes) and/or quad (four dots) replace axis / rotation
+  const F=G.fans&&G.fans[k], Q=G.H&&G.H[k];   // v2: fan (two strokes) and/or quad (four dots) replace axis / rotation
   if(F){ fanXY(F,x,y); if(!Q) return; x=LX; y=LY; }     // a quad on a fan panel is perspective applied to the fan frame
   if(Q){ const h=Q.h, d=h[6]*x+h[7]*y+1; LX=(h[0]*x+h[1]*y+h[2])/d-Q.w/2; LY=(h[3]*x+h[4]*y+h[5])/d-Q.hh/2; return; }
   const A=G.axes[k];
@@ -493,15 +494,14 @@ function panelExtents(G){
 const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
 const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 
-// ---- v2 helpers ----
-// Tone = plain multiply, print x mock/Fref, same as v1. The Photoshop chain tried here (shadow Linear Burn 0.25,
-// high-pass Soft Light 0.8) was dropped on 2026-09-16: measured against v1 it moved the fabric by ~6-13 levels
-// (folds a little darker) and the Soft Light by ~2, neither visible at normal size. What v2 keeps over v1 is
-// geometry: the fan frame (map), the gradient displacement on folds, and the feathered edge.
-const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full dispAmp shift; steeper is clamped
-// dispAmp 12 / blur 8, gradient-driven: a luminance-driven shift moved the print diagonally as a whole and only
-// wobbled straight lines; the gradient form compresses the print on fold flanks (see compose).
-const V2_DEFAULT={ dispAmp:12, dispBlur:8, feather:3, quads:null, showQuad:true };
+// ---- fold displacement + feathered edge (constants at the output scale, x SS inside compose) ----
+// Tone is a plain multiply, print x mock/Fref. A Photoshop chain (shadow Linear Burn 0.25, high-pass Soft Light 0.8)
+// was measured on 2026-09-16 and dropped: 6-13 levels in the folds, 2 for the Soft Light, neither visible at normal size.
+const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a luminance-driven shift moved the print
+                     // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
+const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
+const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
+const FEATHER=3;     // edge blend radius, px: the print fades over this band across the panel boundary instead of a hard cut
 // masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
 // the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
 function blurMasked(W,x0,y0,x1,y1,r,src,msk){
@@ -539,7 +539,7 @@ function homography(src,dst){
 // rectangle, w = the longer of the top/bottom edges, hh = the longer side, so the wide end keeps the flat motif size.
 function buildQuads(q,W,H,G){
   if(!q) return null; const out={}; let any=false;
-  for(const k in q){ const F=G&&G.fanOn&&G.fans&&G.fans[k];
+  for(const k in q){ const F=G&&G.fans&&G.fans[k];
     const P=q[k].map(([x,y])=>{ if(F){ fanXY(F,x*W,y*H); return [LX,LY]; } return [x*W,y*H]; }), L=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
     const w=Math.max(L(P[0],P[1]),L(P[3],P[2])), hh=Math.max(L(P[0],P[3]),L(P[1],P[2]));
     if(w<2||hh<2) continue;
@@ -548,19 +548,18 @@ function buildQuads(q,W,H,G){
 }
 
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
-// trim: [r,g,b] or null (keep the mock's own trim). opt: v2 options (see V2_DEFAULT). Returns a canvas (W/SS x H/SS).
+// trim: [r,g,b] or null (keep the mock's own trim). opt (testing page only): { quads:false } = no perspective quads
+// (the production render), { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides the map's cyan dots, showQuad draws them. Returns a canvas (W/SS x H/SS).
 function compose(G, pat, ratio, trim, opt){
-  opt=Object.assign({},V2_DEFAULT,opt||{});
+  opt=opt||{};
   const {w:W,h:H,ids,Lref,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
-  // v2: homography per panel replaces axis / PCA for that panel; extents re-measured because the frame changed
-  // v2: quads come from the map's corner dots. opt.quads === false switches them off (the v1 render); an object overrides.
-  G.fanOn=opt.fan!==false;   // v1 render: strokes stay grain angles, no fan
+  // v2: perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
-  const ext=(G.H||G.fans)?panelExtents(G):G.ext;
+  const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
@@ -571,17 +570,13 @@ function compose(G, pat, ratio, trim, opt){
   const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
-  // v2 fields, cached on the garment per radius: displacement low-pass of the mock luminance (fabric + trim only),
-  // feather alpha (fraction of fabric among non-trim pixels) + dilated ids over the box grown by the feather.
-  const fpx=Math.round(opt.feather*SS), dpx=Math.max(1,Math.round(opt.dispBlur*SS)), amp=opt.dispAmp*SS;
+  // Fold displacement field: low-pass of the mock luminance over the box (fabric + trim only). Feather: fraction
+  // of fabric among non-trim pixels over the box grown by the feather, + ids dilated so the outside band has a panel to sample.
+  // Built per compose (one pass each over the box), nothing is cached on the garment.
+  const fpx=Math.round(FEATHER*SS), dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
   const ex0=Math.max(0,bx0-fpx), ey0=Math.max(0,by0-fpx), ex1=Math.min(W-1,bx1+fpx), ey1=Math.min(H-1,by1+fpx), EW=ex1-ex0+1;
-  const c=G.v2||(G.v2={});
-  if(amp>0 && c.dR!==dpx){ c.dR=dpx;
-    c.dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9); }
-  if(c.fR!==fpx){ c.fR=fpx;
-    if(fpx>0){ c.idsF=dilateIds(ids,W,H,ex0,ey0,ex1,ey1,fpx); c.alpha=blurMasked(W,ex0,ey0,ex1,ey1,fpx, i=>(ids[i]>=1&&ids[i]<=8)?1:0, i=>ids[i]!==9); }
-    else { c.idsF=ids; c.alpha=null; } }
-  const idsF=c.idsF, alpha=c.alpha, dl=amp>0?c.dl:null;
+  const dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
+  const idsF=dilateIds(ids,W,H,ex0,ey0,ex1,ey1,fpx), alpha=blurMasked(W,ex0,ey0,ex1,ey1,fpx, i=>(ids[i]>=1&&ids[i]<=8)?1:0, i=>ids[i]!==9);
 
   for(let y=ey0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++){
     const k0=ids[i], k=idsF[i]; if(k===0||k>9) continue;
@@ -599,12 +594,12 @@ function compose(G, pat, ratio, trim, opt){
       continue;
     }
     if(k===9) continue;
-    // v2: Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
+    // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
     // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
     // where it flattens toward a ridge it is traversed slower (the ridge shows the print at full size).
     let xs=x, ys=y;
-    if(dl && x>bx0&&x<bx1&&y>by0&&y<by1){ const j=(y-by0)*BW+(x-bx0);
+    if(x>bx0&&x<bx1&&y>by0&&y<by1){ const j=(y-by0)*BW+(x-bx0);
       let gx=(dl[j+1]-dl[j-1])*(0.5/DISP_GREF), gy=(dl[j+BW]-dl[j-BW])*(0.5/DISP_GREF);
       if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
       xs=x+gx*amp; ys=y+gy*amp; }
@@ -620,8 +615,8 @@ function compose(G, pat, ratio, trim, opt){
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
     let R=pr*Pr, Gc=pg*Pg, Bc=pb*Pb;
-    // v2: feather - the edge pixel keeps a share of the mock (inside) or takes a share of the print (outside)
-    if(alpha){ const a=alpha[(y-ey0)*EW+(x-ex0)]; if(a<0.999){ R=r+a*(R-r); Gc=g+a*(Gc-g); Bc=b+a*(Bc-b); } }
+    // feather: the edge pixel keeps a share of the mock (inside) or takes a share of the print (outside)
+    const a=alpha[(y-ey0)*EW+(x-ex0)]; if(a<0.999){ R=r+a*(R-r); Gc=g+a*(Gc-g); Bc=b+a*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
   }
 
@@ -645,13 +640,13 @@ const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
 
 let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in flight, awaited by generate()
+let trimRgb=null;   // trim colour from the pattern's dominant hue (same rule as the dev tool's auto-fill), no field on this page
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-// Fixed levels (the former sliders/checkboxes): Displace 12 px over an 8 px blur, 3 px feather, fan from the map, quads not drawn.
-function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
-// Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no Displace, no feather,
-// no fan / quads. With those off the v2 code path is byte-for-byte the SHARED BLOCK math (print x mock/Fref), so one function renders both.
-const PROD_OPT={ dispAmp:0, dispBlur:1, feather:0, quads:false, fan:false, showQuad:false };
+function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn
+// Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
+// this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref) at SS 2.0, so one function renders both.
+const PROD_OPT={ quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
 const ENGINES=[ ['production', PROD_OPT, 'production'], ['testing', null, 'testing'] ];
 
@@ -682,7 +677,7 @@ async function generate(){
   msg('Generating…'); await nextPaint();
   const t0=performance.now();
   try{
-    const g=GARMENTS[GKEY], trim=null, scale=1, opt=readOpt();
+    const g=GARMENTS[GKEY], trim=trimRgb, scale=1, opt=readOpt();
     const mdls=modelsFor(g);
     clearShots(results.flats); clearShots(results.models);
     for(let i=0;i<g.flats.length;i++){
@@ -714,7 +709,8 @@ $('pattern').addEventListener('change', async e=>{
     if(patLoading!==job) return;   // a newer file was chosen meanwhile
     if(patImg&&patImg.close&&!busy) patImg.close();
     patImg=img; patLoading=null;
-    msg('Pattern '+img.width+'×'+img.height);
+    const c=dominantColor(img), t=c&&trimHexFrom(...c); trimRgb=t?hexToRgb(parseHex(t)):null;
+    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
   }catch{ if(patLoading===job) patLoading=null; msg('Could not read that image.'); }
 });
 $('go').addEventListener('click', generate);

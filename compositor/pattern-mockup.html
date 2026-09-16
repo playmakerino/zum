@@ -199,6 +199,7 @@ const OFFX=[0,0.37,0.71,0.13,0.58,0.92,0.26,0.64,0.45];
 const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
+                           // (2.0 clears the last staircase on the romper map's id edges and a twill moire, at ~2.4x the time and memory)
 const TRIM_CEIL=1.15;      // flatlay trim ceiling
 const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
 const TRIM_ROLL=0.22;      // compression slope above the knee
@@ -299,6 +300,26 @@ function genderFromHex(v){
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
+// Fan corner dots -> quads {k:[[nx,ny]x4]} (normalised to the mock, TL TR BR BL). Dots are 4-connected blobs of blue
+// (B-maxed) pixels; each blob's panel = the id under it; a panel with exactly 4 blobs gets a quad. Garment panels hang: the two
+// highest dots are the top edge (TL = left of them), the two lowest the bottom edge (BR = right of them). Angle-based
+// ordering failed twice (a dot exactly at -135 deg; a hem-left dot placed higher than the waist-left dot so min x+y picked the wrong one).
+function fanQuadsFrom(px,ids,W,H){
+  if(!px.length) return null;
+  const inSet=new Set(px), seen=new Set(), blobs=[];
+  for(const s0 of px){ if(seen.has(s0)) continue;
+    const st=[s0]; seen.add(s0); let n=0, sx=0, sy=0; const kc=new Uint32Array(10);
+    while(st.length){ const i=st.pop(); n++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
+      for(const j of [i-1,i+1,i-W,i+W]) if(j>=0&&j<W*H&&inSet.has(j)&&!seen.has(j)){ seen.add(j); st.push(j); } }
+    let k=0; for(let q=1;q<=8;q++) if(kc[q]>kc[k]) k=q;
+    blobs.push({ k, n, x:sx/n, y:sy/n }); }
+  const out={}; let any=false;
+  for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
+    b.sort((a,c)=>a.y-c.y);
+    const top=b.slice(0,2).sort((a,c)=>a.x-c.x), bot=b.slice(2).sort((a,c)=>a.x-c.x);
+    out[k]=[top[0],top[1],bot[1],bot[0]].map(o=>[o.x/W,o.y/H]); any=true; }
+  return any?out:null;
+}
 function analyzeGarment(spec,model){
   const key=spec.map+(model?'|model':'');
   if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
@@ -316,10 +337,12 @@ function analyzeGarment(spec,model){
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
     const linePx=[];                    // every G-maxed pixel, traced into strokes below
+    const cornerPx=[];                  // every blue (B-maxed, G off) fabric pixel = a fan corner dot baked into the map
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
-      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      if(dot&&xd[p+1]<AXIS_MIN&&k>=1&&k<=8) cornerPx.push(i);   // cyan dots (G and B maxed) are the testing page's perspective corners: neither stroke nor fan here
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
@@ -328,6 +351,7 @@ function analyzeGarment(spec,model){
       else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
+    const fanQuads=fanQuadsFrom(cornerPx,ids,W,H);   // map convention: R = id, G = stroke, B (blue) = fan corner dot
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
     // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
@@ -364,6 +388,10 @@ function analyzeGarment(spec,model){
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
     // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
+    // Fan panels (four blue dots on the map, e.g. a skirt): centre = where the two side edges TL-BL / TR-BR meet,
+    // tile x = arc length at the waist radius, tile y = radius. A fan replaces the panel's axis / rotation. See fanFromQuad().
+    G.fans=null;
+    if(fanQuads) for(const k in fanQuads){ const f=fanFromQuad(fanQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; G.axes[k]=null; } }
     G.ext=panelExtents(G);
     return G;
   })();
@@ -383,6 +411,27 @@ function analyzeGarment(spec,model){
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
+// fan from four blue dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
+// = from C through the middle of the quad, R0 = mean distance from C to the top corners (the waist arc). Rejected
+// (null) when the sides are near-parallel (< 2 deg) or C lies below the top edge (sides diverging upward).
+function fanFromQuad(P){
+  const [TL,TR,BR,BL]=P, ax=BL[0]-TL[0], ay=BL[1]-TL[1], bx=BR[0]-TR[0], by=BR[1]-TR[1];
+  const la=Math.hypot(ax,ay)||1, lb=Math.hypot(bx,by)||1, den=(ax/la)*(by/lb)-(ay/la)*(bx/lb);
+  if(Math.abs(den)<Math.sin(2*Math.PI/180)) return null;
+  const t=((TR[0]-TL[0])*(by/lb)-(TR[1]-TL[1])*(bx/lb))/den, cx=TL[0]+t*(ax/la), cy=TL[1]+t*(ay/la);
+  const mx=(TL[0]+TR[0]+BR[0]+BL[0])/4, my=(TL[1]+TR[1]+BR[1]+BL[1])/4;
+  const tx=(TL[0]+TR[0])/2-cx, ty=(TL[1]+TR[1])/2-cy;
+  if(tx*(mx-cx)+ty*(my-cy)<=0) return null;   // centre must be on the far side of the top edge
+  let vx=mx-cx, vy=my-cy; const vl=Math.hypot(vx,vy)||1; vx/=vl; vy/=vl;
+  const R0=(Math.hypot(TL[0]-cx,TL[1]-cy)+Math.hypot(TR[0]-cx,TR[1]-cy))/2;
+  return { cx, cy, bx:vx, by:vy, R0 };
+}
+// pixel -> fan frame: LX = signed angle from the bisector x R0 (arc length at the waist), LY = radius - R0
+function fanXY(F,x,y){
+  const dx=x-F.cx, dy=y-F.cy, r=Math.hypot(dx,dy);
+  const th=Math.atan2(dx*F.by-dy*F.bx, dx*F.bx+dy*F.by);   // signed angle from the bisector
+  LX=th*F.R0; LY=r-F.R0;
+}
 // Drawn strokes: 8-connected components of G-maxed pixels -> ordered polyline (BFS from the pixel farthest
 // from the stroke's centroid, bucketed every AX_STEP of geodesic distance), panel = majority id under it.
 function traceDrawn(W,H,ids,linePx){
@@ -442,21 +491,41 @@ function buildAxis(k,px,py,G,wrap){
   for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
     const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
-  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, wP, wN, fP, fN, near, gw, CS };
+  // one normal per NODE (mean of the two adjacent segment normals, unit), interpolated along each segment in
+  // axisUV so the iso-u lines rotate continuously through a bend instead of jumping at every joint.
+  const nx=new Float32Array(n), ny=new Float32Array(n);
+  for(let j=0;j<n;j++){ const a=Math.max(0,j-1), b=Math.min(n-2,j); let vx=dy[a]+dy[b], vy=-dx[a]-dx[b]; const L=Math.hypot(vx,vy)||1; nx[j]=vx/L; ny[j]=vy/L; }
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, nx, ny, wP, wN, fP, fN, near, gw, CS };
 }
 // Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
 // Globals instead of a return value: this runs once per fabric pixel.
 let LX=0, LY=0;
 function axisUV(A,x,y){
-  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let best=Infinity, bj=0, bt=0;
+  // Swept frame: on segment j the normal is n(tau) = n_j + tau (n_j+1 - n_j), tau = t/len, and the iso-u line at tau
+  // passes through p_j + tau len d_j with direction n(tau). The pixel sits on that line when
+  // (r - tau len d) x n(tau) = 0, a quadratic in tau (linear when the two node normals agree, i.e. a straight run).
+  // A polyline with fixed per-segment normals left a wedge (u frozen, print smeared) outside every joint and an overlap
+  // (u jumps, print torn) inside it, v x dtheta wide, repeating every AX_STEP px along a bend: the sawtooth on curved limbs.
+  // With continuous normals the outer side stretches evenly and the inner side compresses evenly, fold-free while |v| < bend radius.
+  const c=A.near[((y/A.CS)|0)*A.gw+((x/A.CS)|0)], n=A.n; let bestKey=Infinity, bj=0, bt=0;
   for(let j=Math.max(0,c-3), je=Math.min(n-2,c+3); j<=je; j++){
-    const rx=x-A.px[j], ry=y-A.py[j], dxj=A.dx[j], dyj=A.dy[j];
-    let t=rx*dxj+ry*dyj; if(j>0&&t<0) t=0; if(j<n-2&&t>A.len[j]) t=A.len[j];   // extrapolate only past the ends
-    const ex=rx-t*dxj, ey=ry-t*dyj, d2=ex*ex+ey*ey;
-    if(d2<best){ best=d2; bj=j; bt=t; LY=A.s[j]+t; LX=ex*dyj-ey*dxj; }
+    const rx=x-A.px[j], ry=y-A.py[j], L=A.len[j], dxj=A.dx[j], dyj=A.dy[j];
+    const ax=A.nx[j], ay=A.ny[j], bx=A.nx[j+1]-ax, by=A.ny[j+1]-ay;
+    const C=rx*ay-ry*ax, B=(rx*by-ry*bx)-L*(dxj*ay-dyj*ax), Aq=-L*(dxj*by-dyj*bx);
+    let tau;
+    if(Math.abs(Aq)<1e-7*Math.abs(B)){ if(B===0) continue; tau=-C/B; }
+    else { const disc=B*B-4*Aq*C; if(disc<0) continue;
+      const q=-0.5*(B+(B>=0?1:-1)*Math.sqrt(disc)), t1=q/Aq, t2=q!==0?C/q:t1, t0=(rx*dxj+ry*dyj)/L;   // stable pair, keep the root nearest the plain projection
+      tau=Math.abs(t1-t0)<=Math.abs(t2-t0)?t1:t2; }
+    let pen=0;   // extrapolate only past the axis ends; inside, a tau outside [0,1] belongs to a neighbour segment
+    if(tau<0){ if(j>0){ pen=-tau*L; tau=0; } } else if(tau>1){ if(j<n-2){ pen=(tau-1)*L; tau=1; } }
+    const nxT=ax+tau*bx, nyT=ay+tau*by, nl=Math.hypot(nxT,nyT)||1;
+    const v=((rx-tau*L*dxj)*nxT+(ry-tau*L*dyj)*nyT)/nl;
+    const key=pen>0 ? 1e12+pen : Math.abs(v);   // a segment that owns the pixel wins; several (fold) -> nearest axis; none -> least overshoot
+    if(key<bestKey){ bestKey=key; bj=j; bt=tau; LY=A.s[j]+tau*L; LX=v; }
   }
   // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
-  const fr=Math.max(0,Math.min(1,bt/A.len[bj])), j1=bj+1, pos=LX>=0;
+  const fr=bt, j1=bj+1, pos=LX>=0;
   const wA=pos?A.wP:A.wN, fA=pos?A.fP:A.fN;
   const w=wA[bj]+(wA[j1]-wA[bj])*fr, f=fA[bj]+(fA[j1]-fA[bj])*fr;
   if(f>0.001&&w>1){ const a=Math.abs(LX), r=a/w;
@@ -466,6 +535,8 @@ function axisUV(A,x,y){
 // Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
 // an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
 function localXY(G,k,x,y){
+  const F=G.fans&&G.fans[k];   // a fan panel (four blue dots on the map) replaces axis / rotation
+  if(F){ fanXY(F,x,y); return; }
   const A=G.axes[k];
   if(A) axisUV(A,x,y);
   else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
@@ -485,11 +556,42 @@ function panelExtents(G){
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
 const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFrequently:true});
 const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
+
+// ---- fold displacement + feathered edge (constants at the output scale, x SS inside compose) ----
+// Tone is a plain multiply, print x mock/Fref. A Photoshop chain (shadow Linear Burn 0.25, high-pass Soft Light 0.8)
+// was measured on 2026-09-16 and dropped: 6-13 levels in the folds, 2 for the Soft Light, neither visible at normal size.
+const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a luminance-driven shift moved the print
+                     // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
+const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
+const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
+const FEATHER=3;     // edge blend radius, px: the print fades over this band across the panel boundary instead of a hard cut
+// masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
+// the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
+function blurMasked(W,x0,y0,x1,y1,r,src,msk){
+  const BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
+  for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++,j++) if(msk(i)){ v[j]=src(i); m[j]=1; }
+  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+  const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
+  blur(v); blur(m);
+  for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
+  return v;
+}
+// Grow fabric ids (1..8) outward by f pixels (4-neighbour), so a feathered edge has a panel to sample. Trim (9) neither grows nor is overwritten.
+function dilateIds(ids,W,H,x0,y0,x1,y1,f){
+  const ok=q=>q>=1&&q<=8; let cur=ids;
+  for(let p=0;p<f;p++){ const nx=Uint8Array.from(cur);
+    for(let y=y0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++){ if(cur[i]!==0) continue;
+      let k=0; if(x>0&&ok(cur[i-1]))k=cur[i-1]; else if(x<W-1&&ok(cur[i+1]))k=cur[i+1]; else if(y>0&&ok(cur[i-W]))k=cur[i-W]; else if(y<H-1&&ok(cur[i+W]))k=cur[i+W];
+      if(k) nx[i]=k; }
+    cur=nx; }
+  return cur;
+}
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
 // trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
 function compose(G, pat, ratio, trim){
   const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
-  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];   // fabric white per channel (see analyzeGarment)
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
@@ -501,42 +603,60 @@ function compose(G, pat, ratio, trim){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // The mock is drawn straight into the output canvas and its pixels edited in place: background + (when
-  // no trim colour) trim pixels stay as the mock, and no second full-size raster or copy is made.
+
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
   const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
-  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){
-    const k=ids[i]; if(k===0||k>9) continue;
+  // Fold displacement field: low-pass of the mock luminance over the box (fabric + trim only). Feather: fraction
+  // of fabric among non-trim pixels over the box grown by the feather, + ids dilated so the outside band has a panel to sample.
+  // Built per compose (one pass each over the box), nothing is cached on the garment.
+  const fpx=Math.round(FEATHER*SS), dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
+  const ex0=Math.max(0,bx0-fpx), ey0=Math.max(0,by0-fpx), ex1=Math.min(W-1,bx1+fpx), ey1=Math.min(H-1,by1+fpx), EW=ex1-ex0+1;
+  const dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
+  const idsF=dilateIds(ids,W,H,ex0,ey0,ex1,ey1,fpx), alpha=blurMasked(W,ex0,ey0,ex1,ey1,fpx, i=>(ids[i]>=1&&ids[i]<=8)?1:0, i=>ids[i]!==9);
+
+  for(let y=ey0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++){
+    const k0=ids[i], k=idsF[i]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
-    if(k===9){
+    if(k0===9){
       if(!trim) continue;
       const lum=(r*299+g*587+b*114)/1000; let f;
-      if(tlo){ // model view (tlo is only built for one): knee (top) and floor (bottom) act on the low-pass only (studio glare, lit collar, shadowed
-                    // cuff); the detail on top of it (weave, stitching, fold edges) is the mock's own ratio lum/lo and survives untouched
+      if(tlo){
         const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
         if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
         else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
         f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
-      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }       // flatlay: hard clamp both ends
+      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }
       out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
       continue;
     }
-    localXY(G,k,x,y);
-    // bilinear sample of the tiled strip (wraps on both axes; the >= guards catch float round-up to exactly PW/PH)
+    if(k===9) continue;
+    // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
+    // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
+    // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
+    // where it flattens toward a ridge it is traversed slower (the ridge shows the print at full size).
+    let xs=x, ys=y;
+    if(x>bx0&&x<bx1&&y>by0&&y<by1){ const j=(y-by0)*BW+(x-bx0);
+      let gx=(dl[j+1]-dl[j-1])*(0.5/DISP_GREF), gy=(dl[j+BW]-dl[j-BW])*(0.5/DISP_GREF);
+      if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
+      xs=x+gx*amp; ys=y+gy*amp; }
+    localXY(G,k,xs,ys);
     let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }   // wrong side of the print -> mirror
+    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }
     const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
     const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
     const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
     let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
         pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
         pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
-    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }  // faint bleed-through (0.6 x 210)
-    let fr=r*iFr, fg=g*iFg, fb=b*iFb; if(fr>1) fr=1; if(fg>1) fg=1; if(fb>1) fb=1;   // multiply, normalised to the fabric white
-    out[o]=(pr*fr)|0; out[o+1]=(pg*fg)|0; out[o+2]=(pb*fb)|0;
+    if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
+    let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
+    let R=pr*Pr, Gc=pg*Pg, Bc=pb*Pb;
+    // feather: the edge pixel keeps a share of the mock (inside) or takes a share of the print (outside)
+    const a=alpha[(y-ey0)*EW+(x-ex0)]; if(a<0.999){ R=r+a*(R-r); Gc=g+a*(Gc-g); Bc=b+a*(Bc-b); }
+    out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
   }
 
   bctx.putImageData(img,0,0);

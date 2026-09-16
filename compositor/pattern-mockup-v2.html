@@ -505,7 +505,8 @@ function compose(G, pat, ratio, trim, opt){
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
   // v2: homography per panel replaces axis / PCA for that panel; extents re-measured because the frame changed
-  G.H=buildQuads((opt.quads&&opt.quads[G.key])||G.mapQuads,W,H);   // v2: quads come from the map's corner dots
+  // v2: quads come from the map's corner dots. opt.quads === false switches them off (the v1 render); an object overrides.
+  G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H);
   const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
@@ -596,10 +597,10 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
 // Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
-function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }
+function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
 // v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
 // With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
-const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:null, showQuad:false };
+const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]
 const ENGINES=[ ['v1 · multiply', V1_OPT, 'v1'], ['v2 · tone + displace + feather', null, 'v2'] ];
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pattern Mockup v2 (demo)</title>
+<title>Pattern Mockup v2 · Twirl Dress</title>
 <style>
   :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
   @media (prefers-color-scheme: dark){
@@ -60,13 +60,8 @@
 <div class="wrap">
   <div class="controls">
     <div class="field">
-      <label for="garment">Garment</label>
-      <select id="garment">
-        <option value="romper">Convertible Zippy Romper</option>
-        <option value="pajama">Two-Piece Pajama Set</option>
-        <option value="menPajama">Men's Pajama Set</option>
-        <option value="womenPajama">Women's Pajama Set</option>
-      </select>
+      <label>Garment</label>
+      <div class="file"><span style="color:var(--ink)">Twirl Dress Bodysuit · 1 on-model view</span></div>
     </div>
 
     <div class="field">
@@ -78,66 +73,16 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="trimHex">Trim color</label>
-      <div class="trim">
-        <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
-        <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
-      </div>
-    </div>
-
-    <div class="field" id="genderField">
-      <div class="scale-head"><label for="gender">Gender</label><span class="hint" id="genderHint">From the trim.</span></div>
-      <select id="gender">
-        <option value="boy">Boy</option>
-        <option value="girl">Girl</option>
-        <option value="neutral" selected>Neutral</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
-      <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
-    </div>
-
     <div class="group">
-      <h3>1 · Tone nếp nhăn</h3>
-      <div class="field">
-        <label for="tone">Công thức</label>
-        <select id="tone">
-          <option value="ps" selected>Photoshop: LB → shadow LB → highlight SL</option>
-          <option value="mul">v1: multiply / Fref</option>
-        </select>
-      </div>
-      <div class="field"><div class="scale-head"><label for="lbO">Pattern Linear Burn</label><span class="val" id="lbOVal">0.90</span></div><input type="range" id="lbO" min="0" max="1" step="0.05" value="0.9"></div>
-      <div class="field"><div class="scale-head"><label for="shO">Shadow Linear Burn</label><span class="val" id="shOVal">0.60</span></div><input type="range" id="shO" min="0" max="1" step="0.05" value="0.6"></div>
-      <div class="field"><div class="scale-head"><label for="hiO">Highlight Soft Light</label><span class="val" id="hiOVal">1.00</span></div><input type="range" id="hiO" min="0" max="1" step="0.05" value="1"></div>
-      <label class="check"><input type="checkbox" id="autoSh" checked> Giảm shadow khi pattern đậm</label>
-      <label class="check"><input type="checkbox" id="fref" checked> Chuẩn hoá trắng vải (Fref) trước khi blend</label>
-    </div>
-
-    <div class="group">
-      <h3>2 · Displace nếp nhăn</h3>
-      <div class="field"><div class="scale-head"><label for="dispAmp">Độ dịch (px)</label><span class="val" id="dispAmpVal">8</span></div><input type="range" id="dispAmp" min="0" max="30" step="1" value="8"></div>
-      <div class="field"><div class="scale-head"><label for="dispBlur">Blur map (px)</label><span class="val" id="dispBlurVal">6</span></div><input type="range" id="dispBlur" min="1" max="30" step="1" value="6"></div>
-    </div>
-
-    <div class="group">
-      <h3>3 · Mép mềm</h3>
-      <div class="field"><div class="scale-head"><label for="feather">Feather (px)</label><span class="val" id="featherVal">3</span></div><input type="range" id="feather" min="0" max="12" step="1" value="3"></div>
-    </div>
-
-    <div class="group">
-      <h3>4 · Hình thang (homography)</h3>
+      <h3>Hình thang (homography)</h3>
       <div class="field">
         <label for="quadPanel">Panel id</label>
         <div class="row">
-          <select id="quadPanel"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+          <select id="quadPanel"><option value="1">1 · Thân</option><option value="2">2 · Tay trái</option><option value="3">3 · Tay phải</option><option value="4" selected>4 · Chân váy</option><option value="5">5 · Băng đô</option><option value="6">6 · Nơ</option></select>
           <button type="button" class="secondary" id="quadPick">Chọn 4 góc</button>
           <button type="button" class="secondary" id="quadClear">Xoá</button>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="showQuad" checked> Vẽ khung lên ảnh</label>
     </div>
 
     <div class="actions">
@@ -153,10 +98,8 @@
 <script>
 'use strict';
 // ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
-// CDN, the V() helper, the GARMENTS table, FLAT_KEYS and the model-pick helpers below are page-local:
-// this dev tool lists more garments (the second pajama flatlay + men/women pajama) than the production
-// form, which stays on romper + the kids pajama. The compositor ENGINE that reads them is byte-identical
-// in both files (the SHARED BLOCK further down, kept equal by sync-shared.ps1) and never references these.
+// CDN, the V() helper, the GARMENTS table and the helpers below are page-local. This demo carries a single
+// garment (twirl dress, one on-model view); the engine below never references these names.
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
@@ -169,46 +112,21 @@ const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // because the photos are cropped very differently (a body spanning 40% of the frame vs 99%). Within a
 // garment the values keep checks-per-chest equal: r scales with the top's torso width on the map
 // (forms/motif-r.py derives them from one anchor view; romper keeps its 2026-09-10 seed values).
+// One garment only: the twirl dress bodysuit, one on-model view. Mock = the product photo with the print
+// erased to plain white (Gemini nano banana pro, 2026-09-16); map traced on that mock with SAM
+// (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
-  romper:{ flats:[ V('zum-flatlay-mock-romper.jpg?v=1788601399','zum-flatlay-map-romper.png?v=1788601403',0.853) ],
-           models:[ V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
-                    V('zum-model-romper-2.jpg?v=1786088636','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380),
-                    V('zum-model-romper-3.jpg?v=1788949471','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
-                    V('zum-model-romper-4.jpg?v=1786080138','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
-  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1788601402','zum-flatlay-map-pajama.png?v=1788601405',0.764),
-                   V('zum-flatlay-mock-pajama-long.png?v=1789030255','zum-flatlay-map-pajama-long.png?v=1789030256',0.784) ],
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1788942431','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
-                    V('zum-model-pajama-boy-2.jpg?v=1786079965','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
-                    V('zum-model-pajama-boy-3.jpg?v=1786079970','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.611),
-                    V('zum-model-pajama-girl-1.jpg?v=1786088657','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
-                    V('zum-model-pajama-girl-2.jpg?v=1786087973','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
-                    V('zum-model-pajama-girl-3.jpg?v=1788840850','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476) ] },
-  // men's & women's pajama: two flatlays (the white mockup + the flat-laid -1 photo), then six on-model
-  // photos (-2..-7).
-  menPajama:{ flats:[ V('zum-flatlay-mock-men-pajama.png?v=1789030326','zum-flatlay-map-men-pajama.png?v=1789030328',0.758),
-                      V('zum-model-pajama-men-1.jpg?v=1789030330','zum-flatlay-model-map-pajama-men-1.png?v=1789030345',1.240) ],
-              models:[ V('zum-model-pajama-men-2.jpg?v=1789030332','zum-flatlay-model-map-pajama-men-2.png?v=1789030347',0.667),
-                       V('zum-model-pajama-men-3.jpg?v=1789030335','zum-flatlay-model-map-pajama-men-3.png?v=1789030348',1.112),
-                       V('zum-model-pajama-men-4.jpg?v=1789030337','zum-flatlay-model-map-pajama-men-4.png?v=1789030351',1.544),
-                       V('zum-model-pajama-men-5.jpg?v=1789030339','zum-flatlay-model-map-pajama-men-5.png?v=1789030352',1.321),
-                       V('zum-model-pajama-men-6.jpg?v=1789030341','zum-flatlay-model-map-pajama-men-6.png?v=1789030354',1.404),
-                       V('zum-model-pajama-men-7.jpg?v=1789030343','zum-flatlay-model-map-pajama-men-7.png?v=1789030356',1.637) ] },
-  womenPajama:{ flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789030366','zum-flatlay-map-women-pajama.png?v=1789030368',0.779),
-                        V('zum-model-pajama-women-1.jpg?v=1789030369','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',1.136) ],
-                models:[ V('zum-model-pajama-women-2.jpg?v=1789030371','zum-flatlay-model-map-pajama-women-2.png?v=1789030385',0.693),
-                         V('zum-model-pajama-women-3.jpg?v=1789030373','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',1.055),
-                         V('zum-model-pajama-women-4.jpg?v=1789030375','zum-flatlay-model-map-pajama-women-4.png?v=1789030388',1.569),
-                         V('zum-model-pajama-women-5.jpg?v=1789030377','zum-flatlay-model-map-pajama-women-5.png?v=1789030390',0.952),
-                         V('zum-model-pajama-women-6.jpg?v=1789030379','zum-flatlay-model-map-pajama-women-6.png?v=1789030392',1.133),
-                         V('zum-model-pajama-women-7.jpg?v=1789030381','zum-flatlay-model-map-pajama-women-7.png?v=1789030393',1.184) ] },
+  twirlDress:{ flats:[],
+               models:[ V('zum-model-twirl-dress-1.png?v=1789547824','zum-flatlay-model-map-twirl-dress-1.png?v=1789547829',1.3) ] },
 };
+const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
-const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
+const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
 // which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
-const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
+const modelsFor=g=>g.models;
 // ===== END GARMENT DATA =====
 
 // ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
@@ -663,7 +581,6 @@ function compose(G, pat, ratio, trim, opt){
 // ===== page: dev tool UI (this file only) =====
 const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
-function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 
 let patImg=null, busy=false;
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
@@ -671,13 +588,9 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 // v2 options from the panel; quads persist per map URL in localStorage
 const QK='pm2-quads'; let QUADS={}; try{ QUADS=JSON.parse(localStorage.getItem(QK)||'{}')||{}; }catch{}
 const saveQuads=()=>{ try{ localStorage.setItem(QK,JSON.stringify(QUADS)); }catch{} };
-function readOpt(){ return { tone:$('tone').value, lbO:+$('lbO').value, shO:+$('shO').value, hiO:+$('hiO').value,
-  autoSh:$('autoSh').checked, fref:$('fref').checked, dispAmp:+$('dispAmp').value, dispBlur:+$('dispBlur').value,
-  feather:+$('feather').value, quads:QUADS, showQuad:$('showQuad').checked }; }
-for(const id of ['lbO','shO','hiO','dispAmp','dispBlur','feather']){
-  const fmt=v=>(id==='dispAmp'||id==='dispBlur'||id==='feather')?String(v):v.toFixed(2);
-  $(id).addEventListener('input', e=>{ $(id+'Val').textContent=fmt(parseFloat(e.target.value)); });
-}
+// Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
+// shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
+function readOpt(){ return { ...V2_DEFAULT, quads:QUADS, showQuad:false }; }
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -704,10 +617,8 @@ async function generate(){
   msg('Generating…'); await nextPaint();
   const t0=performance.now();
   try{
-    const g=GARMENTS[$('garment').value];
-    const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const scale=parseFloat($('scale').value), opt=readOpt();
-    const mdls=modelsFor(g, $('gender').value);
+    const g=GARMENTS[GKEY], trim=null, scale=1, opt=readOpt();
+    const mdls=modelsFor(g);
     clearShots(results.flats); clearShots(results.models);
     for(let i=0;i<g.flats.length;i++){
       if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
@@ -748,32 +659,12 @@ $('view').addEventListener('click', e=>{
   generate();
 });
 $('quadClear').addEventListener('click', ()=>{
-  const g=GARMENTS[$('garment').value]; let n=0;
+  const g=GARMENTS[GKEY]; let n=0;
   for(const v of [...g.flats,...g.models]) if(QUADS[v.map]){ delete QUADS[v.map]; n++; }
   saveQuads(); pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
   msg(n?'Đã xoá hình thang của '+n+' ảnh. Generate lại để thấy.':'Garment này chưa có hình thang nào.');
 });
 
-// --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---
-let genderTouched=false;
-function applyGenderFromTrim(){
-  if(genderTouched || $('gender').disabled) return;
-  const g=genderFromHex($('trimHex').value); if(!g) return;
-  $('gender').value=g; $('genderHint').style.display='';
-}
-$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
-const GENDERLESS=new Set(['menPajama','womenPajama']);
-function syncGenderField(){
-  const off=GENDERLESS.has($('garment').value);
-  $('gender').disabled=off;
-  const f=$('genderField'); f.style.opacity=off?'0.4':''; f.style.pointerEvents=off?'none':'';
-  if(off) $('genderHint').style.display='none';
-}
-$('garment').addEventListener('change', syncGenderField);
-
-$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
-$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
-$('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -783,9 +674,7 @@ $('pattern').addEventListener('change', async e=>{
     const img=await decodeFile(f);
     if(patImg&&patImg.close) patImg.close();
     patImg=img;
-    const c=dominantColor(img), t=c&&trimHexFrom(...c);
-    if(t){ setTrim(t); applyGenderFromTrim(); }
-    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
+    msg('Pattern '+img.width+'×'+img.height);
   }catch{ msg('Could not read that image.'); }
 });
 $('go').addEventListener('click', generate);
@@ -799,8 +688,6 @@ $('dl').addEventListener('click', async ()=>{
     else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
   }
 });
-applyGenderFromTrim();
-syncGenderField();
 </script>
 </script>
 

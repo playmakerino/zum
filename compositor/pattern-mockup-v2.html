@@ -441,7 +441,10 @@ const big=document.createElement('canvas'), bctx=big.getContext('2d',{willReadFr
 const disp=document.createElement('canvas'), dctx=disp.getContext('2d');
 
 // ---- v2 helpers ----
-const V2_DEFAULT={ tone:'ps', lbO:0.9, shO:0.6, hiO:1.0, autoSh:true, fref:true, dispAmp:8, dispBlur:6, feather:3, quads:null, showQuad:true };
+// lbO 1.0: at 0.9 a white mock bleeds 10% white into the print (pale). hiO 0: Soft Light with the raw mock as the top layer
+// turns a white fabric into sqrt(x) (0.19 -> 0.43), washing the print out; after Fref there is no highlight above the fabric
+// white to lift anyway. Shadow LB 0.6 is what keeps the folds deeper than v1's multiply.
+const V2_DEFAULT={ tone:'ps', lbO:1.0, shO:0.6, hiO:0, autoSh:true, fref:true, dispAmp:8, dispBlur:6, feather:3, quads:null, showQuad:true };
 // Photoshop tone chain for one channel (0..1): pattern p Linear-Burned onto the mock P at lb opacity, then
 // the mock Linear-Burned again at sh (the "shadow" layer), then the mock Soft-Lighted at hi (the "highlight" layer).
 function toneP(p,P,lb,sh,hi){
@@ -595,14 +598,14 @@ const msg=m=>{ $('msg').textContent=m; };
 let patImg=null, busy=false;
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-// Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
+// Fixed levels (the former sliders/checkboxes): Photoshop tone LB 1.0 / shadow LB 0.6 / highlight SL off,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
 function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
 // v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
 // With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
 const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]
-const ENGINES=[ ['v1 · multiply', V1_OPT, 'v1'], ['v2 · tone + displace + feather', null, 'v2'] ];
+const ENGINES=[ ['v1 · multiply', V1_OPT, 'v1'], ['v2 · linear burn + displace + feather', null, 'v2'] ];
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));

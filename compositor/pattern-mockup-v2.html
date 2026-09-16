@@ -90,9 +90,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
-// quads (optional): per-panel homography corners {id:[[x,y]x4]} normalised to the mock, TL,TR,BR,BL. Garment data,
-// kept here with the view. Twirl dress: the skirt panel carries one (waist seam = top edge, hem ends = bottom corners).
-const V=(mock,map,r,quads)=>({ mock:CDN+mock, map:CDN+map, r, quads:quads||null });
+// Homography corners live IN THE MAP (B >= 250 dots on the panel, 4 per panel), not here: whoever traces a map sets
+// them without touching this file. Map convention: R = id x 20, G >= 250 = grain axis stroke, B >= 250 = corner dot.
+const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
 // first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
@@ -105,13 +105,9 @@ const V=(mock,map,r,quads)=>({ mock:CDN+mock, map:CDN+map, r, quads:quads||null 
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789548366','zum-flatlay-model-map-twirl-dress-1.png?v=1789548372',1,
-                          // skirt (id 4) as one tilted plane: waist-left, waist-right, hem-right, hem-left, read off the map
-                          { 4:[[0.4365,0.5392],[0.7052,0.5542],[0.9083,0.7842],[0.2906,0.7758]] }) ] },
+               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789549750',1) ] },
 };
 const GKEY='twirlDress';
-// quads keyed by map URL, the form compose() reads (opt.quads[G.key])
-const QUADS={}; for(const g of Object.values(GARMENTS)) for(const v of [...g.flats,...g.models]) if(v.quads) QUADS[v.map]=v.quads;
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
@@ -234,6 +230,22 @@ function genderFromHex(v){
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
+function mapQuadsFrom(px,ids,W,H){
+  if(!px.length) return null;
+  const inSet=new Set(px), seen=new Set(), blobs=[];
+  for(const s0 of px){ if(seen.has(s0)) continue;
+    const st=[s0]; seen.add(s0); let n=0, sx=0, sy=0; const kc=new Uint32Array(10);
+    while(st.length){ const i=st.pop(); n++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
+      for(const j of [i-1,i+1,i-W,i+W]) if(j>=0&&j<W*H&&inSet.has(j)&&!seen.has(j)){ seen.add(j); st.push(j); } }
+    let k=0; for(let q=1;q<=8;q++) if(kc[q]>kc[k]) k=q;
+    blobs.push({ k, n, x:sx/n, y:sy/n }); }
+  const out={}; let any=false;
+  for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
+    const mx=b.reduce((a,o)=>a+o.x,0)/4, my=b.reduce((a,o)=>a+o.y,0)/4;
+    b.sort((a,c)=>((Math.atan2(a.y-my,a.x-mx)*180/Math.PI+135+720)%360)-((Math.atan2(c.y-my,c.x-mx)*180/Math.PI+135+720)%360));
+    out[k]=b.map(o=>[o.x/W,o.y/H]); any=true; }
+  return any?out:null;
+}
 function analyzeGarment(spec,model){
   const key=spec.map+(model?'|model':'');
   if(garmentCache.has(key)){ const p=garmentCache.get(key); garmentCache.delete(key); garmentCache.set(key,p); return p; }
@@ -251,10 +263,12 @@ function analyzeGarment(spec,model){
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
     const linePx=[];                    // every G-maxed pixel, traced into strokes below
+    const cornerPx=[];                  // v2: every B-maxed fabric pixel = a homography corner dot baked into the map
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      if(xd[p+2]>=AXIS_MIN&&k>=1&&k<=8) cornerPx.push(i);
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
@@ -263,6 +277,9 @@ function analyzeGarment(spec,model){
       else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
+    // v2: corner dots -> quads. Dots are 4-connected blobs; each blob's panel = the id under it. A panel with exactly
+    // 4 blobs gets a quad ordered TL,TR,BR,BL by angle around their mean (map convention: R = id, G = axis, B = corner).
+    const mapQuads=mapQuadsFrom(cornerPx,ids,W,H);
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
     // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
@@ -293,7 +310,7 @@ function analyzeGarment(spec,model){
       const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
       blur(v); blur(m);
       tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
-    const G={ key:spec.map, H:null, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    const G={ key:spec.map, H:null, mapQuads, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
@@ -488,7 +505,7 @@ function compose(G, pat, ratio, trim, opt){
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
   // v2: homography per panel replaces axis / PCA for that panel; extents re-measured because the frame changed
-  G.H=buildQuads(opt.quads&&opt.quads[G.key],W,H);
+  G.H=buildQuads((opt.quads&&opt.quads[G.key])||G.mapQuads,W,H);   // v2: quads come from the map's corner dots
   const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
@@ -579,7 +596,7 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
 // Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
-function readOpt(){ return { ...V2_DEFAULT, quads:QUADS, showQuad:false }; }
+function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }
 // v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
 // With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
 const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:null, showQuad:false };

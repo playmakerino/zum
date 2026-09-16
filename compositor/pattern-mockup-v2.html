@@ -100,9 +100,9 @@ const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789551352',1,'Dress'),
-                        // same mock, same four dots but cyan (G+B) = fan frame instead of perspective, for comparison
-                        V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789552426',1,'Dress fan'),
+               // skirt = fan (four cyan dots in the map). The perspective-dot map (zum-flatlay-model-map-twirl-dress-1.png
+               // ?v=1789551352) is kept on Shopify but no longer rendered: the fan was judged better on 2026-09-16.
+               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789552426',1,'Dress'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
                         V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };

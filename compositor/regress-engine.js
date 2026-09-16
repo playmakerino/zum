@@ -110,7 +110,7 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
         small.getContext('2d').drawImage(disp, 0, 0, small.width, small.height);
         const f = path.join(arg2, key + '-' + name + '.jpg');
         fs.writeFileSync(f, small.toBuffer('image/jpeg', { quality: 0.85 }));
-        console.log(f, 'r=' + r.toFixed(3) + (G.psfW !== undefined ? ' psfW=' + G.psfW.toFixed(2) + ' blurSigma=' + G.blurSigma.toFixed(2) : ''));
+        console.log(f, 'r=' + r.toFixed(3));
       }
     }
     return;

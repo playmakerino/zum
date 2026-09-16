@@ -238,9 +238,13 @@ function mapQuadsFrom(px,ids,W,H){
     blobs.push({ k, n, x:sx/n, y:sy/n }); }
   const out={}; let any=false;
   for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
+    // clockwise on screen (y down) = ascending atan2 about the mean; then rotate so the top-left dot (min x+y) leads.
+    // (A fixed -135 deg start was fragile: a dot sitting exactly there flipped to the end.)
     const mx=b.reduce((a,o)=>a+o.x,0)/4, my=b.reduce((a,o)=>a+o.y,0)/4;
-    b.sort((a,c)=>((Math.atan2(a.y-my,a.x-mx)*180/Math.PI+135+720)%360)-((Math.atan2(c.y-my,c.x-mx)*180/Math.PI+135+720)%360));
-    out[k]=b.map(o=>[o.x/W,o.y/H]); any=true; }
+    b.sort((a,c)=>Math.atan2(a.y-my,a.x-mx)-Math.atan2(c.y-my,c.x-mx));
+    let s0=0; for(let j=1;j<4;j++) if(b[j].x+b[j].y<b[s0].x+b[s0].y) s0=j;
+    const ord=[0,1,2,3].map(j=>b[(s0+j)%4]);
+    out[k]=ord.map(o=>[o.x/W,o.y/H]); any=true; }
   return any?out:null;
 }
 function analyzeGarment(spec,model){

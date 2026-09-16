@@ -85,8 +85,8 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
-// Homography corners live IN THE MAP (B >= 250 dots on the panel, 4 per panel), not here: whoever traces a map sets
-// them without touching this file. Map convention: R = id x 20, G >= 250 = grain axis stroke, B >= 250 = corner dot.
+// Corner dots live IN THE MAP, 4 per panel, not here: whoever traces a map sets them without touching this file.
+// Map convention: R = id x 20 · G >= 250 stroke = grain axis · B >= 250 dot = perspective quad · G+B >= 250 dot = fan.
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
@@ -101,6 +101,8 @@ const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 const GARMENTS={
   twirlDress:{ flats:[],
                models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789551352',1,'Dress'),
+                        // same mock, same four dots but cyan (G+B) = fan frame instead of perspective, for comparison
+                        V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789552426',1,'Dress fan'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
                         V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };
@@ -227,23 +229,25 @@ function genderFromHex(v){
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
-function mapQuadsFrom(px,ids,W,H){
-  if(!px.length) return null;
+function mapQuadsFrom(pxRaw,ids,W,H){
+  if(!pxRaw.length) return null;
+  const fanOf=new Map(); const px=pxRaw.map(v=>{ const i=v<0?-1-v:v; fanOf.set(i,v<0); return i; });
   const inSet=new Set(px), seen=new Set(), blobs=[];
   for(const s0 of px){ if(seen.has(s0)) continue;
-    const st=[s0]; seen.add(s0); let n=0, sx=0, sy=0; const kc=new Uint32Array(10);
-    while(st.length){ const i=st.pop(); n++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
+    const st=[s0]; seen.add(s0); let n=0, nf=0, sx=0, sy=0; const kc=new Uint32Array(10);
+    while(st.length){ const i=st.pop(); n++; if(fanOf.get(i)) nf++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
       for(const j of [i-1,i+1,i-W,i+W]) if(j>=0&&j<W*H&&inSet.has(j)&&!seen.has(j)){ seen.add(j); st.push(j); } }
     let k=0; for(let q=1;q<=8;q++) if(kc[q]>kc[k]) k=q;
-    blobs.push({ k, n, x:sx/n, y:sy/n }); }
+    blobs.push({ k, n, nf, x:sx/n, y:sy/n }); }
   const out={}; let any=false;
   for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
+    const fan=b.reduce((a,o)=>a+o.nf,0)*2>b.reduce((a,o)=>a+o.n,0);   // cyan dots (G+B) = fan, blue dots (B) = perspective
     // Garment panels hang: the two highest dots are the top edge (TL = left of them), the two lowest the bottom edge
     // (BR = right of them). Angle-based ordering failed twice (a dot exactly at -135 deg; a hem-left dot placed higher
     // than the waist-left dot so min x+y picked the wrong one).
     b.sort((a,c)=>a.y-c.y);
     const top=b.slice(0,2).sort((a,c)=>a.x-c.x), bot=b.slice(2).sort((a,c)=>a.x-c.x);
-    out[k]=[top[0],top[1],bot[1],bot[0]].map(o=>[o.x/W,o.y/H]); any=true; }
+    out[k]=[top[0],top[1],bot[1],bot[0]].map(o=>[o.x/W,o.y/H]); out[k].fan=fan; any=true; }
   return any?out:null;
 }
 function analyzeGarment(spec,model){
@@ -267,8 +271,8 @@ function analyzeGarment(spec,model){
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
-      const k=((xd[p]+10)/20)|0, axis=xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
-      if(xd[p+2]>=AXIS_MIN&&k>=1&&k<=8) cornerPx.push(i);
+      const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
+      if(dot&&k>=1&&k<=8) cornerPx.push(xd[p+1]>=AXIS_MIN ? -1-i : i);   // negative = fan dot (G and B maxed), positive = perspective dot (B only)
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
@@ -316,6 +320,11 @@ function analyzeGarment(spec,model){
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
     // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
+    // v2: a panel whose four dots are cyan (G and B maxed) is a fan, not a perspective quad: centre = where the two
+    // side edges TL-BL / TR-BR meet, tile x = arc length at the waist radius, tile y = radius. See fanFromQuad().
+    G.fans=null; G.fanOn=true;
+    if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
+      const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
     return G;
   })();
@@ -335,6 +344,27 @@ function analyzeGarment(spec,model){
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
+// v2 fan from four cyan dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
+// = from C through the middle of the quad, R0 = mean distance from C to the top corners (the waist arc). Rejected
+// (null) when the sides are near-parallel (< 2 deg) or C lies below the top edge (sides diverging upward).
+function fanFromQuad(P){
+  const [TL,TR,BR,BL]=P, ax=BL[0]-TL[0], ay=BL[1]-TL[1], bx=BR[0]-TR[0], by=BR[1]-TR[1];
+  const la=Math.hypot(ax,ay)||1, lb=Math.hypot(bx,by)||1, den=(ax/la)*(by/lb)-(ay/la)*(bx/lb);
+  if(Math.abs(den)<Math.sin(2*Math.PI/180)) return null;
+  const t=((TR[0]-TL[0])*(by/lb)-(TR[1]-TL[1])*(bx/lb))/den, cx=TL[0]+t*(ax/la), cy=TL[1]+t*(ay/la);
+  const mx=(TL[0]+TR[0]+BR[0]+BL[0])/4, my=(TL[1]+TR[1]+BR[1]+BL[1])/4;
+  const tx=(TL[0]+TR[0])/2-cx, ty=(TL[1]+TR[1])/2-cy;
+  if(tx*(mx-cx)+ty*(my-cy)<=0) return null;   // centre must be on the far side of the top edge
+  let vx=mx-cx, vy=my-cy; const vl=Math.hypot(vx,vy)||1; vx/=vl; vy/=vl;
+  const R0=(Math.hypot(TL[0]-cx,TL[1]-cy)+Math.hypot(TR[0]-cx,TR[1]-cy))/2;
+  return { cx, cy, bx:vx, by:vy, R0 };
+}
+// pixel -> fan frame: LX = signed angle from the bisector x R0 (arc length at the waist), LY = radius - R0
+function fanXY(F,x,y){
+  const dx=x-F.cx, dy=y-F.cy, r=Math.hypot(dx,dy);
+  const th=Math.atan2(dx*F.by-dy*F.bx, dx*F.bx+dy*F.by);   // signed angle from the bisector
+  LX=th*F.R0; LY=r-F.R0;
+}
 // Drawn strokes: 8-connected components of G-maxed pixels -> ordered polyline (BFS from the pixel farthest
 // from the stroke's centroid, bucketed every AX_STEP of geodesic distance), panel = majority id under it.
 function traceDrawn(W,H,ids,linePx){
@@ -418,7 +448,8 @@ function axisUV(A,x,y){
 // Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
 // an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
 function localXY(G,k,x,y){
-  const Q=G.H&&G.H[k];   // v2: a picked quad replaces the axis / rotation for that panel
+  const F=G.fanOn&&G.fans&&G.fans[k], Q=G.H&&G.H[k];   // v2: fan (two strokes) and/or quad (four dots) replace axis / rotation
+  if(F){ fanXY(F,x,y); if(!Q) return; x=LX; y=LY; }     // a quad on a fan panel is perspective applied to the fan frame
   if(Q){ const h=Q.h, d=h[6]*x+h[7]*y+1; LX=(h[0]*x+h[1]*y+h[2])/d-Q.w/2; LY=(h[3]*x+h[4]*y+h[5])/d-Q.hh/2; return; }
   const A=G.axes[k];
   if(A) axisUV(A,x,y);
@@ -491,9 +522,10 @@ function homography(src,dst){
 }
 // quads {k:[[nx,ny]x4]} (normalised to the mock, TL TR BR BL) -> {k:{h,w,hh}}: the quad maps onto a w x hh
 // rectangle, w = the longer of the top/bottom edges, hh = the longer side, so the wide end keeps the flat motif size.
-function buildQuads(q,W,H){
+function buildQuads(q,W,H,G){
   if(!q) return null; const out={}; let any=false;
-  for(const k in q){ const P=q[k].map(([x,y])=>[x*W,y*H]), L=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  for(const k in q){ const F=G&&G.fanOn&&G.fans&&G.fans[k];
+    const P=q[k].map(([x,y])=>{ if(F){ fanXY(F,x*W,y*H); return [LX,LY]; } return [x*W,y*H]; }), L=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
     const w=Math.max(L(P[0],P[1]),L(P[3],P[2])), hh=Math.max(L(P[0],P[3]),L(P[1],P[2]));
     if(w<2||hh<2) continue;
     out[k]={ h:homography(P,[[0,0],[w,0],[w,hh],[0,hh]]), w, hh }; any=true; }
@@ -511,8 +543,9 @@ function compose(G, pat, ratio, trim, opt){
   const PW=P.w, PH=P.h, pd=P.data;
   // v2: homography per panel replaces axis / PCA for that panel; extents re-measured because the frame changed
   // v2: quads come from the map's corner dots. opt.quads === false switches them off (the v1 render); an object overrides.
-  G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H);
-  const ext=G.H?panelExtents(G):G.ext;
+  G.fanOn=opt.fan!==false;   // v1 render: strokes stay grain angles, no fan
+  G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
+  const ext=(G.H||G.fans)?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
@@ -605,7 +638,7 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
 // v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
 // With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
-const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:false, showQuad:false };
+const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:false, fan:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]
 const ENGINES=[ ['v1', V1_OPT, 'v1'], ['v2', null, 'v2'] ];
 

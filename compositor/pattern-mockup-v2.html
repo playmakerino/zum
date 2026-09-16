@@ -48,8 +48,6 @@
   .group{ border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:12px; }
   .group h3{ margin:0; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
   label.check{ text-transform:none; letter-spacing:0; font-weight:400; font-size:13px; color:var(--ink); display:flex; gap:8px; align-items:center; }
-  .shot img{ height:auto; max-height:none; }   /* the img box equals the bitmap: corner picks map 1:1 */
-  .shot img.picking{ cursor:crosshair; outline:2px solid #ff2d8a; }
   .row{ display:flex; gap:8px; }
   .row select{ flex:1; }
   .row button{ flex:none; padding:8px 10px; font-size:12px; }
@@ -73,18 +71,6 @@
       </div>
     </div>
 
-    <div class="group">
-      <h3>Hình thang (homography)</h3>
-      <div class="field">
-        <label for="quadPanel">Panel id</label>
-        <div class="row">
-          <select id="quadPanel"><option value="1">1 · Thân</option><option value="2">2 · Tay trái</option><option value="3">3 · Tay phải</option><option value="4" selected>4 · Chân váy</option><option value="5">5 · Băng đô</option><option value="6">6 · Nơ</option></select>
-          <button type="button" class="secondary" id="quadPick">Chọn 4 góc</button>
-          <button type="button" class="secondary" id="quadClear">Xoá</button>
-        </div>
-      </div>
-    </div>
-
     <div class="actions">
       <button class="primary" id="go">Generate</button>
       <button class="secondary" id="dl" disabled>Download PNGs</button>
@@ -104,7 +90,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
-const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+// quads (optional): per-panel homography corners {id:[[x,y]x4]} normalised to the mock, TL,TR,BR,BL. Garment data,
+// kept here with the view; none for the twirl dress (a flared skirt is not a tilted plane, PCA grain is the better fit).
+const V=(mock,map,r,quads)=>({ mock:CDN+mock, map:CDN+map, r, quads:quads||null });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
 // first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
@@ -117,9 +105,11 @@ const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789547824','zum-flatlay-model-map-twirl-dress-1.png?v=1789547829',1.3) ] },
+               models:[ V('zum-model-twirl-dress-1.png?v=1789548366','zum-flatlay-model-map-twirl-dress-1.png?v=1789548372',1) ] },
 };
 const GKEY='twirlDress';
+// quads keyed by map URL, the form compose() reads (opt.quads[G.key])
+const QUADS={}; for(const g of Object.values(GARMENTS)) for(const v of [...g.flats,...g.models]) if(v.quads) QUADS[v.map]=v.quads;
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
@@ -585,9 +575,6 @@ const msg=m=>{ $('msg').textContent=m; };
 let patImg=null, busy=false;
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-// v2 options from the panel; quads persist per map URL in localStorage
-const QK='pm2-quads'; let QUADS={}; try{ QUADS=JSON.parse(localStorage.getItem(QK)||'{}')||{}; }catch{}
-const saveQuads=()=>{ try{ localStorage.setItem(QK,JSON.stringify(QUADS)); }catch{} };
 // Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
 function readOpt(){ return { ...V2_DEFAULT, quads:QUADS, showQuad:false }; }
@@ -604,7 +591,7 @@ function clearShots(list){
 async function showShot(bucket, canvas, name, caption, spec){
   const r=await toBlobURL(canvas);
   const fig=document.createElement('figure'); fig.className='shot'; fig.dataset.map=spec.map;
-  const img=document.createElement('img'); img.alt=caption; if(pick) img.classList.add('picking');
+  const img=document.createElement('img'); img.alt=caption;
   const cap=document.createElement('figcaption'); cap.textContent=caption;
   img.src=r.url; fig.append(img,cap); $('view').append(fig);
   bucket.push({ ...r, name, fig });
@@ -635,35 +622,6 @@ async function generate(){
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
-
-// --- v2: quad picking. Click "Chọn 4 góc", then 4 points on ONE shot (TL, TR, BR, BL), normalised to the image ---
-let pick=null;
-const CORNER=['trên-trái','trên-phải','dưới-phải','dưới-trái'];
-$('quadPick').addEventListener('click', ()=>{
-  if(!results.flats.length&&!results.models.length){ msg('Generate trước rồi mới chọn góc trên ảnh.'); return; }
-  pick={ k:$('quadPanel').value, map:null, pts:[] };
-  document.querySelectorAll('.shot img').forEach(i=>i.classList.add('picking'));
-  msg('Panel '+pick.k+': bấm điểm 1 ('+CORNER[0]+') trên một ảnh.');
-});
-$('view').addEventListener('click', e=>{
-  const img=e.target.closest('img'); if(!pick||!img) return;
-  const map=img.closest('figure').dataset.map;
-  if(pick.map&&pick.map!==map) pick.pts=[];   // moved to another shot: start that one over
-  pick.map=map;
-  const rc=img.getBoundingClientRect();
-  pick.pts.push([(e.clientX-rc.left)/rc.width,(e.clientY-rc.top)/rc.height]);
-  if(pick.pts.length<4){ msg('Panel '+pick.k+': bấm điểm '+(pick.pts.length+1)+' ('+CORNER[pick.pts.length]+').'); return; }
-  (QUADS[map]=QUADS[map]||{})[pick.k]=pick.pts; saveQuads();
-  msg('Đã lưu panel '+pick.k+' cho '+map.split('/').pop().split('?')[0]+'. Đang render lại…');
-  pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
-  generate();
-});
-$('quadClear').addEventListener('click', ()=>{
-  const g=GARMENTS[GKEY]; let n=0;
-  for(const v of [...g.flats,...g.models]) if(QUADS[v.map]){ delete QUADS[v.map]; n++; }
-  saveQuads(); pick=null; document.querySelectorAll('.shot img').forEach(i=>i.classList.remove('picking'));
-  msg(n?'Đã xoá hình thang của '+n+' ảnh. Generate lại để thấy.':'Garment này chưa có hình thang nào.');
-});
 
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{

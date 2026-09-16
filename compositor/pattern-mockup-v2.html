@@ -59,7 +59,7 @@
   <div class="controls">
     <div class="field">
       <label>Garment</label>
-      <div class="file"><span style="color:var(--ink)">Twirl Dress Bodysuit · 1 on-model view</span></div>
+      <div class="file"><span style="color:var(--ink)">Twirl Dress Bodysuit · on-model twirl-dress-1 + romper-1</span></div>
     </div>
 
     <div class="field">
@@ -105,7 +105,9 @@ const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789549750',1) ] },
+               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1.png?v=1789549750',1),
+                        // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
+                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634) ] },
 };
 const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);
@@ -645,7 +647,7 @@ async function generate(){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
       for(const [lab,o,pre] of ENGINES)
-        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+lab, mdls[i]);
+        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+modelName(mdls[i])+' · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');

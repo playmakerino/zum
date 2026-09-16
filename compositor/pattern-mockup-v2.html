@@ -39,7 +39,7 @@
   button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
   .msg{ font-size:12px; color:var(--mut); min-height:16px; }
   .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
-  .shot{ margin:0; flex:0 0 calc((100% - 40px)/3); max-width:calc((100% - 40px)/3); display:flex; flex-direction:column; gap:8px; }
+  .shot{ margin:0; flex:0 0 calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); display:flex; flex-direction:column; gap:8px; }
   @media (max-width:820px){ .shot{ flex-basis:calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); } }
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
@@ -578,6 +578,11 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 // Fixed levels (the former sliders/checkboxes): Photoshop tone LB 0.9 / shadow LB 0.6 / highlight SL 1.0,
 // shadow eased on dark prints, Fref white normalisation, Displace 8 px over a 6 px blur, 3 px feather, quads not drawn.
 function readOpt(){ return { ...V2_DEFAULT, quads:QUADS, showQuad:false }; }
+// v1 engine through the same compose(): plain multiply (print x mock/Fref), no Displace, no feather, no quads.
+// With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
+const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:null, showQuad:false };
+// Every Generate renders each view twice: [label, engine options, filename prefix]
+const ENGINES=[ ['v1 · multiply', V1_OPT, 'v1'], ['v2 · tone + displace + feather', null, 'v2'] ];
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -610,15 +615,17 @@ async function generate(){
     for(let i=0;i<g.flats.length;i++){
       if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
       const GF=await analyzeGarment(g.flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim, opt), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay', g.flats[i]);
+      for(const [lab,o,pre] of ENGINES)
+        await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), (g.flats.length>1?'Flatlay '+(i+1):'Flatlay')+' · '+lab, g.flats[i]);
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, opt), modelName(mdls[i]), 'On model · '+modelName(mdls[i]), mdls[i]);
+      for(const [lab,o,pre] of ENGINES)
+        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
-    msg('Done · '+g.flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
@@ -639,8 +646,7 @@ $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
   const items=[];
-  for(const r of results.flats) items.push({ name:'v2-flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
-  for(const r of results.models) items.push({ name:'v2-model-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const r of [...results.flats,...results.models]) items.push({ name:r.name+'.png', blob:r.blob, url:r.url });
   for(const it of items){
     if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
     else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }

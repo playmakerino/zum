@@ -639,7 +639,7 @@ function compose(G, pat, ratio, trim, opt){
 const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
 
-let patImg=null, busy=false;
+let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in flight, awaited by generate()
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
 // Fixed levels (the former sliders/checkboxes): multiply base / shadow LB 0.25 / high-pass Soft Light 0.8,
@@ -671,8 +671,10 @@ async function showShot(bucket, canvas, name, caption, spec){
 
 async function generate(){
   if(busy) return;
-  if(!patImg){ msg('Choose a pattern file first.'); return; }
   busy=true; $('go').disabled=true;
+  try{ if(patLoading){ msg('Reading pattern…'); await patLoading; } }catch{}
+  const pat=patImg;   // one bitmap for the whole run: a decode finishing mid-run must not swap the pattern between shots
+  if(!pat){ msg('Choose a pattern file first.'); busy=false; $('go').disabled=false; return; }
   msg('Generating…'); await nextPaint();
   const t0=performance.now();
   try{
@@ -683,13 +685,13 @@ async function generate(){
       if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
       const GF=await analyzeGarment(g.flats[i]);
       for(const [lab,o,pre] of ENGINES)
-        await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), (g.flats.length>1?'Flatlay '+(i+1):'Flatlay')+' · '+lab, g.flats[i]);
+        await showShot(results.flats, compose(GF, pat, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), (g.flats.length>1?'Flatlay '+(i+1):'Flatlay')+' · '+lab, g.flats[i]);
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
       for(const [lab,o,pre] of ENGINES)
-        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+        await showShot(results.models, compose(GM, pat, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');
@@ -702,12 +704,14 @@ $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
   $('patternName').textContent=f.name;
   msg('Reading pattern…'); await nextPaint();
+  const job=decodeFile(f); patLoading=job;
   try{
-    const img=await decodeFile(f);
-    if(patImg&&patImg.close) patImg.close();
-    patImg=img;
+    const img=await job;
+    if(patLoading!==job) return;   // a newer file was chosen meanwhile
+    if(patImg&&patImg.close&&!busy) patImg.close();
+    patImg=img; patLoading=null;
     msg('Pattern '+img.width+'×'+img.height);
-  }catch{ msg('Could not read that image.'); }
+  }catch{ if(patLoading===job) patLoading=null; msg('Could not read that image.'); }
 });
 $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{

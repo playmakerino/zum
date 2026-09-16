@@ -86,7 +86,8 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
 // Corner dots live IN THE MAP, 4 per panel, not here: whoever traces a map sets them without touching this file.
-// Map convention: R = id x 20 · G >= 250 stroke = grain axis · B >= 250 dot = perspective quad · G+B >= 250 dot = fan.
+// Map convention: R = id x 20 · G >= 250 stroke = grain axis · B >= 250 (blue) dot = fan · G+B >= 250 (cyan) dot = perspective quad.
+// (Swapped 2026-09-16: before that blue = perspective, cyan = fan. The old perspective map ?v=1789551352 has blue dots and would now read as a fan.)
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
@@ -100,9 +101,9 @@ const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               // skirt = fan (four cyan dots in the map). The perspective-dot map (zum-flatlay-model-map-twirl-dress-1.png
-               // ?v=1789551352) is kept on Shopify but no longer rendered: the fan was judged better on 2026-09-16.
-               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789552426',1,'Dress'),
+               // skirt = fan (four blue dots in the map). The perspective-dot map (zum-flatlay-model-map-twirl-dress-1.png
+               // ?v=1789551352, pre-swap colours) is kept on Shopify but no longer rendered: the fan was judged better on 2026-09-16.
+               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789555588',1,'Dress'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
                         V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };
@@ -242,7 +243,7 @@ function mapQuadsFrom(pxRaw,ids,W,H){
     blobs.push({ k, n, nf, x:sx/n, y:sy/n }); }
   const out={}; let any=false;
   for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
-    const fan=b.reduce((a,o)=>a+o.nf,0)*2>b.reduce((a,o)=>a+o.n,0);   // cyan dots (G+B) = fan, blue dots (B) = perspective
+    const fan=b.reduce((a,o)=>a+o.nf,0)*2>b.reduce((a,o)=>a+o.n,0);   // blue dots (B only) = fan, cyan dots (G+B) = perspective
     // Garment panels hang: the two highest dots are the top edge (TL = left of them), the two lowest the bottom edge
     // (BR = right of them). Angle-based ordering failed twice (a dot exactly at -135 deg; a hem-left dot placed higher
     // than the waist-left dot so min x+y picked the wrong one).
@@ -268,12 +269,12 @@ function analyzeGarment(spec,model){
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
     const linePx=[];                    // every G-maxed pixel, traced into strokes below
-    const cornerPx=[];                  // v2: every B-maxed fabric pixel = a homography corner dot baked into the map
+    const cornerPx=[];                  // v2: every B-maxed fabric pixel = a corner dot baked into the map (blue = fan, cyan = perspective quad)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
-      if(dot&&k>=1&&k<=8) cornerPx.push(xd[p+1]>=AXIS_MIN ? -1-i : i);   // negative = fan dot (G and B maxed), positive = perspective dot (B only)
+      if(dot&&k>=1&&k<=8) cornerPx.push(xd[p+1]>=AXIS_MIN ? i : -1-i);   // negative = fan dot (B only), positive = perspective dot (G and B maxed)
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
@@ -283,7 +284,7 @@ function analyzeGarment(spec,model){
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     }
     // v2: corner dots -> quads. Dots are 4-connected blobs; each blob's panel = the id under it. A panel with exactly
-    // 4 blobs gets a quad ordered TL,TR,BR,BL by angle around their mean (map convention: R = id, G = axis, B = corner).
+    // 4 blobs gets a quad ordered TL,TR,BR,BL (map convention: R = id, G = axis, B = corner; blue = fan, cyan = perspective).
     const mapQuads=mapQuadsFrom(cornerPx,ids,W,H);
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
@@ -321,7 +322,7 @@ function analyzeGarment(spec,model){
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
     // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
-    // v2: a panel whose four dots are cyan (G and B maxed) is a fan, not a perspective quad: centre = where the two
+    // v2: a panel whose four dots are blue (B only) is a fan, not a perspective quad: centre = where the two
     // side edges TL-BL / TR-BR meet, tile x = arc length at the waist radius, tile y = radius. See fanFromQuad().
     G.fans=null; G.fanOn=true;
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
@@ -345,7 +346,7 @@ function analyzeGarment(spec,model){
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
-// v2 fan from four cyan dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
+// v2 fan from four blue dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
 // = from C through the middle of the quad, R0 = mean distance from C to the top corners (the waist arc). Rejected
 // (null) when the sides are near-parallel (< 2 deg) or C lies below the top edge (sides diverging upward).
 function fanFromQuad(P){
@@ -628,11 +629,11 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
 // Fixed levels (the former sliders/checkboxes): Displace 12 px over an 8 px blur, 3 px feather, fan from the map, quads not drawn.
 function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   // quads:null = take them from the map
-// v1 engine through the same compose(): no Displace, no feather, no fan / quads. With those off the v2 code path is
-// byte-for-byte the v1 SHARED BLOCK math (print x mock/Fref), so one function renders both.
-const V1_OPT={ dispAmp:0, dispBlur:1, feather:0, quads:false, fan:false, showQuad:false };
-// Every Generate renders each view twice: [label, engine options, filename prefix]
-const ENGINES=[ ['v1', V1_OPT, 'v1'], ['v2', null, 'v2'] ];
+// Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no Displace, no feather,
+// no fan / quads. With those off the v2 code path is byte-for-byte the SHARED BLOCK math (print x mock/Fref), so one function renders both.
+const PROD_OPT={ dispAmp:0, dispBlur:1, feather:0, quads:false, fan:false, showQuad:false };
+// Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
+const ENGINES=[ ['production', PROD_OPT, 'production'], ['testing', null, 'testing'] ];
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -677,7 +678,7 @@ async function generate(){
         await showShot(results.models, compose(GM, pat, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
-    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (production + testing) · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }

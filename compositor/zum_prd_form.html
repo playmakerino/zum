@@ -914,8 +914,13 @@ function analyzeGarment(spec,model){
   const p=(async()=>{
     const CA=OUT_AREA*SS*SS;
     const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
-    const M=rasterArea(mockImg,CA,true), MAP=rasterArea(mapImg,CA,false);
-    if(mapImg.close) mapImg.close();   // the id raster is all that is kept of the map
+    const M=rasterArea(mockImg,CA,true);
+    // Fabric coverage for the soft edge: the map rastered once more WITH smoothing. Its R channel is then id x 20 x the
+    // share of source pixels carrying that id, so at an edge against id 0 it reads how much of the pixel is fabric
+    // (the map is 2x the mock, so this is real sub-pixel information, not a guess). Kept as one byte per pixel.
+    const MS=rasterArea(mapImg,CA,true), rs=new Uint8Array(MS.w*MS.h); for(let i=0,p=0;i<rs.length;i++,p+=4) rs[i]=MS.data[p];
+    const MAP=rasterArea(mapImg,CA,false);
+    if(mapImg.close) mapImg.close();   // the id raster + coverage are all that is kept of the map
     const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
@@ -981,6 +986,23 @@ function analyzeGarment(spec,model){
     G.fans=null;
     if(fanQuads) for(const k in fanQuads){ const f=fanFromQuad(fanQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; G.axes[k]=null; } }
     G.ext=panelExtents(G);
+    // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
+    // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
+    // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
+    // inside the fabric is ever lightened: a blurred mask used to fade the print over 3 px INSIDE the fabric next to a
+    // white cord or a hand, a bright rim on any dark print. Fabric / trim and fabric / fabric edges stay hard as before.
+    const ex0=Math.max(0,bx0-1), ey0=Math.max(0,by0-1), ex1=Math.min(W-1,bx1+1), ey1=Math.min(H-1,by1+1), EW=ex1-ex0+1;
+    const cov=new Uint8ClampedArray(EW*(ey1-ey0+1)), eid=new Uint8Array(cov.length);
+    for(let y=ey0,j=0;y<=ey1;y++) for(let x=ex0,i=y*W+ex0;x<=ex1;x++,i++,j++){ const k=ids[i];
+      if(k>=1&&k<=8){ eid[j]=k; let z=false;
+        for(let dy=-1;dy<=1&&!z;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=W) continue; if(ids[yy*W+xx]===0){ z=true; break; } } }
+        cov[j]=z ? Math.round(255*Math.min(1,rs[i]/(20*k))) : 255; }
+      else if(k===0){ let kk=0;
+        if(x>0&&ids[i-1]>=1&&ids[i-1]<=8) kk=ids[i-1]; else if(x<W-1&&ids[i+1]>=1&&ids[i+1]<=8) kk=ids[i+1]; else if(y>0&&ids[i-W]>=1&&ids[i-W]<=8) kk=ids[i-W]; else if(y<H-1&&ids[i+W]>=1&&ids[i+W]<=8) kk=ids[i+W];
+        else for(let dy=-1;dy<=1&&!kk;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx+=2){ const xx=x+dx; if(xx<0||xx>=W) continue; const q=ids[yy*W+xx]; if(q>=1&&q<=8){ kk=q; break; } } }
+        eid[j]=kk; cov[j]=kk ? Math.round(255*Math.min(1,rs[i]/(20*kk))) : 0; }
+      else { eid[j]=k; cov[j]=255; } }
+    G.cov=cov; G.eid=eid; G.ebox=[ex0,ey0,ex1,ey1];
     return G;
   })();
   garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
@@ -1167,7 +1189,6 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
                      // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
-const FEATHER=3;     // edge blend radius, px: the print fades over this band across the panel boundary instead of a hard cut
 // masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
 // the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
 function blurMasked(W,x0,y0,x1,y1,r,src,msk){
@@ -1179,16 +1200,6 @@ function blurMasked(W,x0,y0,x1,y1,r,src,msk){
   blur(v); blur(m);
   for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
   return v;
-}
-// Grow fabric ids (1..8) outward by f pixels (4-neighbour), so a feathered edge has a panel to sample. Trim (9) neither grows nor is overwritten.
-function dilateIds(ids,W,H,x0,y0,x1,y1,f){
-  const ok=q=>q>=1&&q<=8; let cur=ids;
-  for(let p=0;p<f;p++){ const nx=Uint8Array.from(cur);
-    for(let y=y0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++){ if(cur[i]!==0) continue;
-      let k=0; if(x>0&&ok(cur[i-1]))k=cur[i-1]; else if(x<W-1&&ok(cur[i+1]))k=cur[i+1]; else if(y>0&&ok(cur[i-W]))k=cur[i-W]; else if(y<H-1&&ok(cur[i+W]))k=cur[i+W];
-      if(k) nx[i]=k; }
-    cur=nx; }
-  return cur;
 }
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
 // trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
@@ -1212,16 +1223,14 @@ function compose(G, pat, ratio, trim){
   const img=bctx.getImageData(0,0,W,H), out=img.data;
   const [tr,tg,tb]=trim||[0,0,0];
 
-  // Fold displacement field: low-pass of the mock luminance over the box (fabric + trim only). Feather: fraction
-  // of fabric among non-trim pixels over the box grown by the feather, + ids dilated so the outside band has a panel to sample.
-  // Built per compose (one pass each over the box), nothing is cached on the garment.
-  const fpx=Math.round(FEATHER*SS), dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
-  const ex0=Math.max(0,bx0-fpx), ey0=Math.max(0,by0-fpx), ex1=Math.min(W-1,bx1+fpx), ey1=Math.min(H-1,by1+fpx), EW=ex1-ex0+1;
+  // Fold displacement field: low-pass of the mock luminance over the box (fabric + trim only), built per compose.
+  // Edge coverage (cov) + the panel an edge pixel samples (eid) come from analyzeGarment, over the box grown by 1 px.
+  const dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
   const dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
-  const idsF=dilateIds(ids,W,H,ex0,ey0,ex1,ey1,fpx), alpha=blurMasked(W,ex0,ey0,ex1,ey1,fpx, i=>(ids[i]>=1&&ids[i]<=8)?1:0, i=>ids[i]!==9);
+  const {cov,eid,ebox:[ex0,ey0,ex1,ey1]}=G, EW=ex1-ex0+1;
 
-  for(let y=ey0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++){
-    const k0=ids[i], k=idsF[i]; if(k===0||k>9) continue;
+  for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){
+    const k0=ids[i], k=eid[j]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     if(k0===9){
       if(!trim) continue;
@@ -1257,8 +1266,8 @@ function compose(G, pat, ratio, trim){
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
     let R=pr*Pr, Gc=pg*Pg, Bc=pb*Pb;
-    // feather: the edge pixel keeps a share of the mock (inside) or takes a share of the print (outside)
-    const a=alpha[(y-ey0)*EW+(x-ex0)]; if(a<0.999){ R=r+a*(R-r); Gc=g+a*(Gc-g); Bc=b+a*(Bc-b); }
+    // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
+    const a=cov[j]; if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
   }
 

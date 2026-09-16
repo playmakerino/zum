@@ -93,7 +93,10 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
   if (cmd === 'render') {
     fs.mkdirSync(arg2, { recursive: true });
     const ov = arg4 ? JSON.parse(fs.readFileSync(arg4, 'utf8')) : {};
-    const patImg = await loadImage(makeGingham().toBuffer('image/png'));
+    // PAT=<image file> renders a real pattern instead of the gingham; COMPOSE_OPT='{"quads":false}' passes an opt
+    // object to compose() (the testing page: quads:false = the production column, unset = the map's cyan dots).
+    const patImg = await loadImage(process.env.PAT ? fs.readFileSync(process.env.PAT) : makeGingham().toBuffer('image/png'));
+    const copt = process.env.COMPOSE_OPT ? JSON.parse(process.env.COMPOSE_OPT) : undefined;
     for (const key of eng.FLAT_KEYS) {
       if (arg3 && key !== arg3) continue;
       const g = eng.GARMENTS[key], flats = g.flats || [g.flat];
@@ -102,12 +105,12 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
         const s = { mock: await cached(spec.mock), map: await cached(spec.map) };
         const G = await eng.analyzeGarment(s, model);
         const r = ov[name] !== undefined ? ov[name] : spec.r;
-        const disp = eng.compose(G, patImg, r, null);
-        const outW = 900, small = createCanvas(outW, Math.round(disp.height * outW / disp.width));
+        const disp = eng.compose(G, patImg, r, null, copt);
+        const outW = +process.env.OUTW || 900, small = createCanvas(outW, Math.round(disp.height * outW / disp.width));   // OUTW=0/unset = 900 px wide contact size; OUTW=1900 = full
         small.getContext('2d').drawImage(disp, 0, 0, small.width, small.height);
         const f = path.join(arg2, key + '-' + name + '.jpg');
         fs.writeFileSync(f, small.toBuffer('image/jpeg', { quality: 0.85 }));
-        console.log(f, 'r=' + r.toFixed(3));
+        console.log(f, 'r=' + r.toFixed(3) + (G.psfW !== undefined ? ' psfW=' + G.psfW.toFixed(2) + ' blurSigma=' + G.blurSigma.toFixed(2) : ''));
       }
     }
     return;

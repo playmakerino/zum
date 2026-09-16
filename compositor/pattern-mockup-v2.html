@@ -86,7 +86,11 @@ const GARMENTS={
                // ?v=1789551352, pre-swap colours) is kept on Shopify but no longer rendered: the fan was judged better on 2026-09-16.
                models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789555588',1,'Dress'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
-                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
+                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy'),
+                        // pajama boy, seated 3/4 view (Desktop "Outfit Edit Request.png", print erased): the map carries ONLY the
+                        // body panel (id 1) with four cyan dots at its corners (underarms / hem) = the first real perspective-quad test.
+                        // Sleeves, pants and trim are unmapped on purpose. r from motif-r.py against pajama-boy-3 (r 1.611).
+                        V('zum-model-pajama-boy-4.png?v=1789573108','zum-flatlay-model-map-pajama-boy-4.png?v=1789573365',0.845,'Pajama') ] },
 };
 const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
@@ -96,7 +100,9 @@ const modelsFor=g=>g.models;   // no Gender field on this page: every model rend
 // ===== END GARMENT DATA =====
 
 // ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
-// Only addition over the shared block: perspective homography from cyan corner dots (marked "v2:").
+// Additions over the shared block (marked "v2:"): perspective homography from cyan corner dots (opt.quads), the print
+// blurred by the photo's own edge spread (opt.blur, psfW measured in analyzeGarment), 2x2 footprint supersampling of
+// the tile (opt.aa). PROD_OPT turns all three off = the production render.
 // The END SHARED BLOCK marker is kept so regress-engine.js render works on this page.
 // Nothing in here touches the DOM or page state: it reads images + an options object and returns pixels.
 
@@ -124,6 +130,8 @@ const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis fo
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
 const AX_CURVE=0.035;      // max deviation/chord above which a drawn stroke counts as bent and becomes a curved axis
 const AX_RMIN=2;           // min bend radius of the curved-axis normal field, in panel half-widths (fold guard, see buildAxis)
+const PSF_SHARP=0.45;      // v2: sigma (px, analysis size) of an ideal sharp edge after the mock's own resampling; subtracted from the measured edge spread
+const AA_JUMP=64;          // v2: (px^2) a tile-coordinate step between neighbours larger than this is a seam / wrap, not a footprint
 const AX_SMOOTH=0.25;      // axis smoothing half-window as a fraction of the panel width (x3 passes): the (u,v) map folds where
                            // the bend radius drops below the half-width; 0.25 keeps a 90 deg elbow fold-free yet visibly bent
 
@@ -310,6 +318,25 @@ function analyzeGarment(spec,model){
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
       const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
+    // v2: camera blur of the photo, read off the garment silhouette. Along the outward normal of every 4th boundary pixel
+    // (fabric next to id 0) the luminance is sampled at -6..+6 px; the distance between the 10% and 90% points of that
+    // step (only where it spans >= 30 levels) is the edge width, and the median over the garment is psfW. A Gaussian PSF has
+    // w10-90 = 2.563 sigma; compose blurs the print raster by that sigma (less the ideal-edge share), so a printed edge is as
+    // soft as the photo's own edges instead of file-sharp - the last "pasted on" tell once tone and folds are right.
+    G.psfW=0; G.blurSigma=0;
+    { const widths=[], R=6, v=new Float32Array(2*R+1); let n=0;
+      for(let y=by0+R;y<=by1-R;y+=2) for(let x=bx0+R,i=y*W+bx0+R;x<=bx1-R;x+=2,i+=2){ const k=ids[i]; if(k<1||k>8) continue;
+        let dx=0,dy=0; if(ids[i-1]===0) dx=-1; else if(ids[i+1]===0) dx=1; else if(ids[i-W]===0) dy=-1; else if(ids[i+W]===0) dy=1; else continue;
+        if((n++&3)!==0) continue;
+        for(let t=-R;t<=R;t++){ const p=((y+dy*t)*W+x+dx*t)*4; v[t+R]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; }
+        const step=v[2*R]-v[0]; if(Math.abs(step)<30) continue;
+        let t10=-1,t90=-1;
+        for(let t=0;t<2*R;t++){ const u0=(v[t]-v[0])/step, u1=(v[t+1]-v[0])/step;
+          if(t10<0&&u0<0.1&&u1>=0.1) t10=t+(0.1-u0)/(u1-u0);
+          if(u0<0.9&&u1>=0.9){ t90=t+(0.9-u0)/(u1-u0); break; } }
+        if(t10>=0&&t90>t10) widths.push(t90-t10); }
+      if(widths.length>=20){ widths.sort((a,b)=>a-b); G.psfW=widths[widths.length>>1];
+        const s2=(G.psfW/2.563)**2-PSF_SHARP*PSF_SHARP; G.blurSigma=s2>0?Math.sqrt(s2):0; } }
     // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
     // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
     // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
@@ -533,6 +560,31 @@ function blurMasked(W,x0,y0,x1,y1,r,src,msk){
   return v;
 }
 // 4-point homography src->dst (each [[x,y]x4]); returns h[0..8] with h[8]=1. Direct 8x8 Gaussian elimination.
+// v2: blur the tile raster in place by a Gaussian of the given sigma (3 wrap-around box passes per axis, fractional
+// radius so any sigma is honoured), so the print carries the photo's own softness. Wrap-around keeps the tile seamless.
+function blurTileWrap(pd,PW,PH,sigma){
+  const n=3, r=Math.max(0,(sigma*Math.sqrt(12/n)-1)/2), ri=Math.floor(r), f=r-ri, norm=1/(2*ri+1+2*f);
+  const a=new Float32Array(PW*PH), t=new Float32Array(PW*PH);
+  const pass=(s,d,len,stride,off)=>{
+    const at=q=>{ if(q<0) q+=len; else if(q>=len) q-=len; return s[off+q*stride]; };
+    let acc=0; for(let q=-ri;q<=ri;q++) acc+=at(q);
+    for(let q=0;q<len;q++){ d[off+q*stride]=(acc+f*(at(q-ri-1)+at(q+ri+1)))*norm; acc+=at(q+ri+1)-at(q-ri); } };
+  for(let c=0;c<3;c++){ for(let i=0,p=c;i<a.length;i++,p+=4) a[i]=pd[p];
+    for(let k=0;k<n;k++){ for(let y=0;y<PH;y++) pass(a,t,PW,1,y*PW); for(let x=0;x<PW;x++) pass(t,a,PH,PW,x); }
+    for(let i=0,p=c;i<a.length;i++,p+=4) pd[p]=a[i]; }
+}
+// One bilinear tap of the tile at unwrapped tile coordinates (fx,fy) -> TR,TG,TB. mirror = collar inside (wrong side).
+let TR=0,TG=0,TB=0;
+function tap(pd,PW,PH,fx,fy,mirror){
+  fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
+  if(mirror){ fx=PW-fx; if(fx>=PW) fx=0; }
+  const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
+  const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+  const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
+  TR=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11;
+  TG=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11;
+  TB=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+}
 function homography(src,dst){
   const A=[], B=[];
   for(let i=0;i<4;i++){ const [x,y]=src[i], [u,v]=dst[i];
@@ -556,7 +608,7 @@ function buildQuads(q,W,H,G){
 }
 
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
-// trim: [r,g,b] or null (keep the mock's own trim). opt (testing page only): { quads:false } = no perspective quads
+// trim: [r,g,b] or null (keep the mock's own trim). opt (testing page only): { quads:false } = no perspective quads, blur:false / aa:false = no print blur / no 2x2 supersampling;
 // (the production render), { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides the map's cyan dots, showQuad draws them. Returns a canvas (W/SS x H/SS).
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
@@ -565,6 +617,7 @@ function compose(G, pat, ratio, trim, opt){
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
+  if(opt.blur!==false && G.blurSigma>0.3) blurTileWrap(pd,PW,PH,G.blurSigma);   // v2: print as soft as the photo's edges
   // v2: perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
   const ext=G.H?panelExtents(G):G.ext;
@@ -583,8 +636,16 @@ function compose(G, pat, ratio, trim, opt){
   const dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
   const dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
   const {cov,eid,ebox:[ex0,ey0,ex1,ey1]}=G, EW=ex1-ex0+1;
+  // v2: 2x2 footprint supersampling of the tile (opt.aa). The output pixel's footprint in tile space is spanned by the
+  // tile-coordinate steps to the pixel on the left and the pixel above (same panel, no seam jump); the tile is sampled at
+  // the four quarter points of that parallelogram and averaged. Anti-aliases rotated check edges and minified print
+  // (tube wrap, fan, far side of a quad) at the cost of 4 taps, not a bigger canvas.
+  const aa=opt.aa!==false, rowK=new Uint8Array(EW), rowLX=new Float32Array(EW), rowLY=new Float32Array(EW);
+  let pK=0, pLX=0, pLY=0;
 
-  for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){
+  for(let y=ey0, j=0; y<=ey1; y++){ pK=0;
+  for(let x=ex0, i=y*W+ex0, jx=0; x<=ex1; x++, i++, j++, jx++){
+    const uK=rowK[jx], uLX=rowLX[jx], uLY=rowLY[jx], lK=pK, lLX=pLX, lLY=pLY; rowK[jx]=0; pK=0;
     const k0=ids[i], k=eid[j]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     if(k0===9){
@@ -610,21 +671,23 @@ function compose(G, pat, ratio, trim, opt){
       if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
       xs=x+gx*amp; ys=y+gy*amp; }
     localXY(G,k,xs,ys);
-    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }
-    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
-    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
-    const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
-    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
-        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
-        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+    rowK[jx]=k; rowLX[jx]=LX; rowLY[jx]=LY; pK=k; pLX=LX; pLY=LY;
+    const fx=LX+ox[k], fy=LY+oy[k], mirror=k===COLLAR_ID;
+    let pr,pg,pb;
+    if(aa){ let exx=1,exy=0,eyx=0,eyy=1;
+      if(lK===k){ const dx=LX-lLX, dy=LY-lLY; if(dx*dx+dy*dy<AA_JUMP){ exx=dx; exy=dy; } }
+      if(uK===k){ const dx=LX-uLX, dy=LY-uLY; if(dx*dx+dy*dy<AA_JUMP){ eyx=dx; eyy=dy; } }
+      pr=pg=pb=0;
+      for(let s=0;s<4;s++){ const a=(s&1)?0.25:-0.25, b=(s&2)?0.25:-0.25; tap(pd,PW,PH,fx+a*exx+b*eyx,fy+a*exy+b*eyy,mirror); pr+=TR; pg+=TG; pb+=TB; }
+      pr*=0.25; pg*=0.25; pb*=0.25; }
+    else { tap(pd,PW,PH,fx,fy,mirror); pr=TR; pg=TG; pb=TB; }
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
     let R=pr*Pr, Gc=pg*Pg, Bc=pb*Pb;
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
     const a=cov[j]; if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
-  }
+  } }
 
   bctx.putImageData(img,0,0);
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
@@ -649,10 +712,10 @@ let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in fli
 let trimRgb=null;   // trim colour from the pattern's dominant hue (same rule as the dev tool's auto-fill), no field on this page
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn
+function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn; blur / aa default on
 // Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
-const PROD_OPT={ quads:false, showQuad:false };
+const PROD_OPT={ quads:false, showQuad:false, blur:false, aa:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
 const ENGINES=[ ['production', PROD_OPT, 'production'], ['testing', null, 'testing'] ];
 

@@ -60,6 +60,7 @@
         <option value="menPajama">Men's Pajama Set</option>
         <option value="womenPajama">Women's Pajama Set</option>
         <option value="blanket">Blanket</option>
+        <option value="sleepbag">Sleep Bag</option>
       </select>
     </div>
 
@@ -172,6 +173,8 @@ const GARMENTS={
   blanket:{ flats:[ V('zum-flatlay-mock-blanket-1.jpg?v=1789468064','zum-flatlay-map-blanket-1.png?v=1789468069',1.38),
                     V('zum-flatlay-mock-blanket-2.jpg?v=1789468075','zum-flatlay-map-blanket-2.png?v=1789468080',0.98) ],
             models:[] },
+  sleepbag:{ flats:[ V('zum-flatlay-mock-sleepbag.jpg?v=1789552916','zum-flatlay-map-sleepbag.png?v=1789552922',1.18) ],
+             models:[] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');

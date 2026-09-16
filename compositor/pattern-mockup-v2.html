@@ -91,7 +91,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
 // quads (optional): per-panel homography corners {id:[[x,y]x4]} normalised to the mock, TL,TR,BR,BL. Garment data,
-// kept here with the view; none for the twirl dress (a flared skirt is not a tilted plane, PCA grain is the better fit).
+// kept here with the view. Twirl dress: the skirt panel carries one (waist seam = top edge, hem ends = bottom corners).
 const V=(mock,map,r,quads)=>({ mock:CDN+mock, map:CDN+map, r, quads:quads||null });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
@@ -105,7 +105,9 @@ const V=(mock,map,r,quads)=>({ mock:CDN+mock, map:CDN+map, r, quads:quads||null 
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               models:[ V('zum-model-twirl-dress-1.png?v=1789548366','zum-flatlay-model-map-twirl-dress-1.png?v=1789548372',1) ] },
+               models:[ V('zum-model-twirl-dress-1.png?v=1789548366','zum-flatlay-model-map-twirl-dress-1.png?v=1789548372',1,
+                          // skirt (id 4) as one tilted plane: waist-left, waist-right, hem-right, hem-left, read off the map
+                          { 4:[[0.4365,0.5392],[0.7052,0.5542],[0.9083,0.7842],[0.2906,0.7758]] }) ] },
 };
 const GKEY='twirlDress';
 // quads keyed by map URL, the form compose() reads (opt.quads[G.key])

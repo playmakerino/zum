@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
     /* registering --scrim as a real colour lets the tint cross-fade instead of snapping */
@@ -914,14 +914,12 @@ function analyzeGarment(spec,model){
   const p=(async()=>{
     const CA=OUT_AREA*SS*SS;
     const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
-    const M=rasterArea(mockImg,CA,true);
+    const M=rasterArea(mockImg,CA,true), W=M.w, H=M.h, md=M.data, N=W*H;
     // Fabric coverage for the soft edge: the map rastered once more WITH smoothing. Its R channel is then id x 20 x the
     // share of source pixels carrying that id, so at an edge against id 0 it reads how much of the pixel is fabric
-    // (the map is 2x the mock, so this is real sub-pixel information, not a guess). Kept as one byte per pixel.
-    const MS=rasterArea(mapImg,CA,true), rs=new Uint8Array(MS.w*MS.h); for(let i=0,p=0;i<rs.length;i++,p+=4) rs[i]=MS.data[p];
-    const MAP=rasterArea(mapImg,CA,false);
-    if(mapImg.close) mapImg.close();   // the id raster + coverage are all that is kept of the map
-    const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
+    // (the map is 2x the mock, so this is real sub-pixel information, not a guess). Kept as one byte per pixel; the
+    // 30MB smoothed raster itself is out of scope before the id raster is drawn, so the two never sit in memory together.
+    let rs; { const MS=rasterArea(mapImg,CA,true); rs=new Uint8Array(MS.w*MS.h); for(let i=0,p=0;i<rs.length;i++,p+=4) rs[i]=MS.data[p]; }
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
@@ -933,6 +931,8 @@ function analyzeGarment(spec,model){
     const cornerPx=[];                  // every blue (B-maxed, G off) fabric pixel = a fan corner dot baked into the map
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
+    { const xd=rasterArea(mapImg,CA,false).data;   // the id raster lives for this one pass: ids + rs are all that is kept of the map
+    if(mapImg.close) mapImg.close();
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
       if(dot&&xd[p+1]<AXIS_MIN&&k>=1&&k<=8) cornerPx.push(i);   // cyan dots (G and B maxed) are the testing page's perspective corners: neither stroke nor fan here
@@ -943,7 +943,7 @@ function analyzeGarment(spec,model){
         if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
-    }
+    } }
     const fanQuads=fanQuadsFrom(cornerPx,ids,W,H);   // map convention: R = id, G = stroke, B (blue) = fan corner dot
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
@@ -970,10 +970,7 @@ function analyzeGarment(spec,model){
     if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
       const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
       for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
-      const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
-        for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
-      const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
-      blur(v); blur(m);
+      boxBlur2(v,m,t,BW,BH,r);
       tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
     const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
@@ -1189,15 +1186,21 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
                      // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
+// 2-pass box blur, radius r, of v and m in place over a BW x BH rect (t = scratch of the same size): a running sum along
+// every row, then along every column, twice. Shared by the trim low-pass (analyzeGarment) and the fold field (compose).
+// (A row-major column pass with one accumulator per column was measured on 2026-09-16 and was no faster: the constant
+// stride is prefetched fine, and the extra accumulator loads / stores cost more than the misses they save.)
+function boxBlur2(v,m,t,BW,BH,r){
+  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+  for(const a of [v,m]) for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); }
+}
 // masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
 // the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
 function blurMasked(W,x0,y0,x1,y1,r,src,msk){
   const BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
   for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++,j++) if(msk(i)){ v[j]=src(i); m[j]=1; }
-  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
-    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
-  const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
-  blur(v); blur(m);
+  boxBlur2(v,m,t,BW,BH,r);
   for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
   return v;
 }

@@ -17,18 +17,11 @@
   .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
   .field{ display:flex; flex-direction:column; gap:7px; }
   label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
-  select,input[type=text],.file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
+  .file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
   .file{ display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
   .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
   .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-  .trim{ display:flex; gap:10px; align-items:center; }
-  .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
-  .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
-  .scale-head{ display:flex; justify-content:space-between; align-items:baseline; }
-  .scale-head .val{ font-family:ui-monospace,Menlo,monospace; color:var(--ink); font-weight:600; }
-  .scale-head .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--mut); }
-  input[type=range]{ width:100%; accent-color:var(--accent); }
   .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
   button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
   .primary{ border:1px solid var(--accent); color:var(--accent); }
@@ -44,13 +37,6 @@
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
-  /* v2 */
-  .group{ border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:12px; }
-  .group h3{ margin:0; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
-  label.check{ text-transform:none; letter-spacing:0; font-weight:400; font-size:13px; color:var(--ink); display:flex; gap:8px; align-items:center; }
-  .row{ display:flex; gap:8px; }
-  .row select{ flex:1; }
-  .row button{ flex:none; padding:8px 10px; font-size:12px; }
 </style>
 </head>
 <body>
@@ -89,13 +75,8 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Map convention: R = id x 20 · G >= 250 stroke = grain axis · B >= 250 (blue) dot = fan · G+B >= 250 (cyan) dot = perspective quad.
 // (Swapped 2026-09-16: before that blue = perspective, cyan = fan. The old perspective map ?v=1789551352 has blue dots and would now read as a fan.)
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
-// A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
-// pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
-// first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
-// (pattern px = r x mock W), multiplied by the Motif-size slider. Each mock is tuned by eye on its own,
-// because the photos are cropped very differently (a body spanning 40% of the frame vs 99%). Within a
-// garment the values keep checks-per-chest equal: r scales with the top's torso width on the map
-// (forms/motif-r.py derives them from one anchor view; romper keeps its 2026-09-10 seed values).
+// A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
+// mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
 // One garment only: the twirl dress bodysuit, one on-model view. Mock = the product photo with the print
 // erased to plain white (Gemini nano banana pro, 2026-09-16); map traced on that mock with SAM
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
@@ -108,13 +89,10 @@ const GARMENTS={
                         V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };
 const GKEY='twirlDress';
-const FLAT_KEYS=Object.keys(GARMENTS);
+const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
-// model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
-const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
-// which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
-const modelsFor=g=>g.models;
+const modelsFor=g=>g.models;   // no Gender field on this page: every model renders
 // ===== END GARMENT DATA =====
 
 // ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
@@ -260,14 +238,12 @@ function analyzeGarment(spec,model){
   const p=(async()=>{
     const CA=OUT_AREA*SS*SS;
     const [mockImg,mapImg]=await Promise.all([loadImg(spec.mock),loadPng(spec.map)]);
-    const M=rasterArea(mockImg,CA,true);
+    const M=rasterArea(mockImg,CA,true), W=M.w, H=M.h, md=M.data, N=W*H;
     // Fabric coverage for the soft edge: the map rastered once more WITH smoothing. Its R channel is then id x 20 x the
     // share of source pixels carrying that id, so at an edge against id 0 it reads how much of the pixel is fabric
-    // (the map is 2x the mock, so this is real sub-pixel information, not a guess). Kept as one byte per pixel.
-    const MS=rasterArea(mapImg,CA,true), rs=new Uint8Array(MS.w*MS.h); for(let i=0,p=0;i<rs.length;i++,p+=4) rs[i]=MS.data[p];
-    const MAP=rasterArea(mapImg,CA,false);
-    if(mapImg.close) mapImg.close();   // the id raster + coverage are all that is kept of the map
-    const W=M.w, H=M.h, md=M.data, xd=MAP.data, N=W*H;
+    // (the map is 2x the mock, so this is real sub-pixel information, not a guess). Kept as one byte per pixel; the
+    // 30MB smoothed raster itself is out of scope before the id raster is drawn, so the two never sit in memory together.
+    let rs; { const MS=rasterArea(mapImg,CA,true); rs=new Uint8Array(MS.w*MS.h); for(let i=0,p=0;i<rs.length;i++,p+=4) rs[i]=MS.data[p]; }
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
@@ -279,6 +255,8 @@ function analyzeGarment(spec,model){
     const cornerPx=[];                  // v2: every B-maxed fabric pixel = a corner dot baked into the map (blue = fan, cyan = perspective quad)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
+    { const xd=rasterArea(mapImg,CA,false).data;   // the id raster lives for this one pass: ids + rs are all that is kept of the map
+    if(mapImg.close) mapImg.close();
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
       if(dot&&k>=1&&k<=8) cornerPx.push(xd[p+1]>=AXIS_MIN ? i : -1-i);   // negative = fan dot (B only), positive = perspective dot (G and B maxed)
@@ -289,7 +267,7 @@ function analyzeGarment(spec,model){
         if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
       else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
-    }
+    } }
     // v2: corner dots -> quads. Dots are 4-connected blobs; each blob's panel = the id under it. A panel with exactly
     // 4 blobs gets a quad ordered TL,TR,BR,BL (map convention: R = id, G = axis, B = corner; blue = fan, cyan = perspective).
     const mapQuads=mapQuadsFrom(cornerPx,ids,W,H);
@@ -318,10 +296,7 @@ function analyzeGarment(spec,model){
     if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
       const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
       for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
-      const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
-        for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
-      const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
-      blur(v); blur(m);
+      boxBlur2(v,m,t,BW,BH,r);
       tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
     const G={ key:spec.map, H:null, mapQuads, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
@@ -539,15 +514,21 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
                      // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
+// 2-pass box blur, radius r, of v and m in place over a BW x BH rect (t = scratch of the same size): a running sum along
+// every row, then along every column, twice. Shared by the trim low-pass (analyzeGarment) and the fold field (compose).
+// (A row-major column pass with one accumulator per column was measured on 2026-09-16 and was no faster: the constant
+// stride is prefetched fine, and the extra accumulator loads / stores cost more than the misses they save.)
+function boxBlur2(v,m,t,BW,BH,r){
+  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
+    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
+  for(const a of [v,m]) for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); }
+}
 // masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
 // the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
 function blurMasked(W,x0,y0,x1,y1,r,src,msk){
   const BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
   for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++,j++) if(msk(i)){ v[j]=src(i); m[j]=1; }
-  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
-    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
-  const blur=a=>{ for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); } };
-  blur(v); blur(m);
+  boxBlur2(v,m,t,BW,BH,r);
   for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
   return v;
 }
@@ -748,7 +729,6 @@ $('dl').addEventListener('click', async ()=>{
     else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
   }
 });
-</script>
 </script>
 
 </body>

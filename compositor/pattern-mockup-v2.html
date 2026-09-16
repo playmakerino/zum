@@ -607,7 +607,7 @@ function readOpt(){ return { ...V2_DEFAULT, quads:null, showQuad:false }; }   //
 // With those off the v2 code path is byte-for-byte the v1 SHARED BLOCK math, so one function renders both.
 const V1_OPT={ tone:'mul', lbO:0, shO:0, hiO:0, autoSh:false, fref:true, dispAmp:0, dispBlur:1, feather:0, quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]
-const ENGINES=[ ['v1 · multiply', V1_OPT, 'v1'], ['v2 · linear burn + displace + feather', null, 'v2'] ];
+const ENGINES=[ ['v1', V1_OPT, 'v1'], ['v2', null, 'v2'] ];
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -647,7 +647,7 @@ async function generate(){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
       for(const [lab,o,pre] of ENGINES)
-        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+modelName(mdls[i])+' · '+lab, mdls[i]);
+        await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), 'On model · '+lab, mdls[i]);
     }
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (v1 + v2) · '+((performance.now()-t0)/1000).toFixed(1)+'s');

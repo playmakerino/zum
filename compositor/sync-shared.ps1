@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $src = Join-Path $dir 'pattern-mockup.html'
-$dst = Join-Path $dir 'zum_prd_form.html'
+$dsts = @((Join-Path $dir 'zum_prd_form.html'), (Join-Path $dir 'pattern-mockup-v2.html'))
 $START = '// ===== SHARED BLOCK'
 $END   = '// ===== END SHARED BLOCK ====='
 $enc = New-Object System.Text.UTF8Encoding($false)   # no BOM: the pages declare their charset
@@ -24,14 +24,18 @@ function Get-Block([string]$path) {
 }
 
 $s = Get-Block $src
+$rc = 0
+foreach ($dst in $dsts) {
 $d = Get-Block $dst
-if ($s.block -ceq $d.block) { Write-Output 'shared block: in sync'; exit 0 }
+$name = Split-Path -Leaf $dst
+if ($s.block -ceq $d.block) { Write-Output "shared block: in sync ($name)"; continue }
 
 if ($Push) {
     [IO.File]::WriteAllText($dst, $d.text.Substring(0, $d.start) + $s.block + $d.text.Substring($d.end), $enc)
-    Write-Output 'shared block: pushed pattern-mockup.html -> zum_prd_form.html'
-    exit 0
+    Write-Output "shared block: pushed pattern-mockup.html -> $name"
+    continue
 }
+$rc = 1
 
 $sl = $s.block -split "`r?`n"; $dl = $d.block -split "`r?`n"
 $n = [Math]::Max($sl.Count, $dl.Count); $shown = 0
@@ -41,4 +45,5 @@ for ($i = 0; $i -lt $n -and $shown -lt 10; $i++) {
     if ($x -cne $y) { Write-Output ("line {0}`n  tool: {1}`n  form: {2}" -f ($i + 1), $x, $y); $shown++ }
 }
 Write-Output 'shared block: DIFFERS (run with -Push to copy tool -> form)'
-exit 1
+}
+exit $rc

@@ -185,10 +185,10 @@ const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy
 const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
 // ===== END GARMENT DATA =====
 
-// ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html and zum_prd_form.html =====
-// Edit it in pattern-mockup.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form;
-// .\sync-shared.ps1  with no flag diffs the two copies. Both pages stay single-file: nothing is loaded from
-// a shared script. Nothing in here touches the DOM or page state: it reads images and returns pixels.
+// ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html, zum_prd_form.html and pattern-mockup-v2.html =====
+// Edit it in pattern-mockup.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form and the v2 page;
+// .\sync-shared.ps1  with no flag diffs the copies. All pages stay single-file: nothing is loaded from a shared script.
+// Nothing in here touches the DOM or page state: it reads images (+ an optional options object) and returns pixels.
 
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
@@ -200,15 +200,9 @@ const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
                            // (2.0 clears the last staircase on the romper map's id edges and a twill moire, at ~2.4x the time and memory)
-const TRIM_CEIL=1.15;      // flatlay trim ceiling
-const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
-const TRIM_ROLL=0.22;      // compression slope above the knee
-const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
-const TRIM_FLOOR=0.65;     // trim shadow floor: flatlay = hard clamp on f (mirrors TRIM_CEIL); model view = soft-knee onset on the low-pass
-                           // (mirrors TRIM_KNEE, same TRIM_ROLL), so a charcoal trim / shadowed cuff is lifted without flattening its weave
-const TRIM_MFLOOR=0.50;    // model view hard floor below the soft knee (mirrors TRIM_MCEIL)
-const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
-                           // acts on this low-pass (broad glare, lit collar); the weave / stitching / fold detail riding on it is kept as in the mock
+// Trim (id 9) has no rules of its own: every mock's trim is the same plain white fabric as the body (the coloured rib
+// trim was erased offline, 2026-09-17), so the chosen trim colour is multiplied by mock/Fref exactly like the print on a
+// fabric panel - same shading, same sub-pixel edge. (The old Lref / low-pass / knee / floor / ceiling machinery went with it.)
 const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
@@ -301,24 +295,25 @@ function genderFromHex(v){
 // LRU of a few garments (never below 2 flats + 2 models, or a new random model pick evicts a flatlay): each entry holds ids (1 byte/px) + axes; the mock is re-rasterised per compose
 // from the decoded image, so switching between the 12 maps does not pile up 30MB pixel buffers.
 const garmentCache=new Map(), CACHE_MAX=6;   // 2 flats + up to 4 model photos: a new random pick must not evict a flatlay
-// Fan corner dots -> quads {k:[[nx,ny]x4]} (normalised to the mock, TL TR BR BL). Dots are 4-connected blobs of blue
-// (B-maxed) pixels; each blob's panel = the id under it; a panel with exactly 4 blobs gets a quad. Garment panels hang: the two
-// highest dots are the top edge (TL = left of them), the two lowest the bottom edge (BR = right of them). Angle-based
-// ordering failed twice (a dot exactly at -135 deg; a hem-left dot placed higher than the waist-left dot so min x+y picked the wrong one).
-function fanQuadsFrom(px,ids,W,H){
-  if(!px.length) return null;
+function mapQuadsFrom(pxRaw,ids,W,H){
+  if(!pxRaw.length) return null;
+  const fanOf=new Map(); const px=pxRaw.map(v=>{ const i=v<0?-1-v:v; fanOf.set(i,v<0); return i; });
   const inSet=new Set(px), seen=new Set(), blobs=[];
   for(const s0 of px){ if(seen.has(s0)) continue;
-    const st=[s0]; seen.add(s0); let n=0, sx=0, sy=0; const kc=new Uint32Array(10);
-    while(st.length){ const i=st.pop(); n++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
+    const st=[s0]; seen.add(s0); let n=0, nf=0, sx=0, sy=0; const kc=new Uint32Array(10);
+    while(st.length){ const i=st.pop(); n++; if(fanOf.get(i)) nf++; sx+=i%W; sy+=(i/W)|0; kc[ids[i]]++;
       for(const j of [i-1,i+1,i-W,i+W]) if(j>=0&&j<W*H&&inSet.has(j)&&!seen.has(j)){ seen.add(j); st.push(j); } }
     let k=0; for(let q=1;q<=8;q++) if(kc[q]>kc[k]) k=q;
-    blobs.push({ k, n, x:sx/n, y:sy/n }); }
+    blobs.push({ k, n, nf, x:sx/n, y:sy/n }); }
   const out={}; let any=false;
   for(let k=1;k<=8;k++){ const b=blobs.filter(o=>o.k===k&&o.n>=4).sort((a,c)=>c.n-a.n).slice(0,4); if(b.length<4) continue;
+    const fan=b.reduce((a,o)=>a+o.nf,0)*2>b.reduce((a,o)=>a+o.n,0);   // blue dots (B only) = fan, cyan dots (G+B) = perspective
+    // Garment panels hang: the two highest dots are the top edge (TL = left of them), the two lowest the bottom edge
+    // (BR = right of them). Angle-based ordering failed twice (a dot exactly at -135 deg; a hem-left dot placed higher
+    // than the waist-left dot so min x+y picked the wrong one).
     b.sort((a,c)=>a.y-c.y);
     const top=b.slice(0,2).sort((a,c)=>a.x-c.x), bot=b.slice(2).sort((a,c)=>a.x-c.x);
-    out[k]=[top[0],top[1],bot[1],bot[0]].map(o=>[o.x/W,o.y/H]); any=true; }
+    out[k]=[top[0],top[1],bot[1],bot[0]].map(o=>[o.x/W,o.y/H]); out[k].fan=fan; any=true; }
   return any?out:null;
 }
 function analyzeGarment(spec,model){
@@ -336,28 +331,28 @@ function analyzeGarment(spec,model){
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
-    const hist=new Uint32Array(256); let nTrim=0;
     const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
     const linePx=[];                    // every G-maxed pixel, traced into strokes below
-    const cornerPx=[];                  // every blue (B-maxed, G off) fabric pixel = a fan corner dot baked into the map
+    const cornerPx=[];                  // v2: every B-maxed fabric pixel = a corner dot baked into the map (blue = fan, cyan = perspective quad)
     // hand-drawn grain axis: pixels whose map G channel is maxed, summed per panel to a direction below
     const acnt=new Float64Array(10), asx=new Float64Array(10), asy=new Float64Array(10), asxx=new Float64Array(10), asyy=new Float64Array(10), asxy=new Float64Array(10);
     { const xd=rasterArea(mapImg,CA,false).data;   // the id raster lives for this one pass: ids + rs are all that is kept of the map
     if(mapImg.close) mapImg.close();
     for(let y=0, i=0, p=0; y<H; y++) for(let x=0; x<W; x++, i++, p+=4){
       const k=((xd[p]+10)/20)|0, dot=xd[p+2]>=AXIS_MIN, axis=!dot&&xd[p+1]>=AXIS_MIN, even=!((x|y)&1); ids[i]=k;
-      if(dot&&xd[p+1]<AXIS_MIN&&k>=1&&k<=8) cornerPx.push(i);   // cyan dots (G and B maxed) are the testing page's perspective corners: neither stroke nor fan here
+      if(dot&&k>=1&&k<=8) cornerPx.push(xd[p+1]>=AXIS_MIN ? i : -1-i);   // negative = fan dot (B only), positive = perspective dot (G and B maxed)
       if(k>=1&&k<=9){ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }
       if(k>=1&&k<=8){ if(x<pbx0[k])pbx0[k]=x; if(x>pbx1[k])pbx1[k]=x; if(y<pby0[k])pby0[k]=y; if(y>pby1[k])pby1[k]=y;
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
         if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
         if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
-      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     } }
-    const fanQuads=fanQuadsFrom(cornerPx,ids,W,H);   // map convention: R = id, G = stroke, B (blue) = fan corner dot
+    // v2: corner dots -> quads. Dots are 4-connected blobs; each blob's panel = the id under it. A panel with exactly
+    // 4 blobs gets a quad ordered TL,TR,BR,BL (map convention: R = id, G = axis, B = corner; blue = fan, cyan = perspective).
+    const mapQuads=mapQuadsFrom(cornerPx,ids,W,H);
     const cx=new Float64Array(10), cy=new Float64Array(10), cs=new Float64Array(10).fill(1), sn=new Float64Array(10);
     // One uniform rule for every fabric panel: the grain runs along the panel's own PCA major axis. An
     // upright torso resolves to vertical, a sleeve/leg to the limb direction - no panel is singled out.
@@ -372,44 +367,39 @@ function analyzeGarment(spec,model){
       // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
       const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     const pct=(h,n,q)=>{ let acc=0; for(let v=0;v<256;v++){ acc+=h[v]; if(acc>=n*q) return v; } return 255; };
-    const Lref=pct(hist,nTrim,0.9);
     // Fabric white per channel: the print is multiplied by mock/Fref instead of mock/255, so the brightest
     // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
     // tints the print. Capped at 1 in compose: a print is never brighter than its file.
     const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
-    // Model view trim low-pass (see compose): masked 2-pass box blur of the trim luminance (non-trim
-    // neighbours excluded), 1 byte/px over the compose bbox only. The flatlay never uses it.
-    let tlo=null;
-    if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
-      const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
-      for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
-      boxBlur2(v,m,t,BW,BH,r);
-      tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
-    const G={ w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    const G={ key:spec.map, H:null, mapQuads, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Fref };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
     // misread some torso (neck hole, raised shoulder) and printed it 20-30 deg off. A human draws the bends.
     if(linePx.length) for(const d of traceDrawn(W,H,ids,linePx)){ if(d.curve>=AX_CURVE) G.axes[d.k]=buildAxis(d.k,d.px,d.py,G,!!model); }
-    // Fan panels (four blue dots on the map, e.g. a skirt): centre = where the two side edges TL-BL / TR-BR meet,
-    // tile x = arc length at the waist radius, tile y = radius. A fan replaces the panel's axis / rotation. See fanFromQuad().
+    // v2: a panel whose four dots are blue (B only) is a fan, not a perspective quad: centre = where the two
+    // side edges TL-BL / TR-BR meet, tile x = arc length at the waist radius, tile y = radius. See fanFromQuad().
     G.fans=null;
-    if(fanQuads) for(const k in fanQuads){ const f=fanFromQuad(fanQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; G.axes[k]=null; } }
+    if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
+      const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
     // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
     // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
     // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
     // inside the fabric is ever lightened: a blurred mask used to fade the print over 3 px INSIDE the fabric next to a
-    // white cord or a hand, a bright rim on any dark print. Fabric / trim and fabric / fabric edges stay hard as before.
+    // white cord or a hand, a bright rim on any dark print. Panel / panel edges (fabric or trim) stay hard as before. The trim
+    // (id 9) is a panel here too: its edge against skin gets the same sub-pixel coverage as a sleeve's.
     const ex0=Math.max(0,bx0-1), ey0=Math.max(0,by0-1), ex1=Math.min(W-1,bx1+1), ey1=Math.min(H-1,by1+1), EW=ex1-ex0+1;
     const cov=new Uint8ClampedArray(EW*(ey1-ey0+1)), eid=new Uint8Array(cov.length);
     for(let y=ey0,j=0;y<=ey1;y++) for(let x=ex0,i=y*W+ex0;x<=ex1;x++,i++,j++){ const k=ids[i];
-      if(k>=1&&k<=8){ eid[j]=k; let z=false;
+      if(k>=1&&k<=9){ eid[j]=k; let z=false;
         for(let dy=-1;dy<=1&&!z;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=W) continue; if(ids[yy*W+xx]===0){ z=true; break; } } }
         cov[j]=z ? Math.round(255*Math.min(1,rs[i]/(20*k))) : 255; }
       else if(k===0){ let kk=0;
         if(x>0&&ids[i-1]>=1&&ids[i-1]<=8) kk=ids[i-1]; else if(x<W-1&&ids[i+1]>=1&&ids[i+1]<=8) kk=ids[i+1]; else if(y>0&&ids[i-W]>=1&&ids[i-W]<=8) kk=ids[i-W]; else if(y<H-1&&ids[i+W]>=1&&ids[i+W]<=8) kk=ids[i+W];
         else for(let dy=-1;dy<=1&&!kk;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx+=2){ const xx=x+dx; if(xx<0||xx>=W) continue; const q=ids[yy*W+xx]; if(q>=1&&q<=8){ kk=q; break; } } }
+        // a fabric neighbour wins (the print reaches the edge); only an edge pixel touching trim alone takes the trim colour
+        if(!kk){ if(x>0&&ids[i-1]===9) kk=9; else if(x<W-1&&ids[i+1]===9) kk=9; else if(y>0&&ids[i-W]===9) kk=9; else if(y<H-1&&ids[i+W]===9) kk=9; }
         eid[j]=kk; cov[j]=kk ? Math.round(255*Math.min(1,rs[i]/(20*kk))) : 0; }
       else { eid[j]=k; cov[j]=255; } }
     G.cov=cov; G.eid=eid; G.ebox=[ex0,ey0,ex1,ey1];
@@ -431,7 +421,7 @@ function analyzeGarment(spec,model){
 // max perpendicular deviation of a polyline from its chord, over the chord length
 const curveOf=(px,py)=>{ const n=px.length, ex=px[n-1]-px[0], ey=py[n-1]-py[0], el=Math.hypot(ex,ey)||1; let md=0;
   for(let j=0;j<n;j++){ const p=Math.abs((px[j]-px[0])*ey-(py[j]-py[0])*ex)/el; if(p>md) md=p; } return md/el; };
-// fan from four blue dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
+// v2 fan from four blue dots TL,TR,BR,BL (px): centre C = intersection of the side edges TL-BL and TR-BR, bisector
 // = from C through the middle of the quad, R0 = mean distance from C to the top corners (the waist arc). Rejected
 // (null) when the sides are near-parallel (< 2 deg) or C lies below the top edge (sides diverging upward).
 function fanFromQuad(P){
@@ -511,7 +501,7 @@ function buildAxis(k,px,py,G,wrap){
   for(let gy=(pby0[k]/CS)|0, gy1=(pby1[k]/CS)|0; gy<=gy1; gy++) for(let gx=(pbx0[k]/CS)|0, gx1=(pbx1[k]/CS)|0; gx<=gx1; gx++){
     const cxp=gx*CS+CS/2, cyp=gy*CS+CS/2; let bi=0, bd=Infinity;
     for(let j=0;j<n;j++){ const ex=px[j]-cxp, ey=py[j]-cyp, dd=ex*ex+ey*ey; if(dd<bd){ bd=dd; bi=j; } } near[gy*gw+gx]=bi; }
-  // one normal per NODE (mean of the two adjacent segment normals, unit), interpolated along each segment in
+  // v2: one normal per NODE (mean of the two adjacent segment normals, unit), interpolated along each segment in
   // axisUV so the iso-u lines rotate continuously through a bend instead of jumping at every joint.
   const nx=new Float32Array(n), ny=new Float32Array(n), th=new Float64Array(n);
   for(let j=0;j<n;j++){ const a=Math.max(0,j-1), b=Math.min(n-2,j); th[j]=Math.atan2(-dx[a]-dx[b], dy[a]+dy[b]);
@@ -532,7 +522,7 @@ function buildAxis(k,px,py,G,wrap){
 // Globals instead of a return value: this runs once per fabric pixel.
 let LX=0, LY=0;
 function axisUV(A,x,y){
-  // Swept frame: on segment j the normal is n(tau) = n_j + tau (n_j+1 - n_j), tau = t/len, and the iso-u line at tau
+  // v2 swept frame: on segment j the normal is n(tau) = n_j + tau (n_j+1 - n_j), tau = t/len, and the iso-u line at tau
   // passes through p_j + tau len d_j with direction n(tau). The pixel sits on that line when
   // (r - tau len d) x n(tau) = 0, a quadratic in tau (linear when the two node normals agree, i.e. a straight run).
   // A polyline with fixed per-segment normals left a wedge (u frozen, print smeared) outside every joint and an overlap
@@ -570,8 +560,9 @@ function axisUV(A,x,y){
 // Pixel (x,y) of panel k -> its tiling frame: curved (across / along the limb axis) when the panel has
 // an axis, otherwise rotated about the centroid by -theta so tile x runs across the grain, tile y along it.
 function localXY(G,k,x,y){
-  const F=G.fans&&G.fans[k];   // a fan panel (four blue dots on the map) replaces axis / rotation
-  if(F){ fanXY(F,x,y); return; }
+  const F=G.fans&&G.fans[k], Q=G.H&&G.H[k];   // v2: fan (two strokes) and/or quad (four dots) replace axis / rotation
+  if(F){ fanXY(F,x,y); if(!Q) return; x=LX; y=LY; }     // a quad on a fan panel is perspective applied to the fan frame
+  if(Q){ const h=Q.h, d=h[6]*x+h[7]*y+1; LX=(h[0]*x+h[1]*y+h[2])/d-Q.w/2; LY=(h[3]*x+h[4]*y+h[5])/d-Q.hh/2; return; }
   const A=G.axes[k];
   if(A) axisUV(A,x,y);
   else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
@@ -600,7 +591,7 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
 // 2-pass box blur, radius r, of v and m in place over a BW x BH rect (t = scratch of the same size): a running sum along
-// every row, then along every column, twice. Shared by the trim low-pass (analyzeGarment) and the fold field (compose).
+// every row, then along every column, twice. Used by the fold field (compose).
 // (A row-major column pass with one accumulator per column was measured on 2026-09-16 and was no faster: the constant
 // stride is prefetched fine, and the extra accumulator loads / stores cost more than the misses they save.)
 function boxBlur2(v,m,t,BW,BH,r){
@@ -617,18 +608,42 @@ function blurMasked(W,x0,y0,x1,y1,r,src,msk){
   for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
   return v;
 }
+// 4-point homography src->dst (each [[x,y]x4]); returns h[0..8] with h[8]=1. Direct 8x8 Gaussian elimination.
+function homography(src,dst){
+  const A=[], B=[];
+  for(let i=0;i<4;i++){ const [x,y]=src[i], [u,v]=dst[i];
+    A.push([x,y,1,0,0,0,-u*x,-u*y]); B.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]); B.push(v); }
+  for(let c=0;c<8;c++){ let p=c; for(let r=c+1;r<8;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]]; [B[c],B[p]]=[B[p],B[c]]; const d=A[c][c]||1e-12;
+    for(let r=0;r<8;r++){ if(r===c) continue; const f=A[r][c]/d; if(!f) continue; for(let k=c;k<8;k++) A[r][k]-=f*A[c][k]; B[r]-=f*B[c]; } }
+  const h=B.map((b,i)=>b/(A[i][i]||1e-12)); h.push(1); return h;
+}
+// quads {k:[[nx,ny]x4]} (normalised to the mock, TL TR BR BL) -> {k:{h,w,hh}}: the quad maps onto a w x hh
+// rectangle, w = the longer of the top/bottom edges, hh = the longer side, so the wide end keeps the flat motif size.
+function buildQuads(q,W,H,G){
+  if(!q) return null; const out={}; let any=false;
+  for(const k in q){ const F=G&&G.fans&&G.fans[k];
+    const P=q[k].map(([x,y])=>{ if(F){ fanXY(F,x*W,y*H); return [LX,LY]; } return [x*W,y*H]; }), L=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+    const w=Math.max(L(P[0],P[1]),L(P[3],P[2])), hh=Math.max(L(P[0],P[3]),L(P[1],P[2]));
+    if(w<2||hh<2) continue;
+    out[k]={ h:homography(P,[[0,0],[w,0],[w,hh],[0,hh]]), w, hh }; any=true; }
+  return any?out:null;
+}
+
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
-// trim: [r,g,b] or null (keep the mock's own trim). Returns a canvas (W/SS x H/SS); the caller encodes it.
-function compose(G, pat, ratio, trim){
-  const {w:W,h:H,ids,Lref,ext,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
+// trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
+// { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
+function compose(G, pat, ratio, trim, opt){
+  opt=opt||{};
+  const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
-  // Per-panel tile phase. Seam avoidance: when one tile more than covers a panel on an axis, shift the
-  // phase so the single wrap boundary lands outside the panel (in the background) instead of slicing a
-  // motif mid-panel. OFFX/OFFY still seed the within-cell placement, so adjacent panels stay decorrelated.
-  // A panel wider or taller than the tile must repeat, so it keeps the plain OFFX*PW / OFFY*PH offset.
+  // Perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
+  G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
+  const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
@@ -646,21 +661,15 @@ function compose(G, pat, ratio, trim){
   const {cov,eid,ebox:[ex0,ey0,ex1,ey1]}=G, EW=ex1-ex0+1;
 
   for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){
-    const k0=ids[i], k=eid[j]; if(k===0||k>9) continue;
+    const k=eid[j]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
-    if(k0===9){
+    let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
+    let R,Gc,Bc;
+    if(k===9){
+      // trim = a panel whose "print" is the flat trim colour: same multiply, same edge coverage as the fabric below
       if(!trim) continue;
-      const lum=(r*299+g*587+b*114)/1000; let f;
-      if(tlo){
-        const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
-        if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
-        else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
-        f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
-      else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }
-      out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
-      continue;
-    }
-    if(k===9) continue;
+      R=tr*Pr; Gc=tg*Pg; Bc=tb*Pb;
+    } else {
     // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
     // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
@@ -680,8 +689,8 @@ function compose(G, pat, ratio, trim){
         pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
         pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
-    let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
-    let R=pr*Pr, Gc=pg*Pg, Bc=pb*Pb;
+    R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb;
+    }
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
     const a=cov[j]; if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
@@ -691,6 +700,13 @@ function compose(G, pat, ratio, trim){
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
   dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,disp.width,disp.height);
+  // Picked quads drawn on top (demo aid; off = the plain composite)
+  const qs=opt.showQuad&&opt.quads&&opt.quads[G.key];
+  if(qs){ dctx.save(); dctx.lineWidth=3; dctx.strokeStyle='#ff2d8a'; dctx.fillStyle='#ff2d8a'; dctx.font='bold 28px sans-serif';
+    for(const k in qs){ const Pq=qs[k]; dctx.beginPath();
+      Pq.forEach(([nx,ny],j)=>{ const X=nx*disp.width, Y=ny*disp.height; j?dctx.lineTo(X,Y):dctx.moveTo(X,Y); }); dctx.closePath(); dctx.stroke();
+      Pq.forEach(([nx,ny],j)=>dctx.fillText(String(j+1)+(j?'':' · panel '+k), nx*disp.width+6, ny*disp.height-6)); }
+    dctx.restore(); }
   return disp;
 }
 // ===== END SHARED BLOCK =====

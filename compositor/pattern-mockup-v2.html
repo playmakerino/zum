@@ -113,10 +113,10 @@ const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.
 const modelsFor=g=>g.models;   // no Gender field on this page: every model renders
 // ===== END GARMENT DATA =====
 
-// ===== V2 ENGINE: a demo copy of the SHARED BLOCK of pattern-mockup.html, NOT synced by sync-shared.ps1 =====
-// Only addition over the shared block: perspective homography from cyan corner dots (marked "v2:").
-// The END SHARED BLOCK marker is kept so regress-engine.js render works on this page.
-// Nothing in here touches the DOM or page state: it reads images + an options object and returns pixels.
+// ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html, zum_prd_form.html and pattern-mockup-v2.html =====
+// Edit it in pattern-mockup.html (the dev tool), then  .\sync-shared.ps1 -Push  copies it into the form and the v2 page;
+// .\sync-shared.ps1  with no flag diffs the copies. All pages stay single-file: nothing is loaded from a shared script.
+// Nothing in here touches the DOM or page state: it reads images (+ an optional options object) and returns pixels.
 
 // Map encoding: red channel / 20 -> panel id. 0 = background (incl. skin/hair), 1..8 = fabric panels, 9 = trim.
 // Panel 6 = inside of the collar (wrong side of a one-sided print): mirrored + faint bleed-through.
@@ -128,19 +128,9 @@ const OFFY=[0,0.53,0.19,0.81,0.34,0.67,0.08,0.46,0.88];
 const OUT_AREA=1900*2356;  // output pixels (~1900px wide) - crisp motifs
 const SS=1.3;              // supersample factor: mild edge anti-aliasing only; the pattern itself is sampled bilinearly
                            // (2.0 clears the last staircase on the romper map's id edges and a twill moire, at ~2.4x the time and memory)
-// Trim rules of the PRODUCTION engine (pattern-mockup.html / zum_prd_form.html), kept here so the production render on
-// this page stays bit-identical. The TESTING render ({plainTrim:true}) ignores all of them: every mock's trim is now the
-// same plain white fabric as the body (colour trim erased offline 2026-09-17), so the trim colour is multiplied by
-// mock/Fref exactly like the print on a fabric panel - same shading, same soft edge, no Lref / low-pass / knee / floor.
-const TRIM_CEIL=1.15;      // flatlay trim ceiling
-const TRIM_KNEE=0.86;      // model view only: soft-knee onset for trim highlights (kills specular gloss + lit-collar glare that the flat-lit flatlay never shows)
-const TRIM_ROLL=0.22;      // compression slope above the knee
-const TRIM_MCEIL=1.00;     // model view trim ceiling, below the flat one
-const TRIM_FLOOR=0.65;     // trim shadow floor: flatlay = hard clamp on f (mirrors TRIM_CEIL); model view = soft-knee onset on the low-pass
-                           // (mirrors TRIM_KNEE, same TRIM_ROLL), so a charcoal trim / shadowed cuff is lifted without flattening its weave
-const TRIM_MFLOOR=0.50;    // model view hard floor below the soft knee (mirrors TRIM_MCEIL)
-const TRIM_BLUR=0.006;     // model view only: trim low-pass radius, fraction of the raster width (2-pass box, ~60px wide at 2470). The knee
-                           // acts on this low-pass (broad glare, lit collar); the weave / stitching / fold detail riding on it is kept as in the mock
+// Trim (id 9) has no rules of its own: every mock's trim is the same plain white fabric as the body (the coloured rib
+// trim was erased offline, 2026-09-17), so the chosen trim colour is multiplied by mock/Fref exactly like the print on a
+// fabric panel - same shading, same sub-pixel edge. (The old Lref / low-pass / knee / floor / ceiling machinery went with it.)
 const COLLAR_ID=6;
 const AXIS_MIN=250;        // map G channel >= this = a hand-drawn grain axis for the panel it sits on (R keeps the id)
 const AX_STEP=10;          // limb axis sample spacing (px at the analysis size)
@@ -269,7 +259,6 @@ function analyzeGarment(spec,model){
     const ids=new Uint8Array(N);
     const cnt=new Float64Array(10), sx=new Float64Array(10), sy=new Float64Array(10),
           sxx=new Float64Array(10), sxy=new Float64Array(10), syy=new Float64Array(10);
-    const hist=new Uint32Array(256); let nTrim=0;
     const fh=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let nFab=0;   // fabric per-channel histograms
     let bx0=W, bx1=-1, by0=H, by1=-1;   // compose bbox (fabric + trim)
     const pbx0=new Int32Array(10).fill(W), pby0=new Int32Array(10).fill(H), pbx1=new Int32Array(10).fill(-1), pby1=new Int32Array(10).fill(-1);   // per-panel bbox (axis grids)
@@ -287,7 +276,6 @@ function analyzeGarment(spec,model){
         cnt[k]++; sx[k]+=x; sy[k]+=y; sxx[k]+=x*x; sxy[k]+=x*y; syy[k]+=y*y;
         if(even){ fh[0][md[p]]++; fh[1][md[p+1]]++; fh[2][md[p+2]]++; nFab++; }
         if(axis){ acnt[k]++; asx[k]+=x; asy[k]+=y; asxx[k]+=x*x; asyy[k]+=y*y; asxy[k]+=x*y; } }
-      else if(k===9 && even){ hist[((md[p]*299+md[p+1]*587+md[p+2]*114)/1000)|0]++; nTrim++; }
       if(axis) linePx.push(i);   // any id: a stroke crossing a seam gap must stay one connected component
     } }
     // v2: corner dots -> quads. Dots are 4-connected blobs; each blob's panel = the id under it. A panel with exactly
@@ -307,20 +295,11 @@ function analyzeGarment(spec,model){
       // (Symmetric gingham hid the sign on limbs; a drawn torso axis against the body makes it visible.)
       const th=-0.5*Math.atan2(2*vxy, vyy-vxx); cs[k]=Math.cos(th); sn[k]=Math.sin(th); }
     const pct=(h,n,q)=>{ let acc=0; for(let v=0;v<256;v++){ acc+=h[v]; if(acc>=n*q) return v; } return 255; };
-    const Lref=pct(hist,nTrim,0.9);
     // Fabric white per channel: the print is multiplied by mock/Fref instead of mock/255, so the brightest
     // fabric shows the pattern file's exact colour, and a warm-white photo (pajama, pink hue) no longer
     // tints the print. Capped at 1 in compose: a print is never brighter than its file.
     const Fref=[0,1,2].map(c=>Math.max(1,pct(fh[c],nFab,0.95)));
-    // Model view trim low-pass (production render, see compose): masked 2-pass box blur of the trim luminance (non-trim
-    // neighbours excluded), 1 byte/px over the compose bbox only. The flatlay never uses it.
-    let tlo=null;
-    if(model){ const BW=bx1-bx0+1, BH=by1-by0+1, r=Math.max(3,Math.round(W*TRIM_BLUR));
-      const v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
-      for(let y=by0,j=0;y<=by1;y++) for(let x=bx0,i=y*W+bx0;x<=bx1;x++,i++,j++) if(ids[i]===9){ const p=i*4; v[j]=(md[p]*299+md[p+1]*587+md[p+2]*114)/1000; m[j]=1; }
-      boxBlur2(v,m,t,BW,BH,r);
-      tlo=new Uint8ClampedArray(BW*BH); for(let j=0;j<BW*BH;j++) if(m[j]>0) tlo[j]=Math.max(1,Math.round(v[j]/m[j])); }
-    const G={ key:spec.map, H:null, mapQuads, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Lref:Math.max(1,Lref), Fref, tlo };
+    const G={ key:spec.map, H:null, mapQuads, w:W, h:H, mockImg, ids, box:[bx0,by0,bx1,by1], pbox:[pbx0,pby0,pbx1,pby1], cnt, cx, cy, cs, sn, axes:[], ext:null, Fref };
     // Limb axes (see below): only from strokes drawn on the map. A stroke that bends becomes a curved axis
     // in any view (a straight one already set the grain angle above); the tube wrap applies in the model
     // view only. No automatic axis: every guess (PCA elongation, axis length / width, end-cap endpoints)
@@ -336,9 +315,8 @@ function analyzeGarment(spec,model){
     // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
     // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
     // inside the fabric is ever lightened: a blurred mask used to fade the print over 3 px INSIDE the fabric next to a
-    // white cord or a hand, a bright rim on any dark print. Fabric / trim and fabric / fabric edges stay hard as before.
-    // v2 testing: the trim (id 9) is also a panel here - it gets its own coverage, and an id-0 pixel touching only trim
-    // gets eid 9 (fabric neighbours still win, so the production path, which skips eid 9, is unchanged).
+    // white cord or a hand, a bright rim on any dark print. Panel / panel edges (fabric or trim) stay hard as before. The trim
+    // (id 9) is a panel here too: its edge against skin gets the same sub-pixel coverage as a sleeve's.
     const ex0=Math.max(0,bx0-1), ey0=Math.max(0,by0-1), ex1=Math.min(W-1,bx1+1), ey1=Math.min(H-1,by1+1), EW=ex1-ex0+1;
     const cov=new Uint8ClampedArray(EW*(ey1-ey0+1)), eid=new Uint8Array(cov.length);
     for(let y=ey0,j=0;y<=ey1;y++) for(let x=ex0,i=y*W+ex0;x<=ex1;x++,i++,j++){ const k=ids[i];
@@ -348,6 +326,7 @@ function analyzeGarment(spec,model){
       else if(k===0){ let kk=0;
         if(x>0&&ids[i-1]>=1&&ids[i-1]<=8) kk=ids[i-1]; else if(x<W-1&&ids[i+1]>=1&&ids[i+1]<=8) kk=ids[i+1]; else if(y>0&&ids[i-W]>=1&&ids[i-W]<=8) kk=ids[i-W]; else if(y<H-1&&ids[i+W]>=1&&ids[i+W]<=8) kk=ids[i+W];
         else for(let dy=-1;dy<=1&&!kk;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx+=2){ const xx=x+dx; if(xx<0||xx>=W) continue; const q=ids[yy*W+xx]; if(q>=1&&q<=8){ kk=q; break; } } }
+        // a fabric neighbour wins (the print reaches the edge); only an edge pixel touching trim alone takes the trim colour
         if(!kk){ if(x>0&&ids[i-1]===9) kk=9; else if(x<W-1&&ids[i+1]===9) kk=9; else if(y>0&&ids[i-W]===9) kk=9; else if(y<H-1&&ids[i+W]===9) kk=9; }
         eid[j]=kk; cov[j]=kk ? Math.round(255*Math.min(1,rs[i]/(20*kk))) : 0; }
       else { eid[j]=k; cov[j]=255; } }
@@ -540,7 +519,7 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
 // 2-pass box blur, radius r, of v and m in place over a BW x BH rect (t = scratch of the same size): a running sum along
-// every row, then along every column, twice. Shared by the trim low-pass (analyzeGarment) and the fold field (compose).
+// every row, then along every column, twice. Used by the fold field (compose).
 // (A row-major column pass with one accumulator per column was measured on 2026-09-16 and was no faster: the constant
 // stride is prefetched fine, and the extra accumulator loads / stores cost more than the misses they save.)
 function boxBlur2(v,m,t,BW,BH,r){
@@ -581,16 +560,16 @@ function buildQuads(q,W,H,G){
 }
 
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
-// trim: [r,g,b] or null (keep the mock's own trim). opt (testing page only): { quads:false } = no perspective quads, { plainTrim:true } = trim like a fabric panel (testing);
-// (the production render), { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides the map's cyan dots, showQuad draws them. Returns a canvas (W/SS x H/SS).
+// trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
+// { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
-  const {w:W,h:H,ids,Lref,tlo,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
+  const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
   const patW = ratio*W;
   const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P.w, PH=P.h, pd=P.data;
-  // v2: perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
+  // Perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
   const ext=G.H?panelExtents(G):G.ext;
   const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
@@ -610,28 +589,12 @@ function compose(G, pat, ratio, trim, opt){
   const {cov,eid,ebox:[ex0,ey0,ex1,ey1]}=G, EW=ex1-ex0+1;
 
   for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){
-    const k0=ids[i], k=eid[j]; if(k===0||k>9) continue;
+    const k=eid[j]; if(k===0||k>9) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
-    if(!opt.plainTrim){
-      // production trim rule, verbatim: luminance / Lref with the model-view knee + floor on the low-pass; no edge coverage
-      if(k0===9){
-        if(!trim) continue;
-        const lum=(r*299+g*587+b*114)/1000; let f;
-        if(tlo){
-          const lo=tlo[(y-by0)*BW+(x-bx0)]||lum; let fl=lo/Lref;
-          if(fl>TRIM_KNEE){ fl=TRIM_KNEE+(fl-TRIM_KNEE)*TRIM_ROLL; if(fl>TRIM_MCEIL) fl=TRIM_MCEIL; }
-          else if(fl<TRIM_FLOOR){ fl=TRIM_FLOOR-(TRIM_FLOOR-fl)*TRIM_ROLL; if(fl<TRIM_MFLOOR) fl=TRIM_MFLOOR; }
-          f=fl*lum/lo; if(f>TRIM_CEIL) f=TRIM_CEIL; }
-        else { f=lum/Lref; if(f>TRIM_CEIL) f=TRIM_CEIL; else if(f<TRIM_FLOOR) f=TRIM_FLOOR; }
-        out[o]=(tr*f)|0; out[o+1]=(tg*f)|0; out[o+2]=(tb*f)|0;
-        continue;
-      }
-      if(k===9) continue;
-    }
     let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
     let R,Gc,Bc;
     if(k===9){
-      // testing: trim = a panel whose "print" is the flat trim colour - same multiply, same edge coverage as the fabric below
+      // trim = a panel whose "print" is the flat trim colour: same multiply, same edge coverage as the fabric below
       if(!trim) continue;
       R=tr*Pr; Gc=tg*Pg; Bc=tb*Pb;
     } else {
@@ -665,7 +628,7 @@ function compose(G, pat, ratio, trim, opt){
   disp.width=Math.round(W/SS); disp.height=Math.round(H/SS);
   dctx.imageSmoothingQuality='high';
   dctx.drawImage(big,0,0,disp.width,disp.height);
-  // v2: picked quads drawn on top (demo aid; off = the plain composite)
+  // Picked quads drawn on top (demo aid; off = the plain composite)
   const qs=opt.showQuad&&opt.quads&&opt.quads[G.key];
   if(qs){ dctx.save(); dctx.lineWidth=3; dctx.strokeStyle='#ff2d8a'; dctx.fillStyle='#ff2d8a'; dctx.font='bold 28px sans-serif';
     for(const k in qs){ const Pq=qs[k]; dctx.beginPath();
@@ -686,10 +649,10 @@ let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in fli
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-function readOpt(){ return { quads:null, showQuad:false, plainTrim:true }; }   // quads:null = perspective quads from the map's cyan dots, not drawn; plainTrim = trim rendered like a fabric panel
+function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn
 // Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
-const PROD_OPT={ quads:false, showQuad:false, plainTrim:false };
+const PROD_OPT={ quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
 const ENGINES=[ ['production', PROD_OPT, 'production'], ['testing', null, 'testing'] ];
 

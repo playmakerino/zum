@@ -82,15 +82,14 @@ const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
 const GARMENTS={
   twirlDress:{ flats:[],
-               // skirt = fan (four blue dots in the map). The perspective-dot map (zum-flatlay-model-map-twirl-dress-1.png
-               // ?v=1789551352, pre-swap colours) is kept on Shopify but no longer rendered: the fan was judged better on 2026-09-16.
-               models:[ V('zum-model-twirl-dress-1.png?v=1789549743','zum-flatlay-model-map-twirl-dress-1-fan.png?v=1789555588',1,'Dress'),
+               // twirl dress, v2test mock + map traced 2026-09-17 (Desktop "t v2"); r 0.56 from the map filename suffix.
+               models:[ V('zum-model-twirl-dress-v2test.png?v=1789616131','zum-model-map-twirl-dress-v2test.png?v=1789616158',0.56,'Dress'),
+                        // pajama boy, v2test mock + map traced 2026-09-17 (Desktop "t v2"), replaces pajama-boy-4; r 0.68 from the map filename suffix.
+                        V('zum-model-pajama-boy-v2test.png?v=1789616166','zum-model-map-pajama-boy-v2test.png?v=1789616172',0.68,'Pajama'),
+                        // same pajama mock, alternate map -b (v2test-b) 2026-09-17; r 0.68.
+                        V('zum-model-pajama-boy-v2test.png?v=1789616166','zum-model-map-pajama-boy-v2test-b.png?v=1789619039',0.68,'Pajama b'),
                         // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
-                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy'),
-                        // pajama boy, seated 3/4 view (Desktop "Outfit Edit Request.png", print erased): the map carries ONLY the
-                        // body panel (id 1) with four cyan dots at its corners = the first real perspective-quad test. Sleeves, pants
-                        // and trim are unmapped on purpose. r from motif-r.py against pajama-boy-3 (r 1.611).
-                        V('zum-model-pajama-boy-4.png?v=1789573108','zum-flatlay-model-map-pajama-boy-4.png?v=1789574660',0.845,'Pajama') ] },
+                        V('zum-model-romper-1.jpg?v=1786079988','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy') ] },
 };
 const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render

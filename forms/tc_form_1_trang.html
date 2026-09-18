@@ -195,6 +195,11 @@
     .grp-select:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
     .grp-select option { background: var(--surface-elevated); color: var(--text); }
 
+    /* Both target dropdowns share one slot (same position + width) */
+    .target-control { max-width: 260px; }
+    .target-control .combo { max-width: none; }
+    .target-control .grp-select { max-width: none; }
+
     /* Add-image tile (lives inside the thumbnail grid) */
     .add-tile {
       aspect-ratio: 1;
@@ -389,29 +394,27 @@
 
     <div class="card">
 
-      <div class="section-label"><span>Target</span></div>
-
       <div class="field">
         <div class="seg" id="modeSeg" role="tablist">
           <button type="button" class="seg-btn active" data-mode="type">Product type</button>
           <button type="button" class="seg-btn" data-mode="group">Type group</button>
         </div>
         <input type="hidden" id="ad_mode" value="type" />
-        <div class="combo" id="productTypeCombo">
-          <input type="text" class="combo-input" id="productTypeSearch"
-                 placeholder="Search product type..." autocomplete="off" role="combobox"
-                 aria-expanded="false" aria-controls="productTypeMenu" />
-          <input type="hidden" id="product_type" value="QBS" />
-          <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
+        <div class="target-control">
+          <div class="combo" id="productTypeCombo">
+            <input type="text" class="combo-input" id="productTypeSearch"
+                   placeholder="Search product type..." autocomplete="off" role="combobox"
+                   aria-expanded="false" aria-controls="productTypeMenu" />
+            <input type="hidden" id="product_type" value="QBS" />
+            <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
+          </div>
+          <select id="product_type_group" class="grp-select" style="display:none">
+            <option value="kid pajama">Kid pajama</option>
+            <option value="adult pajama">Adult pajama</option>
+            <option value="kid play">Kid play</option>
+          </select>
         </div>
-        <select id="product_type_group" class="grp-select" style="display:none">
-          <option value="kid pajama">Kid pajama</option>
-          <option value="adult pajama">Adult pajama</option>
-          <option value="kid play">Kid play</option>
-        </select>
       </div>
-
-      <div class="section-label" style="margin-top:26px"><span>Images</span><span class="count" id="adCount"></span></div>
 
       <div class="field">
         <label>Print</label>
@@ -420,7 +423,7 @@
       </div>
 
       <div class="field">
-        <label>Ad images</label>
+        <label>Ad images <span class="count" id="adCount"></span></label>
         <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
         <div class="thumbs" id="thumbs"></div>
         <div class="row-img-count" id="imgCount"></div>
@@ -771,8 +774,8 @@
         const mode = btn.getAttribute('data-mode');
         modeInput.value = mode;
         seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
-        combo.style.display = (mode === 'type') ? '' : 'none';
-        grp.style.display = (mode === 'group') ? '' : 'none';
+        combo.style.display = (mode === 'type') ? 'block' : 'none';
+        grp.style.display = (mode === 'group') ? 'block' : 'none';
       });
     })();
 

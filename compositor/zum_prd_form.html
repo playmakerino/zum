@@ -749,20 +749,21 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // so they align to the photo exactly; the mock is the original photo. Every view carries r: the pattern
 // raster width as a fraction of the mock width (pattern px = r x mock W), multiplied by the Motif-size
 // slider; each mock is tuned by eye on its own. Same values as the dev tool for the views it shares.
-const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+// mid = mockup id (per mock-map pair): baked into the flatlay filename so ads can carry it. PILOT: sample codes.
+const V=(mock,map,r,mid)=>({ mock:CDN+mock, map:CDN+map, r, mockupId:mid });
 const GARMENTS={
-  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1789642309','zum-flatlay-map-romper.png?v=1788601403',0.853),
-           models:[ V('zum-model-romper-1.jpg?v=1789642313','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634),
-                    V('zum-model-romper-2.jpg?v=1789642315','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380),
-                    V('zum-model-romper-3.jpg?v=1789642318','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932),
-                    V('zum-model-romper-4.jpg?v=1789642321','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087) ] },
-  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1788601405',0.764),
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
-                    V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
-                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1788949256',1.611),
-                    V('zum-model-pajama-girl-1.jpg?v=1789641890','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
-                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
-                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476) ] },
+  romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1789642309','zum-flatlay-map-romper.png?v=1788601403',0.853,'SMP-RMP'),
+           models:[ V('zum-model-romper-1.jpg?v=1789642313','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'SMP-RMP-M1'),
+                    V('zum-model-romper-2.jpg?v=1789642315','zum-flatlay-model-map-romper-2.png?v=1788949193',1.380,'SMP-RMP-M2'),
+                    V('zum-model-romper-3.jpg?v=1789642318','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932,'SMP-RMP-M3'),
+                    V('zum-model-romper-4.jpg?v=1789642321','zum-flatlay-model-map-romper-4.png?v=1788949243',1.087,'SMP-RMP-M4') ] },
+  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1788601405',0.764,'SMP-PJM'),
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557,'SMP-PJM-B1'),
+                    V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417,'SMP-PJM-B2'),
+                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32,'SMP-PJM-B3'),
+                    V('zum-model-pajama-girl-1.jpg?v=1789641890','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605,'SMP-PJM-G1'),
+                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266,'SMP-PJM-G2'),
+                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476,'SMP-PJM-G3') ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);   // 'romper','pajama' - one flatlay per product type
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
@@ -1541,6 +1542,15 @@ function compose(G, pat, ratio, trim, opt){
             return;
           }
         }
+        // on-model composites render after the flatlays; they are also sent now, so wait for them too
+        if (!FLAT_KEYS.every(key => shots.model[key] && shots.model[key].blob)) {
+          submitBtn.innerHTML = '<span class="spinner"></span> Building on-model…';
+          await (flatRun || generateFlatlays());
+          if (!FLAT_KEYS.every(key => shots.model[key] && shots.model[key].blob)) {
+            toast('On-model not ready: ' + (flatErr || 'try again.'), 'error');
+            return;
+          }
+        }
         submitBtn.innerHTML = '<span class="spinner"></span> Sending…';
 
         const fd = new FormData();
@@ -1556,7 +1566,13 @@ function compose(G, pat, ratio, trim, opt){
         fd.append('motif_scale', motifScale.value);
         fd.append('pattern', selectedFile, selectedFile.name);
         // one composited flatlay per product type; the workflow picks them by data-table product_type
-        for (const key of FLAT_KEYS) fd.append('flatlay_' + key, shots.flat[key].blob, 'flatlay-' + key + '.jpg');
+        for (const key of FLAT_KEYS) {
+          fd.append('flatlay_' + key, shots.flat[key].blob, 'flatlay-' + key + '.jpg');
+          fd.append('mockup_id_' + key, (GARMENTS[key].flat.mockupId || ''));   // -> workflow bakes it into the Shopify image filename
+          // on-model composite (the picked view) sent as an ADDITIONAL product image, with its own mockup id
+          fd.append('model_' + key, shots.model[key].blob, 'model-' + key + '.jpg');
+          fd.append('mockup_id_model_' + key, (GARMENTS[key].models[modelPick[key]].mockupId || ''));
+        }
 
         const thumb = patImg ? makeThumb(patImg, 80) : '';
 

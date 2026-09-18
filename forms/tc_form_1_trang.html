@@ -166,6 +166,35 @@
     .combo-opt .opt-code { flex-shrink: 0; color: var(--text-muted); font-size: 12px; font-weight: 500; }
     .combo-empty { padding: 10px 12px; font-size: 14px; color: var(--text-muted); }
 
+    /* Target mode toggle (Product type vs Type group) */
+    .seg { display: inline-flex; gap: 6px; margin-bottom: 8px; }
+    .seg-btn {
+      height: 30px; padding: 0 14px;
+      background: var(--surface-hover); color: var(--text);
+      border: none; border-radius: 500px;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.15s, color 0.15s, transform 0.12s;
+    }
+    .seg-btn:hover { background: #3a3a3a; transform: scale(1.03); }
+    .seg-btn.active { background: var(--text); color: #000; }
+    .seg-btn.active:hover { background: #fff; transform: none; }
+
+    .grp-select {
+      width: 100%; max-width: 260px; height: 48px;
+      background-color: var(--surface-elevated);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      border: none; border-radius: 4px; padding: 0 40px 0 16px;
+      font-family: var(--font); font-size: 14px; font-weight: 400;
+      color: var(--text); outline: none; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      transition: background-color 0.15s, box-shadow 0.15s;
+    }
+    .grp-select:hover { background-color: #2a2a2a; }
+    .grp-select:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
+    .grp-select option { background: var(--surface-elevated); color: var(--text); }
+
     /* Add-image tile (lives inside the thumbnail grid) */
     .add-tile {
       aspect-ratio: 1;
@@ -355,7 +384,7 @@
 
     <div class="header">
       <h1>Test product</h1>
-      <p>Upload ad images from your device. Each image becomes its own ad, named after the file. Image filenames must follow [PrintID-TypeID_MockupID].jpg. <strong>One product type and one print per upload.</strong></p>
+      <p>Upload ad images from your device. Each image becomes its own ad, named after the file. Image filenames must follow [PrintID-TypeID_MockupID].jpg. <strong>One print per upload; pick a single product type, or a type group to mix types.</strong></p>
     </div>
 
     <div class="card">
@@ -372,7 +401,12 @@
           <div class="print-slot" id="printSlot"></div>
         </div>
         <div class="field">
-          <label>Product type</label>
+          <label>Target</label>
+          <div class="seg" id="modeSeg" role="tablist">
+            <button type="button" class="seg-btn active" data-mode="type">Product type</button>
+            <button type="button" class="seg-btn" data-mode="group">Type group</button>
+          </div>
+          <input type="hidden" id="ad_mode" value="type" />
           <div class="combo" id="productTypeCombo">
             <input type="text" class="combo-input" id="productTypeSearch"
                    placeholder="Search product type..." autocomplete="off" role="combobox"
@@ -380,6 +414,11 @@
             <input type="hidden" id="product_type" value="QBS" />
             <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
           </div>
+          <select id="product_type_group" class="grp-select" style="display:none">
+            <option value="kid pajama">Kid pajama</option>
+            <option value="adult pajama">Adult pajama</option>
+            <option value="kid play">Kid play</option>
+          </select>
         </div>
       </div>
       <div class="field">
@@ -533,12 +572,19 @@
         return showStatus('error', '&#10007; Wrong filename: ' + badNames.join(', ') + '. Use [PrintID-TypeID_MockupID].jpg');
       }
 
+      const mode = document.getElementById('ad_mode').value;
       const product_type = document.getElementById('product_type').value;
-      const wrongType = adFiles
-        .filter(f => String((f.name.match(FILE_RE) || [])[2] || '').toLowerCase() !== product_type.toLowerCase())
-        .map(f => f.name);
-      if (wrongType.length) {
-        return showStatus('error', '&#10007; One product type per upload. These files are not ' + product_type + ': ' + wrongType.join(', '));
+      const product_type_group = document.getElementById('product_type_group').value;
+
+      // Type mode: every image must be the chosen product type.
+      // Group mode: types may be mixed (each taken from its filename), all within the chosen group.
+      if (mode === 'type') {
+        const wrongType = adFiles
+          .filter(f => String((f.name.match(FILE_RE) || [])[2] || '').toLowerCase() !== product_type.toLowerCase())
+          .map(f => f.name);
+        if (wrongType.length) {
+          return showStatus('error', '&#10007; One product type per upload. These files are not ' + product_type + ': ' + wrongType.join(', '));
+        }
       }
 
       const prints = [...new Set(adFiles.map(f => (f.name.match(FILE_RE) || [])[1]))];
@@ -549,7 +595,9 @@
       const fd = new FormData();
       adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name));
       if (printFile) fd.append('print_0', printFile, printFile.name);
-      fd.append('product_type', product_type);
+      fd.append('mode', mode);
+      if (mode === 'group') fd.append('product_type_group', product_type_group);
+      else fd.append('product_type', product_type);
 
       const total = adFiles.length;
       const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (printFile ? printFile.size : 0)) / (1024 * 1024);
@@ -711,6 +759,23 @@
       });
 
       input.value = labelFor(hidden.value);
+    })();
+
+    // ---- Target mode toggle (Product type vs Type group) ----
+    (function () {
+      const seg = document.getElementById('modeSeg');
+      const modeInput = document.getElementById('ad_mode');
+      const combo = document.getElementById('productTypeCombo');
+      const grp = document.getElementById('product_type_group');
+      seg.addEventListener('click', function (e) {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+        const mode = btn.getAttribute('data-mode');
+        modeInput.value = mode;
+        seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+        combo.style.display = (mode === 'type') ? '' : 'none';
+        grp.style.display = (mode === 'group') ? '' : 'none';
+      });
     })();
 
     // ---------- Wire up the single product block ----------

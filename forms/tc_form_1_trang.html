@@ -396,22 +396,22 @@
 
       <div class="field">
         <div class="seg" id="modeSeg" role="tablist">
-          <button type="button" class="seg-btn active" data-mode="type">Product type</button>
-          <button type="button" class="seg-btn" data-mode="group">Type group</button>
+          <button type="button" class="seg-btn active" data-mode="group">Type group</button>
+          <button type="button" class="seg-btn" data-mode="type">Product type</button>
         </div>
-        <input type="hidden" id="ad_mode" value="type" />
+        <input type="hidden" id="ad_mode" value="group" />
         <div class="target-control">
-          <div class="combo" id="productTypeCombo">
+          <div class="combo" id="productTypeCombo" style="display:none">
             <input type="text" class="combo-input" id="productTypeSearch"
                    placeholder="Search product type..." autocomplete="off" role="combobox"
                    aria-expanded="false" aria-controls="productTypeMenu" />
             <input type="hidden" id="product_type" value="QBS" />
             <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
           </div>
-          <select id="product_type_group" class="grp-select" style="display:none">
-            <option value="kid pajama">Kid pajama</option>
+          <select id="product_type_group" class="grp-select">
             <option value="adult pajama">Adult pajama</option>
             <option value="kid play">Kid play</option>
+            <option value="kid pajama">Kid pajama</option>
           </select>
         </div>
       </div>

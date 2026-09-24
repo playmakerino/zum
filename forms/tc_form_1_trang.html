@@ -588,14 +588,15 @@
         }
       }
 
-      const prints = [...new Set(adFiles.map(f => (f.name.match(FILE_RE) || [])[1]))];
+      // NFC: macOS/Drive can deliver "ỳ" as y + U+0300 (NFD) in some filenames only
+      const prints = [...new Set(adFiles.map(f => String((f.name.match(FILE_RE) || [])[1] || '').normalize('NFC')))];
       if (prints.length > 1) {
         return showStatus('error', '&#10007; One print per upload. This batch has: ' + prints.join(', '));
       }
 
       const fd = new FormData();
-      adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name));
-      if (printFile) fd.append('print_0', printFile, printFile.name);
+      adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name.normalize('NFC')));
+      if (printFile) fd.append('print_0', printFile, printFile.name.normalize('NFC'));
       fd.append('mode', mode);
       if (mode === 'group') fd.append('product_type_group', product_type_group);
       else fd.append('product_type', product_type);

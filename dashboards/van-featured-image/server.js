@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+require('dotenv').config({ path: ['anthropic', 'meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
 const express   = require('express');
 const cors      = require('cors');
 const axios     = require('axios');

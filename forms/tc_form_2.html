@@ -180,7 +180,7 @@
 
     .row {
       display: grid;
-      grid-template-columns: 170px 1fr 36px;
+      grid-template-columns: 170px 1fr 120px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -319,13 +319,15 @@
         grid-template-columns: 1fr 36px;
         grid-template-areas:
           "print btn"
-          "url   url";
+          "url   url"
+          "pos   pos";
         column-gap: 10px;
         row-gap: 12px;
         margin-bottom: 18px;
       }
       .row-cell-print { grid-area: print; }
       .row-cell-url   { grid-area: url; }
+      .row-cell-pos   { grid-area: pos; }
       .row .remove-btn { grid-area: btn; align-self: end; }
 
       /* Light divider between products so multiple rows stay readable */
@@ -437,9 +439,9 @@
             </div>
           </div>
           <div class="field">
-            <label>Image positions</label>
+            <label>Image positions (shared)</label>
             <input type="text" id="image_positions" placeholder="2, 3, 4" />
-            <div class="field-hint">Counted from the first image, same for every product. Empty = all images.</div>
+            <div class="field-hint">Counted from the first image. Used by every row that leaves its own Image positions empty. Both empty = all images.</div>
           </div>
         </div>
       </div>
@@ -452,6 +454,7 @@
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Image positions</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -544,6 +547,10 @@
           <label class="row-inline-label">Product url</label>
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
+        <div class="row-cell row-cell-pos">
+          <label class="row-inline-label">Image positions</label>
+          <input type="text" class="row-pos" placeholder="Same as shared" />
+        </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -569,7 +576,7 @@
         const print_id = r.querySelector('.row-print').value.trim();
         const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
         if (print_id && product_url) {
-          rows.push({ Print_ID: print_id, Product_url: product_url });
+          rows.push({ Print_ID: print_id, Product_url: product_url, Image_positions: r.querySelector('.row-pos').value.trim() });
         }
       });
       return rows;
@@ -583,7 +590,7 @@
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
 
-      // One shared value for every row below
+      // Shared value; a row's own Image_positions overrides it (workflow Split Images)
       const image_positions = document.getElementById('image_positions').value.trim();
 
       const payload = { ad_set_name, product_type, image_positions, rows };

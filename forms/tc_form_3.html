@@ -110,7 +110,7 @@
     /* Products table */
     .row {
       display: grid;
-      grid-template-columns: 150px 1fr 48px 36px;
+      grid-template-columns: 150px 1fr 120px 48px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -267,6 +267,7 @@
         grid-template-areas:
           "print btn"
           "url   url"
+          "pos   pos"
           "img   img";
         column-gap: 10px;
         row-gap: 12px;
@@ -275,6 +276,7 @@
       }
       .row-cell-print { grid-area: print; }
       .row-cell-url   { grid-area: url; }
+      .row-cell-pos   { grid-area: pos; }
       .row-cell-img   { grid-area: img; }
       .row .remove-btn { grid-area: btn; align-self: end; }
 
@@ -371,10 +373,10 @@
 
       <div class="section">
         <div class="section-label">
-          <span>Image positions</span>
+          <span>Image positions (shared)</span>
         </div>
         <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
-        <div class="field-hint">Positions of the product page images to turn into ads, counted from the first image. Filled once, applies to every product below. Leave empty to use all images.</div>
+        <div class="field-hint">Positions of the product page images to turn into ads, counted from the first image. Applies to every product below that leaves its own Image positions empty. Leave both empty to use all images.</div>
       </div>
 
       <div class="section">
@@ -385,6 +387,7 @@
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Image positions</label>
           <label class="row-col-label">Print image</label>
           <span></span>
         </div>
@@ -451,6 +454,10 @@
         <div class="row-cell row-cell-url">
           <label class="row-inline-label">Product url</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
+        </div>
+        <div class="row-cell row-cell-pos">
+          <label class="row-inline-label">Image positions</label>
+          <input type="text" class="row-pos" placeholder="Same as shared" />
         </div>
         <div class="row-cell row-cell-img">
           <label class="row-inline-label">Print image</label>
@@ -531,7 +538,8 @@
         const print_id = r.querySelector('.row-print').value.trim();
         const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
         if (print_id && product_url) {
-          rows.push({ print_id, product_url, file: rowFiles[r.dataset.rid] || null });
+          const pos = r.querySelector('.row-pos').value.trim();
+          rows.push({ print_id, product_url, pos, file: rowFiles[r.dataset.rid] || null });
         }
       });
       return rows;
@@ -548,11 +556,11 @@
         return showStatus('error', '&#9888; Every product needs a print image.');
       }
 
-      // One shared value for every product, so each meta row carries it too
+      // Shared value; a row's own Image positions overrides it
       const image_positions = document.getElementById('imagePositions').value.trim();
 
       const fd = new FormData();
-      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id: row.print_id, image_positions }));
+      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id: row.print_id, image_positions: row.pos || image_positions }));
       rows.forEach((row, i) => { if (row.file) fd.append('print_' + i, row.file, row.file.name); });
       fd.append('meta', JSON.stringify(meta));
       fd.append('image_positions', image_positions);

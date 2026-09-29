@@ -812,7 +812,7 @@ async function generate(){
     const sel=pickedIds(), flats=g.flats.filter(v=>sel.has(viewId(v))), mdls=modelsFor(g, $('gender').value).filter(v=>sel.has(viewId(v)));
     if(!flats.length && !mdls.length) throw new Error('tick at least one mockup');
     const pid=$('patternId').value.trim()||noGender(patName.replace(/\.[^.]+$/,'')), type=TYPE_CODE[$('garment').value]||$('garment').value;
-    const fname=v=>pid+'-'+type+'_'+noGender(mocId(v))+'.png';
+    const fname=v=>'['+pid+'-'+type+'_'+noGender(mocId(v))+'].png';
     clearShots(results.flats); clearShots(results.models);
     // motif size per view = the view's own r (GARMENT DATA) x the slider
     for(let i=0;i<flats.length;i++){

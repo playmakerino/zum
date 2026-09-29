@@ -229,6 +229,7 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
   'PA-PET-08':3,'PA-PET-09':3,'KAN-MSI-01':4,'KAN-MSI-02':4,'KAN-MSI-03':4,'MA-SSI-03':4,'MA-SSI-04':4,'KAN-WSI-01':4,'KAN-WSI-02':4,
   'WO-SSI-06':4,'WO-SSI-02':4,'WO-NUR-01':4 };
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
+const mocLabel=v=>{ const t=tierOf(v); return mocId(v)+(t?' · T'+t:''); };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -808,12 +809,12 @@ async function generate(){
     for(let i=0;i<flats.length;i++){
       if(flats.length>1){ msg('Flatlay '+(i+1)+'/'+flats.length+'…'); await nextPaint(); }
       const GF=await analyzeGarment(flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay · '+viewId(flats[i]));
+      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay · '+mocLabel(flats[i]));
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), 'On model · '+modelName(mdls[i]));
+      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), 'On model · '+mocLabel(mdls[i]));
     }
     $('dl').disabled=false;
     msg('Done · '+flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
@@ -855,7 +856,7 @@ function renderPicks(){
     const id=viewId(v), lab=document.createElement('label'); lab.className='pick'; lab.title=id;
     const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=!saved||saved.has(id);
     const img=document.createElement('img'); img.loading='lazy'; img.alt=id; img.src=v.mock+'&width=240';
-    const cap=document.createElement('span'); const t=tierOf(v); cap.textContent=mocId(v)+(t?' · T'+t:'');
+    const cap=document.createElement('span'); cap.textContent=mocLabel(v);
     lab.append(img,cb,cap); return lab;
   }));
   countPicks();

@@ -5,124 +5,284 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pattern Mockup</title>
 <style>
-  :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
+  :root{
+    --ink:#17181a; --mut:#6b6f76; --faint:#9ba0a8; --line:#e3e5e8; --soft:#f4f5f7; --panel:#ffffff; --ground:#fafafa;
+    --accent:#2f6f4e; --accent-ink:#ffffff; --accent-soft:#e6f1ea; --err:#b3261e;
+    --t1:#2f6f4e; --t2:#2c5fa8; --t3:#a86a12; --t4:#6b6f76;
+    --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
   }
-  :root[data-theme="dark"]{ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#ececee; --mut:#a3a7ae; --faint:#71757c; --line:#2d3035; --soft:#1f2226; --panel:#181a1d; --ground:#111315;
+      --accent:#6fcaa0; --accent-ink:#0d1f16; --accent-soft:#18322a; --err:#f2877f;
+      --t1:#6fcaa0; --t2:#86adf0; --t3:#e0a857; --t4:#a3a7ae; --shadow:none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#ececee; --mut:#a3a7ae; --faint:#71757c; --line:#2d3035; --soft:#1f2226; --panel:#181a1d; --ground:#111315;
+    --accent:#6fcaa0; --accent-ink:#0d1f16; --accent-soft:#18322a; --err:#f2877f;
+    --t1:#6fcaa0; --t2:#86adf0; --t3:#e0a857; --t4:#a3a7ae; --shadow:none;
+  }
 
+  *{ box-sizing:border-box; }
   body{ margin:0; background:var(--ground); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   [hidden]{ display:none!important; }
-  .wrap{ display:flex; gap:40px; align-items:flex-start; padding:32px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
-  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
-  .field{ display:flex; flex-direction:column; gap:7px; }
-  label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
-  select,input[type=text],.file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
-  .file{ display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
-  .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
-  .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-  .trim{ display:flex; gap:10px; align-items:center; }
-  .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
+  button{ font:inherit; cursor:pointer; color:inherit; }
+  button:disabled{ cursor:default; opacity:.45; }
+  input[type=text]{ font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; width:100%; }
+  input[type=text]:focus{ border-color:var(--accent); outline:none; box-shadow:0 0 0 3px var(--accent-soft); }
+  input::placeholder{ color:var(--faint); }
+
+  /* top bar */
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .top h1{ margin:0; font-size:16px; font-weight:700; letter-spacing:-.01em; }
+  .top .sub{ color:var(--mut); font-size:13px; }
+  .brand{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .toplink{ color:var(--mut); font-size:13px; text-decoration:none; }
+  .toplink:hover{ color:var(--accent); }
+
+  /* layout */
+  .app{ display:grid; grid-template-columns:340px minmax(0,1fr); min-height:calc(100vh - 53px); }
+  .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; border-right:1px solid var(--line); background:var(--panel); }
+  .side-scroll{ flex:1; overflow:auto; padding:20px 20px 8px; display:flex; flex-direction:column; gap:26px; }
+  .side-foot{ padding:14px 20px 18px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; background:var(--panel); }
+  @media (max-width:860px){
+    .app{ grid-template-columns:1fr; }
+    .side{ position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); }
+    .side-foot{ position:sticky; bottom:0; z-index:5; box-shadow:0 -6px 16px rgba(0,0,0,.06); }
+  }
+
+  .step h2{ margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .step h2 .n{ width:20px; height:20px; border-radius:50%; background:var(--soft); color:var(--mut); font-size:11px; display:inline-grid; place-items:center; }
+  .step.ok h2 .n{ background:var(--accent); color:var(--accent-ink); }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+  .field:first-of-type{ margin-top:0; }
+  .flabel{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:12px; font-weight:600; color:var(--ink); }
+  .flabel em{ font-style:normal; font-weight:400; color:var(--mut); }
+  .hint{ font-size:12px; color:var(--mut); font-weight:400; }
+  .linkbtn{ border:0; background:none; padding:0; color:var(--accent); font-size:12px; font-weight:600; }
+  .linkbtn:hover{ text-decoration:underline; }
+
+  /* pattern drop zone */
+  .drop{ border:1.5px dashed var(--line); border-radius:12px; background:var(--soft); cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover,.drop.over{ border-color:var(--accent); background:var(--accent-soft); }
+  .drop-empty{ padding:22px 16px; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; color:var(--mut); font-size:12px; }
+  .drop-empty svg{ width:28px; height:28px; color:var(--accent); margin-bottom:4px; }
+  .drop-empty b{ color:var(--ink); font-size:13px; }
+  .drop-full{ display:flex; gap:12px; align-items:center; padding:10px; }
+  .drop-full img{ width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line); background:#fff; flex:none; }
+  .drop-full .meta{ min-width:0; display:flex; flex-direction:column; gap:1px; font-size:12px; color:var(--mut); }
+  .drop-full b{ color:var(--ink); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .drop-full .link{ color:var(--accent); font-weight:600; }
+
+  /* product list */
+  .garments{ display:flex; flex-direction:column; gap:6px; }
+  .gopt{ display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left; padding:9px 12px; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
+  .gopt:hover{ border-color:var(--faint); }
+  .gopt[aria-checked="true"]{ border-color:var(--accent); background:var(--accent-soft); box-shadow:inset 0 0 0 1px var(--accent); }
+  .gopt b{ font-weight:600; font-size:13px; }
+  .gopt span{ font-size:11px; color:var(--mut); white-space:nowrap; }
+  .gopt .code{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10px; color:var(--faint); margin-left:6px; }
+
+  /* trim */
+  .trim{ display:flex; gap:8px; align-items:center; }
+  .trim input[type=color]{ width:40px; height:38px; padding:0; border:1px solid var(--line); border-radius:8px; background:transparent; cursor:pointer; flex:none; }
   .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
-  .scale-head{ display:flex; justify-content:space-between; align-items:baseline; }
-  .scale-head .val{ font-family:ui-monospace,Menlo,monospace; color:var(--ink); font-weight:600; }
-  .scale-head .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--mut); }
-  input[type=range]{ width:100%; accent-color:var(--accent); }
-  .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
-  button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
-  .primary{ border:1px solid var(--accent); color:var(--accent); }
-  .primary:hover{ background:var(--accent); color:var(--ground); }
-  .secondary{ border:1px solid var(--line); color:var(--mut); }
-  .secondary:hover{ color:var(--ink); border-color:var(--ink); }
-  button:disabled{ opacity:.4; cursor:default; }
-  button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
-  .msg{ font-size:12px; color:var(--mut); min-height:16px; }
-  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
-  .shot{ margin:0; flex:0 0 calc((100% - 40px)/3); max-width:calc((100% - 40px)/3); display:flex; flex-direction:column; gap:8px; }
-  @media (max-width:820px){ .shot{ flex-basis:calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); } }
-  @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
-  .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
-  figcaption{ text-align:center; }
-  .picks{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .pick{ position:relative; margin:0; cursor:pointer; border:1px solid var(--line); border-radius:7px; overflow:hidden; background:#fff; }
-  .pick img{ width:100%; aspect-ratio:3/4; object-fit:contain; display:block; }
-  .pick input{ position:absolute; top:5px; left:5px; margin:0; accent-color:var(--accent); }
-  .pick span{ display:block; font-size:10px; line-height:1.3; padding:3px 4px; color:#6b6b6b; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-top:1px solid #eee; }
-  .pick.off img{ opacity:.35; }
-  .pick:has(input:checked){ border-color:var(--accent); }
-  .pick-all{ font-size:11px; font-weight:600; padding:0; border:0; color:var(--accent); background:none; }
-  .foot{ max-width:1180px; margin:0 auto; padding:0 32px 32px; font-size:12px; color:var(--mut); }
-  .foot a{ color:var(--accent); }
+  .ghost{ border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; color:var(--mut); }
+  .ghost:hover:not(:disabled){ color:var(--ink); border-color:var(--faint); }
+
+  /* gender segmented */
+  .seg{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1px solid var(--line); border-radius:9px; padding:3px; background:var(--soft); }
+  .seg button{ border:0; background:none; border-radius:6px; padding:6px 4px; font-size:13px; font-weight:600; color:var(--mut); }
+  .seg button[aria-checked="true"]{ background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .seg.disabled{ opacity:.45; pointer-events:none; }
+
+  /* slider */
+  .val{ font-family:ui-monospace,Menlo,monospace; font-weight:600; }
+  input[type=range]{ width:100%; accent-color:var(--accent); margin:2px 0 0; }
+  .range-ends{ display:flex; justify-content:space-between; font-size:11px; color:var(--faint); }
+
+  /* footer actions */
+  .primary{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border:0; border-radius:10px; padding:12px 14px; font-weight:700; font-size:14px; background:var(--accent); color:var(--accent-ink); }
+  .primary:hover:not(:disabled){ filter:brightness(1.08); }
+  .primary kbd{ font:600 10px ui-monospace,Menlo,monospace; opacity:.7; border:1px solid currentColor; border-radius:4px; padding:1px 4px; }
+  .secondary{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:10px 14px; font-weight:600; color:var(--ink); }
+  .secondary:hover:not(:disabled){ border-color:var(--ink); }
+  .secondary svg{ width:16px; height:16px; }
+  .progress{ height:4px; border-radius:2px; background:var(--soft); overflow:hidden; }
+  .progress div{ height:100%; width:0; background:var(--accent); transition:width .25s; }
+  .msg{ font-size:12px; color:var(--mut); min-height:18px; }
+  .msg.err{ color:var(--err); }
+
+  /* main */
+  .main{ padding:20px 28px 40px; min-width:0; }
+  .main-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+  .main-head h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
+  .main-head p{ margin:2px 0 0; color:var(--mut); font-size:13px; }
+  .head-actions{ display:flex; gap:6px; }
+  .note{ display:flex; gap:10px; align-items:center; padding:10px 14px; border-radius:10px; font-size:13px; margin-bottom:16px; background:var(--soft); color:var(--mut); }
+  .note.warn{ background:color-mix(in srgb, var(--t3) 14%, transparent); color:var(--ink); }
+  .note b{ color:var(--ink); }
+  .group{ margin-bottom:26px; }
+  .group-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+  .group-head h3{ margin:0; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); }
+  .group-head .cnt{ font-size:12px; color:var(--faint); }
+  .group-head .linkbtn{ margin-left:auto; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:14px; }
+  @media (max-width:520px){ .main{ padding:16px; } .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } }
+
+  /* card */
+  .card{ position:relative; margin:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel); box-shadow:var(--shadow); transition:border-color .15s, opacity .15s; }
+  .card .ph{ position:relative; aspect-ratio:4/5; background:#fff; cursor:pointer; }
+  .card .ph img{ width:100%; height:100%; object-fit:contain; display:block; transition:filter .15s, opacity .15s; }
+  .card.on{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), var(--shadow); }
+  .card.off .ph img{ opacity:.4; filter:grayscale(1); }
+  .card figcaption{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid var(--line); min-height:38px; }
+  .card .name{ flex:1; min-width:0; font:600 12px ui-monospace,"SF Mono",Menlo,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tier{ flex:none; font-size:10px; font-weight:700; padding:1px 6px; border-radius:99px; border:1px solid currentColor; }
+  .tier.t1{ color:var(--t1); } .tier.t2{ color:var(--t2); } .tier.t3{ color:var(--t3); } .tier.t4{ color:var(--t4); }
+  .chk{ position:absolute; top:8px; left:8px; z-index:2; width:24px; height:24px; cursor:pointer; }
+  .chk input{ position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+  .chk span{ position:absolute; inset:0; border-radius:7px; border:1.5px solid #b9bdc3; background:rgba(255,255,255,.92); display:grid; place-items:center; }
+  .chk input:checked + span{ background:var(--accent); border-color:var(--accent); }
+  .chk input:checked + span::after{ content:""; width:10px; height:6px; border:2px solid #fff; border-top:0; border-right:0; transform:translateY(-1px) rotate(-45deg); }
+  .chk input:focus-visible + span{ outline:2px solid var(--accent); outline-offset:2px; }
+  .dlone{ flex:none; display:grid; place-items:center; width:28px; height:28px; border-radius:7px; color:var(--accent); border:1px solid var(--line); }
+  .dlone:hover{ background:var(--accent-soft); border-color:var(--accent); }
+  .dlone svg{ width:15px; height:15px; }
+  .badge{ position:absolute; top:8px; right:8px; z-index:2; font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; background:var(--accent); color:var(--accent-ink); }
+  .card.err .badge{ background:var(--err); color:#fff; }
+  .spin{ position:absolute; inset:0; display:none; place-items:center; background:rgba(255,255,255,.6); }
+  .spin::after{ content:""; width:28px; height:28px; border-radius:50%; border:3px solid var(--accent-soft); border-top-color:var(--accent); animation:rot .8s linear infinite; }
+  .card.busy .spin{ display:grid; }
+  .card.queued .ph img{ opacity:.55; }
+  @keyframes rot{ to{ transform:rotate(360deg); } }
+  body.busy .chk, body.busy .gopt, body.busy .head-actions, body.busy .group-head .linkbtn{ pointer-events:none; opacity:.5; }
+
+  /* drop veil */
+  .dropveil{ position:fixed; inset:0; z-index:50; display:grid; place-items:center; background:color-mix(in srgb, var(--accent) 18%, transparent); backdrop-filter:blur(2px); font-size:18px; font-weight:700; color:var(--ink); pointer-events:none; }
+  .dropveil span{ padding:18px 26px; border-radius:14px; background:var(--panel); border:2px dashed var(--accent); }
+
+  /* lightbox */
+  dialog.lb{ border:0; padding:0; background:transparent; max-width:none; max-height:none; width:100vw; height:100vh; }
+  dialog.lb::backdrop{ background:rgba(10,11,12,.86); }
+  .lb-wrap{ width:100%; height:100%; display:flex; flex-direction:column; color:#f1f1f1; }
+  .lb-top{ display:flex; align-items:center; gap:12px; padding:12px 16px; }
+  .lb-top .t{ flex:1; min-width:0; font:600 13px ui-monospace,Menlo,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-top .i{ font-size:12px; color:#a9adb3; }
+  .lb-btn{ border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.06); color:#f1f1f1; border-radius:8px; padding:7px 12px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+  .lb-btn:hover{ background:rgba(255,255,255,.14); }
+  .lb-btn svg{ width:15px; height:15px; }
+  .lb-body{ flex:1; min-height:0; display:flex; align-items:center; gap:8px; padding:0 8px 16px; }
+  .lb-body img{ flex:1; min-width:0; height:100%; object-fit:contain; }
+  .lb-nav{ flex:none; width:44px; height:44px; border-radius:50%; border:0; background:rgba(255,255,255,.1); color:#fff; font-size:22px; }
+  .lb-nav:hover{ background:rgba(255,255,255,.2); }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <div class="controls">
-    <div class="field">
-      <label for="garment">Garment</label>
-      <select id="garment">
-        <option value="romper">Convertible Zippy Romper</option>
-        <option value="pajama">Two-Piece Pajama Set</option>
-        <option value="menPajama">Men's Pajama Set</option>
-        <option value="womenPajama">Women's Pajama Set</option>
-        <option value="blanket">Blanket</option>
-        <option value="sleepbag">Sleep Bag</option>
-      </select>
+<header class="top">
+  <div class="brand"><h1>Pattern Mockup</h1><span class="sub">Put one pattern on every product photo</span></div>
+  <a class="toplink" href="pattern-mockup-v2.html">v2 demo →</a>
+</header>
+
+<div class="app">
+  <aside class="side">
+    <div class="side-scroll">
+      <section class="step" id="stepPattern">
+        <h2><span class="n">1</span>Pattern</h2>
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a pattern file">
+          <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
+          <div class="drop-empty" id="dropEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            <b>Drop a pattern here</b>
+            <span>or click to choose · Ctrl+V to paste</span>
+            <span>PNG, JPG or WebP</span>
+          </div>
+          <div class="drop-full" id="dropFull" hidden>
+            <img id="patThumb" alt="Pattern preview">
+            <div class="meta"><b id="patternName"></b><span id="patternDims"></span><span class="link">Replace</span></div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="flabel" for="patternId">Pattern ID <em>optional · file names only</em></label>
+          <input type="text" id="patternId" spellcheck="false" placeholder="From the file name">
+        </div>
+      </section>
+
+      <section class="step ok">
+        <h2><span class="n">2</span>Product</h2>
+        <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
+      </section>
+
+      <section class="step ok">
+        <h2><span class="n">3</span>Look</h2>
+        <div class="field">
+          <div class="flabel"><label for="trimHex">Trim color</label><span class="hint" id="trimHint">Picked from the pattern</span></div>
+          <div class="trim">
+            <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
+            <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
+            <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="flabel"><span>Model gender</span><span class="hint" id="genderHint"></span></div>
+          <div class="seg" id="gender" role="radiogroup" aria-label="Model gender">
+            <button type="button" role="radio" data-v="boy">Boy</button>
+            <button type="button" role="radio" data-v="girl">Girl</button>
+            <button type="button" role="radio" data-v="neutral">All</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="scale">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
+          <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+          <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
+        </div>
+      </section>
     </div>
 
-    <div class="field">
-      <label for="patternBtn">Pattern file</label>
-      <div class="file">
-        <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
-        <button type="button" class="secondary" id="patternBtn">Choose file</button>
-        <span id="patternName">No file chosen</span>
+    <div class="side-foot">
+      <button class="primary" id="go"><span id="goLabel">Generate</span><kbd>Ctrl ↵</kbd></button>
+      <div class="progress" id="progress" hidden><div id="bar"></div></div>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <button class="secondary" id="dl" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        <span id="dlLabel">Download PNGs</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-head">
+      <div><h2 id="mainTitle">Mockups</h2><p id="pickCount"></p></div>
+      <div class="head-actions">
+        <button type="button" class="ghost" id="pickAll">Select all</button>
+        <button type="button" class="ghost" id="pickNone">Clear</button>
       </div>
     </div>
+    <div class="note" id="intro">Tick the photos you want, then press <b>&nbsp;Generate</b>. Your ticks are remembered per product. Click a finished image to view it large.</div>
+    <div class="note warn" id="stale" hidden>Settings changed since the last run. Press <b>&nbsp;Generate</b> to update the images.</div>
+    <div id="groups"></div>
+  </main>
+</div>
 
-    <div class="field">
-      <div class="scale-head"><label for="patternId">Pattern ID</label><span class="hint">Optional · file names only</span></div>
-      <input type="text" id="patternId" placeholder="From the pattern file name" spellcheck="false">
+<div class="dropveil" id="dropveil" hidden><span>Drop to use as the pattern</span></div>
+
+<dialog class="lb" id="lb" aria-label="Image preview">
+  <div class="lb-wrap">
+    <div class="lb-top">
+      <div class="t" id="lbTitle"></div><span class="i" id="lbIdx"></span>
+      <a class="lb-btn" id="lbDl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Download</a>
+      <button type="button" class="lb-btn" id="lbClose">Close</button>
     </div>
-
-    <div class="field">
-      <label for="trimHex">Trim color</label>
-      <div class="trim">
-        <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
-        <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
-      </div>
-    </div>
-
-    <div class="field" id="genderField">
-      <div class="scale-head"><label for="gender">Gender</label><span class="hint" id="genderHint">From the trim.</span></div>
-      <select id="gender">
-        <option value="boy">Boy</option>
-        <option value="girl">Girl</option>
-        <option value="neutral" selected>Neutral</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
-      <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
-    </div>
-
-    <div class="field">
-      <div class="scale-head"><label>Mockups</label><span class="hint"><span id="pickCount"></span> · <button type="button" class="pick-all" id="pickAll">All</button> / <button type="button" class="pick-all" id="pickNone">None</button></span></div>
-      <div class="picks" id="picks"></div>
-    </div>
-
-    <div class="actions">
-      <button class="primary" id="go">Generate</button>
-      <button class="secondary" id="dl" disabled>Download PNGs</button>
-      <div class="msg" id="msg"></div>
+    <div class="lb-body">
+      <button type="button" class="lb-nav" id="lbPrev" aria-label="Previous">‹</button>
+      <img id="lbImg" alt="">
+      <button type="button" class="lb-nav" id="lbNext" aria-label="Next">›</button>
     </div>
   </div>
-
-  <div class="view" id="view"></div>
-</div>
-<p class="foot"><a href="pattern-mockup-v2.html">pattern-mockup-v2.html</a> (demo)</p>
+</dialog>
 
 <script>
 'use strict';
@@ -772,150 +932,317 @@ function compose(G, pat, ratio, trim, opt){
 
 // ===== page: dev tool UI (this file only) =====
 const $=id=>document.getElementById(id);
-const msg=m=>{ $('msg').textContent=m; };
-function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
+const store={
+  get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch{ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} },
+};
+const GARMENT_LABEL={ romper:'Convertible Zippy Romper', pajama:'Two-Piece Pajama Set', menPajama:"Men's Pajama Set",
+  womenPajama:"Women's Pajama Set", blanket:'Blanket', sleepbag:'Sleep Bag' };
+const DL_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>';
 
-let patImg=null, patName='pattern', busy=false;
-const results={ flats:[], models:[] };   // each: {name,blob,url,fig} - flats:[...]+models:[...], all shown in #view
+let garment=GARMENTS[store.get('pm-garment','')] ? store.get('pm-garment','') : 'romper';
+let gender='neutral', genderTouched=false;
+let patImg=null, patName='', autoTrim=null, busy=false;
+const results=new Map();   // viewId -> {blob,url} for the current garment
+const cards=new Map();     // viewId -> {id,view,title,el,cb,img,dl,badge}, the cards on screen
+let lastRun=null;          // settingsKey() of the last Generate: results are stale once it changes
 
-async function toBlobURL(canvas){
-  const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-  if(!blob) throw new Error('PNG encode failed');
-  return { blob, url:URL.createObjectURL(blob) };
-}
-function clearShots(list){
-  for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
-  list.length=0;
-}
-// one composited shot figure appended to #view; bucket is results.flats or results.models
-async function showShot(bucket, canvas, name, caption){
-  const r=await toBlobURL(canvas);
-  const fig=document.createElement('figure'); fig.className='shot';
-  const img=document.createElement('img'); img.alt=caption;
-  const cap=document.createElement('figcaption'); cap.textContent=caption;
-  // blob: URLs have no file name, so "Save image as" can't carry it; the link does (click, or right-click > Save link as)
-  const a=document.createElement('a'); a.href=r.url; a.download=name; a.title=name; a.append(img);
-  img.src=r.url; fig.append(a,cap); $('view').append(fig);
-  bucket.push({ ...r, name, fig });
+const msg=(m,err)=>{ $('msg').textContent=m||''; $('msg').classList.toggle('err',!!err); };
+function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
+const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value].join('|');
+const hasModels=()=>GARMENTS[garment].models.length>0;
+// the gender picker only matters when some model photo is boy/girl (kids pajama); romper + adult sets are all unisex
+const genderOn=()=>GARMENTS[garment].models.some(m=>modelGender(m));
+
+// --- download names: [patternid-TYPE_mockupid].png, computed live so editing Pattern ID renames finished images ---
+const derivedPid=()=>noGender(patName.replace(/\.[^.]+$/,''))||'pattern';
+const pid=()=>$('patternId').value.trim()||derivedPid();
+const fname=v=>'['+pid()+'-'+(TYPE_CODE[garment]||garment)+'_'+noGender(mocId(v))+'].png';
+
+// --- ticks: the view ids ticked per garment in localStorage; no entry yet = everything ticked ---
+const PICK_KEY=k=>'pm-picks-'+k;
+const allIds=k=>[...GARMENTS[k].flats, ...GARMENTS[k].models].map(viewId);
+const loadPicks=k=>{ const v=store.get(PICK_KEY(k),null); return Array.isArray(v)?new Set(v):null; };
+function savePicks(){
+  const prev=loadPicks(garment)||new Set(allIds(garment)), ids=[];
+  for(const c of cards.values()) if(c.cb.checked) ids.push(c.id);
+  for(const id of prev) if(!cards.has(id)) ids.push(id);   // keep ticks of views hidden by the gender filter
+  store.set(PICK_KEY(garment), ids);
 }
 
+// --- product list ---
+function renderGarments(){
+  $('garments').replaceChildren(...Object.keys(GARMENTS).map(k=>{
+    const g=GARMENTS[k], n=g.flats.length+g.models.length;
+    const b=document.createElement('button'); b.type='button'; b.className='gopt'; b.setAttribute('role','radio'); b.dataset.k=k;
+    b.setAttribute('aria-checked', String(k===garment));
+    const name=document.createElement('b'); name.textContent=GARMENT_LABEL[k]||k;
+    const code=document.createElement('span'); code.className='code'; code.textContent=TYPE_CODE[k]||''; name.append(code);
+    const cnt=document.createElement('span'); cnt.textContent=n+' photo'+(n>1?'s':'');
+    b.append(name,cnt);
+    b.addEventListener('click', ()=>selectGarment(k));
+    return b;
+  }));
+}
+function selectGarment(k){
+  if(busy || k===garment) return;
+  garment=k; store.set('pm-garment',k);
+  clearResults(); lastRun=null;
+  for(const b of $('garments').children) b.setAttribute('aria-checked', String(b.dataset.k===k));
+  syncGender(); renderCards(); msg('');
+}
+
+// --- gender: auto from the trim hue until the user picks one ---
+function setGender(v){
+  gender=v;
+  for(const b of $('gender').children) b.setAttribute('aria-checked', String(b.dataset.v===v));
+}
+function syncGender(){
+  const on=genderOn();
+  $('gender').classList.toggle('disabled', !on);
+  if(!on){ $('genderHint').textContent=hasModels()?'All models are unisex':'No model photos'; return; }
+  $('genderHint').replaceChildren();
+  if(genderTouched){
+    const r=document.createElement('button'); r.type='button'; r.className='linkbtn'; r.textContent='Auto from trim';
+    r.addEventListener('click', ()=>{ genderTouched=false; applyGenderFromTrim(true); syncGender(); });
+    $('genderHint').append(r);
+  } else $('genderHint').textContent='Auto from trim color';
+}
+function applyGenderFromTrim(force){
+  if(genderTouched) return;
+  const g=genderFromHex($('trimHex').value); if(!g || (g===gender && !force)) return;
+  setGender(g); if(genderOn()) renderCards();
+}
+for(const b of $('gender').children) b.addEventListener('click', ()=>{
+  if(busy) return;
+  genderTouched=true; setGender(b.dataset.v); syncGender(); renderCards();
+});
+
+// --- mockup cards ---
+function visibleViews(){
+  const g=GARMENTS[garment];
+  return { flats:g.flats, models:modelsFor(g, genderOn()?gender:'neutral') };
+}
+function renderCards(){
+  const saved=loadPicks(garment), vis=visibleViews();
+  cards.clear();
+  const groups=[];
+  for(const [title,list,isFlat] of [['Flatlay',vis.flats,true],['On model',vis.models,false]]){
+    if(!list.length) continue;
+    const sec=document.createElement('section'); sec.className='group';
+    const head=document.createElement('div'); head.className='group-head';
+    const h=document.createElement('h3'); h.textContent=title;
+    const cnt=document.createElement('span'); cnt.className='cnt';
+    const tog=document.createElement('button'); tog.type='button'; tog.className='linkbtn';
+    head.append(h,cnt,tog);
+    const grid=document.createElement('div'); grid.className='grid';
+    const mine=list.map((v,i)=>makeCard(v, isFlat?'Flatlay '+(i+1):mocId(v), isFlat, !saved||saved.has(viewId(v))));
+    grid.append(...mine.map(c=>c.el));
+    tog.addEventListener('click', ()=>{ const on=!mine.every(c=>c.cb.checked); for(const c of mine) c.cb.checked=on; savePicks(); refresh(); });
+    sec.group={cnt,tog,mine};
+    sec.append(head,grid); groups.push(sec);
+  }
+  $('groups').replaceChildren(...groups);
+  $('mainTitle').textContent=GARMENT_LABEL[garment]||garment;
+  refresh();
+}
+function makeCard(v, title, isFlat, on){
+  const id=viewId(v), t=isFlat?null:tierOf(v);
+  const el=document.createElement('figure'); el.className='card';
+  const ph=document.createElement('div'); ph.className='ph';
+  const img=document.createElement('img'); img.loading='lazy'; img.alt=title;
+  const spin=document.createElement('span'); spin.className='spin';
+  ph.append(img,spin);
+  const chk=document.createElement('label'); chk.className='chk'; chk.title='Include in Generate';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=on; cb.setAttribute('aria-label','Include '+title);
+  chk.append(cb, document.createElement('span'));
+  const badge=document.createElement('span'); badge.className='badge'; badge.hidden=true;
+  const cap=document.createElement('figcaption');
+  const name=document.createElement('span'); name.className='name'; name.textContent=title; name.title=title;
+  cap.append(name);
+  if(t){ const tb=document.createElement('span'); tb.className='tier t'+t; tb.textContent='T'+t; tb.title='Mockup tier '+t; cap.append(tb); }
+  const dl=document.createElement('a'); dl.className='dlone'; dl.innerHTML=DL_ICON; dl.hidden=true;
+  cap.append(dl);
+  el.append(ph,chk,badge,cap);
+  const c={ id, view:v, title, isFlat, el, cb, img, dl, badge };
+  cards.set(id,c);
+  cb.addEventListener('change', ()=>{ savePicks(); refresh(); });
+  ph.addEventListener('click', ()=>{ if(results.has(id)) openLightbox(id); else if(!busy){ cb.checked=!cb.checked; savePicks(); refresh(); } });
+  paintCard(c);
+  return c;
+}
+function paintCard(c){
+  const r=results.get(c.id);
+  const src=r?r.url:c.view.mock+'&width=400';
+  if(c.img.getAttribute('src')!==src) c.img.src=src;
+  c.el.classList.toggle('done', !!r);
+  c.dl.hidden=!r;
+  if(r){ c.dl.href=r.url; c.dl.download=fname(c.view); c.dl.title='Download '+fname(c.view); }
+  c.badge.hidden=!r && !c.el.classList.contains('err');
+  c.badge.textContent=c.el.classList.contains('err')?'Failed':'Ready';
+}
+function refresh(){
+  const all=[...cards.values()], sel=all.filter(c=>c.cb.checked), ready=sel.filter(c=>results.has(c.id));
+  for(const c of all){ c.el.classList.toggle('on',c.cb.checked); c.el.classList.toggle('off',!c.cb.checked); paintCard(c); }
+  for(const sec of $('groups').children){
+    const {cnt,tog,mine}=sec.group, n=mine.filter(c=>c.cb.checked).length;
+    cnt.textContent=n+' of '+mine.length; tog.textContent=n===mine.length?'Clear':'Select all';
+  }
+  const hidden=GARMENTS[garment].models.length-visibleViews().models.length;
+  $('pickCount').textContent=sel.length+' of '+all.length+' photos selected'+(hidden>0?' · '+hidden+' hidden by the gender filter':'');
+  $('goLabel').textContent=busy?'Generating…':sel.length?'Generate '+sel.length+' image'+(sel.length>1?'s':''):'Generate';
+  $('go').disabled=busy||!sel.length||!patImg;
+  $('go').title=!patImg?'Add a pattern first':!sel.length?'Select at least one photo':'';
+  $('dl').disabled=busy||!ready.length;
+  $('dlLabel').textContent=ready.length?'Download '+ready.length+' PNG'+(ready.length>1?'s':''):'Download PNGs';
+  $('stale').hidden=!(results.size && lastRun && lastRun!==settingsKey()) || busy;
+  $('intro').hidden=results.size>0;
+  $('stepPattern').classList.toggle('ok', !!patImg);
+  $('patternId').placeholder=patImg?derivedPid():'From the file name';
+  $('trimAuto').disabled=!autoTrim || parseHex($('trimHex').value)===parseHex(autoTrim);
+  $('trimHint').textContent=!patImg?'Picked from the pattern':autoTrim&&parseHex($('trimHex').value)===parseHex(autoTrim)?'Picked from the pattern':'Custom';
+  const s=parseFloat($('scale').value);
+  $('scaleVal').textContent=s.toFixed(2)+'×'; $('scaleReset').hidden=s===1;
+}
+function clearResults(){
+  for(const r of results.values()) URL.revokeObjectURL(r.url);
+  results.clear();
+  for(const c of cards.values()) c.el.classList.remove('err','busy','queued');
+}
+
+// --- generate ---
+const setBar=f=>{ $('bar').style.width=(f*100).toFixed(1)+'%'; };
 async function generate(){
   if(busy) return;
-  if(!patImg){ msg('Choose a pattern file first.'); return; }
-  busy=true; $('go').disabled=true;
-  msg('Generating…'); await nextPaint();
-  const t0=performance.now();
+  if(!patImg){ msg('Add a pattern first.', true); $('drop').focus(); return; }
+  const sel=[...cards.values()].filter(c=>c.cb.checked);
+  if(!sel.length){ msg('Select at least one photo.', true); return; }
+  busy=true; document.body.classList.add('busy');
+  clearResults(); lastRun=settingsKey();
+  for(const c of sel) c.el.classList.add('queued');
+  $('progress').hidden=false; setBar(0); refresh();
+  const g=GARMENTS[garment], hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex), scale=parseFloat($('scale').value);
+  const t0=performance.now(); let failed=0;
   try{
-    const g=GARMENTS[$('garment').value];
-    const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const scale=parseFloat($('scale').value);
-    const sel=pickedIds(), flats=g.flats.filter(v=>sel.has(viewId(v))), mdls=modelsFor(g, $('gender').value).filter(v=>sel.has(viewId(v)));
-    if(!flats.length && !mdls.length) throw new Error('tick at least one mockup');
-    const pid=$('patternId').value.trim()||noGender(patName.replace(/\.[^.]+$/,'')), type=TYPE_CODE[$('garment').value]||$('garment').value;
-    const fname=v=>'['+pid+'-'+type+'_'+noGender(mocId(v))+'].png';
-    clearShots(results.flats); clearShots(results.models);
-    // motif size per view = the view's own r (GARMENT DATA) x the slider
-    for(let i=0;i<flats.length;i++){
-      if(flats.length>1){ msg('Flatlay '+(i+1)+'/'+flats.length+'…'); await nextPaint(); }
-      const GF=await analyzeGarment(flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay '+(i+1));
+    for(let i=0;i<sel.length;i++){
+      const c=sel[i];
+      c.el.classList.remove('queued'); c.el.classList.add('busy');
+      msg('Rendering '+(i+1)+' of '+sel.length+' · '+c.title); await nextPaint();
+      try{
+        // motif size per view = the view's own r (GARMENT DATA) x the slider
+        const G=g.models.includes(c.view) ? await analyzeGarment(c.view, true) : await analyzeGarment(c.view);
+        const canvas=compose(G, patImg, scale*c.view.r, trim);
+        const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+        if(!blob) throw new Error('PNG encode failed');
+        results.set(c.id, { blob, url:URL.createObjectURL(blob) });
+      }catch(err){ failed++; c.el.classList.add('err'); console.error(c.title, err); }
+      c.el.classList.remove('busy'); paintCard(c); setBar((i+1)/sel.length);
     }
-    for(let i=0;i<mdls.length;i++){
-      msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
-      const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), mocLabel(mdls[i]));
-    }
-    $('dl').disabled=false;
-    msg('Done · '+flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
-  }catch(err){ msg('Error: '+err.message); }
-  finally{ busy=false; $('go').disabled=false; }
+    const ok=sel.length-failed, secs=((performance.now()-t0)/1000).toFixed(1);
+    msg(ok+' image'+(ok!==1?'s':'')+' ready in '+secs+'s'+(failed?' · '+failed+' failed (see console)':''), failed>0);
+  }catch(err){ msg('Error: '+err.message, true); }
+  finally{
+    busy=false; document.body.classList.remove('busy');
+    for(const c of cards.values()) c.el.classList.remove('queued');
+    setTimeout(()=>{ if(!busy) $('progress').hidden=true; }, 600);
+    refresh();
+  }
 }
 
-// --- gender: auto-derived from the trim hue (genderFromHex), locked once the user picks manually ---
-let genderTouched=false;
-function applyGenderFromTrim(){
-  if(genderTouched || $('gender').disabled) return;
-  const g=genderFromHex($('trimHex').value); if(!g) return;
-  $('gender').value=g; $('genderHint').style.display=''; renderPicks();
+// --- download all ready images of the selected photos ---
+async function downloadAll(){
+  const items=[...cards.values()].filter(c=>c.cb.checked && results.has(c.id)).map(c=>({ name:fname(c.view), ...results.get(c.id) }));
+  if(!items.length) return;
+  let dl=null; try{ dl=(window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
+  $('dl').disabled=true;
+  for(let i=0;i<items.length;i++){
+    const it=items[i]; $('dlLabel').textContent='Saving '+(i+1)+' of '+items.length+'…';
+    if(dl){ try{ await dl.save({ filename:it.name, data:it.blob }); }catch(e){ msg('Download '+((e&&e.code)||'failed'), true); } }
+    else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
+  }
+  refresh();
 }
-$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; renderPicks(); });
 
-// --- mockup picker: white mocks of the chosen garment, ticks cached per garment in localStorage ---
-// cache = the view ids ticked for that garment; no cache yet = everything ticked
-const PICK_KEY=k=>'pm-picks-'+k;
-const loadPicks=k=>{ try{ const v=JSON.parse(localStorage.getItem(PICK_KEY(k))); return Array.isArray(v)?new Set(v):null; }catch{ return null; } };
-function savePicks(){
-  const ids=[...$('picks').querySelectorAll('input')].filter(i=>i.checked).map(i=>i.value);
-  const k=$('garment').value, prev=loadPicks(k)||new Set();
-  // keep ticks of views hidden by the gender filter
-  const shown=new Set([...$('picks').querySelectorAll('input')].map(i=>i.value));
-  for(const id of prev) if(!shown.has(id)) ids.push(id);
-  try{ localStorage.setItem(PICK_KEY(k), JSON.stringify(ids)); }catch{}
+// --- lightbox over the finished images on screen ---
+let lbList=[], lbAt=0;
+function openLightbox(id){
+  lbList=[...cards.values()].filter(c=>results.has(c.id));
+  lbAt=Math.max(0, lbList.findIndex(c=>c.id===id));
+  showLightbox(); if(!$('lb').open) $('lb').showModal();
 }
-const pickedIds=()=>new Set([...$('picks').querySelectorAll('input')].filter(i=>i.checked).map(i=>i.value));
-function countPicks(){
-  const all=$('picks').querySelectorAll('input');
-  let n=0; for(const i of all){ i.closest('.pick').classList.toggle('off',!i.checked); if(i.checked) n++; }
-  $('pickCount').textContent=n+'/'+all.length;
+function showLightbox(){
+  const c=lbList[lbAt]; if(!c) return;
+  const r=results.get(c.id), t=c.isFlat?null:tierOf(c.view);
+  $('lbImg').src=r.url; $('lbImg').alt=c.title;
+  $('lbTitle').textContent=fname(c.view)+(t?'  ·  Tier '+t:'');
+  $('lbIdx').textContent=(lbAt+1)+' / '+lbList.length;
+  $('lbDl').href=r.url; $('lbDl').download=fname(c.view);
+  $('lbPrev').hidden=$('lbNext').hidden=lbList.length<2;
 }
-function renderPicks(){
-  const g=GARMENTS[$('garment').value], saved=loadPicks($('garment').value);
-  const views=[...g.flats, ...modelsFor(g, $('gender').value)];
-  $('picks').replaceChildren(...views.map(v=>{
-    const id=viewId(v), lab=document.createElement('label'); lab.className='pick'; lab.title=id;
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=!saved||saved.has(id);
-    const img=document.createElement('img'); img.loading='lazy'; img.alt=id; img.src=v.mock+'&width=240';
-    const cap=document.createElement('span'); cap.textContent=mocLabel(v);
-    lab.append(img,cb,cap); return lab;
-  }));
-  countPicks();
-}
-$('picks').addEventListener('change', ()=>{ savePicks(); countPicks(); });
-const setAllPicks=on=>{ for(const i of $('picks').querySelectorAll('input')) i.checked=on; savePicks(); countPicks(); };
-$('pickAll').addEventListener('click', ()=>setAllPicks(true));
-$('pickNone').addEventListener('click', ()=>setAllPicks(false));
+const lbStep=d=>{ lbAt=(lbAt+d+lbList.length)%lbList.length; showLightbox(); };
+$('lbPrev').addEventListener('click', ()=>lbStep(-1));
+$('lbNext').addEventListener('click', ()=>lbStep(1));
+$('lbClose').addEventListener('click', ()=>$('lb').close());
+$('lb').addEventListener('click', e=>{ if(e.target.classList.contains('lb-body')) $('lb').close(); });
+$('lb').addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') lbStep(-1); else if(e.key==='ArrowRight') lbStep(1); });
 
-// Men's / Women's pajama have a single fixed set of adult models, so the Gender picker does nothing for
-// them: disable and grey the field while one is selected (every model is unisex, so modelsFor returns all).
-const GENDERLESS=new Set(['menPajama','womenPajama']);
-function syncGenderField(){
-  const off=GENDERLESS.has($('garment').value);
-  $('gender').disabled=off;
-  const f=$('genderField'); f.style.opacity=off?'0.4':''; f.style.pointerEvents=off?'none':'';
-  if(off) $('genderHint').style.display='none';
-}
-$('garment').addEventListener('change', ()=>{ syncGenderField(); renderPicks(); });
-
-$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
-$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
-$('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e.target.value).toFixed(2)+'×'; });
-$('patternBtn').addEventListener('click', ()=>$('pattern').click());
-$('pattern').addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  $('patternName').textContent=f.name; patName=f.name;
+// --- pattern: click, drag & drop anywhere, or paste ---
+async function loadPattern(f){
+  if(!f || !/^image\//.test(f.type)){ msg('That file is not an image.', true); return; }
   msg('Reading pattern…'); await nextPaint();
   try{
     const img=await decodeFile(f);
     if(patImg&&patImg.close) patImg.close();
-    patImg=img;
-    const c=dominantColor(img), t=c&&trimHexFrom(...c);
-    if(t){ setTrim(t); applyGenderFromTrim(); }
-    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
-  }catch{ msg('Could not read that image.'); }
+    patImg=img; patName=f.name||'pattern.png';
+    const old=$('patThumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old);
+    $('patThumb').src=URL.createObjectURL(f);
+    $('patternName').textContent=patName; $('patternName').title=patName;
+    $('patternDims').textContent=img.width+' × '+img.height+' px';
+    $('dropEmpty').hidden=true; $('dropFull').hidden=false;
+    const c=dominantColor(img); autoTrim=c&&trimHexFrom(...c);
+    if(autoTrim){ setTrim(autoTrim); applyGenderFromTrim(); } else { $('trimHex').value=''; }
+    msg('Pattern ready'+(autoTrim?' · trim '+autoTrim.toUpperCase():' · no clear trim color, pick one if needed'));
+  }catch{ msg('Could not read that image.', true); }
+  refresh();
+}
+$('drop').addEventListener('click', ()=>$('pattern').click());
+$('drop').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern').click(); } });
+$('pattern').addEventListener('change', e=>{ loadPattern(e.target.files[0]); e.target.value=''; });
+let dragDepth=0;
+const hasFiles=e=>e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e=>{ if(!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('dropveil').hidden=false; });
+window.addEventListener('dragover', e=>{ if(hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e=>{ if(!hasFiles(e)) return; if(--dragDepth<=0){ dragDepth=0; $('dropveil').hidden=true; } });
+window.addEventListener('drop', e=>{
+  if(!hasFiles(e)) return; e.preventDefault(); dragDepth=0; $('dropveil').hidden=true;
+  if(!busy) loadPattern(e.dataTransfer.files[0]);
 });
+window.addEventListener('paste', e=>{
+  if(busy || /^(INPUT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'')) return;
+  const f=[...(e.clipboardData&&e.clipboardData.files||[])].find(x=>/^image\//.test(x.type));
+  if(f){ e.preventDefault(); loadPattern(f); }
+});
+
+// --- look controls ---
+$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); refresh(); });
+$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } refresh(); });
+$('trimAuto').addEventListener('click', ()=>{ if(autoTrim){ setTrim(autoTrim); applyGenderFromTrim(); refresh(); } });
+$('scale').value=String(store.get('pm-scale',1));
+$('scale').addEventListener('input', ()=>{ store.set('pm-scale', parseFloat($('scale').value)); refresh(); });
+$('scaleReset').addEventListener('click', ()=>{ $('scale').value='1'; store.set('pm-scale',1); refresh(); });
+$('scale').addEventListener('dblclick', ()=>$('scaleReset').click());
+$('patternId').addEventListener('input', refresh);
+
+$('pickAll').addEventListener('click', ()=>{ for(const c of cards.values()) c.cb.checked=true; savePicks(); refresh(); });
+$('pickNone').addEventListener('click', ()=>{ for(const c of cards.values()) c.cb.checked=false; savePicks(); refresh(); });
 $('go').addEventListener('click', generate);
-$('dl').addEventListener('click', async ()=>{
-  let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
-  const items=[];
-  for(const r of [...results.flats, ...results.models]) items.push({ name:r.name, blob:r.blob, url:r.url });
-  for(const it of items){
-    if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
-    else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
-  }
-});
-applyGenderFromTrim();
-syncGenderField();
-renderPicks();
+$('dl').addEventListener('click', downloadAll);
+window.addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); generate(); } });
+
+renderGarments();
+setGender('neutral');
+syncGender();
+renderCards();
 </script>
 
 </body>

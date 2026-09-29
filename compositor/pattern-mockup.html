@@ -207,7 +207,7 @@
         </div>
         <div class="field">
           <label class="flabel" for="patternId">Pattern ID <em>optional · file names only</em></label>
-          <input type="text" id="patternId" spellcheck="false" placeholder="From the file name">
+          <input type="text" id="patternId" spellcheck="false">
         </div>
       </section>
 
@@ -1098,7 +1098,6 @@ function refresh(){
   $('stale').hidden=!(results.size && lastRun && lastRun!==settingsKey()) || busy;
   $('intro').hidden=results.size>0;
   $('stepPattern').classList.toggle('ok', !!patImg);
-  $('patternId').placeholder=patImg?derivedPid():'From the file name';
   $('trimAuto').disabled=!autoTrim || parseHex($('trimHex').value)===parseHex(autoTrim);
   $('trimHint').textContent=!patImg?'Picked from the pattern':autoTrim&&parseHex($('trimHex').value)===parseHex(autoTrim)?'Picked from the pattern':'Custom';
   const s=parseFloat($('scale').value);

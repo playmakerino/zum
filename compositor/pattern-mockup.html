@@ -793,7 +793,9 @@ async function showShot(bucket, canvas, name, caption){
   const fig=document.createElement('figure'); fig.className='shot';
   const img=document.createElement('img'); img.alt=caption;
   const cap=document.createElement('figcaption'); cap.textContent=caption;
-  img.src=r.url; fig.append(img,cap); $('view').append(fig);
+  // blob: URLs have no file name, so "Save image as" can't carry it; the link does (click, or right-click > Save link as)
+  const a=document.createElement('a'); a.href=r.url; a.download=name; a.title=name; a.append(img);
+  img.src=r.url; fig.append(a,cap); $('view').append(fig);
   bucket.push({ ...r, name, fig });
 }
 
@@ -816,12 +818,12 @@ async function generate(){
     for(let i=0;i<flats.length;i++){
       if(flats.length>1){ msg('Flatlay '+(i+1)+'/'+flats.length+'…'); await nextPaint(); }
       const GF=await analyzeGarment(flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay · '+mocLabel(flats[i]));
+      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay '+(i+1));
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), 'On model · '+mocLabel(mdls[i]));
+      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), mocLabel(mdls[i]));
     }
     $('dl').disabled=false;
     msg('Done · '+flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');

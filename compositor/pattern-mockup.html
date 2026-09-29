@@ -44,6 +44,14 @@
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
+  .picks{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .pick{ position:relative; margin:0; cursor:pointer; border:1px solid var(--line); border-radius:7px; overflow:hidden; background:#fff; }
+  .pick img{ width:100%; aspect-ratio:3/4; object-fit:contain; display:block; }
+  .pick input{ position:absolute; top:5px; left:5px; margin:0; accent-color:var(--accent); }
+  .pick span{ display:block; font-size:10px; line-height:1.3; padding:3px 4px; color:#6b6b6b; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-top:1px solid #eee; }
+  .pick.off img{ opacity:.35; }
+  .pick:has(input:checked){ border-color:var(--accent); }
+  .pick-all{ font-size:11px; font-weight:600; padding:0; border:0; color:var(--accent); background:none; }
   .foot{ max-width:1180px; margin:0 auto; padding:0 32px 32px; font-size:12px; color:var(--mut); }
   .foot a{ color:var(--accent); }
 </style>
@@ -93,6 +101,11 @@
     <div class="field">
       <div class="scale-head"><label for="scale">Motif size</label><span class="val" id="scaleVal">1.00×</span></div>
       <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="field">
+      <div class="scale-head"><label>Mockups</label><span class="hint"><span id="pickCount"></span> · <button type="button" class="pick-all" id="pickAll">All</button> / <button type="button" class="pick-all" id="pickNone">None</button></span></div>
+      <div class="picks" id="picks"></div>
     </div>
 
     <div class="actions">
@@ -188,6 +201,10 @@ const GARMENTS={
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
+// view id for download names + the tick cache: mock filename minus zum-flatlay-mock- / zum-model- and the extension
+const viewId=flatName;
+// type code per garment, same codes as the TC forms (tc_form_1_trang.html)
+const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB' };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -726,7 +743,7 @@ const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 
-let patImg=null, busy=false;
+let patImg=null, patName='pattern', busy=false;
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig} - flats:[...]+models:[...], all shown in #view
 
 async function toBlobURL(canvas){
@@ -758,21 +775,24 @@ async function generate(){
     const g=GARMENTS[$('garment').value];
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
     const scale=parseFloat($('scale').value);
-    const mdls=modelsFor(g, $('gender').value);
+    const sel=pickedIds(), flats=g.flats.filter(v=>sel.has(viewId(v))), mdls=modelsFor(g, $('gender').value).filter(v=>sel.has(viewId(v)));
+    if(!flats.length && !mdls.length) throw new Error('tick at least one mockup');
+    const pid=patName.replace(/\.[^.]+$/,''), type=TYPE_CODE[$('garment').value]||$('garment').value;
+    const fname=v=>pid+'-'+type+'_'+viewId(v)+'.png';
     clearShots(results.flats); clearShots(results.models);
     // motif size per view = the view's own r (GARMENT DATA) x the slider
-    for(let i=0;i<g.flats.length;i++){
-      if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
-      const GF=await analyzeGarment(g.flats[i]);
-      await showShot(results.flats, compose(GF, patImg, scale*g.flats[i].r, trim), flatName(g.flats[i]), g.flats.length>1?'Flatlay '+(i+1):'Flatlay');
+    for(let i=0;i<flats.length;i++){
+      if(flats.length>1){ msg('Flatlay '+(i+1)+'/'+flats.length+'…'); await nextPaint(); }
+      const GF=await analyzeGarment(flats[i]);
+      await showShot(results.flats, compose(GF, patImg, scale*flats[i].r, trim), fname(flats[i]), 'Flatlay · '+viewId(flats[i]));
     }
     for(let i=0;i<mdls.length;i++){
       msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
       const GM=await analyzeGarment(mdls[i], true);
-      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), modelName(mdls[i]), 'On model · '+modelName(mdls[i]));
+      await showShot(results.models, compose(GM, patImg, scale*mdls[i].r, trim), fname(mdls[i]), 'On model · '+modelName(mdls[i]));
     }
     $('dl').disabled=false;
-    msg('Done · '+g.flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+flats.length+' flatlay · '+mdls.length+' on-model · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }
@@ -782,9 +802,44 @@ let genderTouched=false;
 function applyGenderFromTrim(){
   if(genderTouched || $('gender').disabled) return;
   const g=genderFromHex($('trimHex').value); if(!g) return;
-  $('gender').value=g; $('genderHint').style.display='';
+  $('gender').value=g; $('genderHint').style.display=''; renderPicks();
 }
-$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; });
+$('gender').addEventListener('change', ()=>{ genderTouched=true; $('genderHint').style.display='none'; renderPicks(); });
+
+// --- mockup picker: white mocks of the chosen garment, ticks cached per garment in localStorage ---
+// cache = the view ids ticked for that garment; no cache yet = everything ticked
+const PICK_KEY=k=>'pm-picks-'+k;
+const loadPicks=k=>{ try{ const v=JSON.parse(localStorage.getItem(PICK_KEY(k))); return Array.isArray(v)?new Set(v):null; }catch{ return null; } };
+function savePicks(){
+  const ids=[...$('picks').querySelectorAll('input')].filter(i=>i.checked).map(i=>i.value);
+  const k=$('garment').value, prev=loadPicks(k)||new Set();
+  // keep ticks of views hidden by the gender filter
+  const shown=new Set([...$('picks').querySelectorAll('input')].map(i=>i.value));
+  for(const id of prev) if(!shown.has(id)) ids.push(id);
+  try{ localStorage.setItem(PICK_KEY(k), JSON.stringify(ids)); }catch{}
+}
+const pickedIds=()=>new Set([...$('picks').querySelectorAll('input')].filter(i=>i.checked).map(i=>i.value));
+function countPicks(){
+  const all=$('picks').querySelectorAll('input');
+  let n=0; for(const i of all){ i.closest('.pick').classList.toggle('off',!i.checked); if(i.checked) n++; }
+  $('pickCount').textContent=n+'/'+all.length;
+}
+function renderPicks(){
+  const g=GARMENTS[$('garment').value], saved=loadPicks($('garment').value);
+  const views=[...g.flats, ...modelsFor(g, $('gender').value)];
+  $('picks').replaceChildren(...views.map(v=>{
+    const id=viewId(v), lab=document.createElement('label'); lab.className='pick'; lab.title=id;
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=!saved||saved.has(id);
+    const img=document.createElement('img'); img.loading='lazy'; img.alt=id; img.src=v.mock+'&width=240';
+    const cap=document.createElement('span'); cap.textContent=id;
+    lab.append(img,cb,cap); return lab;
+  }));
+  countPicks();
+}
+$('picks').addEventListener('change', ()=>{ savePicks(); countPicks(); });
+const setAllPicks=on=>{ for(const i of $('picks').querySelectorAll('input')) i.checked=on; savePicks(); countPicks(); };
+$('pickAll').addEventListener('click', ()=>setAllPicks(true));
+$('pickNone').addEventListener('click', ()=>setAllPicks(false));
 
 // Men's / Women's pajama have a single fixed set of adult models, so the Gender picker does nothing for
 // them: disable and grey the field while one is selected (every model is unisex, so modelsFor returns all).
@@ -795,7 +850,7 @@ function syncGenderField(){
   const f=$('genderField'); f.style.opacity=off?'0.4':''; f.style.pointerEvents=off?'none':'';
   if(off) $('genderHint').style.display='none';
 }
-$('garment').addEventListener('change', syncGenderField);
+$('garment').addEventListener('change', ()=>{ syncGenderField(); renderPicks(); });
 
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); });
 $('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h){ $('trimColor').value='#'+h.toLowerCase(); applyGenderFromTrim(); } });
@@ -803,7 +858,7 @@ $('scale').addEventListener('input', e=>{ $('scaleVal').textContent=parseFloat(e
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
-  $('patternName').textContent=f.name;
+  $('patternName').textContent=f.name; patName=f.name;
   msg('Reading pattern…'); await nextPaint();
   try{
     const img=await decodeFile(f);
@@ -818,8 +873,7 @@ $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
   const items=[];
-  for(const r of results.flats) items.push({ name:'flatlay-'+r.name+'.png', blob:r.blob, url:r.url });
-  for(const r of results.models) items.push({ name:'model-'+r.name+'.png', blob:r.blob, url:r.url });
+  for(const r of [...results.flats, ...results.models]) items.push({ name:r.name, blob:r.blob, url:r.url });
   for(const it of items){
     if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
     else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
@@ -827,6 +881,7 @@ $('dl').addEventListener('click', async ()=>{
 });
 applyGenderFromTrim();
 syncGenderField();
+renderPicks();
 </script>
 
 </body>

@@ -395,7 +395,7 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
 // drop boy / girl tokens from download names (pajama_girl_4 -> pajama_4)
 const noGender=n=>n.replace(/(^|[-_ ])(boy|girl)(?=[-_ .]|$)/gi,'').replace(/^[-_ ]+/,'')||n;
-const mocLabel=v=>{ const t=tierOf(v); return mocId(v)+(t?' · T'+t:''); };
+const mocLabel=v=>{ const t=tierOf(v); return mocId(v)+(t?' · Tier '+t:''); };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -1059,7 +1059,7 @@ function makeCard(v, title, isFlat, on){
   const cap=document.createElement('figcaption');
   const name=document.createElement('span'); name.className='name'; name.textContent=title; name.title=title;
   cap.append(name);
-  if(t){ const tb=document.createElement('span'); tb.className='tier t'+t; tb.textContent='T'+t; tb.title='Mockup tier '+t; cap.append(tb); }
+  if(t){ const tb=document.createElement('span'); tb.className='tier t'+t; tb.textContent='Tier '+t; tb.title='Mockup tier '+t; cap.append(tb); }
   const dl=document.createElement('a'); dl.className='dlone'; dl.innerHTML=DL_ICON; dl.hidden=true;
   cap.append(dl);
   el.append(ph,chk,badge,cap);

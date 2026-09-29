@@ -82,6 +82,11 @@
     </div>
 
     <div class="field">
+      <div class="scale-head"><label for="patternId">Pattern ID</label><span class="hint">Optional · file names only</span></div>
+      <input type="text" id="patternId" placeholder="From the pattern file name" spellcheck="false">
+    </div>
+
+    <div class="field">
       <label for="trimHex">Trim color</label>
       <div class="trim">
         <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
@@ -229,6 +234,8 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
   'PA-PET-08':3,'PA-PET-09':3,'KAN-MSI-01':4,'KAN-MSI-02':4,'KAN-MSI-03':4,'MA-SSI-03':4,'MA-SSI-04':4,'KAN-WSI-01':4,'KAN-WSI-02':4,
   'WO-SSI-06':4,'WO-SSI-02':4,'WO-NUR-01':4 };
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
+// drop boy / girl tokens from download names (pajama_girl_4 -> pajama_4)
+const noGender=n=>n.replace(/(^|[-_ ])(boy|girl)(?=[-_ .]|$)/gi,'').replace(/^[-_ ]+/,'')||n;
 const mocLabel=v=>{ const t=tierOf(v); return mocId(v)+(t?' · T'+t:''); };
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
@@ -802,8 +809,8 @@ async function generate(){
     const scale=parseFloat($('scale').value);
     const sel=pickedIds(), flats=g.flats.filter(v=>sel.has(viewId(v))), mdls=modelsFor(g, $('gender').value).filter(v=>sel.has(viewId(v)));
     if(!flats.length && !mdls.length) throw new Error('tick at least one mockup');
-    const pid=patName.replace(/\.[^.]+$/,''), type=TYPE_CODE[$('garment').value]||$('garment').value;
-    const fname=v=>pid+'-'+type+'_'+mocId(v)+'.png';
+    const pid=$('patternId').value.trim()||noGender(patName.replace(/\.[^.]+$/,'')), type=TYPE_CODE[$('garment').value]||$('garment').value;
+    const fname=v=>pid+'-'+type+'_'+noGender(mocId(v))+'.png';
     clearShots(results.flats); clearShots(results.models);
     // motif size per view = the view's own r (GARMENT DATA) x the slider
     for(let i=0;i<flats.length;i++){

@@ -205,6 +205,23 @@ const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'
 const viewId=flatName;
 // type code per garment, same codes as the TC forms (tc_form_1_trang.html)
 const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB' };
+// ssshub mockup code per view (GET /api/v1/mockup-garments/{id}, 2026-09-29), keyed by viewId; used in download names.
+// Views without a real code carry the ssshub view id (flatlay, romper_7, ...). Missing key -> viewId.
+const MOC={
+  'romper':'flatlay','romper-1':'kan-bvi-01','romper-2':'kan-dcc-01','romper-3':'kan-fvi-02','romper-4':'pi-sin-15','romper-5':'pi-sin-28',
+  'romper-6':'pi-sin-34','romper-7':'romper_7','romper-8':'romper_8','romper-9':'romper_9','romper-10':'kan-crm-01',
+  'pajama':'flatlay','pajama-long':'flatlay2','pajama-boy-1':'kan-fvi-11','pajama-boy-2':'kan-fvi-03','pajama-boy-3':'kan-fvi-04',
+  'pajama-girl-1':'pm-ssi-158','pajama-girl-2':'kan-fvi-07','pajama-girl-3':'kan-fvi-10','pajama-girl-4':'pajama_girl_4',
+  'pajama-girl-5':'kan-fvi-05','pajama-girl-6':'kan-fvi-06','pajama-girl-7':'pajama_girl_7',
+  'pajama-men-1':'flatlay','men-pajama':'flatlay2','men-pajama-top':'men_pajama_top','men-pajama-pants':'men_pajama_pants',
+  'pajama-men-2':'pajama_men_2','pajama-men-3':'kan-msi-01','pajama-men-4':'kan-msi-02','pajama-men-5':'kan-msi-03','pajama-men-6':'ma-ssi-03',
+  'pajama-men-7':'ma-ssi-04','pajama-men-8':'pajama_men_8','pajama-men-9':'pajama_men_9','pajama-men-10':'pajama_men_10','pajama-men-11':'pajama_men_11',
+  'pajama-women-1':'flatlay','women-pajama':'flatlay2','women-pajama-top':'women_pajama_top','women-pajama-pants':'women_pajama_pants',
+  'pajama-women-2':'pajama_women_2','pajama-women-3':'kan-wsi-01','pajama-women-4':'kan-wsi-02','pajama-women-5':'wo-ssi-06','pajama-women-6':'wo-ssi-02',
+  'pajama-women-7':'wo-nur-01','pajama-women-8':'pajama_women_8','pajama-women-9':'pajama_women_9','pajama-women-10':'pajama_women_10','pajama-women-11':'pajama_women_11',
+  'blanket-1':'flatlay','blanket-2':'flatlay2','sleepbag':'flatlay',
+};
+const mocId=v=>MOC[viewId(v)]||viewId(v);
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -778,7 +795,7 @@ async function generate(){
     const sel=pickedIds(), flats=g.flats.filter(v=>sel.has(viewId(v))), mdls=modelsFor(g, $('gender').value).filter(v=>sel.has(viewId(v)));
     if(!flats.length && !mdls.length) throw new Error('tick at least one mockup');
     const pid=patName.replace(/\.[^.]+$/,''), type=TYPE_CODE[$('garment').value]||$('garment').value;
-    const fname=v=>pid+'-'+type+'_'+viewId(v)+'.png';
+    const fname=v=>pid+'-'+type+'_'+mocId(v)+'.png';
     clearShots(results.flats); clearShots(results.models);
     // motif size per view = the view's own r (GARMENT DATA) x the slider
     for(let i=0;i<flats.length;i++){
@@ -831,7 +848,7 @@ function renderPicks(){
     const id=viewId(v), lab=document.createElement('label'); lab.className='pick'; lab.title=id;
     const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=!saved||saved.has(id);
     const img=document.createElement('img'); img.loading='lazy'; img.alt=id; img.src=v.mock+'&width=240';
-    const cap=document.createElement('span'); cap.textContent=id;
+    const cap=document.createElement('span'); cap.textContent=mocId(v);
     lab.append(img,cb,cap); return lab;
   }));
   countPicks();

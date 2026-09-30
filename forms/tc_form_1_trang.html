@@ -904,8 +904,8 @@
     <div class="guide-body">
       <p class="guide-intro">Form này tải ảnh quảng cáo từ máy lên. Print ID và product type lấy từ tên file, không phải điền tay. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, tên quảng cáo chính là tên file.</p>
 
-      <div class="guide-note warn">
-        <strong>Mỗi lần chỉ up ảnh của 1 product type và 1 print.</strong> Muốn chạy print khác hoặc product type khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
+      <div class="guide-note">
+        Mỗi lần gửi chỉ chứa ảnh của 1 print. Muốn chạy print khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
       </div>
 
       <div class="guide-sec">Các bước điền</div>
@@ -921,16 +921,19 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Product type</span>: chọn loại sản phẩm</h4>
-          <p>Bấm vào ô rồi gõ để tìm, hoặc chọn trong danh sách. Đây là product type mà workflow dùng để tìm sản phẩm và viết nội dung. TypeID trong tên file phải trùng với lựa chọn này, khác nhau thì form báo lỗi và liệt kê file sai.</p>
+          <h4>Chọn <span class="g-field">Type group</span> hoặc <span class="g-field">Product type</span></h4>
+          <p>Hai nút ở đầu form, mặc định là <span class="g-field">Type group</span>:</p>
+          <p style="margin-top:7px">a) <span class="g-field">Type group</span>: chọn nhóm trong danh sách (<strong>Adult pajama</strong>, <strong>Kid play</strong>, <strong>Kid pajama</strong>). Ảnh trong một lượt có thể thuộc nhiều product type khác nhau trong nhóm đó, product type của từng ảnh lấy từ TypeID trong tên file.<br>
+          b) <span class="g-field">Product type</span>: bấm vào ô rồi gõ để tìm, hoặc chọn trong danh sách. Mọi ảnh trong lượt phải cùng product type này. TypeID trong tên file khác lựa chọn thì form báo lỗi và liệt kê file sai.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Print Image</span>: ảnh tham chiếu</h4>
-          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu... Một số product type không cần ảnh này: ô sẽ mờ đi và hiện No need.</p>
+          <h4><span class="g-field">Print</span>: ảnh tham chiếu</h4>
+          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu cho nội dung quảng cáo. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
+          <p style="margin-top:7px">Ô này luôn bắt buộc khi chọn <span class="g-field">Type group</span>. Khi chọn <span class="g-field">Product type</span>, một số loại không cần ảnh này: ô mờ đi và hiện <strong>No need</strong>, bỏ qua bước này.</p>
         </div>
       </div>
 
@@ -938,7 +941,7 @@
         <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
-          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 Print ID và cùng 1 product type.</p>
+          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 Print ID (và cùng 1 product type nếu đang ở chế độ <span class="g-field">Product type</span>).</p>
         </div>
       </div>
 
@@ -953,7 +956,7 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Cần ít nhất 1 ảnh trong <span class="g-field">Ad images</span> thì mới gửi được.
+        Cần ít nhất 1 ảnh trong <span class="g-field">Ad images</span>, và ảnh <span class="g-field">Print</span> khi ô đó hiện Required, thì mới gửi được.
       </div>
 
       <div class="guide-note">
@@ -962,6 +965,10 @@
 
       <div class="guide-note">
         Nếu báo lỗi "too large", giảm bớt ảnh hoặc dùng ảnh nhẹ hơn rồi gửi lại.
+      </div>
+
+      <div class="guide-note">
+        Lần đầu dùng form trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải rồi nhập mật khẩu. Trình duyệt nhớ mật khẩu cho các lần sau. Nếu báo <strong>Wrong password</strong>, bấm <strong>Change</strong> và nhập lại.
       </div>
     </div>
   </aside>

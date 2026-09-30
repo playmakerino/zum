@@ -975,10 +975,13 @@ const hasModels=()=>GARMENTS[garment].models.length>0;
 const genderOn=()=>GARMENTS[garment].models.some(m=>modelGender(m));
 
 // --- download names: [patternid-TYPE_mockupid].png, computed live so editing Pattern ID renames finished images ---
-const derivedPid=()=>patName.replace(/\.[^.]+$/,'')||'pattern';
+const derivedPid=()=>noGender(patName.replace(/\.[^.]+$/,''))||'pattern';
 const pid=()=>$('patternId').value.trim()||derivedPid();
-// boy / girl never appear in a download name: stripped from the pattern id (typed or from the file) and the mockup code
-const fname=v=>'['+noGender(pid()+'-'+(TYPE_CODE[garment]||garment)+'_'+mocId(v))+'].png';
+function fileMoc(v){
+  const n=noGender(mocId(v)), g=GARMENTS[garment];
+  return [...g.flats, ...g.models].some(o=>o!==v && noGender(mocId(o))===n) ? mocId(v) : n;
+}
+const fname=v=>'['+pid()+'-'+(TYPE_CODE[garment]||garment)+'_'+fileMoc(v)+'].png';
 
 // --- ticks: the view ids ticked per garment in localStorage; no entry yet = everything ticked ---
 const PICK_KEY=k=>'pm-picks-'+k;

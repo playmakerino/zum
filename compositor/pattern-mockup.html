@@ -382,7 +382,7 @@ const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'
 // view id for download names + the tick cache: mock filename minus zum-flatlay-mock- / zum-model- and the extension
 const viewId=flatName;
 // type code per garment, same codes as the TC forms (tc_form_1_trang.html)
-const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB', blanketHoodie:'HDB' };
+const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB', blanketHoodie:'BHD' };
 // ssshub mockup code per view (GET /api/v1/mockup-garments/{id}, 2026-09-29), keyed by viewId; used in download names.
 // Views without a real code carry the ssshub view id (flatlay, romper_7, ...). Missing key -> viewId.
 const MOC={

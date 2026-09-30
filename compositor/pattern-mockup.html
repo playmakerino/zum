@@ -413,7 +413,9 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
   'BH-SSI-01':4,'BH-SSI-02':4 };
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
 // drop boy / girl tokens from download names (pajama_girl_4 -> pajama_4)
-const noGender=n=>n.replace(/(^|[-_ ])(boy|girl)(?=[-_ .]|$)/gi,'').replace(/^[-_ ]+/,'')||n;
+// whole words only (cowgirl stays), with the separator before them: pajama_girl_7 -> pajama_7, B_i20815-Girl2 -> B_i20815-2
+const noGender=n=>n.replace(/([-_ ]?)(?<![a-z])(?:boy|girl)s?(?![a-z])/gi,
+  (m,sep,o,s)=>sep && /[a-z0-9]/i.test(s[o+m.length]||'') ? sep : '').replace(/^[-_ ]+/,'')||n;
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');
 // model gender from the filename: boy / girl, or null when the photo is unisex (romper, men, women).
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
@@ -973,13 +975,10 @@ const hasModels=()=>GARMENTS[garment].models.length>0;
 const genderOn=()=>GARMENTS[garment].models.some(m=>modelGender(m));
 
 // --- download names: [patternid-TYPE_mockupid].png, computed live so editing Pattern ID renames finished images ---
-const derivedPid=()=>noGender(patName.replace(/\.[^.]+$/,''))||'pattern';
+const derivedPid=()=>patName.replace(/\.[^.]+$/,'')||'pattern';
 const pid=()=>$('patternId').value.trim()||derivedPid();
-function fileMoc(v){
-  const n=noGender(mocId(v)), g=GARMENTS[garment];
-  return [...g.flats, ...g.models].some(o=>o!==v && noGender(mocId(o))===n) ? mocId(v) : n;
-}
-const fname=v=>'['+pid()+'-'+(TYPE_CODE[garment]||garment)+'_'+fileMoc(v)+'].png';
+// boy / girl never appear in a download name: stripped from the pattern id (typed or from the file) and the mockup code
+const fname=v=>'['+noGender(pid()+'-'+(TYPE_CODE[garment]||garment)+'_'+mocId(v))+'].png';
 
 // --- ticks: the view ids ticked per garment in localStorage; no entry yet = everything ticked ---
 const PICK_KEY=k=>'pm-picks-'+k;

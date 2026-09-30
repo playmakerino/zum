@@ -276,6 +276,9 @@
       grid-template-columns: var(--tile);
       gap: 10px;
     }
+    /* Print not needed for types without an AI prompt: dimmed, not clickable */
+    #printField.no-need .print-slot { opacity: 0.35; pointer-events: none; }
+    .req-tag { font-weight: 400; color: var(--text-muted); margin-left: 6px; }
     .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
 
     .submit-wrap { margin-top: 24px; }
@@ -416,8 +419,8 @@
         </div>
       </div>
 
-      <div class="field">
-        <label>Print</label>
+      <div class="field" id="printField">
+        <label>Print <span class="req-tag" id="printReqTag">Required</span></label>
         <input type="file" id="printFileInput" accept="image/*" style="display:none" />
         <div class="print-slot" id="printSlot"></div>
       </div>
@@ -450,6 +453,19 @@
 
     let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
     let printFile = null;  // single print image (design file) | null
+
+    // Types whose "prompt" is empty in datatable "Product type settings" (BfplDltqK4KKl0Q7):
+    // ad copy comes from asset_feed_spec, so no print image is needed. Keep in sync with the datatable.
+    const NO_PROMPT_TYPES = new Set(['PLC', 'SBP', 'ACS', 'WCS', 'MCS', 'BGS', 'STB', 'BNB', 'Hoop', 'LPL', 'PNT']);
+    function printNeeded() {
+      return document.getElementById('ad_mode').value === 'group'
+        || !NO_PROMPT_TYPES.has(document.getElementById('product_type').value);
+    }
+    function updatePrintField() {
+      const need = printNeeded();
+      document.getElementById('printField').classList.toggle('no-need', !need);
+      document.getElementById('printReqTag').textContent = need ? 'Required' : 'No need';
+    }
 
     function updateCount() {
       const n = adFiles.length;
@@ -564,7 +580,8 @@
       if (adFiles.length === 0) {
         return showStatus('error', '&#9888; Add at least one ad image.');
       }
-      if (!printFile) {
+      const needPrint = printNeeded();
+      if (needPrint && !printFile) {
         return showStatus('error', '&#9888; Add a print image.');
       }
 
@@ -596,13 +613,13 @@
 
       const fd = new FormData();
       adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name.normalize('NFC')));
-      if (printFile) fd.append('print_0', printFile, printFile.name.normalize('NFC'));
+      if (needPrint && printFile) fd.append('print_0', printFile, printFile.name.normalize('NFC'));
       fd.append('mode', mode);
       if (mode === 'group') fd.append('product_type_group', product_type_group);
       else fd.append('product_type', product_type);
 
       const total = adFiles.length;
-      const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (printFile ? printFile.size : 0)) / (1024 * 1024);
+      const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (needPrint && printFile ? printFile.size : 0)) / (1024 * 1024);
 
       showStatus('loading', '<span class="spinner"></span> Uploading ' + total + ' images...');
       submitBtn.disabled = true;
@@ -781,7 +798,9 @@
         seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
         combo.style.display = (mode === 'type') ? 'block' : 'none';
         grp.style.display = (mode === 'group') ? 'block' : 'none';
+        updatePrintField();
       });
+      document.getElementById('product_type').addEventListener('change', updatePrintField);
     })();
 
     // ---------- Wire up the single product block ----------
@@ -802,6 +821,7 @@
 
       renderThumbs();
       renderPrint();
+      updatePrintField();
       updateCount();
     })();
   </script>
@@ -910,7 +930,7 @@
         <div class="guide-num">3</div>
         <div class="guide-sb">
           <h4><span class="g-field">Print Image</span>: ảnh tham chiếu</h4>
-          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
+          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu... Một số product type không cần ảnh này: ô sẽ mờ đi và hiện No need.</p>
         </div>
       </div>
 

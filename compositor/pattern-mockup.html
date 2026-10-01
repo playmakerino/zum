@@ -363,19 +363,20 @@ const GARMENTS={
   blanket:{ flats:[ V('zum-flatlay-mock-blanket-1.jpg?v=1789654139','zum-flatlay-map-blanket-1.png?v=1789468069',1.38),
                     V('zum-flatlay-mock-blanket-2.jpg?v=1789654142','zum-flatlay-map-blanket-2.png?v=1789468080',0.98) ],
             models:[ V('zum-model-blanket-3.jpg?v=1790764478','zum-flatlay-model-map-blanket-3.png?v=1790764481',1.43),
-                     V('zum-model-blanket-4.jpg?v=1790764485','zum-flatlay-model-map-blanket-4.png?v=1790764489',1),
+                     V('zum-model-blanket-4.jpg?v=1790764485','zum-flatlay-model-map-blanket-4.png?v=1790764489',1.76),
                      V('zum-model-blanket-5.jpg?v=1790764493','zum-flatlay-model-map-blanket-5.png?v=1790764496',1),
                      V('zum-model-blanket-6.jpg?v=1790764500','zum-flatlay-model-map-blanket-6.png?v=1790764503',2),
-                     V('zum-model-blanket-7.jpg?v=1790764507','zum-flatlay-model-map-blanket-7.png?v=1790764511',1.07) ] },
+                     V('zum-model-blanket-7.jpg?v=1790834495','zum-flatlay-model-map-blanket-7.png?v=1790764511',1.07) ] },
   sleepbag:{ flats:[ V('zum-flatlay-mock-sleepbag.jpg?v=1789654145','zum-flatlay-map-sleepbag.png?v=1789552922',1.18) ],
              models:[ V('zum-model-sleepbag-1.jpg?v=1790764431','zum-flatlay-model-map-sleepbag-1.png?v=1790764447',1),
                       V('zum-model-sleepbag-2.jpg?v=1790764450','zum-flatlay-model-map-sleepbag-2.png?v=1790764454',1.37),
                       V('zum-model-sleepbag-3.jpg?v=1790764458','zum-flatlay-model-map-sleepbag-3.png?v=1790764461',1.2),
                       V('zum-model-sleepbag-4.jpg?v=1790764465','zum-flatlay-model-map-sleepbag-4.png?v=1790764469',0.9) ] },
-  // blanket hoodie: on-model photos only, no flatlay.
-  blanketHoodie:{ flats:[],
-                  models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790764526',0.9),
-                           V('zum-model-blanket-hoodie-2.jpg?v=1790764530','zum-flatlay-model-map-blanket-hoodie-2.png?v=1790764534',0.92) ] },
+  // blanket hoodie: one flatlay product shot, then on-model photos.
+  blanketHoodie:{ flats:[ V('zum-flatlay-mock-blanket-hoodie-flat.jpg?v=1790834457','zum-flatlay-map-blanket-hoodie.png?v=1790834285',0.75) ],
+                  models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790834479',0.9),
+                           V('zum-model-blanket-hoodie-2.jpg?v=1790764530','zum-flatlay-model-map-blanket-hoodie-2.png?v=1790834489',0.92),
+                           V('zum-model-blanket-hoodie-3.jpg?v=1790834289','zum-flatlay-model-map-blanket-hoodie-3.png?v=1790834293',0.9) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
@@ -400,7 +401,7 @@ const MOC={
   'blanket-1':'flatlay','blanket-2':'flatlay2','sleepbag':'flatlay',
   'blanket-3':'kan-kwb-01','blanket-4':'kan-kwb-02','blanket-5':'kan-kwb-03','blanket-6':'kan-kwb-04','blanket-7':'kan-oth-01',
   'sleepbag-1':'kan-sbl-01','sleepbag-2':'kan-sbl-02','sleepbag-3':'kan-sbl-03','sleepbag-4':'kan-sbl-04',
-  'blanket-hoodie-1':'bh-ssi-01','blanket-hoodie-2':'bh-ssi-02',
+  'blanket-hoodie-flat':'flatlay','blanket-hoodie-1':'bh-ssi-01','blanket-hoodie-2':'bh-ssi-02','blanket-hoodie-3':'ma-sst-08',
 };
 const mocId=v=>MOC[viewId(v)]||viewId(v);
 // Mockup Tier per code, sheet "Creative - Hà Trang" / Good Mock-ups (2026-09-29); shown next to the code in the picker
@@ -410,7 +411,7 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
   'PA-PET-08':3,'PA-PET-09':3,'KAN-MSI-01':4,'KAN-MSI-02':4,'KAN-MSI-03':4,'MA-SSI-03':4,'MA-SSI-04':4,'KAN-WSI-01':4,'KAN-WSI-02':4,
   'WO-SSI-06':4,'WO-SSI-02':4,'WO-NUR-01':4,
   'KAN-KWB-01':4,'KAN-KWB-02':4,'KAN-KWB-03':4,'KAN-KWB-04':4,'KAN-OTH-01':4,'KAN-SBL-01':4,'KAN-SBL-02':4,'KAN-SBL-03':4,'KAN-SBL-04':4,
-  'BH-SSI-01':4,'BH-SSI-02':4 };
+  'BH-SSI-01':4,'BH-SSI-02':4,'MA-SST-08':4 };
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
 // drop boy / girl tokens from download names (pajama_girl_4 -> pajama_4)
 // whole words only (cowgirl stays), with the separator before them: pajama_girl_7 -> pajama_7, B_i20815-Girl2 -> B_i20815-2

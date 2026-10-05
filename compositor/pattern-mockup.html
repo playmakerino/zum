@@ -235,7 +235,7 @@
               <div class="trim">
                 <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
                 <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
-                <button type="button" class="ghost" id="restAuto" title="Use the color picked from the pattern">Auto</button>
+                <button type="button" class="ghost" id="restAuto" title="Use the pattern's background color">Auto</button>
               </div>
             </div>
             <div class="field" id="restPatField" hidden>
@@ -1042,6 +1042,20 @@ let patImg=null, patName='', autoTrim=null, busy=false, stopReq=false;
 // placement print: layout 'allover' | 'placement' (main pattern on the body panel, map R = 20); rest of the garment
 // 'solid' | 'pattern' (second pattern). Layout + rest kind are remembered; the second pattern is not.
 let layout=store.get('pm-layout','allover'), restKind=store.get('pm-rest','solid'), pat2Img=null, pat2Name='';
+let autoRest=null;   // the pattern's background colour ('#rrggbb'): the Auto value of the rest colour
+// Background colour of a pattern: the most common colour (64x64 nearest-neighbour sample, 16 levels per channel, mean
+// colour of the heaviest bin). Transparent pixels count as white, the colour they print on.
+function bgColorOf(img){
+  try{
+    const d=raster(img,64,64,false).data, cnt=new Map();
+    for(let i=0;i<d.length;i+=4){
+      const t=d[i+3]<128, r=t?255:d[i], g=t?255:d[i+1], b=t?255:d[i+2], key=(r>>4)<<8|(g>>4)<<4|(b>>4);
+      const e=cnt.get(key); if(e){ e[0]++; e[1]+=r; e[2]+=g; e[3]+=b; } else cnt.set(key,[1,r,g,b]); }
+    let best=null; for(const e of cnt.values()) if(!best||e[0]>best[0]) best=e;
+    const h=v=>Math.round(v/best[0]).toString(16).padStart(2,'0');
+    return '#'+h(best[1])+h(best[2])+h(best[3]);
+  }catch{ return null; }
+}
 const results=new Map();   // viewId -> {blob,url} for the current garment
 const cards=new Map();     // viewId -> {id,view,title,isFlat,el,cb,img,dl,badge}: every view of the garment (gender filter only hides)
 let groups=[];             // [{sec,cnt,tog,mine}] Flatlay / On model sections
@@ -1220,8 +1234,8 @@ function refresh(){
   $('restSolidField').hidden=restKind!=='solid'; $('restPatField').hidden=restKind!=='pattern';
   $('layoutHint').textContent=layout==='placement'?'Pattern centred on the body':'Pattern repeats everywhere';
   const rh=parseHex($('restHex').value);
-  $('restAuto').disabled=!autoTrim || rh===parseHex(autoTrim);
-  $('restHint').textContent=!rh?'White':autoTrim&&rh===parseHex(autoTrim)?'Picked from the pattern':'Custom';
+  $('restAuto').disabled=!autoRest || rh===parseHex(autoRest);
+  $('restHint').textContent=!rh?'White':autoRest&&rh===parseHex(autoRest)?'Pattern background':'Custom';
   if(!rh) $('restColor').value='#ffffff';
   const s=parseFloat($('scale').value);
   $('scaleVal').textContent=s.toFixed(2)+'×'; $('scaleReset').hidden=s===1;
@@ -1327,7 +1341,7 @@ async function loadPattern(f){
     $('dropEmpty').hidden=true; $('dropFull').hidden=false;
     const c=dominantColor(img); autoTrim=c&&trimHexFrom(...c);
     if(autoTrim){ setTrim(autoTrim); applyGenderFromTrim(); } else { $('trimHex').value=''; }
-    if(autoTrim&&!parseHex($('restHex').value)) setRest(autoTrim);
+    autoRest=bgColorOf(img); if(autoRest) setRest(autoRest);
     msg('Pattern ready'+(autoTrim?' · trim '+autoTrim.toUpperCase():' · no clear trim color, pick one if needed'));
   }catch{ msg('Could not read that image.', true); }
   refresh();
@@ -1379,7 +1393,7 @@ for(const id of ['layout','restKind']) $(id).addEventListener('keydown', e=>{
   n.click(); n.focus(); });
 $('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.toUpperCase(); refresh(); });
 $('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); refresh(); });
-$('restAuto').addEventListener('click', ()=>{ if(autoTrim){ setRest(autoTrim); refresh(); } });
+$('restAuto').addEventListener('click', ()=>{ if(autoRest){ setRest(autoRest); refresh(); } });
 $('drop2').addEventListener('click', ()=>$('pattern2').click());
 $('drop2').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern2').click(); } });
 $('pattern2').addEventListener('change', e=>{ loadPattern2(e.target.files[0]); e.target.value=''; });

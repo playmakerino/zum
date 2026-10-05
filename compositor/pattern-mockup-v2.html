@@ -567,6 +567,16 @@ function buildQuads(q,W,H,G){
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
 // trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
 // { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
+// Centre of a pattern raster's artwork: bbox of the pixels that are neither transparent nor near-white, so a motif placed
+// off-centre in its file still lands mid-panel. Whole raster when it is all white.
+function artCentre(d,w,h){
+  let x0=w, x1=-1, y0=h, y1=-1;
+  for(let y=0, o=0; y<h; y++) for(let x=0; x<w; x++, o+=4){
+    if(d[o+3]<32 || (d[o]>=240&&d[o+1]>=240&&d[o+2]>=240)) continue;
+    if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
+}
+const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -581,20 +591,21 @@ function compose(G, pat, ratio, trim, opt){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // { center:true }: the centre of the pattern's artwork (bbox of the pixels that are neither transparent nor near-white,
-  // so a motif placed off-centre in its file still lands mid-panel) goes on each panel's centre (the v2 page's single-panel print)
+  // { rest:{pat} | {solid:[r,g,b]} }: placement print. Panel MAIN_PANEL (map R = 20) takes pat; every other fabric panel
+  // takes rest.pat (same motif size) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
+  const rest=opt.rest||null, solid=rest&&rest.solid||null;
+  const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
+  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, ox2=new Float64Array(10), oy2=new Float64Array(10);
+  // { center:true }: the centre of each pattern's artwork goes on each panel's centroid (the placement print and the v2 page)
   if(opt.center){
-    let cx0=PW, cx1=-1, cy0=PH, cy1=-1;
-    for(let y=0, o=0; y<PH; y++) for(let x=0; x<PW; x++, o+=4){
-      if(pd[o+3]<32 || (pd[o]>=240&&pd[o+1]>=240&&pd[o+2]>=240)) continue;
-      if(x<cx0)cx0=x; if(x>cx1)cx1=x; if(y<cy0)cy0=y; if(y>cy1)cy1=y; }
-    const ccx=cx1<0?PW/2:(cx0+cx1+1)/2, ccy=cy1<0?PH/2:(cy0+cy1+1)/2;
     // panel centre = centroid (mean LX, LY of its pixels in its tiling frame), not the bbox middle: a few stray pixels of
     // the id far away (outline strokes on the map) barely move it
     const sx=new Float64Array(10), sy=new Float64Array(10), sn=new Float64Array(10);
     for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
       localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; sn[k]++; }
-    for(let k=1;k<=8;k++){ if(!sn[k]) continue; ox[k]=ccx-sx[k]/sn[k]; oy[k]=ccy-sy[k]/sn[k]; } }
+    const [ccx,ccy]=artCentre(pd,PW,PH), [ccx2,ccy2]=P2?artCentre(pd2,PW2,PH2):[0,0];
+    for(let k=1;k<=8;k++){ if(!sn[k]) continue; const mx=sx[k]/sn[k], my=sy[k]/sn[k];
+      ox[k]=ccx-mx; oy[k]=ccy-my; ox2[k]=ccx2-mx; oy2[k]=ccy2-my; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -616,7 +627,10 @@ function compose(G, pat, ratio, trim, opt){
       // trim = a panel whose "print" is the flat trim colour: same multiply, same edge coverage as the fabric below
       if(!trim) continue;
       R=tr*Pr; Gc=tg*Pg; Bc=tb*Pb;
+    } else if(solid&&k!==MAIN_PANEL){
+      R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb;
     } else {
+    const two=!!P2&&k!==MAIN_PANEL, qd=two?pd2:pd, QW=two?PW2:PW, QH=two?PH2:PH, qx=two?ox2:ox, qy=two?oy2:oy;
     // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
     // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
@@ -627,14 +641,14 @@ function compose(G, pat, ratio, trim, opt){
       if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
       xs=x+gx*amp; ys=y+gy*amp; }
     localXY(G,k,xs,ys);
-    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }
-    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
-    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+    let fx=LX+qx[k]; fx-=Math.floor(fx/QW)*QW; if(fx>=QW) fx=0; let fy=LY+qy[k]; fy-=Math.floor(fy/QH)*QH; if(fy>=QH) fy=0;
+    if(k===COLLAR_ID){ fx=QW-fx; if(fx>=QW) fx=0; }
+    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===QW?0:x0+1, y1=y0+1===QH?0:y0+1;
+    const p00=(y0*QW+x0)*4, p10=(y0*QW+x1)*4, p01=(y1*QW+x0)*4, p11=(y1*QW+x1)*4;
     const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
-    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
-        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
-        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+    let pr=qd[p00]*w00+qd[p10]*w10+qd[p01]*w01+qd[p11]*w11,
+        pg=qd[p00+1]*w00+qd[p10+1]*w10+qd[p01+1]*w01+qd[p11+1]*w11,
+        pb=qd[p00+2]*w00+qd[p10+2]*w10+qd[p01+2]*w01+qd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb;
     }

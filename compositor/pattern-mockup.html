@@ -75,6 +75,18 @@
   .drop-full b{ color:var(--ink); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .drop-full .link{ color:var(--accent); font-weight:600; }
 
+  /* placement print: options under the Print switch, compact second-pattern drop */
+  .seg.two{ grid-template-columns:repeat(2,1fr); }
+  .sub-opts{ display:flex; flex-direction:column; gap:12px; margin-top:10px; padding:12px; border-radius:10px; background:var(--soft); }
+  .sub-opts .field{ margin-top:0; }
+  .sub-opts .seg{ background:var(--panel); }
+  .sub-opts .seg button[aria-checked="true"]{ background:var(--soft); }
+  .drop.sm{ background:var(--panel); }
+  .drop.sm .drop-empty{ padding:12px; flex-direction:row; justify-content:center; gap:8px; }
+  .drop.sm .drop-empty svg{ width:18px; height:18px; margin:0; }
+  .drop.sm .drop-full{ padding:8px; }
+  .drop.sm .drop-full img{ width:44px; height:44px; }
+
   /* product list */
   .garments{ display:flex; flex-direction:column; gap:6px; }
   .gopt{ display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left; padding:9px 12px; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
@@ -159,7 +171,7 @@
   .card.busy .spin{ display:grid; }
   .card.queued .ph img{ opacity:.55; }
   @keyframes rot{ to{ transform:rotate(360deg); } }
-  body.busy .chk, body.busy .gopt, body.busy .head-actions, body.busy .group-head .linkbtn{ pointer-events:none; opacity:.5; }
+  body.busy .chk, body.busy .gopt, body.busy .head-actions, body.busy .group-head .linkbtn, body.busy #layout, body.busy .sub-opts{ pointer-events:none; opacity:.5; }
 
   /* drop veil */
   .dropveil{ position:fixed; inset:0; z-index:50; display:grid; place-items:center; background:color-mix(in srgb, var(--accent) 18%, transparent); backdrop-filter:blur(2px); font-size:18px; font-weight:700; color:var(--ink); pointer-events:none; }
@@ -202,6 +214,43 @@
           <div class="drop-full" id="dropFull" hidden>
             <img id="patThumb" alt="Pattern preview">
             <div class="meta"><b id="patternName"></b><span id="patternDims"></span><span class="link">Replace</span></div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="flabel"><span>Print</span><span class="hint" id="layoutHint"></span></div>
+          <div class="seg two" id="layout" role="radiogroup" aria-label="Print layout">
+            <button type="button" role="radio" data-v="allover">All-over</button>
+            <button type="button" role="radio" data-v="placement">Body + rest</button>
+          </div>
+          <div class="sub-opts" id="restOpts" hidden>
+            <div class="field">
+              <div class="flabel"><span>Rest of the garment</span><span class="hint">sleeves, pants, hood…</span></div>
+              <div class="seg two" id="restKind" role="radiogroup" aria-label="Rest of the garment">
+                <button type="button" role="radio" data-v="solid">Solid color</button>
+                <button type="button" role="radio" data-v="pattern">Pattern</button>
+              </div>
+            </div>
+            <div class="field" id="restSolidField">
+              <div class="flabel"><label for="restHex">Color</label><span class="hint" id="restHint"></span></div>
+              <div class="trim">
+                <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
+                <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
+                <button type="button" class="ghost" id="restAuto" title="Use the color picked from the pattern">Auto</button>
+              </div>
+            </div>
+            <div class="field" id="restPatField" hidden>
+              <div class="drop sm" id="drop2" tabindex="0" role="button" aria-label="Choose the second pattern">
+                <input type="file" id="pattern2" accept="image/png,image/jpeg,image/webp" hidden>
+                <div class="drop-empty" id="drop2Empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+                  <span><b>Drop the second pattern</b> or click</span>
+                </div>
+                <div class="drop-full" id="drop2Full" hidden>
+                  <img id="pat2Thumb" alt="Second pattern preview">
+                  <div class="meta"><b id="pattern2Name"></b><span id="pattern2Dims"></span><span class="link">Replace</span></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -872,6 +921,16 @@ function buildQuads(q,W,H,G){
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
 // trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
 // { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
+// Centre of a pattern raster's artwork: bbox of the pixels that are neither transparent nor near-white, so a motif placed
+// off-centre in its file still lands mid-panel. Whole raster when it is all white.
+function artCentre(d,w,h){
+  let x0=w, x1=-1, y0=h, y1=-1;
+  for(let y=0, o=0; y<h; y++) for(let x=0; x<w; x++, o+=4){
+    if(d[o+3]<32 || (d[o]>=240&&d[o+1]>=240&&d[o+2]>=240)) continue;
+    if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
+}
+const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -886,20 +945,21 @@ function compose(G, pat, ratio, trim, opt){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // { center:true }: the centre of the pattern's artwork (bbox of the pixels that are neither transparent nor near-white,
-  // so a motif placed off-centre in its file still lands mid-panel) goes on each panel's centre (the v2 page's single-panel print)
+  // { rest:{pat} | {solid:[r,g,b]} }: placement print. Panel MAIN_PANEL (map R = 20) takes pat; every other fabric panel
+  // takes rest.pat (same motif size) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
+  const rest=opt.rest||null, solid=rest&&rest.solid||null;
+  const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
+  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, ox2=new Float64Array(10), oy2=new Float64Array(10);
+  // { center:true }: the centre of each pattern's artwork goes on each panel's centroid (the placement print and the v2 page)
   if(opt.center){
-    let cx0=PW, cx1=-1, cy0=PH, cy1=-1;
-    for(let y=0, o=0; y<PH; y++) for(let x=0; x<PW; x++, o+=4){
-      if(pd[o+3]<32 || (pd[o]>=240&&pd[o+1]>=240&&pd[o+2]>=240)) continue;
-      if(x<cx0)cx0=x; if(x>cx1)cx1=x; if(y<cy0)cy0=y; if(y>cy1)cy1=y; }
-    const ccx=cx1<0?PW/2:(cx0+cx1+1)/2, ccy=cy1<0?PH/2:(cy0+cy1+1)/2;
     // panel centre = centroid (mean LX, LY of its pixels in its tiling frame), not the bbox middle: a few stray pixels of
     // the id far away (outline strokes on the map) barely move it
     const sx=new Float64Array(10), sy=new Float64Array(10), sn=new Float64Array(10);
     for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
       localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; sn[k]++; }
-    for(let k=1;k<=8;k++){ if(!sn[k]) continue; ox[k]=ccx-sx[k]/sn[k]; oy[k]=ccy-sy[k]/sn[k]; } }
+    const [ccx,ccy]=artCentre(pd,PW,PH), [ccx2,ccy2]=P2?artCentre(pd2,PW2,PH2):[0,0];
+    for(let k=1;k<=8;k++){ if(!sn[k]) continue; const mx=sx[k]/sn[k], my=sy[k]/sn[k];
+      ox[k]=ccx-mx; oy[k]=ccy-my; ox2[k]=ccx2-mx; oy2[k]=ccy2-my; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -921,7 +981,10 @@ function compose(G, pat, ratio, trim, opt){
       // trim = a panel whose "print" is the flat trim colour: same multiply, same edge coverage as the fabric below
       if(!trim) continue;
       R=tr*Pr; Gc=tg*Pg; Bc=tb*Pb;
+    } else if(solid&&k!==MAIN_PANEL){
+      R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb;
     } else {
+    const two=!!P2&&k!==MAIN_PANEL, qd=two?pd2:pd, QW=two?PW2:PW, QH=two?PH2:PH, qx=two?ox2:ox, qy=two?oy2:oy;
     // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
     // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
@@ -932,14 +995,14 @@ function compose(G, pat, ratio, trim, opt){
       if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
       xs=x+gx*amp; ys=y+gy*amp; }
     localXY(G,k,xs,ys);
-    let fx=LX+ox[k]; fx-=Math.floor(fx/PW)*PW; if(fx>=PW) fx=0; let fy=LY+oy[k]; fy-=Math.floor(fy/PH)*PH; if(fy>=PH) fy=0;
-    if(k===COLLAR_ID){ fx=PW-fx; if(fx>=PW) fx=0; }
-    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===PW?0:x0+1, y1=y0+1===PH?0:y0+1;
-    const p00=(y0*PW+x0)*4, p10=(y0*PW+x1)*4, p01=(y1*PW+x0)*4, p11=(y1*PW+x1)*4;
+    let fx=LX+qx[k]; fx-=Math.floor(fx/QW)*QW; if(fx>=QW) fx=0; let fy=LY+qy[k]; fy-=Math.floor(fy/QH)*QH; if(fy>=QH) fy=0;
+    if(k===COLLAR_ID){ fx=QW-fx; if(fx>=QW) fx=0; }
+    const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===QW?0:x0+1, y1=y0+1===QH?0:y0+1;
+    const p00=(y0*QW+x0)*4, p10=(y0*QW+x1)*4, p01=(y1*QW+x0)*4, p11=(y1*QW+x1)*4;
     const w00=(1-ax)*(1-ay), w10=ax*(1-ay), w01=(1-ax)*ay, w11=ax*ay;
-    let pr=pd[p00]*w00+pd[p10]*w10+pd[p01]*w01+pd[p11]*w11,
-        pg=pd[p00+1]*w00+pd[p10+1]*w10+pd[p01+1]*w01+pd[p11+1]*w11,
-        pb=pd[p00+2]*w00+pd[p10+2]*w10+pd[p01+2]*w01+pd[p11+2]*w11;
+    let pr=qd[p00]*w00+qd[p10]*w10+qd[p01]*w01+qd[p11]*w11,
+        pg=qd[p00+1]*w00+qd[p10+1]*w10+qd[p01+1]*w01+qd[p11+1]*w11,
+        pb=qd[p00+2]*w00+qd[p10+2]*w10+qd[p01+2]*w01+qd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb;
     }
@@ -976,6 +1039,9 @@ const DL_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 let garment=GARMENTS[store.get('pm-garment','')] ? store.get('pm-garment','') : 'romper';
 let gender='neutral', genderTouched=false;
 let patImg=null, patName='', autoTrim=null, busy=false, stopReq=false;
+// placement print: layout 'allover' | 'placement' (main pattern on the body panel, map R = 20); rest of the garment
+// 'solid' | 'pattern' (second pattern). Layout + rest kind are remembered; the second pattern is not.
+let layout=store.get('pm-layout','allover'), restKind=store.get('pm-rest','solid'), pat2Img=null, pat2Name='';
 const results=new Map();   // viewId -> {blob,url} for the current garment
 const cards=new Map();     // viewId -> {id,view,title,isFlat,el,cb,img,dl,badge}: every view of the garment (gender filter only hides)
 let groups=[];             // [{sec,cnt,tog,mine}] Flatlay / On model sections
@@ -983,7 +1049,17 @@ let lastRun=null;          // settingsKey() of the last Generate: results are st
 
 const msg=(m,err)=>{ $('msg').textContent=m||''; $('msg').classList.toggle('err',!!err); };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
-const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value].join('|');
+const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value,
+  layout, layout==='placement'?restKind:'', layout==='placement'&&restKind==='solid'?parseHex($('restHex').value)||'':'',
+  layout==='placement'&&restKind==='pattern'?pat2Name+(pat2Img?pat2Img.width+'x'+pat2Img.height:''):''].join('|');
+const needPat2=()=>layout==='placement'&&restKind==='pattern'&&!pat2Img;
+// compose options for the chosen layout: placement = main pattern on panel 1 + the rest, both centred on the panel centroids
+function layoutOpt(){
+  if(layout!=='placement') return undefined;
+  if(restKind==='pattern') return { center:true, rest:{ pat:pat2Img } };
+  const h=parseHex($('restHex').value);
+  return { center:true, rest:{ solid:h?hexToRgb(h):[255,255,255] } };
+}
 const hasModels=()=>GARMENTS[garment].models.length>0;
 // the gender picker only matters when some model photo is boy/girl (kids pajama); romper + adult sets are all unisex
 const genderOn=()=>GARMENTS[garment].models.some(m=>modelGender(m));
@@ -1127,8 +1203,8 @@ function refresh(){
   $('pickCount').textContent=sel.length+' of '+all.length+' photos selected'+(hidden>0?' · '+hidden+' hidden by the gender filter':'');
   $('goLabel').textContent=busy?(stopReq?'Stopping…':'Stop'):sel.length?'Generate '+sel.length+' image'+(sel.length>1?'s':''):'Generate';
   $('go').classList.toggle('stop', busy);
-  $('go').disabled=busy?stopReq:(!sel.length||!patImg);
-  $('go').title=busy?'Stop after the current image':!patImg?'Add a pattern first':!sel.length?'Select at least one photo':'';
+  $('go').disabled=busy?stopReq:(!sel.length||!patImg||needPat2());
+  $('go').title=busy?'Stop after the current image':!patImg?'Add a pattern first':needPat2()?'Add the second pattern':!sel.length?'Select at least one photo':'';
   $('dl').disabled=busy||!ready.length;
   $('dlLabel').textContent=ready.length?'Download '+ready.length+' PNG'+(ready.length>1?'s':''):'Download PNGs';
   $('stale').hidden=!(results.size && isStale()) || busy;
@@ -1138,6 +1214,15 @@ function refresh(){
   const th=parseHex($('trimHex').value);
   $('trimHint').textContent=!th?'White (no color)':autoTrim&&th===parseHex(autoTrim)?'Picked from the pattern':'Custom';
   if(!th) $('trimColor').value='#ffffff';
+  for(const b of $('layout').children) b.setAttribute('aria-checked', String(b.dataset.v===layout));
+  for(const b of $('restKind').children) b.setAttribute('aria-checked', String(b.dataset.v===restKind));
+  $('restOpts').hidden=layout!=='placement';
+  $('restSolidField').hidden=restKind!=='solid'; $('restPatField').hidden=restKind!=='pattern';
+  $('layoutHint').textContent=layout==='placement'?'Pattern centred on the body':'Pattern repeats everywhere';
+  const rh=parseHex($('restHex').value);
+  $('restAuto').disabled=!autoTrim || rh===parseHex(autoTrim);
+  $('restHint').textContent=!rh?'White':autoTrim&&rh===parseHex(autoTrim)?'Picked from the pattern':'Custom';
+  if(!rh) $('restColor').value='#ffffff';
   const s=parseFloat($('scale').value);
   $('scaleVal').textContent=s.toFixed(2)+'×'; $('scaleReset').hidden=s===1;
 }
@@ -1152,6 +1237,7 @@ const setBar=f=>{ $('bar').style.width=(f*100).toFixed(1)+'%'; };
 async function generate(){
   if(busy){ stopReq=true; refresh(); return; }
   if(!patImg){ msg('Add a pattern first.', true); $('drop').focus(); return; }
+  if(needPat2()){ msg('Add the second pattern for the rest of the garment.', true); $('drop2').focus(); return; }
   const sel=picked();
   if(!sel.length){ msg('Select at least one photo.', true); return; }
   busy=true; stopReq=false; document.body.classList.add('busy');
@@ -1159,6 +1245,7 @@ async function generate(){
   for(const c of sel) c.el.classList.add('queued');
   $('progress').hidden=false; setBar(0); refresh();
   const g=GARMENTS[garment], hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex), scale=parseFloat($('scale').value);
+  const lopt=layoutOpt();
   const t0=performance.now(); let failed=0, done=0;
   try{
     for(let i=0;i<sel.length;i++){
@@ -1169,7 +1256,7 @@ async function generate(){
       try{
         // motif size per view = the view's own r (GARMENT DATA) x the slider
         const G=g.models.includes(c.view) ? await analyzeGarment(c.view, true) : await analyzeGarment(c.view);
-        const canvas=compose(G, patImg, scale*c.view.r, trim);
+        const canvas=compose(G, patImg, scale*c.view.r, trim, lopt);
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');
         results.set(c.id, { blob, url:URL.createObjectURL(blob) });
@@ -1240,6 +1327,7 @@ async function loadPattern(f){
     $('dropEmpty').hidden=true; $('dropFull').hidden=false;
     const c=dominantColor(img); autoTrim=c&&trimHexFrom(...c);
     if(autoTrim){ setTrim(autoTrim); applyGenderFromTrim(); } else { $('trimHex').value=''; }
+    if(autoTrim&&!parseHex($('restHex').value)) setRest(autoTrim);
     msg('Pattern ready'+(autoTrim?' · trim '+autoTrim.toUpperCase():' · no clear trim color, pick one if needed'));
   }catch{ msg('Could not read that image.', true); }
   refresh();
@@ -1254,13 +1342,49 @@ window.addEventListener('dragover', e=>{ if(hasFiles(e)) e.preventDefault(); });
 window.addEventListener('dragleave', e=>{ if(!hasFiles(e)) return; if(--dragDepth<=0){ dragDepth=0; $('dropveil').hidden=true; } });
 window.addEventListener('drop', e=>{
   if(!hasFiles(e)) return; e.preventDefault(); dragDepth=0; $('dropveil').hidden=true;
-  if(!busy) loadPattern(e.dataTransfer.files[0]);
+  if(busy) return;
+  // dropped on the second-pattern box (when shown) -> second pattern; anywhere else -> the main pattern
+  if(!$('restOpts').hidden && !$('restPatField').hidden && $('drop2').contains(e.target)) loadPattern2(e.dataTransfer.files[0]);
+  else loadPattern(e.dataTransfer.files[0]);
 });
 window.addEventListener('paste', e=>{
   if(busy || /^(INPUT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'')) return;
   const f=[...(e.clipboardData&&e.clipboardData.files||[])].find(x=>/^image\//.test(x.type));
   if(f){ e.preventDefault(); loadPattern(f); }
 });
+
+// --- placement print: layout, rest of the garment, second pattern ---
+function setRest(hex){ $('restColor').value=hex.toLowerCase(); $('restHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
+async function loadPattern2(f){
+  if(!f || !/^image\//.test(f.type)){ msg('That file is not an image.', true); return; }
+  msg('Reading the second pattern…'); await nextPaint();
+  try{
+    const img=await decodeFile(f);
+    if(pat2Img&&pat2Img.close) pat2Img.close();
+    pat2Img=img; pat2Name=f.name||'pattern-2.png';
+    const old=$('pat2Thumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old);
+    $('pat2Thumb').src=URL.createObjectURL(f);
+    $('pattern2Name').textContent=pat2Name; $('pattern2Name').title=pat2Name;
+    $('pattern2Dims').textContent=img.width+' × '+img.height+' px';
+    $('drop2Empty').hidden=true; $('drop2Full').hidden=false;
+    msg('Second pattern ready');
+  }catch{ msg('Could not read that image.', true); }
+  refresh();
+}
+$('layout').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; layout=b.dataset.v; store.set('pm-layout',layout); refresh(); });
+$('restKind').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; restKind=b.dataset.v; store.set('pm-rest',restKind); refresh(); });
+for(const id of ['layout','restKind']) $(id).addEventListener('keydown', e=>{
+  if(!/^Arrow(Left|Right)$/.test(e.key)) return; e.preventDefault();
+  const bs=[...$(id).children], i=bs.findIndex(b=>b.getAttribute('aria-checked')==='true'), n=bs[(i+(e.key==='ArrowRight'?1:bs.length-1))%bs.length];
+  n.click(); n.focus(); });
+$('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.toUpperCase(); refresh(); });
+$('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); refresh(); });
+$('restAuto').addEventListener('click', ()=>{ if(autoTrim){ setRest(autoTrim); refresh(); } });
+$('drop2').addEventListener('click', ()=>$('pattern2').click());
+$('drop2').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern2').click(); } });
+$('pattern2').addEventListener('change', e=>{ loadPattern2(e.target.files[0]); e.target.value=''; });
+for(const ev of ['dragenter','dragover']) $('drop2').addEventListener(ev, ()=>$('drop2').classList.add('over'));
+for(const ev of ['dragleave','drop']) $('drop2').addEventListener(ev, ()=>$('drop2').classList.remove('over'));
 
 // --- look controls ---
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); applyGenderFromTrim(); refresh(); });

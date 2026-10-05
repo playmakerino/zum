@@ -1244,8 +1244,12 @@ function compose(G, pat, ratio, trim, opt){
       if(pd[o+3]<32 || (pd[o]>=240&&pd[o+1]>=240&&pd[o+2]>=240)) continue;
       if(x<cx0)cx0=x; if(x>cx1)cx1=x; if(y<cy0)cy0=y; if(y>cy1)cy1=y; }
     const ccx=cx1<0?PW/2:(cx0+cx1+1)/2, ccy=cy1<0?PH/2:(cy0+cy1+1)/2;
-    for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
-      ox[k]=ccx-(ext.x0[k]+ext.x1[k])/2; oy[k]=ccy-(ext.y0[k]+ext.y1[k])/2; } }
+    // panel centre = centroid (mean LX, LY of its pixels in its tiling frame), not the bbox middle: a few stray pixels of
+    // the id far away (outline strokes on the map) barely move it
+    const sx=new Float64Array(10), sy=new Float64Array(10), sn=new Float64Array(10);
+    for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
+      localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; sn[k]++; }
+    for(let k=1;k<=8;k++){ if(!sn[k]) continue; ox[k]=ccx-sx[k]/sn[k]; oy[k]=ccy-sy[k]/sn[k]; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

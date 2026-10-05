@@ -1752,7 +1752,7 @@ function compose(G, pat, ratio, trim, opt){
           const build = async (view, key, spec, model) => {
             const G = await analyzeGarment(spec, model);
             await nextPaint();
-            const blob = await new Promise(res => compose(G, patImg, scale * spec.r, trim).toBlob(res, 'image/jpeg', JPEG_QUALITY));
+            const blob = await new Promise(res => compose(G, patImg, scale * spec.r, trim, { center:true }).toBlob(res, 'image/jpeg', JPEG_QUALITY));
             if (!blob) throw new Error('JPEG encode failed');
             if (sig !== flatInputsSig()) return null;
             setShot(view, key, blob);

@@ -1055,7 +1055,7 @@ const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseH
 const needPat2=()=>layout==='placement'&&restKind==='pattern'&&!pat2Img;
 // compose options for the chosen layout: placement = main pattern on panel 1 + the rest, both centred on the panel centroids
 function layoutOpt(){
-  if(layout!=='placement') return undefined;
+  if(layout!=='placement') return { center:true };   // all-over: the pattern centred on each panel's centroid too
   if(restKind==='pattern') return { center:true, rest:{ pat:pat2Img } };
   const h=parseHex($('restHex').value);
   return { center:true, rest:{ solid:h?hexToRgb(h):[255,255,255] } };

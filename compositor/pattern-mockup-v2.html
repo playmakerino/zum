@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pattern Mockup v2 · Twirl Dress</title>
+<title>Pattern Mockup v2 · Pajama + Blanket Hoodie</title>
 <style>
   :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
   @media (prefers-color-scheme: dark){
@@ -78,7 +78,7 @@
 'use strict';
 // ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
 // CDN, the V() helper, the GARMENTS table and the helpers below are page-local. This demo carries a single
-// garment (twirl dress, one on-model view); the engine below never references these names.
+// garments (pajama + blanket hoodie); the engine below never references these names.
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
@@ -89,28 +89,33 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
-// One garment only: the twirl dress bodysuit, one on-model view. Mock = the product photo with the print
-// erased to plain white (Gemini nano banana pro, 2026-09-16); map traced on that mock with SAM
-// (zum-prd/prompt-test/model-map/build_twirl_map.py): 1 bodice, 2/3 flutter sleeves L/R, 4 skirt, 5 headband, 6 bow, no trim.
+// Two garments, every view copied from pattern-mockup.html (same mock/map/r): the two-piece pajama and the
+// blanket hoodie. Both render, flats first then on-model.
 const GARMENTS={
-  twirlDress:{ flats:[],
-               // twirl dress, v2test mock + map traced 2026-09-17 (Desktop "t v2"); r 0.56 from the map filename suffix.
-               models:[ V('zum-model-twirl-dress-v2test.png?v=1789616131','zum-model-map-twirl-dress-v2test.png?v=1789616158',0.56,'Dress'),
-                        // pajama boy, v2test mock + map traced 2026-09-17 (Desktop "t v2"), replaces pajama-boy-4; r 0.68 from the map filename suffix.
-                        V('zum-model-pajama-boy-v2test.png?v=1789616166','zum-model-map-pajama-boy-v2test.png?v=1789616172',0.68,'Pajama'),
-                        // same pajama mock, alternate map -b (v2test-b) 2026-09-17; r 0.68.
-                        V('zum-model-pajama-boy-v2test.png?v=1789616166','zum-model-map-pajama-boy-v2test-b.png?v=1789619039',0.68,'Pajama b'),
-                        // romper-1 from pattern-mockup.html (same mock/map/r), rendered alongside for comparison
-                        V('zum-model-romper-1.jpg?v=1789642313','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'Zippy'),
-                        // production kids pajama boy-3 / girl-3 (same mock/map/r as pattern-mockup.html; mocks replaced 2026-09-17, trim = plain white fabric)
-                        V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32,'Pajama boy-3'),
-                        V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476,'Pajama girl-3') ] },
+  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1788601405',0.764),
+                   V('zum-flatlay-mock-pajama-long.png?v=1789641883','zum-flatlay-map-pajama-long.png?v=1789030256',0.784) ],
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
+                    V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
+                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32),
+                    V('zum-model-pajama-girl-1.jpg?v=1789641890','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
+                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
+                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476),
+                    V('zum-model-pajama-girl-4.jpg?v=1790152469','zum-flatlay-model-map-pajama-girl-4.png?v=1790243226',1.46),
+                    V('zum-model-pajama-girl-5.jpg?v=1790588888','zum-flatlay-model-map-pajama-girl-5.png?v=1790588894',1.25),
+                    V('zum-model-pajama-girl-6.jpg?v=1790588916','zum-flatlay-model-map-pajama-girl-6.png?v=1790588923',1.3),
+                    V('zum-model-pajama-girl-7.jpg?v=1790588929','zum-flatlay-model-map-pajama-girl-7.png?v=1790588935',1.43) ] },
+  blanketHoodie:{ flats:[ V('zum-flatlay-mock-blanket-hoodie-flat.jpg?v=1790848909','zum-flatlay-map-blanket-hoodie.png?v=1790848916',0.75) ],
+                  models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790834479',0.9),
+                           V('zum-model-blanket-hoodie-2.jpg?v=1790764530','zum-flatlay-model-map-blanket-hoodie-2.png?v=1790834489',0.92),
+                           V('zum-model-blanket-hoodie-3.jpg?v=1790834289','zum-flatlay-model-map-blanket-hoodie-3.png?v=1790834293',0.9) ] },
 };
-const GKEY='twirlDress';
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
 const modelsFor=g=>g.models;   // no Gender field on this page: every model renders
+// Testing column: print the pattern on panel 1 (map R = 20) only; every other panel (and trim) keeps the mock.
+const ONLY_PANEL=1;
+const onlyPanel=G=>({ ...G, eid:G.eid.map(k=>k===ONLY_PANEL?k:0) });
 // ===== END GARMENT DATA =====
 
 // ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html, zum_prd_form.html and pattern-mockup-v2.html =====
@@ -654,7 +659,8 @@ function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = p
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
 const PROD_OPT={ quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
-const ENGINES=[ ['production', PROD_OPT, 'production'], ['testing', null, 'testing'] ];
+// testing (right column) prints panel 1 (red 20) only.
+const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', null, 'testing', true] ];
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -684,20 +690,22 @@ async function generate(){
   const t0=performance.now();
   try{
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const g=GARMENTS[GKEY], scale=1, opt=readOpt();
-    const mdls=modelsFor(g);
+    const scale=1, opt=readOpt();
     clearShots(results.flats); clearShots(results.models);
-    for(let i=0;i<g.flats.length;i++){
-      if(g.flats.length>1){ msg('Flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint(); }
-      const GF=await analyzeGarment(g.flats[i]);
-      for(const [lab,o,pre] of ENGINES)
-        await showShot(results.flats, compose(GF, pat, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), (g.flats.length>1?'Flatlay '+(i+1):'Flatlay')+' · '+lab, g.flats[i]);
-    }
-    for(let i=0;i<mdls.length;i++){
-      msg('Flatlays done · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
-      const GM=await analyzeGarment(mdls[i], true);
-      for(const [lab,o,pre] of ENGINES)
-        await showShot(results.models, compose(GM, pat, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+    for(const gk of FLAT_KEYS){
+      const g=GARMENTS[gk], mdls=modelsFor(g);
+      for(let i=0;i<g.flats.length;i++){
+        msg(gk+' · flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint();
+        const GF=await analyzeGarment(g.flats[i]);
+        for(const [lab,o,pre,one] of ENGINES)
+          await showShot(results.flats, compose(one?onlyPanel(GF):GF, pat, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
+      }
+      for(let i=0;i<mdls.length;i++){
+        msg(gk+' · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
+        const GM=await analyzeGarment(mdls[i], true);
+        for(const [lab,o,pre,one] of ENGINES)
+          await showShot(results.models, compose(one?onlyPanel(GM):GM, pat, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+      }
     }
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (production + testing) · '+((performance.now()-t0)/1000).toFixed(1)+'s');

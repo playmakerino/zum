@@ -581,6 +581,9 @@ function compose(G, pat, ratio, trim, opt){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
+  // { center:true }: the pattern's centre lands on each panel's centre (the v2 page's single-panel print)
+  if(opt.center) for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+    ox[k]=PW/2-(ext.x0[k]+ext.x1[k])/2; oy[k]=PH/2-(ext.y0[k]+ext.y1[k])/2; }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -659,7 +662,7 @@ function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = p
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
 const PROD_OPT={ quads:false, showQuad:false };
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
-// testing (right column) prints panel 1 (red 20) only.
+// testing (right column) prints panel 1 (red 20) only, the pattern centred on it.
 const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', null, 'testing', true] ];
 
 async function toBlobURL(canvas){
@@ -698,13 +701,13 @@ async function generate(){
         msg(gk+' · flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint();
         const GF=await analyzeGarment(g.flats[i]);
         for(const [lab,o,pre,one] of ENGINES)
-          await showShot(results.flats, compose(one?onlyPanel(GF):GF, pat, scale*g.flats[i].r, trim, o||opt), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
+          await showShot(results.flats, compose(one?onlyPanel(GF):GF, pat, scale*g.flats[i].r, trim, one?{...opt,center:true}:(o||opt)), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
       }
       for(let i=0;i<mdls.length;i++){
         msg(gk+' · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
         const GM=await analyzeGarment(mdls[i], true);
         for(const [lab,o,pre,one] of ENGINES)
-          await showShot(results.models, compose(one?onlyPanel(GM):GM, pat, scale*mdls[i].r, trim, o||opt), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+          await showShot(results.models, compose(one?onlyPanel(GM):GM, pat, scale*mdls[i].r, trim, one?{...opt,center:true}:(o||opt)), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
       }
     }
     $('dl').disabled=false;

@@ -886,6 +886,9 @@ function compose(G, pat, ratio, trim, opt){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
+  // { center:true }: the pattern's centre lands on each panel's centre (the v2 page's single-panel print)
+  if(opt.center) for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+    ox[k]=PW/2-(ext.x0[k]+ext.x1[k])/2; oy[k]=PH/2-(ext.y0[k]+ext.y1[k])/2; }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

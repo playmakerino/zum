@@ -89,26 +89,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
-// Two garments, every view copied from pattern-mockup.html (same mock/map/r): the two-piece pajama and the
-// blanket hoodie. Both render, flats first then on-model.
-const GARMENTS={
-  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1788601405',0.764),
-                   V('zum-flatlay-mock-pajama-long.png?v=1789641883','zum-flatlay-map-pajama-long.png?v=1789030256',0.784) ],
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.557),
-                    V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417),
-                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32),
-                    V('zum-model-pajama-girl-1.jpg?v=1789641890','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.605),
-                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
-                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1788949289',1.476),
-                    V('zum-model-pajama-girl-4.jpg?v=1790152469','zum-flatlay-model-map-pajama-girl-4.png?v=1790243226',1.46),
-                    V('zum-model-pajama-girl-5.jpg?v=1790588888','zum-flatlay-model-map-pajama-girl-5.png?v=1790588894',1.25),
-                    V('zum-model-pajama-girl-6.jpg?v=1790588916','zum-flatlay-model-map-pajama-girl-6.png?v=1790588923',1.3),
-                    V('zum-model-pajama-girl-7.jpg?v=1790588929','zum-flatlay-model-map-pajama-girl-7.png?v=1790588935',1.43) ] },
-  blanketHoodie:{ flats:[ V('zum-flatlay-mock-blanket-hoodie-flat.jpg?v=1790848909','zum-flatlay-map-blanket-hoodie.png?v=1790848916',0.75) ],
-                  models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790834479',0.9),
-                           V('zum-model-blanket-hoodie-2.jpg?v=1790764530','zum-flatlay-model-map-blanket-hoodie-2.png?v=1790834489',0.92),
-                           V('zum-model-blanket-hoodie-3.jpg?v=1790834289','zum-flatlay-model-map-blanket-hoodie-3.png?v=1790834293',0.9) ] },
-};
+const GARMENTS={};   // no views for now (2026-10-05): add garments here as { flats:[V(...)], models:[V(...)] }
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
@@ -688,8 +669,8 @@ function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = p
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
 const PROD_OPT={ quads:false, showQuad:false, center:true };   // panel 1 (R 20) centred on its centroid, as in the shipped pages
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
-// testing (right column) prints panel 1 (red 20) only, the pattern centred on it.
-const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', null, 'testing', true] ];
+// testing (right column): same engine as production for now.
+const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', PROD_OPT, 'testing', false] ];   // both columns: the same engine for now
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));

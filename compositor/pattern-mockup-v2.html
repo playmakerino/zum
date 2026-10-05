@@ -671,7 +671,7 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn
 // Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
-const PROD_OPT={ quads:false, showQuad:false };
+const PROD_OPT={ quads:false, showQuad:false, center:true };   // + centre the pattern on each panel's centroid (not in the shipped pages)
 // Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
 // testing (right column) prints panel 1 (red 20) only, the pattern centred on it.
 const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', null, 'testing', true] ];

@@ -217,7 +217,28 @@
           </div>
         </div>
         <div class="field">
-          <div class="flabel"><span>Print</span><span class="hint" id="layoutHint"></span></div>
+          <label class="flabel" for="patternId">Pattern ID <em>optional · file names only</em></label>
+          <input type="text" id="patternId" spellcheck="false">
+        </div>
+      </section>
+
+      <section class="step ok">
+        <h2><span class="n">2</span>Product</h2>
+        <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
+        <div class="field">
+          <div class="flabel"><span>Model gender</span><span class="hint" id="genderHint"></span></div>
+          <div class="seg" id="gender" role="radiogroup" aria-label="Model gender">
+            <button type="button" role="radio" data-v="boy">Boy</button>
+            <button type="button" role="radio" data-v="girl">Girl</button>
+            <button type="button" role="radio" data-v="neutral">All</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="step ok">
+        <h2><span class="n">3</span>Print</h2>
+        <div class="field">
+          <div class="flabel"><span>Layout</span><span class="hint" id="layoutHint"></span></div>
           <div class="seg two" id="layout" role="radiogroup" aria-label="Print layout">
             <button type="button" role="radio" data-v="allover">All-over</button>
             <button type="button" role="radio" data-v="placement">Body + rest</button>
@@ -254,18 +275,10 @@
           </div>
         </div>
         <div class="field">
-          <label class="flabel" for="patternId">Pattern ID <em>optional · file names only</em></label>
-          <input type="text" id="patternId" spellcheck="false">
+          <div class="flabel"><label for="scale">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
+          <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+          <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
         </div>
-      </section>
-
-      <section class="step ok">
-        <h2><span class="n">2</span>Product</h2>
-        <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
-      </section>
-
-      <section class="step ok">
-        <h2><span class="n">3</span>Look</h2>
         <div class="field">
           <div class="flabel"><label for="trimHex">Trim color</label><span class="hint" id="trimHint">Picked from the pattern</span></div>
           <div class="trim">
@@ -273,19 +286,6 @@
             <input type="text" id="trimHex" value="" placeholder="White" spellcheck="false" aria-label="Trim color hex">
             <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
           </div>
-        </div>
-        <div class="field">
-          <div class="flabel"><span>Model gender</span><span class="hint" id="genderHint"></span></div>
-          <div class="seg" id="gender" role="radiogroup" aria-label="Model gender">
-            <button type="button" role="radio" data-v="boy">Boy</button>
-            <button type="button" role="radio" data-v="girl">Girl</button>
-            <button type="button" role="radio" data-v="neutral">All</button>
-          </div>
-        </div>
-        <div class="field">
-          <div class="flabel"><label for="scale">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
-          <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
-          <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
         </div>
       </section>
     </div>

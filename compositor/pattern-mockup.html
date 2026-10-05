@@ -1064,12 +1064,15 @@ let lastRun=null;          // settingsKey() of the last Generate: results are st
 const msg=(m,err)=>{ $('msg').textContent=m||''; $('msg').classList.toggle('err',!!err); };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
 const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value,
-  layout, layout==='placement'?restKind:'', layout==='placement'&&restKind==='solid'?parseHex($('restHex').value)||'':'',
-  layout==='placement'&&restKind==='pattern'?pat2Name+(pat2Img?pat2Img.width+'x'+pat2Img.height:''):''].join('|');
-const needPat2=()=>layout==='placement'&&restKind==='pattern'&&!pat2Img;
+  lay(), lay()==='placement'?restKind:'', lay()==='placement'&&restKind==='solid'?parseHex($('restHex').value)||'':'',
+  lay()==='placement'&&restKind==='pattern'?pat2Name+(pat2Img?pat2Img.width+'x'+pat2Img.height:''):''].join('|');
+// products with no separate body panel: Body + rest is greyed out and they print all-over (the stored choice is kept)
+const NO_PLACEMENT=new Set(['romper','blanket']);
+const lay=()=>NO_PLACEMENT.has(garment)?'allover':layout;
+const needPat2=()=>lay()==='placement'&&restKind==='pattern'&&!pat2Img;
 // compose options for the chosen layout: placement = main pattern on panel 1 + the rest, both centred on the panel centroids
 function layoutOpt(){
-  if(layout!=='placement') return { center:true };   // all-over: the pattern centred on each panel's centroid too
+  if(lay()!=='placement') return { center:true };   // all-over: the pattern centred on each panel's centroid too
   if(restKind==='pattern') return { center:true, rest:{ pat:pat2Img } };
   const h=parseHex($('restHex').value);
   return { center:true, rest:{ solid:h?hexToRgb(h):[255,255,255] } };
@@ -1228,11 +1231,13 @@ function refresh(){
   const th=parseHex($('trimHex').value);
   $('trimHint').textContent=!th?'White (no color)':autoTrim&&th===parseHex(autoTrim)?'Picked from the pattern':'Custom';
   if(!th) $('trimColor').value='#ffffff';
-  for(const b of $('layout').children) b.setAttribute('aria-checked', String(b.dataset.v===layout));
+  const noPl=NO_PLACEMENT.has(garment);
+  for(const b of $('layout').children){ b.setAttribute('aria-checked', String(b.dataset.v===lay()));
+    if(b.dataset.v==='placement'){ b.disabled=noPl; b.title=noPl?'Not available for this product: no separate body panel':''; } }
   for(const b of $('restKind').children) b.setAttribute('aria-checked', String(b.dataset.v===restKind));
-  $('restOpts').hidden=layout!=='placement';
+  $('restOpts').hidden=lay()!=='placement';
   $('restSolidField').hidden=restKind!=='solid'; $('restPatField').hidden=restKind!=='pattern';
-  $('layoutHint').textContent=layout==='placement'?'Pattern centred on the body':'Pattern repeats everywhere';
+  $('layoutHint').textContent=lay()==='placement'?'Pattern centred on the body':noPl?'Only all-over for this product':'Pattern repeats everywhere';
   const rh=parseHex($('restHex').value);
   $('restAuto').disabled=!autoRest || rh===parseHex(autoRest);
   $('restHint').textContent=!rh?'White':autoRest&&rh===parseHex(autoRest)?'Pattern background':'Custom';

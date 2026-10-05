@@ -581,9 +581,16 @@ function compose(G, pat, ratio, trim, opt){
   for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
     const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
     const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
-  // { center:true }: the pattern's centre lands on each panel's centre (the v2 page's single-panel print)
-  if(opt.center) for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
-    ox[k]=PW/2-(ext.x0[k]+ext.x1[k])/2; oy[k]=PH/2-(ext.y0[k]+ext.y1[k])/2; }
+  // { center:true }: the centre of the pattern's artwork (bbox of the pixels that are neither transparent nor near-white,
+  // so a motif placed off-centre in its file still lands mid-panel) goes on each panel's centre (the v2 page's single-panel print)
+  if(opt.center){
+    let cx0=PW, cx1=-1, cy0=PH, cy1=-1;
+    for(let y=0, o=0; y<PH; y++) for(let x=0; x<PW; x++, o+=4){
+      if(pd[o+3]<32 || (pd[o]>=240&&pd[o+1]>=240&&pd[o+2]>=240)) continue;
+      if(x<cx0)cx0=x; if(x>cx1)cx1=x; if(y<cy0)cy0=y; if(y>cy1)cy1=y; }
+    const ccx=cx1<0?PW/2:(cx0+cx1+1)/2, ccy=cy1<0?PH/2:(cy0+cy1+1)/2;
+    for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+      ox[k]=ccx-(ext.x0[k]+ext.x1[k])/2; oy[k]=ccy-(ext.y0[k]+ext.y1[k])/2; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

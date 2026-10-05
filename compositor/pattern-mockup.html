@@ -941,25 +941,26 @@ function compose(G, pat, ratio, trim, opt){
   // Perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
   const ext=G.H?panelExtents(G):G.ext;
-  const ox=OFFX.map(v=>v*PW), oy=OFFY.map(v=>v*PH);
-  for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
-    const sX=ext.x1[k]-ext.x0[k]; if(sX<PW-1) ox[k]=-ext.x0[k]+OFFX[k]*(PW-sX);
-    const sY=ext.y1[k]-ext.y0[k]; if(sY<PH-1) oy[k]=-ext.y0[k]+OFFY[k]*(PH-sY); }
+  // Tile phase per panel: a fixed fraction of the tile (OFFX/OFFY); a panel smaller than the tile gets the matching slice
+  const phase=(pw,ph)=>{ const ox=OFFX.map(v=>v*pw), oy=OFFY.map(v=>v*ph);
+    for(let k=1;k<=8;k++){ if(ext.x1[k]<ext.x0[k]) continue;
+      const sX=ext.x1[k]-ext.x0[k]; if(sX<pw-1) ox[k]=-ext.x0[k]+OFFX[k]*(pw-sX);
+      const sY=ext.y1[k]-ext.y0[k]; if(sY<ph-1) oy[k]=-ext.y0[k]+OFFY[k]*(ph-sY); }
+    return [ox,oy]; };
+  const [ox,oy]=phase(PW,PH);
   // { rest:{pat} | {solid:[r,g,b]} }: placement print. Panel MAIN_PANEL (map R = 20) takes pat; every other fabric panel
-  // takes rest.pat (same motif size) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
+  // takes rest.pat (same motif size, same phase rule) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
   const rest=opt.rest||null, solid=rest&&rest.solid||null;
   const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
-  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, ox2=new Float64Array(10), oy2=new Float64Array(10);
-  // { center:true }: the centre of each pattern's artwork goes on each panel's centroid (the placement print and the v2 page)
+  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, [ox2,oy2]=P2?phase(PW2,PH2):[ox,oy];
+  // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern's artwork goes on the panel's centroid
+  // (mean LX, LY of its pixels in its tiling frame; a few stray pixels of the id far away barely move it, unlike a bbox).
+  // Every other panel keeps the phase above.
   if(opt.center){
-    // panel centre = centroid (mean LX, LY of its pixels in its tiling frame), not the bbox middle: a few stray pixels of
-    // the id far away (outline strokes on the map) barely move it
-    const sx=new Float64Array(10), sy=new Float64Array(10), sn=new Float64Array(10);
-    for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
-      localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; sn[k]++; }
-    const [ccx,ccy]=artCentre(pd,PW,PH), [ccx2,ccy2]=P2?artCentre(pd2,PW2,PH2):[0,0];
-    for(let k=1;k<=8;k++){ if(!sn[k]) continue; const mx=sx[k]/sn[k], my=sy[k]/sn[k];
-      ox[k]=ccx-mx; oy[k]=ccy-my; ox2[k]=ccx2-mx; oy2[k]=ccy2-my; } }
+    const k=MAIN_PANEL; let sx=0, sy=0, sn=0;
+    for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ if(ids[i]!==k) continue;
+      localXY(G,k,x,y); sx+=LX; sy+=LY; sn++; }
+    if(sn){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-sx/sn; oy[k]=ccy-sy/sn; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -1070,9 +1071,9 @@ const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseH
 const NO_PLACEMENT=new Set(['romper','blanket']);
 const lay=()=>NO_PLACEMENT.has(garment)?'allover':layout;
 const needPat2=()=>lay()==='placement'&&restKind==='pattern'&&!pat2Img;
-// compose options for the chosen layout: placement = main pattern on panel 1 + the rest, both centred on the panel centroids
+// compose options for the chosen layout: placement = main pattern on panel 1 (centred on its centroid) + the rest
 function layoutOpt(){
-  if(lay()!=='placement') return { center:true };   // all-over: the pattern centred on each panel's centroid too
+  if(lay()!=='placement') return { center:true };   // all-over: panel 1 (R 20) centred on its centroid, the rest at the usual tile phase
   if(restKind==='pattern') return { center:true, rest:{ pat:pat2Img } };
   const h=parseHex($('restHex').value);
   return { center:true, rest:{ solid:h?hexToRgb(h):[255,255,255] } };

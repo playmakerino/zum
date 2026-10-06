@@ -57,6 +57,22 @@
     </div>
 
     <div class="field">
+      <label for="layout">Layout</label>
+      <select id="layout">
+        <option value="allover">All over</option>
+        <option value="placement">Body + rest</option>
+      </select>
+    </div>
+
+    <div class="field" id="restField" hidden>
+      <label for="restHex">Rest color</label>
+      <div class="trim">
+        <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
+        <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
+      </div>
+    </div>
+
+    <div class="field">
       <label for="trimHex">Trim color</label>
       <div class="trim">
         <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
@@ -89,7 +105,11 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 const V=(mock,map,r,name)=>({ mock:CDN+mock, map:CDN+map, r, name });
 // A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
-const GARMENTS={};   // no views for now (2026-10-05): add garments here as { flats:[V(...)], models:[V(...)] }
+// 2026-10-06: two on-model views only (kan-fvi-04 = pajama boy 3, bh-ssi-01 = blanket hoodie 1), r as in pattern-mockup.html
+const GARMENTS={
+  pajama:{ flats:[], models:[ V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32,'kan-fvi-04') ] },
+  blanketHoodie:{ flats:[], models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790834479',1.46,'bh-ssi-01') ] },
+};
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
@@ -668,9 +688,36 @@ function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = p
 // Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
 // this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
 const PROD_OPT={ quads:false, showQuad:false, center:true };   // panel 1 (R 20) centred on its centroid, as in the shipped pages
-// Every Generate renders each view twice: [label, engine options, filename prefix]. production = the shipped engine, testing = this page's additions.
-// testing (right column): same engine as production for now.
-const ENGINES=[ ['production', PROD_OPT, 'production', false], ['testing', PROD_OPT, 'testing', false] ];   // both columns: the same engine for now
+// Every Generate renders each view twice (columns() below): production = the shipped engine, testing = this page's change.
+
+// Layout (sidebar): 'allover' | 'placement' (Body + rest: pattern on panel 1 = map R 20, every other fabric panel = rest colour).
+// Left column = production (pattern-mockup.html layoutOpt with a solid rest). Right column, Body + rest only: panel 1 takes the
+// pattern FILE once, not tiled at r: its width = BODY_FRAC of panel 1's width (grain frame), centred on the panel centroid;
+// the part of panel 1 outside the file takes the rest colour. All over: right column = production.
+const BODY_FRAC=0.75;
+const layoutV=()=>$('layout').value;
+const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
+function prodOpt(){ return layoutV()==='placement' ? { ...PROD_OPT, rest:{ solid:restRgb() } } : PROD_OPT; }
+// Placement file as one tile: the pattern centred on a rest-colour canvas wide/tall enough that the tile never repeats
+// inside panel 1. Returns [tile, ratio] for compose (ratio = tile raster width / mock width).
+function bodyFile(G, pat){
+  const k=MAIN_PANEL, e=G.ext, pw=e.x1[k]-e.x0[k], ph=e.y1[k]-e.y0[k];
+  if(!(pw>0)) return null;
+  const fw=Math.round(BODY_FRAC*pw), fh=Math.max(1,Math.round(pat.height*fw/pat.width));   // file size in output px
+  const cw=fw+2*Math.ceil(pw), ch=fh+2*Math.ceil(ph);   // built at output size, so compose's raster is 1:1
+  const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+  const x=c.getContext('2d'), [r,g,b]=restRgb();
+  x.fillStyle='rgb('+r+','+g+','+b+')'; x.fillRect(0,0,cw,ch);
+  x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+  x.drawImage(pat, (cw-fw)>>1, (ch-fh)>>1, fw, fh);
+  return [c, cw/G.w];
+}
+// [label, filename prefix, compose args] per column for one analysed view
+function columns(G, pat, r, trim){
+  const prod=['production','production',[G, pat, r, trim, prodOpt()]];
+  const bf=layoutV()==='placement' && bodyFile(G, pat);
+  return [prod, bf ? ['testing · body file '+BODY_FRAC*100+'%','testing',[G, bf[0], bf[1], trim, prodOpt()]] : ['testing','testing',prod[2]]];
+}
 
 async function toBlobURL(canvas){
   const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
@@ -707,14 +754,14 @@ async function generate(){
       for(let i=0;i<g.flats.length;i++){
         msg(gk+' · flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint();
         const GF=await analyzeGarment(g.flats[i]);
-        for(const [lab,o,pre,one] of ENGINES)
-          await showShot(results.flats, compose(one?onlyPanel(GF):GF, pat, scale*g.flats[i].r, trim, one?{...opt,center:true}:(o||opt)), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
+        for(const [lab,pre,args] of columns(GF, pat, scale*g.flats[i].r, trim))
+          await showShot(results.flats, compose(...args), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
       }
       for(let i=0;i<mdls.length;i++){
         msg(gk+' · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
         const GM=await analyzeGarment(mdls[i], true);
-        for(const [lab,o,pre,one] of ENGINES)
-          await showShot(results.models, compose(one?onlyPanel(GM):GM, pat, scale*mdls[i].r, trim, one?{...opt,center:true}:(o||opt)), pre+'-model-'+modelName(mdls[i]), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+        for(const [lab,pre,args] of columns(GM, pat, scale*mdls[i].r, trim))
+          await showShot(results.models, compose(...args), pre+'-model-'+(mdls[i].name||modelName(mdls[i])), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
       }
     }
     $('dl').disabled=false;
@@ -741,6 +788,9 @@ $('pattern').addEventListener('change', async e=>{
 });
 $('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
 $('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
+$('layout').addEventListener('change', ()=>{ $('restField').hidden=layoutV()!=='placement'; });
+$('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.toUpperCase(); });
+$('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); });
 $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}

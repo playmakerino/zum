@@ -501,16 +501,18 @@ function localXY(G,k,x,y){
   if(A) axisUV(A,x,y);
   else { const dx=x-G.cx[k], dy=y-G.cy[k]; LX=dx*G.cs[k]+dy*G.sn[k]; LY=-dx*G.sn[k]+dy*G.cs[k]; }
 }
-// Extent of each panel in its own tiling frame (min/max LX, LY). Garment-only, so it is measured once
-// here and cached with the garment; compose reads it to place the tile phase (seam avoidance).
+// Extent of each panel in its own tiling frame (min/max LX, LY) + its centroid there (sum LX, LY / n). Garment-only, so
+// it is measured once here and cached with the garment; compose reads it to place the tile phase (seam avoidance) and
+// to centre panel MAIN_PANEL (opt.center / opt.body).
 function panelExtents(G){
   const {ids,w:W,box:[bx0,by0,bx1,by1]}=G;
   const x0=new Float64Array(10).fill(Infinity), x1=new Float64Array(10).fill(-Infinity),
-        y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity);
+        y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity),
+        sx=new Float64Array(10), sy=new Float64Array(10), n=new Float64Array(10);
   for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
-    localXY(G,k,x,y);
+    localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; n[k]++;
     if(LX<x0[k])x0[k]=LX; if(LX>x1[k])x1[k]=LX; if(LY<y0[k])y0[k]=LY; if(LY>y1[k])y1[k]=LY; }
-  return { x0, x1, y0, y1 };
+  return { x0, x1, y0, y1, sx, sy, n };
 }
 
 // --- composite: tile the pattern into each fabric panel, recolor the trim, downscale by SS ---
@@ -583,8 +585,6 @@ function compose(G, pat, ratio, trim, opt){
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
   const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
   const patW = ratio*W;
-  const P=rasterWidth(pat, Math.max(2,Math.round(patW)), true);
-  const PW=P.w, PH=P.h, pd=P.data;
   // Perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
   const ext=G.H?panelExtents(G):G.ext;
@@ -594,27 +594,27 @@ function compose(G, pat, ratio, trim, opt){
       const sX=ext.x1[k]-ext.x0[k]; if(sX<pw-1) ox[k]=-ext.x0[k]+OFFX[k]*(pw-sX);
       const sY=ext.y1[k]-ext.y0[k]; if(sY<ph-1) oy[k]=-ext.y0[k]+OFFY[k]*(ph-sY); }
     return [ox,oy]; };
-  const [ox,oy]=phase(PW,PH);
   // { rest:{pat} | {solid:[r,g,b]} }: placement print. Panel MAIN_PANEL (map R = 20) takes pat; every other fabric panel
   // takes rest.pat (same motif size, same phase rule) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
   const rest=opt.rest||null, solid=rest&&rest.solid||null;
-  const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
-  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, [ox2,oy2]=P2?phase(PW2,PH2):[ox,oy];
-  // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern's artwork goes on the panel's centroid
-  // (mean LX, LY of its pixels in its tiling frame; a few stray pixels of the id far away barely move it, unlike a bbox).
-  // Every other panel keeps the phase above.
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
   const PB=opt.body&&rest&&ext.x1[MAIN_PANEL]>ext.x0[MAIN_PANEL]
     ? rasterWidth(pat, Math.max(2,Math.round(opt.body.frac*(ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]))), true) : null;
+  // the tiled main raster: skipped when the body file + a rest cover every fabric panel (nothing would sample it)
+  const P=PB&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
+  const PW=P?P.w:1, PH=P?P.h:1, pd=P?P.data:null;
+  const [ox,oy]=phase(PW,PH);
+  const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
+  const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, [ox2,oy2]=P2?phase(PW2,PH2):[ox,oy];
+  // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern's artwork goes on the panel's centroid
+  // (mean LX, LY of its pixels in its tiling frame; a few stray pixels of the id far away barely move it, unlike a bbox).
+  // Every other panel keeps the phase above. The centroid comes with the extents (panelExtents).
   let pbx=0, pby=0;
-  if(opt.center||PB){
-    const k=MAIN_PANEL; let sx=0, sy=0, sn=0;
-    for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ if(ids[i]!==k) continue;
-      localXY(G,k,x,y); sx+=LX; sy+=LY; sn++; }
-    if(sn&&opt.center){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-sx/sn; oy[k]=ccy-sy/sn; }
-    if(sn&&PB){ const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-sx/sn; pby=ccy-sy/sn; } }
+  { const k=MAIN_PANEL, sn=ext.n[k], mx=ext.sx[k]/sn, my=ext.sy[k]/sn;
+    if(sn&&opt.center&&P){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-mx; oy[k]=ccy-my; }
+    if(sn&&PB){ const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-mx; pby=ccy-my; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

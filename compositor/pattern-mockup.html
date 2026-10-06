@@ -245,6 +245,11 @@
           </div>
           <div class="sub-opts" id="restOpts" hidden>
             <div class="field">
+              <div class="flabel"><label for="bodySize">Body print size</label> <span class="hint">% of body width</span><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
+              <input type="range" id="bodySize" min="0.3" max="1" step="0.05" value="0.75">
+              <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
+            </div>
+            <div class="field">
               <div class="flabel"><span>Rest of the garment</span><span class="hint">sleeves, pants, hood…</span></div>
               <div class="seg two" id="restKind" role="radiogroup" aria-label="Rest of the garment">
                 <button type="button" role="radio" data-v="solid">Solid color</button>
@@ -956,11 +961,18 @@ function compose(G, pat, ratio, trim, opt){
   // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern's artwork goes on the panel's centroid
   // (mean LX, LY of its pixels in its tiling frame; a few stray pixels of the id far away barely move it, unlike a bbox).
   // Every other panel keeps the phase above.
-  if(opt.center){
+  // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
+  // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
+  // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
+  const PB=opt.body&&rest&&ext.x1[MAIN_PANEL]>ext.x0[MAIN_PANEL]
+    ? rasterWidth(pat, Math.max(2,Math.round(opt.body.frac*(ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]))), true) : null;
+  let pbx=0, pby=0;
+  if(opt.center||PB){
     const k=MAIN_PANEL; let sx=0, sy=0, sn=0;
     for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ if(ids[i]!==k) continue;
       localXY(G,k,x,y); sx+=LX; sy+=LY; sn++; }
-    if(sn){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-sx/sn; oy[k]=ccy-sy/sn; } }
+    if(sn&&opt.center){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-sx/sn; oy[k]=ccy-sy/sn; }
+    if(sn&&PB){ const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-sx/sn; pby=ccy-sy/sn; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -985,7 +997,6 @@ function compose(G, pat, ratio, trim, opt){
     } else if(solid&&k!==MAIN_PANEL){
       R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb;
     } else {
-    const two=!!P2&&k!==MAIN_PANEL, qd=two?pd2:pd, QW=two?PW2:PW, QH=two?PH2:PH, qx=two?ox2:ox, qy=two?oy2:oy;
     // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
     // Where the slope steepens leaving a valley the print is traversed faster (compressed on the fold's flank),
@@ -996,6 +1007,19 @@ function compose(G, pat, ratio, trim, opt){
       if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
       xs=x+gx*amp; ys=y+gy*amp; }
     localXY(G,k,xs,ys);
+    // src: 1 = main pattern (tiled), 2 = rest, 3 = body file (opt.body, inside the file's rectangle)
+    let src=k===MAIN_PANEL?1:2, bu=0, bv=0;
+    if(PB&&k===MAIN_PANEL){ bu=LX+pbx; bv=LY+pby; src=bu>=0&&bv>=0&&bu<=PB.w-1&&bv<=PB.h-1?3:2; }
+    if(src===2&&solid){ R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb; }
+    else if(src===3){
+      const u0=bu|0, v0=bv|0, au=bu-u0, av=bv-v0, u1=u0+1<PB.w?u0+1:u0, v1=v0+1<PB.h?v0+1:v0, bd=PB.data;
+      const p00=(v0*PB.w+u0)*4, p10=(v0*PB.w+u1)*4, p01=(v1*PB.w+u0)*4, p11=(v1*PB.w+u1)*4;
+      const w00=(1-au)*(1-av), w10=au*(1-av), w01=(1-au)*av, w11=au*av;
+      R=(bd[p00]*w00+bd[p10]*w10+bd[p01]*w01+bd[p11]*w11)*Pr;
+      Gc=(bd[p00+1]*w00+bd[p10+1]*w10+bd[p01+1]*w01+bd[p11+1]*w11)*Pg;
+      Bc=(bd[p00+2]*w00+bd[p10+2]*w10+bd[p01+2]*w01+bd[p11+2]*w11)*Pb;
+    } else {
+    const two=!!P2&&src===2, qd=two?pd2:pd, QW=two?PW2:PW, QH=two?PH2:PH, qx=two?ox2:ox, qy=two?oy2:oy;
     let fx=LX+qx[k]; fx-=Math.floor(fx/QW)*QW; if(fx>=QW) fx=0; let fy=LY+qy[k]; fy-=Math.floor(fy/QH)*QH; if(fy>=QH) fy=0;
     if(k===COLLAR_ID){ fx=QW-fx; if(fx>=QW) fx=0; }
     const x0=fx|0, y0=fy|0, ax=fx-x0, ay=fy-y0, x1=x0+1===QW?0:x0+1, y1=y0+1===QH?0:y0+1;
@@ -1006,6 +1030,7 @@ function compose(G, pat, ratio, trim, opt){
         pb=qd[p00+2]*w00+qd[p10+2]*w10+qd[p01+2]*w01+qd[p11+2]*w11;
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb;
+    }
     }
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
     const a=cov[j]; if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
@@ -1065,7 +1090,7 @@ let lastRun=null;          // settingsKey() of the last Generate: results are st
 const msg=(m,err)=>{ $('msg').textContent=m||''; $('msg').classList.toggle('err',!!err); };
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }
 const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value,
-  lay(), lay()==='placement'?restKind:'', lay()==='placement'&&restKind==='solid'?parseHex($('restHex').value)||'':'',
+  lay(), lay()==='placement'?restKind+$('bodySize').value:'', lay()==='placement'&&restKind==='solid'?parseHex($('restHex').value)||'':'',
   lay()==='placement'&&restKind==='pattern'?pat2Name+(pat2Img?pat2Img.width+'x'+pat2Img.height:''):''].join('|');
 // products with no separate body panel: Body + rest is greyed out and they print all-over (the stored choice is kept)
 const NO_PLACEMENT=new Set(['romper','blanket']);
@@ -1074,9 +1099,11 @@ const needPat2=()=>lay()==='placement'&&restKind==='pattern'&&!pat2Img;
 // compose options for the chosen layout: placement = main pattern on panel 1 (centred on its centroid) + the rest
 function layoutOpt(){
   if(lay()!=='placement') return { center:true };   // all-over: panel 1 (R 20) centred on its centroid, the rest at the usual tile phase
-  if(restKind==='pattern') return { center:true, rest:{ pat:pat2Img } };
+  // body: the pattern file printed once on panel 1 at Body print size x its width (Motif size then only scales the rest pattern)
+  const body={ frac:parseFloat($('bodySize').value) };
+  if(restKind==='pattern') return { center:true, body, rest:{ pat:pat2Img } };
   const h=parseHex($('restHex').value);
-  return { center:true, rest:{ solid:h?hexToRgb(h):[255,255,255] } };
+  return { center:true, body, rest:{ solid:h?hexToRgb(h):[255,255,255] } };
 }
 const hasModels=()=>GARMENTS[garment].models.length>0;
 // the gender picker only matters when some model photo is boy/girl (kids pajama); romper + adult sets are all unisex
@@ -1245,6 +1272,8 @@ function refresh(){
   if(!rh) $('restColor').value='#ffffff';
   const s=parseFloat($('scale').value);
   $('scaleVal').textContent=s.toFixed(2)+'×'; $('scaleReset').hidden=s===1;
+  const bs=parseFloat($('bodySize').value);
+  $('bodyVal').textContent=Math.round(bs*100)+'%'; $('bodyReset').hidden=bs===0.75;
 }
 function clearResults(){
   for(const r of results.values()) URL.revokeObjectURL(r.url);
@@ -1414,6 +1443,10 @@ $('scale').value=String(store.get('pm-scale',1));
 $('scale').addEventListener('input', ()=>{ store.set('pm-scale', parseFloat($('scale').value)); refresh(); });
 $('scaleReset').addEventListener('click', ()=>{ $('scale').value='1'; store.set('pm-scale',1); refresh(); });
 $('scale').addEventListener('dblclick', ()=>$('scaleReset').click());
+$('bodySize').value=String(store.get('pm-body',0.75));
+$('bodySize').addEventListener('input', ()=>{ store.set('pm-body', parseFloat($('bodySize').value)); refresh(); });
+$('bodyReset').addEventListener('click', ()=>{ $('bodySize').value='0.75'; store.set('pm-body',0.75); refresh(); });
+$('bodySize').addEventListener('dblclick', ()=>$('bodyReset').click());
 $('patternId').addEventListener('input', refresh);
 
 $('pickAll').addEventListener('click', ()=>{ for(const c of shown()) c.cb.checked=true; savePicks(); refresh(); });

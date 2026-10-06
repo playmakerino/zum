@@ -112,6 +112,7 @@
   /* slider */
   .val{ font-family:ui-monospace,Menlo,monospace; font-weight:600; }
   input[type=range]{ width:100%; accent-color:var(--accent); margin:2px 0 0; }
+  input[type=range]:disabled{ opacity:.4; cursor:default; }
   .range-ends{ display:flex; justify-content:space-between; font-size:11px; color:var(--faint); }
 
   /* footer actions */
@@ -245,7 +246,7 @@
           </div>
           <div class="sub-opts" id="restOpts" hidden>
             <div class="field">
-              <div class="flabel"><label for="bodySize">Body print size</label> <span class="hint">% of body width</span><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
+              <div class="flabel"><label for="bodySize">Body print size <em>(% of body width)</em></label><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
               <input type="range" id="bodySize" min="0.3" max="1" step="0.05" value="0.75">
               <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
             </div>
@@ -280,7 +281,7 @@
           </div>
         </div>
         <div class="field">
-          <div class="flabel"><label for="scale">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
+          <div class="flabel"><label for="scale" id="scaleLabel">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
           <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
           <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
         </div>
@@ -1272,6 +1273,11 @@ function refresh(){
   if(!rh) $('restColor').value='#ffffff';
   const s=parseFloat($('scale').value);
   $('scaleVal').textContent=s.toFixed(2)+'×'; $('scaleReset').hidden=s===1;
+  // Body + rest: the body takes Body print size, so Motif size only scales the rest pattern (and does nothing on a solid rest)
+  const pl=lay()==='placement', scaleOff=pl&&restKind==='solid';
+  $('scaleLabel').textContent=pl?'Rest motif size':'Motif size';
+  $('scale').disabled=scaleOff; if(scaleOff) $('scaleReset').hidden=true;
+  $('scale').title=scaleOff?'The rest is a solid color: no motif to scale':'';
   const bs=parseFloat($('bodySize').value);
   $('bodyVal').textContent=Math.round(bs*100)+'%'; $('bodyReset').hidden=bs===0.75;
 }

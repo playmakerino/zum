@@ -971,6 +971,10 @@ function analyzeGarment(spec,model){
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
       const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
+    // Placement print (bodyMode): panel-1 pixels on the map border. Many = the frame crops the body, so its measured centroid
+    // and width only cover the visible part.
+    G.cut=0; { const k=MAIN_PANEL; for(let x=0;x<W;x++){ if(ids[x]===k) G.cut++; if(ids[(H-1)*W+x]===k) G.cut++; }
+      for(let y=1;y<H-1;y++){ if(ids[y*W]===k) G.cut++; if(ids[y*W+W-1]===k) G.cut++; } }
     // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
     // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
     // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
@@ -1234,6 +1238,13 @@ function artCentre(d,w,h){
   return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
 }
 const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
+const BODY_CUT_MIN=8; // panel-1 pixels on the map border that make a cropped body (a few stray edge pixels do not)
+// Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
+// measured centroid and width hold; null = cropped and no bc: the print cannot be placed, the page skips the view.
+const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_MIN?'auto':null;
+// Body width in motif tiles = panel-1 width in its tiling frame / (r x W). Measured on an uncropped view, it gives the body
+// width of any view of the garment as tiles x r x W (r keeps the motif count across the chest equal between views).
+function bodyTiles(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -1254,8 +1265,10 @@ function compose(G, pat, ratio, trim, opt){
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
-  const PB=opt.body&&rest&&ext.x1[MAIN_PANEL]>ext.x0[MAIN_PANEL]
-    ? rasterWidth(pat, Math.max(2,Math.round(opt.body.frac*(ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]))), true) : null;
+  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.tiles
+  // (bodyTiles of an uncropped view) x body.r x W replaces the measured width: for a view whose frame crops the body.
+  const B=opt.body, bW=B&&(B.tiles&&B.r ? B.tiles*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
+  const PB=B&&rest&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
   // the tiled main raster: skipped when the body file + a rest cover every fabric panel (nothing would sample it)
   const P=PB&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P?P.w:1, PH=P?P.h:1, pd=P?P.data:null;
@@ -1268,7 +1281,8 @@ function compose(G, pat, ratio, trim, opt){
   let pbx=0, pby=0;
   { const k=MAIN_PANEL, sn=ext.n[k], mx=ext.sx[k]/sn, my=ext.sy[k]/sn;
     if(sn&&opt.center&&P){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-mx; oy[k]=ccy-my; }
-    if(sn&&PB){ const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-mx; pby=ccy-my; } }
+    if(sn&&PB){ let bx=mx, by=my; if(B.at){ localXY(G,k,B.at[0]*W,B.at[1]*H); bx=LX; by=LY; }
+      const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-bx; pby=ccy-by; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

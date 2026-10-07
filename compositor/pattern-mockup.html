@@ -166,7 +166,7 @@
   .dlone svg{ width:15px; height:15px; }
   .badge{ position:absolute; top:8px; right:8px; z-index:2; font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; background:var(--accent); color:var(--accent-ink); }
   .card.err .badge{ background:var(--err); color:#fff; }
-  .card.old .badge{ background:var(--t3); color:#fff; }
+  .card.old .badge, .card.skip .badge{ background:var(--t3); color:#fff; }
   .spin{ position:absolute; inset:0; display:none; place-items:center; background:rgba(255,255,255,.6); }
   .spin::after{ content:""; width:28px; height:28px; border-radius:50%; border:3px solid var(--accent-soft); border-top-color:var(--accent); animation:rot .8s linear infinite; }
   .card.busy .spin{ display:grid; }
@@ -349,7 +349,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
-const V=(mock,map,r)=>({ mock:CDN+mock, map:CDN+map, r });
+// bc (optional) = [nx,ny] the real centre of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
+// Body + rest on a view whose frame crops the body. A cropped body without bc is skipped in Body + rest (bodyMode).
+const V=(mock,map,r,bc)=>({ mock:CDN+mock, map:CDN+map, r, bc });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos). The kids
 // pajama, men's and women's pajama each have two flatlay mockups; the production form ships only the
 // first of a type. Every view carries r: the pattern raster width as a fraction of the mock width
@@ -398,7 +400,10 @@ const GARMENTS={
                        V('zum-model-pajama-men-9.jpg?v=1789642260','zum-flatlay-model-map-pajama-men-9.png?v=1789461620',0.848),
                        V('zum-model-pajama-men-10.jpg?v=1789642263','zum-flatlay-model-map-pajama-men-10.png?v=1789461065',2.176),
                        V('zum-model-pajama-men-11.jpg?v=1789642267','zum-flatlay-model-map-pajama-men-11.png?v=1789380839',1.84) ] },
-  womenPajama:{ flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789642270','zum-flatlay-map-women-pajama.png?v=1789030368',0.6232),
+  // bodyRef = the flat whose body is whole: it gives the body width in motif tiles for the views that carry bc (default flats[0]).
+  // bc of 10 / 11 / 12 (2026-10-07): 12 = the placket x, the top flatlay's centroid carried to this scale; 10 / 11 are pants
+  // shots, only the hem of the top in frame, so the body centre sits above the frame.
+  womenPajama:{ bodyRef:2, flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789642270','zum-flatlay-map-women-pajama.png?v=1789030368',0.6232),
                         V('zum-model-pajama-women-1.jpg?v=1789642273','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',0.9088),
                         V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024),
                         V('zum-flatlay-mock-women-pajama-pants.png?v=1789642279','zum-flatlay-map-women-pajama-pants.png?v=1789380953',0.8) ],
@@ -410,9 +415,9 @@ const GARMENTS={
                          V('zum-model-pajama-women-7.jpg?v=1789642296','zum-flatlay-model-map-pajama-women-7.png?v=1789030393',0.9472),
                          V('zum-model-pajama-women-8.jpg?v=1790588312','zum-flatlay-model-map-pajama-women-8.png?v=1789380877',0.776),
                          V('zum-model-pajama-women-9.jpg?v=1789642301','zum-flatlay-model-map-pajama-women-9.png?v=1789380882',0.8),
-                         V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552),
-                         V('zum-model-pajama-women-11.jpg?v=1789642307','zum-flatlay-model-map-pajama-women-11.png?v=1789380894',1.576),
-                         V('zum-model-pajama-women-12.jpg?v=1790656952','zum-flatlay-model-map-pajama-women-12.png?v=1790656944',2.16) ] },
+                         V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552,[0.09,-0.27]),
+                         V('zum-model-pajama-women-11.jpg?v=1789642307','zum-flatlay-model-map-pajama-women-11.png?v=1789380894',1.576,[0.527,-0.2]),
+                         V('zum-model-pajama-women-12.jpg?v=1790656952','zum-flatlay-model-map-pajama-women-12.png?v=1790656944',2.16,[0.093,0.82]) ] },
   // blanket: two flatlay product shots, then lifestyle photos numbered on from 3 (view ids stay unique vs the flats).
   blanket:{ flats:[ V('zum-flatlay-mock-blanket-1.jpg?v=1789654139','zum-flatlay-map-blanket-1.png?v=1789468069',1.38),
                     V('zum-flatlay-mock-blanket-2.jpg?v=1789654142','zum-flatlay-map-blanket-2.png?v=1789468080',0.98) ],
@@ -676,6 +681,10 @@ function analyzeGarment(spec,model){
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
       const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
     G.ext=panelExtents(G);
+    // Placement print (bodyMode): panel-1 pixels on the map border. Many = the frame crops the body, so its measured centroid
+    // and width only cover the visible part.
+    G.cut=0; { const k=MAIN_PANEL; for(let x=0;x<W;x++){ if(ids[x]===k) G.cut++; if(ids[(H-1)*W+x]===k) G.cut++; }
+      for(let y=1;y<H-1;y++){ if(ids[y*W]===k) G.cut++; if(ids[y*W+W-1]===k) G.cut++; } }
     // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
     // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
     // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
@@ -939,6 +948,13 @@ function artCentre(d,w,h){
   return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
 }
 const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
+const BODY_CUT_MIN=8; // panel-1 pixels on the map border that make a cropped body (a few stray edge pixels do not)
+// Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
+// measured centroid and width hold; null = cropped and no bc: the print cannot be placed, the page skips the view.
+const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_MIN?'auto':null;
+// Body width in motif tiles = panel-1 width in its tiling frame / (r x W). Measured on an uncropped view, it gives the body
+// width of any view of the garment as tiles x r x W (r keeps the motif count across the chest equal between views).
+function bodyTiles(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -959,8 +975,10 @@ function compose(G, pat, ratio, trim, opt){
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
-  const PB=opt.body&&rest&&ext.x1[MAIN_PANEL]>ext.x0[MAIN_PANEL]
-    ? rasterWidth(pat, Math.max(2,Math.round(opt.body.frac*(ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]))), true) : null;
+  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.tiles
+  // (bodyTiles of an uncropped view) x body.r x W replaces the measured width: for a view whose frame crops the body.
+  const B=opt.body, bW=B&&(B.tiles&&B.r ? B.tiles*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
+  const PB=B&&rest&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
   // the tiled main raster: skipped when the body file + a rest cover every fabric panel (nothing would sample it)
   const P=PB&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P?P.w:1, PH=P?P.h:1, pd=P?P.data:null;
@@ -973,7 +991,8 @@ function compose(G, pat, ratio, trim, opt){
   let pbx=0, pby=0;
   { const k=MAIN_PANEL, sn=ext.n[k], mx=ext.sx[k]/sn, my=ext.sy[k]/sn;
     if(sn&&opt.center&&P){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-mx; oy[k]=ccy-my; }
-    if(sn&&PB){ const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-mx; pby=ccy-my; } }
+    if(sn&&PB){ let bx=mx, by=my; if(B.at){ localXY(G,k,B.at[0]*W,B.at[1]*H); bx=LX; by=LY; }
+      const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-bx; pby=ccy-by; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
@@ -1227,16 +1246,16 @@ function makeCard(v, title, isFlat, on){
 }
 const isStale=()=>!!(lastRun && lastRun!==settingsKey());
 function paintCard(c){
-  const r=results.get(c.id), err=c.el.classList.contains('err'), old=!!r && isStale();
+  const r=results.get(c.id), err=c.el.classList.contains('err'), skip=c.el.classList.contains('skip'), old=!!r && isStale();
   const src=r?r.url:c.view.mock+'&width=400';
   if(c.img.getAttribute('src')!==src) c.img.src=src;
   c.el.classList.toggle('done', !!r);
   c.dl.hidden=!r;
   if(r){ c.dl.href=r.url; c.dl.download=fname(c.view); c.dl.title='Download '+fname(c.view); }
   c.el.classList.toggle('old', old);
-  c.badge.hidden=!r && !err;
-  c.badge.textContent=err?'Failed':old?'Outdated':'Ready';
-  c.badge.title=err?(c.error||''):old?'Settings changed since this image was made':'';
+  c.badge.hidden=!r && !err && !skip;
+  c.badge.textContent=err?'Failed':skip?'Skipped':old?'Outdated':'Ready';
+  c.badge.title=err||skip?(c.error||''):old?'Settings changed since this image was made':'';
 }
 function refresh(){
   const g=GARMENTS[garment], vis=new Set(modelsFor(g, genderOn()?gender:'neutral'));
@@ -1284,7 +1303,7 @@ function refresh(){
 function clearResults(){
   for(const r of results.values()) URL.revokeObjectURL(r.url);
   results.clear();
-  for(const c of cards.values()){ c.el.classList.remove('err','busy','queued','old'); c.error=''; }
+  for(const c of cards.values()){ c.el.classList.remove('err','skip','busy','queued','old'); c.error=''; }
 }
 
 // --- generate ---
@@ -1301,7 +1320,8 @@ async function generate(){
   $('progress').hidden=false; setBar(0); refresh();
   const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex), scale=parseFloat($('scale').value);
   const lopt=layoutOpt();
-  const t0=performance.now(); let failed=0, done=0;
+  const t0=performance.now(); let failed=0, skipped=0, done=0;
+  let tiles=null;   // Body + rest: body width in motif tiles from the garment's bodyRef flat, measured once on the first bc view
   try{
     for(let i=0;i<sel.length;i++){
       if(stopReq) break;
@@ -1311,15 +1331,22 @@ async function generate(){
       try{
         // motif size per view = the view's own r (GARMENT DATA) x the slider
         const G=await analyzeGarment(c.view, !c.isFlat);
-        const canvas=compose(G, patImg, scale*c.view.r, trim, lopt);
+        let opt=lopt;
+        if(lopt.body){ const mode=bodyMode(G, c.view);
+          // cropped body without bc: no place to put the print, the view is left out
+          if(!mode){ skipped++; c.error='Body + rest: the photo crops the body and no body centre is set for it'; c.el.classList.add('skip'); continue; }
+          if(mode==='bc'){
+            if(tiles===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; tiles=f ? bodyTiles(await analyzeGarment(f, false), f.r) : 0; }
+            opt={ ...lopt, body:{ ...lopt.body, at:c.view.bc, tiles, r:c.view.r } }; } }
+        const canvas=compose(G, patImg, scale*c.view.r, trim, opt);
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');
         results.set(c.id, { blob, url:URL.createObjectURL(blob) });
       }catch(err){ failed++; c.error=err&&err.message||String(err); c.el.classList.add('err'); console.error(c.title, err); }
-      done++; c.el.classList.remove('busy'); paintCard(c); setBar(done/sel.length);
+      finally{ done++; c.el.classList.remove('busy'); paintCard(c); setBar(done/sel.length); }
     }
-    const ok=done-failed, secs=((performance.now()-t0)/1000).toFixed(1);
-    msg(ok+' image'+(ok!==1?'s':'')+' ready in '+secs+'s'+(done<sel.length?' · stopped, '+(sel.length-done)+' skipped':'')+(failed?' · '+failed+' failed (hover the card)':''), failed>0);
+    const ok=done-failed-skipped, secs=((performance.now()-t0)/1000).toFixed(1);
+    msg(ok+' image'+(ok!==1?'s':'')+' ready in '+secs+'s'+(done<sel.length?' · stopped, '+(sel.length-done)+' skipped':'')+(skipped?' · '+skipped+' skipped (body cropped)':'')+(failed?' · '+failed+' failed (hover the card)':''), failed>0);
   }catch(err){ msg('Error: '+err.message, true); }
   finally{
     busy=false; stopReq=false; document.body.classList.remove('busy');

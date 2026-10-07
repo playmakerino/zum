@@ -107,14 +107,15 @@ const V=(mock,map,r,name,bc)=>({ mock:CDN+mock, map:CDN+map, r, name, bc });
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
 // 2026-10-07: women pajama on-model 10, 11, 12 (wo-sst-20) only, r as in pattern-mockup.html
 const GARMENTS={
-  // 2026-10-07: pajama women 10 / 11 are pants shots, only the hem of the top (panel 1) is in frame: bc y = the hem (0.193 / 0.27)
-  // minus 0.446 of the top's box height (1.68 x the body width r x W / K), so the print centre sits far above the frame. bc x: 10 = the
-  // drawstring (turned body, one side seam only), 11 = mid of the two side seams.
+  // 2026-10-07: pajama women 10 / 11 are pants shots, only the hem of the top (panel 1) is in frame. 10 has no bc (body = background
+  // only); 11: bc y = the hem (0.27)
+  // minus 0.446 of the top's box height (1.68 x the body width r x W / K), so the print centre sits far above the frame. bc x = mid of the
+  // two side seams.
   // wo-sst-20 = pajama women 12, body cropped left (placket at x 0.093), top (neck) and bottom (hem below the frame).
   // bodyRef = the uncropped women top flatlay (not rendered): it gives K = pattern width / body width. bc: x = the placket,
   // y = 0.82 = the flatlay's centroid (0.554 down its panel-1 box, box height 1.68 x width) carried to this view's scale.
   womenPajama:{ bodyRef:V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024),
-                flats:[], models:[ V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552,'pajama_women_10',[0.09,-0.27]),
+                flats:[], models:[ V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552,'pajama_women_10'),
                                    V('zum-model-pajama-women-11.jpg?v=1789642307','zum-flatlay-model-map-pajama-women-11.png?v=1789380894',1.576,'pajama_women_11',[0.527,-0.2]),
                                    V('zum-model-pajama-women-12.jpg?v=1790656952','zum-flatlay-model-map-pajama-women-12.png?v=1790656944',2.16,'wo-sst-20',[0.093,0.82]) ] },
 };

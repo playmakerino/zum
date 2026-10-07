@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pattern Mockup v2 · Pajama + Blanket Hoodie</title>
+<title>Pattern Mockup v2 · Body + rest</title>
 <style>
   :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
   @media (prefers-color-scheme: dark){
@@ -17,8 +17,8 @@
   .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
   .field{ display:flex; flex-direction:column; gap:7px; }
   label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
-  .file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
-  .file{ display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
+  .file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; width:100%; box-sizing:border-box;
+    display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
   .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
   .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
@@ -37,7 +37,6 @@
   .msg{ font-size:12px; color:var(--mut); min-height:16px; }
   .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
   .shot{ margin:0; flex:0 0 calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); display:flex; flex-direction:column; gap:8px; }
-  @media (max-width:820px){ .shot{ flex-basis:calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); } }
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
@@ -93,8 +92,7 @@
 <script>
 'use strict';
 // ===== GARMENT DATA: page-specific, NOT part of the shared block (each page keeps its own table) =====
-// CDN, the V() helper, the GARMENTS table and the helpers below are page-local. This demo carries a single
-// garments (pajama + blanket hoodie); the engine below never references these names.
+// CDN, the V() helper, the GARMENTS table and the helpers below are page-local; the engine below never references them.
 const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
@@ -103,17 +101,17 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Map convention: R = id x 20 · G >= 250 stroke = grain axis · B >= 250 (blue) dot = fan · G+B >= 250 (cyan) dot = perspective quad.
 // (Swapped 2026-09-16: before that blue = perspective, cyan = fan. The old perspective map ?v=1789551352 has blue dots and would now read as a fan.)
 // bc (optional) = [nx,ny] the real centre of panel 1 (R 20) as a fraction of the mock, may lie outside the frame: set it on a
-// view whose body is cropped, where the measured centroid only covers what the frame shows (testing column, Body + rest).
+// view whose body is cropped, where the measured centroid only covers what the frame shows (Body + rest).
 const V=(mock,map,r,name,bc)=>({ mock:CDN+mock, map:CDN+map, r, name, bc });
 // A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
 // 2026-10-07: women pajama on-model 10, 11, 12 (wo-sst-20) only, r as in pattern-mockup.html
 const GARMENTS={
   // 2026-10-07: pajama women 10 / 11 are pants shots, only the hem of the top (panel 1) is in frame: bc y = the hem (0.193 / 0.27)
-  // minus 0.446 of the top's box height (1.68 x the W1 width), so the print centre sits far above the frame. bc x: 10 = the
+  // minus 0.446 of the top's box height (1.68 x the body width r x W / K), so the print centre sits far above the frame. bc x: 10 = the
   // drawstring (turned body, one side seam only), 11 = mid of the two side seams.
   // wo-sst-20 = pajama women 12, body cropped left (placket at x 0.093), top (neck) and bottom (hem below the frame).
-  // bodyRef = the uncropped women top flatlay (not rendered): it gives the body width in motif tiles (W1). bc: x = the placket,
+  // bodyRef = the uncropped women top flatlay (not rendered): it gives K = pattern width / body width. bc: x = the placket,
   // y = 0.82 = the flatlay's centroid (0.554 down its panel-1 box, box height 1.68 x width) carried to this view's scale.
   womenPajama:{ bodyRef:V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024),
                 flats:[], models:[ V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552,'pajama_women_10',[0.09,-0.27]),
@@ -123,10 +121,6 @@ const GARMENTS={
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.(jpg|png).*$/,'');
-const modelsFor=g=>g.models;   // no Gender field on this page: every model renders
-// Testing column: print the pattern on panel 1 (map R = 20) only; every other panel (and trim) keeps the mock.
-const ONLY_PANEL=1;
-const onlyPanel=G=>({ ...G, eid:G.eid.map(k=>k===ONLY_PANEL?k:0) });
 // ===== END GARMENT DATA =====
 
 // ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html, zum_prd_form.html and pattern-mockup-v2.html =====
@@ -326,31 +320,34 @@ function analyzeGarment(spec,model){
     G.fans=null;
     if(mapQuads) for(const k in mapQuads){ if(!mapQuads[k].fan) continue;
       const f=fanFromQuad(mapQuads[k].map(([x,y])=>[x*W,y*H])); if(f){ (G.fans=G.fans||[])[k]=f; delete mapQuads[k]; G.axes[k]=null; } }
-    G.ext=panelExtents(G);
     // Placement print (bodyMode): panel-1 pixels on the map border. Many = the frame crops the body, so its measured centroid
     // and width only cover the visible part.
     G.cut=0; { const k=MAIN_PANEL; for(let x=0;x<W;x++){ if(ids[x]===k) G.cut++; if(ids[(H-1)*W+x]===k) G.cut++; }
       for(let y=1;y<H-1;y++){ if(ids[y*W]===k) G.cut++; if(ids[y*W+W-1]===k) G.cut++; } }
-    // Soft edge without a halo. Over the box grown by 1 px: eid = the panel a pixel samples (its own id; for an id-0
-    // pixel touching fabric, that neighbour's id), cov = fabric coverage 0..255 from the smoothed map raster, read only
-    // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else cov = 255, so nothing
+    // Soft edge without a halo. Over the box grown by 1 px: the panel a pixel samples (its own id; for an id-0
+    // pixel touching fabric, that neighbour's id) and its fabric coverage 0..255 from the smoothed map raster, read only
+    // where the 3x3 neighbourhood touches id 0 (background, skin, a drawstring). Everywhere else coverage is full, so nothing
     // inside the fabric is ever lightened: a blurred mask used to fade the print over 3 px INSIDE the fabric next to a
     // white cord or a hand, a bright rim on any dark print. Panel / panel edges (fabric or trim) stay hard as before. The trim
     // (id 9) is a panel here too: its edge against skin gets the same sub-pixel coverage as a sleeve's.
-    const ex0=Math.max(0,bx0-1), ey0=Math.max(0,by0-1), ex1=Math.min(W-1,bx1+1), ey1=Math.min(H-1,by1+1), EW=ex1-ex0+1;
-    const cov=new Uint8ClampedArray(EW*(ey1-ey0+1)), eid=new Uint8Array(cov.length);
+    // Kept as a list of edge pixels only (raster order over the ebox: index, panel sampled, coverage); every other fabric
+    // pixel samples its own id at full coverage, so two frame-sized byte arrays shrink to a few hundred KB.
+    const ex0=Math.max(0,bx0-1), ey0=Math.max(0,by0-1), ex1=Math.min(W-1,bx1+1), ey1=Math.min(H-1,by1+1), EW=ex1-ex0+1, EH=ey1-ey0+1;
+    const eI=[], eK=[], eC=[];
     for(let y=ey0,j=0;y<=ey1;y++) for(let x=ex0,i=y*W+ex0;x<=ex1;x++,i++,j++){ const k=ids[i];
-      if(k>=1&&k<=9){ eid[j]=k; let z=false;
+      if(k>=1&&k<=9){ let z=false;
         for(let dy=-1;dy<=1&&!z;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=W) continue; if(ids[yy*W+xx]===0){ z=true; break; } } }
-        cov[j]=z ? Math.round(255*Math.min(1,rs[i]/(20*k))) : 255; }
+        if(z){ eI.push(j); eK.push(k); eC.push(Math.round(255*Math.min(1,rs[i]/(20*k)))); } }
       else if(k===0){ let kk=0;
         if(x>0&&ids[i-1]>=1&&ids[i-1]<=8) kk=ids[i-1]; else if(x<W-1&&ids[i+1]>=1&&ids[i+1]<=8) kk=ids[i+1]; else if(y>0&&ids[i-W]>=1&&ids[i-W]<=8) kk=ids[i-W]; else if(y<H-1&&ids[i+W]>=1&&ids[i+W]<=8) kk=ids[i+W];
         else for(let dy=-1;dy<=1&&!kk;dy++){ const yy=y+dy; if(yy<0||yy>=H) continue; for(let dx=-1;dx<=1;dx+=2){ const xx=x+dx; if(xx<0||xx>=W) continue; const q=ids[yy*W+xx]; if(q>=1&&q<=8){ kk=q; break; } } }
         // a fabric neighbour wins (the print reaches the edge); only an edge pixel touching trim alone takes the trim colour
         if(!kk){ if(x>0&&ids[i-1]===9) kk=9; else if(x<W-1&&ids[i+1]===9) kk=9; else if(y>0&&ids[i-W]===9) kk=9; else if(y<H-1&&ids[i+W]===9) kk=9; }
-        eid[j]=kk; cov[j]=kk ? Math.round(255*Math.min(1,rs[i]/(20*kk))) : 0; }
-      else { eid[j]=k; cov[j]=255; } }
-    G.cov=cov; G.eid=eid; G.ebox=[ex0,ey0,ex1,ey1];
+        if(kk){ eI.push(j); eK.push(kk); eC.push(Math.round(255*Math.min(1,rs[i]/(20*kk)))); } } }
+    G.edge={ j:Int32Array.from(eI), k:Uint8Array.from(eK), c:Uint8Array.from(eC) }; G.ebox=[ex0,ey0,ex1,ey1];
+    // From here on ids covers the ebox only (EW x EH, index (y - ey0) x EW + x - ex0): nothing outside it is ever read again.
+    { const c=new Uint8Array(EW*EH); for(let y=ey0;y<=ey1;y++) c.set(ids.subarray(y*W+ex0,y*W+ex1+1),(y-ey0)*EW); G.ids=c; }
+    G.ext=panelExtents(G);
     return G;
   })();
   garmentCache.set(key,p); p.catch(()=>garmentCache.delete(key));
@@ -464,7 +461,11 @@ function buildAxis(k,px,py,G,wrap){
     for(let j=0;j<n-1;j++){ const d=th[j+1]-th[j], ad=Math.abs(d); if(ad>cap[j]+1e-6){ const e=(ad-cap[j])/2*(d>0?1:-1); th[j]+=e; th[j+1]-=e; moved=true; } }
     if(!moved) break; }
   for(let j=0;j<n;j++){ nx[j]=Math.cos(th[j]); ny[j]=Math.sin(th[j]); }
-  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, nx, ny, wP, wN, fP, fN, near, gw, CS };
+  // axisUV's quadratic terms that only depend on the segment (interior case; the two end segments past the stroke end
+  // use the end normal and are computed there): kd = L (d x n_j), kb = -L (d x (n_j+1 - n_j))
+  const kd=new Float64Array(n-1), kb=new Float64Array(n-1);
+  for(let j=0;j<n-1;j++){ const ax=nx[j], ay=ny[j], bx=nx[j+1]-ax, by=ny[j+1]-ay; kd[j]=len[j]*(dx[j]*ay-dy[j]*ax); kb[j]=-len[j]*(dx[j]*by-dy[j]*bx); }
+  return { n, px:Float32Array.from(px), py:Float32Array.from(py), s, dx, dy, len, nx, ny, kd, kb, wP, wN, fP, fN, near, gw, CS };
 }
 // Panel-local coordinates of the last localXY() call: LX across the grain / limb axis (tile x), LY along it (tile y).
 // Globals instead of a return value: this runs once per fabric pixel.
@@ -484,7 +485,7 @@ function axisUV(A,x,y){
     // normal at tau < 0 turns it the wrong way and the iso-u lines converge on the stroke's end (a fan on the thigh).
     const end=(j===0&&t0<0)||(j===n-2&&t0>1);
     const ax=end?(j===0?A.nx[0]:A.nx[n-1]):A.nx[j], ay=end?(j===0?A.ny[0]:A.ny[n-1]):A.ny[j], bx=end?0:A.nx[j+1]-ax, by=end?0:A.ny[j+1]-ay;
-    const C=rx*ay-ry*ax, B=(rx*by-ry*bx)-L*(dxj*ay-dyj*ax), Aq=-L*(dxj*by-dyj*bx);
+    const C=rx*ay-ry*ax, B=(rx*by-ry*bx)-(end?L*(dxj*ay-dyj*ax):A.kd[j]), Aq=end?-L*(dxj*by-dyj*bx):A.kb[j];
     let tau;
     if(Math.abs(Aq)<1e-7*Math.abs(B)){ if(B===0) continue; tau=-C/B; }
     else { const disc=B*B-4*Aq*C; if(disc<0) continue;
@@ -493,9 +494,9 @@ function axisUV(A,x,y){
     let pen=0;   // extrapolate only past the axis ends; inside, a tau outside [0,1] belongs to a neighbour segment
     if(tau<0){ if(j>0){ pen=-tau*L; tau=0; } } else if(tau>1){ if(j<n-2){ pen=(tau-1)*L; tau=1; } }
     const nxT=ax+tau*bx, nyT=ay+tau*by, nl=Math.hypot(nxT,nyT)||1;
-    const v=((rx-tau*L*dxj)*nxT+(ry-tau*L*dyj)*nyT)/nl;
+    const tL=tau*L, v=((rx-tL*dxj)*nxT+(ry-tL*dyj)*nyT)/nl;
     const key=pen>0 ? 1e12+pen : Math.abs(v);   // a segment that owns the pixel wins; several (fold) -> nearest axis; none -> least overshoot
-    if(key<bestKey){ bestKey=key; bj=j; bt=tau; LY=A.s[j]+tau*L; LX=v; }
+    if(key<bestKey){ bestKey=key; bj=j; bt=tau; LY=A.s[j]+tL; LX=v; }
   }
   // tube wrap: v -> w*asin(v/w) on the silhouette side (fabric arc length), linear on a seam side
   const fr=bt, j1=bj+1, pos=LX>=0;
@@ -519,11 +520,11 @@ function localXY(G,k,x,y){
 // it is measured once here and cached with the garment; compose reads it to place the tile phase (seam avoidance) and
 // to centre panel MAIN_PANEL (opt.center / opt.body).
 function panelExtents(G){
-  const {ids,w:W,box:[bx0,by0,bx1,by1]}=G;
+  const {ids,box:[bx0,by0,bx1,by1],ebox:[ex0,ey0,ex1]}=G, EW=ex1-ex0+1;
   const x0=new Float64Array(10).fill(Infinity), x1=new Float64Array(10).fill(-Infinity),
         y0=new Float64Array(10).fill(Infinity), y1=new Float64Array(10).fill(-Infinity),
         sx=new Float64Array(10), sy=new Float64Array(10), n=new Float64Array(10);
-  for(let y=by0; y<=by1; y++) for(let x=bx0, i=y*W+bx0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
+  for(let y=by0; y<=by1; y++) for(let x=bx0, i=(y-ey0)*EW+bx0-ex0; x<=bx1; x++, i++){ const k=ids[i]; if(k<1||k>8) continue;
     localXY(G,k,x,y); sx[k]+=LX; sy[k]+=LY; n[k]++;
     if(LX<x0[k])x0[k]=LX; if(LX>x1[k])x1[k]=LX; if(LY<y0[k])y0[k]=LY; if(LY>y1[k])y1[k]=LY; }
   return { x0, x1, y0, y1, sx, sy, n };
@@ -540,21 +541,26 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
                      // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
-// 2-pass box blur, radius r, of v and m in place over a BW x BH rect (t = scratch of the same size): a running sum along
-// every row, then along every column, twice. Used by the fold field (compose).
+// 2-pass box blur, radius r, of v and m in place over a BW x BH rect: a running sum along every row, then along every
+// column, twice. Each line is copied to a small buffer first, so the sums read the unblurred line while the result is
+// written back: the same sums as a full-size scratch copy, without its memory. Used by the fold field (compose).
 // (A row-major column pass with one accumulator per column was measured on 2026-09-16 and was no faster: the constant
 // stride is prefetched fine, and the extra accumulator loads / stores cost more than the misses they save.)
-function boxBlur2(v,m,t,BW,BH,r){
-  const box=(s,d,n,stride,off)=>{ let a=0; for(let q=0;q<=r&&q<n;q++) a+=s[off+q*stride];
-    for(let q=0;q<n;q++){ d[off+q*stride]=a; const hi=q+r+1, lo=q-r; if(hi<n) a+=s[off+hi*stride]; if(lo>=0) a-=s[off+lo*stride]; } };
-  for(const a of [v,m]) for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) box(a,t,BW,1,y*BW); for(let x=0;x<BW;x++) box(t,a,BH,BW,x); }
+function boxBlur2(v,m,BW,BH,r){
+  const L=Math.max(BW,BH), bv=new Float32Array(L), bm=new Float32Array(L);
+  const line=(n,stride,off)=>{
+    for(let q=0,o=off;q<n;q++,o+=stride){ bv[q]=v[o]; bm[q]=m[o]; }
+    let a=0, c=0; for(let q=0;q<=r&&q<n;q++){ a+=bv[q]; c+=bm[q]; }
+    for(let q=0,o=off;q<n;q++,o+=stride){ v[o]=a; m[o]=c; const hi=q+r+1, lo=q-r; if(hi<n){ a+=bv[hi]; c+=bm[hi]; } if(lo>=0){ a-=bv[lo]; c-=bm[lo]; } } };
+  for(let pass=0;pass<2;pass++){ for(let y=0;y<BH;y++) line(BW,1,y*BW); for(let x=0;x<BW;x++) line(BH,BW,x); }
 }
-// masked 2-pass box blur over the rect x0..x1 / y0..y1 of a W-wide frame: src(i) is the value, msk(i) whether
-// the pixel counts. Returns Float32Array over the rect = local mean of src among counted pixels (0 where none).
-function blurMasked(W,x0,y0,x1,y1,r,src,msk){
-  const BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH), t=new Float32Array(BW*BH);
-  for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0;x<=x1;x++,i++,j++) if(msk(i)){ v[j]=src(i); m[j]=1; }
-  boxBlur2(v,m,t,BW,BH,r);
+// Fold field of compose: local mean luminance of the mock (out, RGBA over the frame W wide) among the garment pixels
+// (ids 1..9) over the box, radius r. ids covers the ebox (box grown by 1, EW wide). Returns Float32Array over the box.
+function foldLum(out,W,ids,box,ebox,r){
+  const [x0,y0,x1,y1]=box, EW=ebox[2]-ebox[0]+1, BW=x1-x0+1, BH=y1-y0+1, v=new Float32Array(BW*BH), m=new Float32Array(BW*BH);
+  for(let y=y0,j=0;y<=y1;y++) for(let x=x0,i=y*W+x0,e=(y-ebox[1])*EW+(x0-ebox[0]);x<=x1;x++,i++,j++,e++){ const k=ids[e];
+    if(k>=1&&k<=9){ const o=i*4; v[j]=(out[o]*299+out[o+1]*587+out[o+2]*114)/1000; m[j]=1; } }
+  boxBlur2(v,m,BW,BH,r);
   for(let j=0;j<BW*BH;j++) v[j]=m[j]>0?v[j]/m[j]:0;
   return v;
 }
@@ -597,15 +603,17 @@ const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that take
 const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the panel's width, that make a cropped body:
                           // a hem tip reaching the frame (kan-wsi-02, ~1%) is not a crop, the cropped photos measured start at ~15%
 // Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
-// measured centroid and width hold; null = cropped and no bc: the print cannot be placed, the page skips the view.
-const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_FRAC*(G.pbox[2][MAIN_PANEL]-G.pbox[0][MAIN_PANEL]+1)?'auto':null;
-// Body width in motif tiles = panel-1 width in its tiling frame / (r x W). Measured on an uncropped view, it gives the body
-// width of any view of the garment as tiles x r x W (r keeps the motif count across the chest equal between views).
-function bodyTiles(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
-// compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), tiles = bodyTiles of the garment's
-// uncropped reference view. Width = tiles x r x W on every view; centre = spec.bc, else the centroid. null = skip the view.
-function bodyOpt(base,G,spec,tiles){ const mode=bodyMode(G,spec); if(!mode) return null;
-  return { ...base, body:{ ...base.body, tiles, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:{}) } }; }
+// centroid holds; 'none' = cropped and no bc: the print cannot be placed, so the body panel takes only the background (body.bg).
+const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_FRAC*(G.pbox[2][MAIN_PANEL]-G.pbox[0][MAIN_PANEL]+1)?'auto':'none';
+// K = pattern width / body width (the same way round as r: a larger K, a larger motif against the body). With the pattern
+// width P = r x W and the body width B (panel-1 width in its tiling frame):  K = P / B = r x W / B. r keeps the motif count
+// across the chest equal between the views of a garment, so K is one number per garment: measured on an uncropped view,
+// it gives the body width of any view as B = r x W / K, whatever the frame crops.
+function bodyK(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? r*G.w/(e.x1[k]-e.x0[k]) : 0; }
+// compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), K = bodyK of the garment's uncropped
+// reference view. Width = frac x r x W / K on every view; centre = spec.bc, else the centroid; mode 'none' = body.none.
+function bodyOpt(base,G,spec,K){ const mode=bodyMode(G,spec);
+  return { ...base, body:{ ...base.body, K, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:mode==='none'?{ none:true }:{}) } }; }
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -626,12 +634,14 @@ function compose(G, pat, ratio, trim, opt){
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
-  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.tiles
-  // (bodyTiles of an uncropped view) x body.r x W replaces the measured width: for a view whose frame crops the body.
-  const B=opt.body, bW=B&&(B.tiles&&B.r ? B.tiles*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
-  const PB=B&&rest&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
-  // the tiled main raster: skipped when the body file + a rest cover every fabric panel (nothing would sample it)
-  const P=PB&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
+  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.r x W /
+  // body.K (bodyK of an uncropped view) replaces the measured width: the frame may crop the body.
+  // body.bg = [r,g,b]: the body panel around the file takes this colour (else the rest). body.none: no file on the body
+  // (a cropped body with no centre to place it on): the body panel takes body.bg only, or keeps the mock without one.
+  const B=opt.body, noBody=!!(B&&rest&&B.none), bodyBg=B&&rest&&B.bg||null, bW=B&&(B.K&&B.r ? B.r*W/B.K : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
+  const PB=B&&rest&&!noBody&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
+  // the tiled main raster: skipped when the body file (or an empty body) + a rest cover every fabric panel (nothing would sample it)
+  const P=(PB||noBody)&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
   const PW=P?P.w:1, PH=P?P.h:1, pd=P?P.data:null;
   const [ox,oy]=phase(PW,PH);
   const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
@@ -651,13 +661,17 @@ function compose(G, pat, ratio, trim, opt){
   const [tr,tg,tb]=trim||[0,0,0];
 
   // Fold displacement field: low-pass of the mock luminance over the box (fabric + trim only), built per compose.
-  // Edge coverage (cov) + the panel an edge pixel samples (eid) come from analyzeGarment, over the box grown by 1 px.
+  // Edge pixels (panel sampled + coverage) come from analyzeGarment as a list in raster order over the box grown by 1 px;
+  // every other pixel samples its own id (1..9) at full coverage.
   const dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS;
-  const dl=blurMasked(W,bx0,by0,bx1,by1,dpx, i=>{ const o=i*4; return (out[o]*299+out[o+1]*587+out[o+2]*114)/1000; }, i=>ids[i]>=1&&ids[i]<=9);
-  const {cov,eid,ebox:[ex0,ey0,ex1,ey1]}=G, EW=ex1-ex0+1;
+  const dl=foldLum(out,W,ids,G.box,G.ebox,dpx);
+  const {ebox:[ex0,ey0,ex1,ey1]}=G, {j:eJ,k:eK,c:eC}=G.edge, nE=eJ.length;
+  let e=0, ej=nE?eJ[0]:-1;
 
   for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){
-    const k=eid[j]; if(k===0||k>9) continue;
+    let k, a=255;
+    if(j===ej){ k=eK[e]; a=eC[e]; e++; ej=e<nE?eJ[e]:-1; } else { k=ids[j]; if(k===0||k>9) continue; }
+    if(noBody&&k===MAIN_PANEL&&!bodyBg) continue;
     const o=i*4, r=out[o], g=out[o+1], b=out[o+2];
     let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;   // mock, normalised to the fabric white
     let R,Gc,Bc;
@@ -667,6 +681,8 @@ function compose(G, pat, ratio, trim, opt){
       R=tr*Pr; Gc=tg*Pg; Bc=tb*Pb;
     } else if(solid&&k!==MAIN_PANEL){
       R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb;
+    } else if(noBody&&k===MAIN_PANEL){
+      R=bodyBg[0]*Pr; Gc=bodyBg[1]*Pg; Bc=bodyBg[2]*Pb;
     } else {
     // Displace along the GRADIENT of the blurred mock luminance (not the luminance itself, which only slid the
     // print diagonally): each pixel samples the print from the brighter side, by amp px at DISP_GREF luminance/px.
@@ -681,7 +697,8 @@ function compose(G, pat, ratio, trim, opt){
     // src: 1 = main pattern (tiled), 2 = rest, 3 = body file (opt.body, inside the file's rectangle)
     let src=k===MAIN_PANEL?1:2, bu=0, bv=0;
     if(PB&&k===MAIN_PANEL){ bu=LX+pbx; bv=LY+pby; src=bu>=0&&bv>=0&&bu<=PB.w-1&&bv<=PB.h-1?3:2; }
-    if(src===2&&solid){ R=solid[0]*Pr; Gc=solid[1]*Pg; Bc=solid[2]*Pb; }
+    const fill=src===2 ? (k===MAIN_PANEL&&bodyBg ? bodyBg : solid) : null;
+    if(fill){ R=fill[0]*Pr; Gc=fill[1]*Pg; Bc=fill[2]*Pb; }
     else if(src===3){
       const u0=bu|0, v0=bv|0, au=bu-u0, av=bv-v0, u1=u0+1<PB.w?u0+1:u0, v1=v0+1<PB.h?v0+1:v0, bd=PB.data;
       const p00=(v0*PB.w+u0)*4, p10=(v0*PB.w+u1)*4, p01=(v1*PB.w+u0)*4, p11=(v1*PB.w+u1)*4;
@@ -704,7 +721,7 @@ function compose(G, pat, ratio, trim, opt){
     }
     }
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
-    const a=cov[j]; if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
+    if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;
   }
 
@@ -723,7 +740,7 @@ function compose(G, pat, ratio, trim, opt){
 }
 // ===== END SHARED BLOCK =====
 
-// ===== page: dev tool UI (this file only) =====
+// ===== page: testing page UI (this file only) =====
 const $=id=>document.getElementById(id);
 const msg=m=>{ $('msg').textContent=m; };
 
@@ -733,31 +750,21 @@ let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in fli
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-function readOpt(){ return { quads:null, showQuad:false }; }   // quads:null = perspective quads from the map's cyan dots, not drawn
-// Production engine (pattern-mockup.html / zum_prd_form.html) through the same compose(): no perspective quads. With them off
-// this block is the SHARED BLOCK math (fan, displace, feather, swept axis, print x mock/Fref), so one function renders both.
-const PROD_OPT={ quads:false, showQuad:false, center:true };   // panel 1 (R 20) centred on its centroid, as in the shipped pages
-// Every Generate renders each view twice (columns() below): production = the shipped engine, testing = this page's change.
+// No perspective quads (the map's cyan dots): the shipped pages ignore them too. Panel 1 (R 20) centred on its centroid.
+const PROD_OPT={ quads:false, showQuad:false, center:true };
 
 // Layout (sidebar): 'allover' | 'placement' (Body + rest: the pattern file printed once on panel 1 = map R 20 at BODY_FRAC of
-// its width, every other fabric panel = rest colour). Body file is in production since 2026-10-06 (compose opt.body); the
-// testing column adds W1 + C1 below (cropped body), allover renders the same in both.
+// its width, every other fabric panel = rest colour). In Body + rest each view renders twice: 'measured' = the print sized
+// and centred on the body as seen in the photo (the rule before 2026-10-07), 'production' = the current rule (bodyOpt:
+// width r x W / K from the bodyRef, centre from bc). All-over renders once.
 const BODY_FRAC=0.75;
 const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
-function prodOpt(){ return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC }, rest:{ solid:restRgb() } } : PROD_OPT; }
-// Testing column, Body + rest: the production rule of pattern-mockup.html (engine bodyOpt).
-// width from the garment's bodyRef (tiles x r x W) on every view; bc view = centre from bc, whole body = centroid;
-// cropped without bc = no testing image (null).
-function testingArgs(G, pat, r, trim, spec, C){
-  const o=prodOpt(); if(!o.body) return [G, pat, r, trim, o];
-  const b=bodyOpt(o, G, spec, C);
-  return b ? [G, pat, r, trim, b] : null;
-}
-// [label, filename prefix, compose args] per column for one analysed view
-function columns(G, pat, r, trim, spec, C){
-  const t=testingArgs(G, pat, r, trim, spec, C);
-  return [['production','production',[G, pat, r, trim, prodOpt()]], ...(t?[['testing','testing',t]]:[])];
+function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC, bg }, rest:{ solid:bg } } : PROD_OPT; }
+// [label, compose opt] per column for one analysed view (production: a cropped body without bc gets only the rest colour)
+function columns(G, spec, K){
+  const o=prodOpt(); if(!o.body) return [['all-over',o]];
+  return [['measured',o], ['production',bodyOpt(o, G, spec, K)]];
 }
 
 async function toBlobURL(canvas){
@@ -769,9 +776,9 @@ function clearShots(list){
   for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
   list.length=0;
 }
-async function showShot(bucket, canvas, name, caption, spec){
+async function showShot(bucket, canvas, name, caption){
   const r=await toBlobURL(canvas);
-  const fig=document.createElement('figure'); fig.className='shot'; fig.dataset.map=spec.map;
+  const fig=document.createElement('figure'); fig.className='shot';
   const img=document.createElement('img'); img.alt=caption;
   const cap=document.createElement('figcaption'); cap.textContent=caption;
   img.src=r.url; fig.append(img,cap); $('view').append(fig);
@@ -788,27 +795,21 @@ async function generate(){
   const t0=performance.now();
   try{
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const scale=1, opt=readOpt();
     clearShots(results.flats); clearShots(results.models);
     for(const gk of FLAT_KEYS){
-      const g=GARMENTS[gk], mdls=modelsFor(g);
-      let C=0;   // body width in motif tiles (W1), from the uncropped bodyRef, only when Body + rest
-      if(g.bodyRef&&layoutV()==='placement'){ msg(gk+' · body reference…'); await nextPaint(); C=bodyTiles(await analyzeGarment(g.bodyRef), g.bodyRef.r); }
-      for(let i=0;i<g.flats.length;i++){
-        msg(gk+' · flatlay '+(i+1)+'/'+g.flats.length+'…'); await nextPaint();
-        const GF=await analyzeGarment(g.flats[i]);
-        for(const [lab,pre,args] of columns(GF, pat, scale*g.flats[i].r, trim, g.flats[i], C))
-          await showShot(results.flats, compose(...args), pre+'-flatlay-'+flatName(g.flats[i]), flatName(g.flats[i])+' · '+lab, g.flats[i]);
-      }
-      for(let i=0;i<mdls.length;i++){
-        msg(gk+' · on-model '+(i+1)+'/'+mdls.length+'…'); await nextPaint();
-        const GM=await analyzeGarment(mdls[i], true);
-        for(const [lab,pre,args] of columns(GM, pat, scale*mdls[i].r, trim, mdls[i], C))
-          await showShot(results.models, compose(...args), pre+'-model-'+(mdls[i].name||modelName(mdls[i])), (mdls[i].name||modelName(mdls[i]))+' · '+lab, mdls[i]);
+      const g=GARMENTS[gk];
+      let K=0;   // pattern width / body width from the uncropped bodyRef, only for Body + rest
+      if(g.bodyRef&&layoutV()==='placement'){ msg(gk+' · body reference…'); await nextPaint(); K=bodyK(await analyzeGarment(g.bodyRef), g.bodyRef.r); }
+      const views=[...g.flats.map(v=>[v,false,results.flats,'flatlay',flatName(v)]), ...g.models.map(v=>[v,true,results.models,'model',v.name||modelName(v)])];
+      for(let i=0;i<views.length;i++){ const [v,model,bucket,kind,name]=views[i];
+        msg(gk+' · '+kind+' '+(i+1)+'/'+views.length+'…'); await nextPaint();
+        const G=await analyzeGarment(v, model);
+        for(const [lab,o] of columns(G, v, K))
+          await showShot(bucket, compose(G, pat, v.r, trim, o), lab+'-'+kind+'-'+name, name+' · '+lab);
       }
     }
     $('dl').disabled=false;
-    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model (production + testing) · '+((performance.now()-t0)/1000).toFixed(1)+'s');
+    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
   finally{ busy=false; $('go').disabled=false; }
 }

@@ -87,6 +87,9 @@ function makeGingham() {
   return c;
 }
 const h = buf => crypto.createHash('sha1').update(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength)).digest('hex').slice(0, 16);
+// G.ids covers the ebox only since 2026-10-07 (memory): rebuilt to the frame so hashes stay comparable with older runs
+const fullIds = G => { if (G.ids.length === G.w * G.h) return G.ids; const [x0, y0, x1, y1] = G.ebox, EW = x1 - x0 + 1, f = new Uint8Array(G.w * G.h);
+  for (let y = y0; y <= y1; y++) f.set(G.ids.subarray((y - y0) * EW, (y - y0 + 1) * EW), y * G.w + x0); return f; };
 const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex').slice(0, 16);
 
 (async () => {
@@ -134,7 +137,7 @@ const hj = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex'
       const analyzeMs = Date.now() - t0;
       const arr = x => Array.from(x);
       const rec = {
-        w: G.w, h: G.h, ids: h(G.ids), box: G.box, Lref: G.Lref, Fref: G.Fref,
+        w: G.w, h: G.h, ids: h(fullIds(G)), box: G.box, Lref: G.Lref, Fref: G.Fref,
         cnt: hj(arr(G.cnt)), cx: hj(arr(G.cx)), cy: hj(arr(G.cy)), cs: hj(arr(G.cs)), sn: hj(arr(G.sn)),
         pbox: hj(G.pbox.map(arr)), ext: hj([G.ext.x0, G.ext.x1, G.ext.y0, G.ext.y1].map(arr)),
         axes: G.axes.map((A, k) => A ? { k, n: A.n, px: h(A.px), py: h(A.py), s: h(A.s), nx: h(A.nx), ny: h(A.ny), wP: h(A.wP), wN: h(A.wN), fP: h(A.fP), fN: h(A.fN), near: h(A.near) } : null).filter(Boolean),

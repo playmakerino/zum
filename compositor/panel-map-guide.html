@@ -57,7 +57,7 @@
     <li>Tìm số <code>r</code> (cỡ hoạ tiết) cho ảnh đó.</li>
   </ul>
   <div class="grp">Trả</div>
-  <ul><li>Một PNG cho mỗi ảnh, tên <code>zum-model-map-&lt;tên ảnh&gt;-r&lt;số&gt;.png</code>. Ví dụ <code>zum-model-map-romper-4-r1.24.png</code>.</li></ul>
+  <ul><li>Một PNG cho mỗi ảnh, tên <code>map_&lt;TYPE&gt;_&lt;mã mockup&gt;_r&lt;số&gt;.png</code>. Ví dụ <code>map_CZR_PI-SIN-15_r1.087.png</code>. Cách đặt tên xem cuối trang.</li></ul>
 </div>
 
 <h2>Map là gì</h2>
@@ -190,7 +190,13 @@
 <ul>
   <li><b>Kích thước:</b> bằng ảnh gốc, hoặc phóng cả hai chiều cùng một số nguyên (×2, ×3). Không resize tuỳ ý, lệch tỷ lệ làm hoạ tiết bị xô. Tối đa 25 MP (rộng × cao ÷ 1.000.000); ảnh gốc lớn chỉ cần ×2.</li>
   <li><b>Kiểm tra:</b> mở Histogram, chỉ có vài cột rời nhau, không loang. Phóng 300% soi khe tay và thân, cổ tay sát bàn tay, chỗ vải bị tay che. Chỗ có nét trục, kênh Green phải đúng 255.</li>
-  <li><b>Đặt tên:</b> thêm <code>map-</code> sau <code>zum-model-</code>, thêm <code>-r&lt;số&gt;</code> ở cuối. Ví dụ <code>zum-model-romper-4</code> → <code>zum-model-map-romper-4-r1.24.png</code>.</li>
+  <li><b>Đặt tên:</b> <code>&lt;moc|map&gt;_&lt;TYPE&gt;_&lt;flatlay|mã mockup&gt;_r&lt;số&gt;</code>, các phần nối bằng dấu gạch dưới <code>_</code>.
+    <ul>
+      <li><code>moc</code> = ảnh chụp gốc, <code>map</code> = file map. Chỉ file map có <code>_r&lt;số&gt;</code> ở cuối.</li>
+      <li><code>TYPE</code> = mã loại sản phẩm: CZR (Zippy Romper), TPJ (Two-Piece Pajama), MPS (Men Pajama), WPS (Women Pajama), BLK (Blanket), SLB (Sleep Bag), BHD (Blanket Hoodie), CSS (Crewneck Sweatshirt).</li>
+      <li>Phần thứ ba: ảnh flatlay ghi <code>flatlay</code> (ảnh flatlay thứ hai ghi <code>flatlay2</code>); ảnh mẫu mặc ghi mã mockup in hoa, giữ dấu gạch ngang, ví dụ <code>KAN-SSK-01</code>.</li>
+    </ul>
+    Ví dụ một cặp: <code>moc_CSS_KAN-SSK-01.jpg</code> + <code>map_CSS_KAN-SSK-01_r1.23.png</code>; flatlay: <code>moc_CSS_flatlay.jpg</code> + <code>map_CSS_flatlay_r1.08.png</code>.</li>
 </ul>
 
 </div>

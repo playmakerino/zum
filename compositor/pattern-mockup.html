@@ -436,13 +436,19 @@ const GARMENTS={
                   models:[ V('zum-model-blanket-hoodie-1.jpg?v=1790764522','zum-flatlay-model-map-blanket-hoodie-1.png?v=1790834479',1.46),
                            V('zum-model-blanket-hoodie-2.jpg?v=1790764530','zum-flatlay-model-map-blanket-hoodie-2.png?v=1790834489',1.42),
                            V('zum-model-blanket-hoodie-3.jpg?v=1790834289','zum-flatlay-model-map-blanket-hoodie-3.png?v=1790834293',1.96) ] },
+  // crewneck sweatshirt (kids): one flatlay product shot, then on-model photos. Mock file carries -flat because the plain
+  // name is held by an older unrelated upload.
+  sweatshirt:{ flats:[ V('zum-flatlay-mock-sweatshirt-flat.jpg?v=1791364746','zum-flatlay-map-sweatshirt.png?v=1791364750',1.08) ],
+               models:[ V('zum-model-sweatshirt-1.jpg?v=1791364754','zum-flatlay-model-map-sweatshirt-1.png?v=1791364758',1.23),
+                        V('zum-model-sweatshirt-2.jpg?v=1791364768','zum-flatlay-model-map-sweatshirt-2.png?v=1791364772',1.04),
+                        V('zum-model-sweatshirt-3.jpg?v=1791364776','zum-flatlay-model-map-sweatshirt-3.png?v=1791364781',1.22) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
 // view id for download names + the tick cache: mock filename minus zum-flatlay-mock- / zum-model- and the extension
 const viewId=flatName;
 // type code per garment, same codes as the TC forms (tc_form_1_trang.html)
-const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB', blanketHoodie:'BHD' };
+const TYPE_CODE={ romper:'CZR', pajama:'TPJ', menPajama:'MPS', womenPajama:'WPS', blanket:'BLK', sleepbag:'SLB', blanketHoodie:'BHD', sweatshirt:'CSS' };
 // ssshub mockup code per view (GET /api/v1/mockup-garments/{id}, 2026-09-29), keyed by viewId; used in download names.
 // Views without a real code carry the ssshub view id (flatlay, romper_7, ...). Missing key -> viewId.
 const MOC={
@@ -461,6 +467,7 @@ const MOC={
   'blanket-3':'kan-kwb-01','blanket-4':'kan-kwb-02','blanket-5':'kan-kwb-03','blanket-6':'kan-kwb-04','blanket-7':'kan-oth-01',
   'sleepbag-1':'kan-sbl-01','sleepbag-2':'kan-sbl-02','sleepbag-3':'kan-sbl-03','sleepbag-4':'kan-sbl-04',
   'blanket-hoodie-flat':'flatlay','blanket-hoodie-1':'bh-ssi-01','blanket-hoodie-2':'bh-ssi-02','blanket-hoodie-3':'ma-sst-08',
+  'sweatshirt-flat':'flatlay','sweatshirt-1':'kan-ssk-01','sweatshirt-2':'kan-ssk-02','sweatshirt-3':'pv-fvi-39',
 };
 const mocId=v=>MOC[viewId(v)]||viewId(v);
 // Mockup Tier per code, sheet "Creative - Hà Trang" / Good Mock-ups (2026-09-29); shown next to the code in the picker
@@ -470,7 +477,8 @@ const TIER={ 'KAN-DCC-01':1,'KAN-FVI-01':1,'KAN-OBB-01':1,'KAN-FVI-02':1,'KAN-BV
   'PA-PET-08':3,'PA-PET-09':3,'KAN-MSI-01':4,'KAN-MSI-02':4,'KAN-MSI-03':4,'MA-SSI-03':4,'MA-SSI-04':4,'KAN-WSI-01':4,'KAN-WSI-02':4,
   'WO-SSI-06':4,'WO-SSI-02':4,'WO-NUR-01':4,
   'KAN-KWB-01':4,'KAN-KWB-02':4,'KAN-KWB-03':4,'KAN-KWB-04':4,'KAN-OTH-01':4,'KAN-SBL-01':4,'KAN-SBL-02':4,'KAN-SBL-03':4,'KAN-SBL-04':4,
-  'BH-SSI-01':4,'BH-SSI-02':4,'MA-SST-08':4 };
+  'BH-SSI-01':4,'BH-SSI-02':4,'MA-SST-08':4,
+  'KAN-SSK-01':4,'KAN-SSK-02':4,'PV-FVI-39':4 };
 const tierOf=v=>TIER[mocId(v).toUpperCase()];
 // drop boy / girl tokens from download names (pajama_girl_4 -> pajama_4)
 // whole words only (cowgirl stays), with the separator before them: pajama_girl_7 -> pajama_7, B_i20815-Girl2 -> B_i20815-2
@@ -1079,7 +1087,7 @@ const store={
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} },
 };
 const GARMENT_LABEL={ romper:'Convertible Zippy Romper', pajama:'Two-Piece Pajama Set', menPajama:"Men's Pajama Set",
-  womenPajama:"Women's Pajama Set", blanket:'Blanket', sleepbag:'Sleep Bag', blanketHoodie:'Blanket Hoodie' };
+  womenPajama:"Women's Pajama Set", blanket:'Blanket', sleepbag:'Sleep Bag', blanketHoodie:'Blanket Hoodie', sweatshirt:'Crewneck Sweatshirt' };
 const DL_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>';
 
 let garment=GARMENTS[store.get('pm-garment','')] ? store.get('pm-garment','') : 'romper';

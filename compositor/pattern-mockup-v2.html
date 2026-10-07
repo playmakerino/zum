@@ -594,13 +594,18 @@ function artCentre(d,w,h){
   return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
 }
 const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
-const BODY_CUT_MIN=8; // panel-1 pixels on the map border that make a cropped body (a few stray edge pixels do not)
+const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the panel's width, that make a cropped body:
+                          // a hem tip reaching the frame (kan-wsi-02, ~1%) is not a crop, the cropped photos measured start at ~15%
 // Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
 // measured centroid and width hold; null = cropped and no bc: the print cannot be placed, the page skips the view.
-const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_MIN?'auto':null;
+const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_FRAC*(G.pbox[2][MAIN_PANEL]-G.pbox[0][MAIN_PANEL]+1)?'auto':null;
 // Body width in motif tiles = panel-1 width in its tiling frame / (r x W). Measured on an uncropped view, it gives the body
 // width of any view of the garment as tiles x r x W (r keeps the motif count across the chest equal between views).
 function bodyTiles(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
+// compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), tiles = bodyTiles of the garment's
+// uncropped reference view. Width = tiles x r x W on every view; centre = spec.bc, else the centroid. null = skip the view.
+function bodyOpt(base,G,spec,tiles){ const mode=bodyMode(G,spec); if(!mode) return null;
+  return { ...base, body:{ ...base.body, tiles, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:{}) } }; }
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -741,14 +746,13 @@ const BODY_FRAC=0.75;
 const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
 function prodOpt(){ return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC }, rest:{ solid:restRgb() } } : PROD_OPT; }
-// Testing column, Body + rest: the production rule of pattern-mockup.html (engine bodyMode / bodyTiles / body.at / body.tiles).
+// Testing column, Body + rest: the production rule of pattern-mockup.html (engine bodyOpt).
 // width from the garment's bodyRef (tiles x r x W) on every view; bc view = centre from bc, whole body = centroid;
 // cropped without bc = no testing image (null).
 function testingArgs(G, pat, r, trim, spec, C){
   const o=prodOpt(); if(!o.body) return [G, pat, r, trim, o];
-  const mode=bodyMode(G, spec); if(!mode) return null;
-  o.body={ ...o.body, tiles:C, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:{}) };
-  return [G, pat, r, trim, o];
+  const b=bodyOpt(o, G, spec, C);
+  return b ? [G, pat, r, trim, b] : null;
 }
 // [label, filename prefix, compose args] per column for one analysed view
 function columns(G, pat, r, trim, spec, C){

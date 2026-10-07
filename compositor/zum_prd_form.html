@@ -1240,15 +1240,6 @@ function buildQuads(q,W,H,G){
 // ratio: pattern raster width as a fraction of the mock width (the view's r x the Motif-size slider).
 // trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
 // { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
-// Centre of a pattern raster's artwork: bbox of the pixels that are neither transparent nor near-white, so a motif placed
-// off-centre in its file still lands mid-panel. Whole raster when it is all white.
-function artCentre(d,w,h){
-  let x0=w, x1=-1, y0=h, y1=-1;
-  for(let y=0, o=0; y<h; y++) for(let x=0; x<w; x++, o+=4){
-    if(d[o+3]<32 || (d[o]>=240&&d[o+1]>=240&&d[o+2]>=240)) continue;
-    if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
-  return x1<0 ? [w/2,h/2] : [(x0+x1+1)/2,(y0+y1+1)/2];
-}
 const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
 const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the panel's width, that make a cropped body:
                           // a hem tip reaching the frame (kan-wsi-02, ~1%) is not a crop, the cropped photos measured start at ~15%
@@ -1282,7 +1273,7 @@ function compose(G, pat, ratio, trim, opt){
   // takes rest.pat (same motif size, same phase rule) or the flat rest.solid colour (multiplied like the trim). Trim (id 9) is unchanged.
   const rest=opt.rest||null, solid=rest&&rest.solid||null;
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
-  // frac x the panel's width in its tiling frame, artwork centre on the panel centroid. Outside the file the panel takes
+  // frac x the panel's width in its tiling frame, file centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
   // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.r x W /
   // body.K (bodyK of an uncropped view) replaces the measured width: the frame may crop the body.
@@ -1296,14 +1287,14 @@ function compose(G, pat, ratio, trim, opt){
   const [ox,oy]=phase(PW,PH);
   const P2=rest&&rest.pat ? rasterWidth(rest.pat, Math.max(2,Math.round(patW)), true) : null;
   const PW2=P2?P2.w:1, PH2=P2?P2.h:1, pd2=P2?P2.data:pd, [ox2,oy2]=P2?phase(PW2,PH2):[ox,oy];
-  // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern's artwork goes on the panel's centroid
+  // { center:true }: panel MAIN_PANEL only (map R = 20): the centre of the pattern file goes on the panel's centroid
   // (mean LX, LY of its pixels in its tiling frame; a few stray pixels of the id far away barely move it, unlike a bbox).
   // Every other panel keeps the phase above. The centroid comes with the extents (panelExtents).
   let pbx=0, pby=0;
   { const k=MAIN_PANEL, sn=ext.n[k], mx=ext.sx[k]/sn, my=ext.sy[k]/sn;
-    if(sn&&opt.center&&P){ const [ccx,ccy]=artCentre(pd,PW,PH); ox[k]=ccx-mx; oy[k]=ccy-my; }
+    if(sn&&opt.center&&P){ ox[k]=PW/2-mx; oy[k]=PH/2-my; }
     if(sn&&PB){ let bx=mx, by=my; if(B.at){ localXY(G,k,B.at[0]*W,B.at[1]*H); bx=LX; by=LY; }
-      const [ccx,ccy]=artCentre(PB.data,PB.w,PB.h); pbx=ccx-bx; pby=ccy-by; } }
+      pbx=PB.w/2-bx; pby=PB.h/2-by; } }
 
   big.width=W; big.height=H;
   bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);

@@ -1321,7 +1321,7 @@ async function generate(){
   const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex), scale=parseFloat($('scale').value);
   const lopt=layoutOpt();
   const t0=performance.now(); let failed=0, skipped=0, done=0;
-  let tiles=null;   // Body + rest: body width in motif tiles from the garment's bodyRef flat, measured once on the first bc view
+  let tiles=null;   // Body + rest: body width in motif tiles from the garment's bodyRef flat, measured once per Generate
   try{
     for(let i=0;i<sel.length;i++){
       if(stopReq) break;
@@ -1335,9 +1335,9 @@ async function generate(){
         if(lopt.body){ const mode=bodyMode(G, c.view);
           // cropped body without bc: no place to put the print, the view is left out
           if(!mode){ skipped++; c.error='Body + rest: the photo crops the body and no body centre is set for it'; c.el.classList.add('skip'); continue; }
-          if(mode==='bc'){
-            if(tiles===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; tiles=f ? bodyTiles(await analyzeGarment(f, false), f.r) : 0; }
-            opt={ ...lopt, body:{ ...lopt.body, at:c.view.bc, tiles, r:c.view.r } }; } }
+          // width = tiles x r x W on every view (same print size against the motif everywhere); bc view: centre from bc
+          if(tiles===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; tiles=f ? bodyTiles(await analyzeGarment(f, false), f.r) : 0; }
+          opt={ ...lopt, body:{ ...lopt.body, tiles, r:c.view.r, ...(mode==='bc'?{ at:c.view.bc }:{}) } }; }
         const canvas=compose(G, patImg, scale*c.view.r, trim, opt);
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');

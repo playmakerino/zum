@@ -742,12 +742,12 @@ const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
 function prodOpt(){ return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC }, rest:{ solid:restRgb() } } : PROD_OPT; }
 // Testing column, Body + rest: the production rule of pattern-mockup.html (engine bodyMode / bodyTiles / body.at / body.tiles).
-// bc view = centre from bc + width from the garment's bodyRef (tiles x r x W); whole body = centroid + measured width;
+// width from the garment's bodyRef (tiles x r x W) on every view; bc view = centre from bc, whole body = centroid;
 // cropped without bc = no testing image (null).
 function testingArgs(G, pat, r, trim, spec, C){
   const o=prodOpt(); if(!o.body) return [G, pat, r, trim, o];
   const mode=bodyMode(G, spec); if(!mode) return null;
-  if(mode==='bc') o.body={ ...o.body, at:spec.bc, tiles:C, r:spec.r };
+  o.body={ ...o.body, tiles:C, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:{}) };
   return [G, pat, r, trim, o];
 }
 // [label, filename prefix, compose args] per column for one analysed view

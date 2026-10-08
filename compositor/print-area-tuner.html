@@ -18,7 +18,7 @@ html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:1
 .pane{ background:var(--panel); overflow:auto; display:flex; flex-direction:column; }
 .pane.left{ border-right:1px solid var(--line); }
 .pane.right{ border-left:1px solid var(--line); }
-.sec{ padding:14px 16px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+.sec{ padding:12px 14px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:7px; }
 .sec:last-child{ border-bottom:0; }
 .sec.grow{ flex:1; }
 .sec.foot{ margin-top:auto; border-top:1px solid var(--line); border-bottom:0; }
@@ -41,6 +41,7 @@ button.pri{ background:var(--acc); border-color:var(--acc); color:var(--acc-ink)
 button.pri:hover:not(:disabled){ background:#1a5fd0; }
 button:disabled,input:disabled{ cursor:default; }
 .wide{ width:100%; }
+.row input[type=range]{ flex:1; }
 .row > button{ flex:1; padding:0 8px; overflow:hidden; text-overflow:ellipsis; }
 :focus-visible{ outline:2px solid var(--acc); outline-offset:1px; }
 .off{ opacity:.4; pointer-events:none; }
@@ -76,9 +77,15 @@ button:disabled,input:disabled{ cursor:default; }
 
 /* right pane */
 .who{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.pad{ display:grid; grid-template-columns:repeat(3,34px); grid-template-rows:repeat(3,30px); gap:4px; justify-content:center; }
-.pad button{ height:30px; padding:0; font-size:14px; }
-.xy span{ color:var(--mute); font-size:12px; flex:none; }
+.pad{ display:grid; grid-template-columns:repeat(3,28px); grid-template-rows:repeat(3,26px); gap:3px; flex:none; }
+.pad button{ height:26px; padding:0; font-size:13px; }
+.bcrow{ display:flex; gap:10px; align-items:center; }
+.xy{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.xy label{ display:flex; gap:6px; align-items:center; }
+.xy span{ color:var(--mute); font-size:12px; width:8px; flex:none; }
+.num{ width:76px !important; flex:none; }
+.acts{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.acts button{ padding:0 8px; overflow:hidden; text-overflow:ellipsis; }
 
 /* stage */
 .stage{ position:relative; overflow:hidden; background:var(--bg); }
@@ -134,17 +141,18 @@ button:disabled,input:disabled{ cursor:default; }
     </section>
     <section class="sec" id="rGrp">
       <div class="h">Ratio (r) <span class="sub" id="r0"></span></div>
-      <input type="range" id="rRange" min="0" max="1" step="0.001">
-      <input type="number" id="r" step="0.01">
+      <div class="row"><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01" class="num"></div>
     </section>
     <section class="sec" id="bcGrp">
       <div class="h">Body center (bc) <span class="sub" id="bc0"></span></div>
-      <div class="pad">
-        <span></span><button id="bcU" aria-label="Up">↑</button><span></span>
-        <button id="bcL" aria-label="Left">←</button><span></span><button id="bcR" aria-label="Right">→</button>
-        <span></span><button id="bcD" aria-label="Down">↓</button><span></span>
+      <div class="bcrow">
+        <div class="pad">
+          <span></span><button id="bcU" aria-label="Up">↑</button><span></span>
+          <button id="bcL" aria-label="Left">←</button><span></span><button id="bcR" aria-label="Right">→</button>
+          <span></span><button id="bcD" aria-label="Down">↓</button><span></span>
+        </div>
+        <div class="xy"><label><span>x</span><input type="number" id="bx" step="0.005"></label><label><span>y</span><input type="number" id="by" step="0.005"></label></div>
       </div>
-      <div class="row xy"><span>x</span><input type="number" id="bx" step="0.005"><span>y</span><input type="number" id="by" step="0.005"></div>
       <div class="row" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
     </section>
     <section class="sec" id="brGrp">
@@ -152,12 +160,11 @@ button:disabled,input:disabled{ cursor:default; }
       <input type="number" id="br" step="0.01">
       <div class="sub" id="brWhy"></div>
     </section>
-    <section class="sec">
-      <div class="row"><button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button></div>
-    </section>
     <section class="sec foot">
-      <button class="pri wide" id="copyAll">Copy all</button>
-      <button class="wide" id="clearAll">Undo all photos</button>
+      <div class="acts">
+        <button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button>
+        <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
+      </div>
     </section>
   </aside>
 </div>
@@ -244,7 +251,7 @@ function main(){
     }
     // Copy all carries the number of changed photos (every product + uploads)
     const n=Object.keys(edits).length+Object.values(uploaded).reduce((s,l)=>s+l.length,0);
-    $('copyAll').textContent='Copy all ('+n+' edited)';
+    $('copyAll').textContent='Copy all ('+n+')'; $('copyAll').title=n+' edited photo'+(n!==1?'s':'');
   }
 
   // load + analyse one view (mock, masks, engine garment); cached
@@ -481,8 +488,8 @@ function main(){
     for(const id of ['bcGrp','brGrp']){ const g=$(id), off=allMode||!hasBody();   // no Body + rest here (or the All overview): bc / br unused   // no Body + rest on this product (or the All overview): bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
     { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
-      $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'This photo uses its own br. Empty the box to follow '+id+' again.'
-        : 'br '+(BR?fmt(BR,3):'…')+' comes from '+id+' at r '+fmt(cur(ref).r,4)+'. Changing that r resizes the body print on every photo without its own br.'; }
+      $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'Own value. Empty it to follow '+id+' again.'
+        : 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(cur(ref).r,4)+'. Changing that r changes it here too.'; }
     $('br0').textContent=(br||null)!==br0?'was '+(br0||'auto'):'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };

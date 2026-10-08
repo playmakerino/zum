@@ -41,7 +41,7 @@ button.pri{ background:var(--acc); border-color:var(--acc); color:var(--acc-ink)
 button.pri:hover:not(:disabled){ background:#1a5fd0; }
 button:disabled,input:disabled{ cursor:default; }
 .wide{ width:100%; }
-.row > button{ flex:1; }
+.row > button{ flex:1; padding:0 8px; overflow:hidden; text-overflow:ellipsis; }
 :focus-visible{ outline:2px solid var(--acc); outline-offset:1px; }
 .off{ opacity:.4; pointer-events:none; }
 
@@ -153,7 +153,7 @@ button:disabled,input:disabled{ cursor:default; }
       <div class="sub" id="brWhy"></div>
     </section>
     <section class="sec">
-      <div class="row"><button class="pri" id="copy">Copy</button><button id="reset">Undo this photo</button></div>
+      <div class="row"><button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button></div>
     </section>
     <section class="sec foot">
       <button class="pri wide" id="copyAll">Copy all</button>

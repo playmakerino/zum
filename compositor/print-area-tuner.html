@@ -252,7 +252,18 @@ function main(){
     const s=st(v);
     if(!s.a) s.a=await loadAssets(v);
     if(!s.G) s.G=await analyzeGarment(v, !isFlat(v));
+    keep(v);
     return s;
+  }
+  // an analysed garment holds the full-size mock + id rasters (tens of MB): only the most recently used views keep theirs
+  // (and their renders); an older one is analysed again when it comes back
+  const LIVE=[];
+  function keep(v){
+    const i=LIVE.indexOf(v); if(i>=0) LIVE.splice(i,1); LIVE.push(v);
+    const max=Math.max(10, (allMode?allItems().length:0)+3), keepers=new Set([view, refFlat(), refView()]);
+    for(let j=0; LIVE.length>max && j<LIVE.length; ){ const o=LIVE[j];
+      if(keepers.has(o)){ j++; continue; }
+      LIVE.splice(j,1); const s=st(o); s.G=null; s.img={}; s.key={}; }
   }
   async function selectView(v){
     if(allMode&&GOF.get(v)) garment=GOF.get(v);
@@ -551,6 +562,17 @@ function main(){
     try{ for(const [v,m] of todo){ if(my!==jobs) return; await render(v,m); draw(); } }
     catch(e){ console.error(e); busy('Render failed: '+e.message); draw(); return; }
     if(my===jobs) busy(''); draw();
+    if(my===jobs) prefetch(my);
+  }
+  // once the current photo is done: analyse + render the next two photos in the list and the previous one, quietly,
+  // so stepping through the list is instant. Stops as soon as anything else starts.
+  async function prefetch(my){
+    if(allMode) return;
+    const list=allViews(garment).map(o=>o.v), i=list.indexOf(view);
+    for(const v of [list[i+1], list[i+2], list[i-1]]){
+      if(!v||my!==jobs) return;
+      try{ for(const m of modes()){ if(my!==jobs) return; await render(v,m); } }catch(e){ console.warn('prefetch',e); return; }
+    }
   }
 
   // ---- upload new mock + map ----

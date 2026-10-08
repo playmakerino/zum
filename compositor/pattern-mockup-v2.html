@@ -734,8 +734,8 @@ let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in fli
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
 const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 
-// No perspective quads (the map's cyan dots): the shipped pages ignore them too. Panel 1 (R 20) centred on its centroid.
-const PROD_OPT={ quads:false, showQuad:false, center:true };
+// Same opt as pattern-mockup.html layoutOpt(): the map's cyan perspective dots apply when present. Panel 1 (R 20) centred on its centroid.
+const PROD_OPT={ center:true };
 
 // Layout (sidebar): 'allover' | 'placement' (Body + rest: the pattern file printed once on panel 1 = map R 20 at BODY_FRAC of
 // its width, every other fabric panel = rest colour), rendered as production does (bodyOpt: width r x W / K, K = the

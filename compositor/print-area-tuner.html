@@ -40,6 +40,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 .side input[type=range]{ width:100%; }
 .side input[type=number]{ flex:1; }
 .side .sp{ flex:1; }
+#copyAll{ margin-bottom:-6px; }
 .side .why{ width:100%; color:var(--mute); font-size:12px; line-height:1.45; }
 .side .off{ opacity:.35; pointer-events:none; }
 .pad{ flex-basis:100%; display:grid; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(3,32px); gap:4px; justify-content:center; }
@@ -97,7 +98,8 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="grp" id="brGrp"><span class="lbl">Body ratio (br)</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span><span class="why" id="brWhy"></span></div>
     <div class="grp"><button class="pri" id="copy">Copy</button><button id="reset">Undo this photo</button></div>
     <span class="sp"></span>
-    <div class="grp"><button class="pri" id="copyAll">Copy all</button><button id="clearAll">Undo all photos</button></div>
+    <button class="pri" id="copyAll">Copy all</button>
+    <button id="clearAll">Undo all photos</button>
   </aside>
 </div>
 

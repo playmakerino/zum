@@ -40,6 +40,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 .side input[type=range]{ width:100%; }
 .side input[type=number]{ flex:1; }
 .side .sp{ flex:1; }
+.side .why{ width:100%; color:var(--mute); font-size:12px; line-height:1.45; }
 .side .off{ opacity:.35; pointer-events:none; }
 .pad{ flex-basis:100%; display:grid; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(3,32px); gap:4px; justify-content:center; }
 .xy{ flex-basis:100%; display:flex; gap:6px; align-items:center; }
@@ -93,7 +94,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
       <div class="xy"><span>x</span><input type="number" id="bx" step="0.005"><span>y</span><input type="number" id="by" step="0.005"></div><span class="orig" id="bc0"></span>
     </div>
     <div class="grp" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
-    <div class="grp" id="brGrp"><span class="lbl">br</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span></div>
+    <div class="grp" id="brGrp"><span class="lbl">br</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span><span class="why" id="brWhy"></span></div>
     <div class="grp"><button class="pri" id="copy">Copy</button><button id="reset">Undo this photo</button></div>
     <span class="sp"></span>
     <button id="clearAll">Undo all photos</button>
@@ -378,6 +379,9 @@ function main(){
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
     for(const id of ['bcGrp','bcBtns','brGrp']){ const g=$(id), off=!hasBody();   // no Body + rest on this product: bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
+    { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
+      $('brWhy').textContent=!hasBody()||!ref ? '' : br ? 'This photo uses its own br. Empty the box to follow '+id+' again.'
+        : 'br '+(BR?fmt(BR,3):'…')+' comes from '+id+' at r '+fmt(cur(ref).r,4)+'. Changing that r resizes the body print on every photo without its own br.'; }
     $('br0').textContent=(br||null)!==br0?'(was '+(br0||'auto')+')':'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };

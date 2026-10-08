@@ -201,11 +201,12 @@ function main(){
   const keyOf=v=>(GOF.get(v)||garment)+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
   const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, br:v.br||null }; };
-  const isFlat=v=>allViews(GOF.get(v)||garment).some(o=>o.v===v&&o.flat);
+  const isFlat=v=>v.vid?!!v.isFlat:allViews(GOF.get(v)||garment).some(o=>o.v===v&&o.flat);
   const refFlat=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // left column: the garment's reference flatlay (bodyRef, the one br comes from)
   const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // br reference (Body + rest)
   const refOf=g=>GARMENTS[g].flats[GARMENTS[g].bodyRef||0];
   const allRefs=()=>Object.keys(GARMENTS).map(refOf);
+  const allItems=()=>[...allRefs(), ...(uploaded.__all||[]).map(o=>o.v)];   // the All overview: references + photos added there
 
   const userPat={ allover:null, placement:null };   // patterns the user dropped, one per row (replace the defaults)
   let BR=0;
@@ -235,10 +236,10 @@ function main(){
 
   function paintViews(){
     const box=$('views'); box.innerHTML='';
-    for(const {v,flat} of allMode?allRefs().map(v=>({v,flat:true})):allViews(garment)){
+    for(const {v,flat} of allMode?allItems().map(v=>({v,flat:isFlat(v)})):allViews(garment)){
       const d=document.createElement('div'); d.className='v'+(v===view?' on':'')+(edits[keyOf(v)]?' edited':'');
       const im=document.createElement('img'); im.loading='lazy'; im.src=v.thumb||(v.mock+(v.mock.includes('?')?'&':'?')+'width=200'); d.appendChild(im);
-      const t=document.createElement('div'); t.className='tag'; t.textContent=allMode?GOF.get(v):(flat?'F · ':'')+(MOC[vid(v)]||vid(v)); d.appendChild(t);
+      const t=document.createElement('div'); t.className='tag'; t.textContent=allMode?(GOF.get(v)||'new · '+vid(v).replace(/^new-/,'')):(flat?'F · ':'')+(MOC[vid(v)]||vid(v)); d.appendChild(t);
       d.title=vid(v); d.onclick=()=>selectView(v); box.appendChild(d);
     }
     // Copy all carries the number of changed photos (every product + uploads)
@@ -259,7 +260,7 @@ function main(){
     busy('Loading…');
     try{
       const ref=refFlat();
-      await Promise.all((allMode?allRefs():[v,ref]).filter(Boolean).map(async o=>{ const s=st(o); if(!s.a) s.a=await loadAssets(o); }));   // quick: preview shows
+      await Promise.all((allMode?allItems():[v,ref]).filter(Boolean).map(async o=>{ const s=st(o); if(!s.a) s.a=await loadAssets(o); }));   // quick: preview shows
       if(view!==v) return; draw(); busy('Rendering…');
       await Promise.all([prep(v), ref?prep(ref):null]);
       if(view!==v) return;
@@ -343,7 +344,7 @@ function main(){
   // cells take the photos' aspect (the wider of the two), so the photos sit edge to edge with the same GAP across and down;
   // the whole grid is as large as fits and centred in the canvas
   function allCells(){
-    const W=cv.width, H=cv.height, refs=allRefs(), cols=3, rows=Math.ceil(refs.length/cols), g=GAP*(window.devicePixelRatio||1);
+    const W=cv.width, H=cv.height, refs=allItems(), cols=3, rows=Math.ceil(refs.length/cols), g=GAP*(window.devicePixelRatio||1);
     const asp=Math.max(...refs.filter(v=>st(v).a).map(v=>st(v).a.mock.width/st(v).a.mock.height), 0.1)||0.75;
     const cw=Math.max(1,Math.min((W-g*(cols+1))/cols, (H-g*(rows+1))/rows*asp)), ch=cw/asp;
     const x0=(W-(cols*cw+(cols-1)*g))/2, y0=(H-(rows*ch+(rows-1)*g))/2;
@@ -460,6 +461,9 @@ function main(){
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
     $('r0').textContent=r!==r0?'was '+r0:'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'was '+(b0?b0.join(', '):'auto'):'';
+    // All compares reference flatlays: a photo added there is a flatlay, On-model is greyed out
+    { const mr=document.querySelector('input[name=upKind][value=model]'), fr=document.querySelector('input[name=upKind][value=flat]');
+      mr.disabled=allMode; mr.parentElement.classList.toggle('off',allMode); if(allMode) fr.checked=true; }
     // header: which photo is being edited
     $('who').textContent=MOC[vid(view)]||vid(view);
     $('whoSub').textContent=(GOF.get(view)||garment)+' · '+(isFlat(view)?'flatlay':'on-model')+(view===refView()?' · reference':'')+(view.vid?' · new upload':'');
@@ -494,6 +498,7 @@ function main(){
       const vs=[...GARMENTS[g].flats, ...GARMENTS[g].models].filter(v=>edits[g+'/'+flatName(v)]).concat((uploaded[g]||[]).map(o=>o.v));
       if(vs.length) L.push('# '+g, ...vs.map(lineOf));
     }
+    if(uploaded.__all&&uploaded.__all.length) L.push('# new (added on All)', ...uploaded.__all.map(o=>lineOf(o.v)));
     if(!L.length){ busy('Nothing changed yet'); setTimeout(()=>busy(''),1500); return; }
     copyText(L.join(String.fromCharCode(10)),'Copied '+L.filter(l=>l[0]!=='#').length+' photos');
   };
@@ -540,7 +545,7 @@ function main(){
   async function renderAll(){
     const my=++jobs, ref=refFlat(), todo=[];
     for(const m of modes()) todo.push([view,m]);
-    if(allMode) for(const v of allRefs()){ if(v!==view) todo.push([v,'allover']); }
+    if(allMode) for(const v of allItems()){ if(v!==view) todo.push([v,'allover']); }
     else if(ref&&ref!==view) for(const m of modes()) todo.push([ref,m]);
     busy('Rendering…');
     try{ for(const [v,m] of todo){ if(my!==jobs) return; await render(v,m); draw(); } }
@@ -559,15 +564,15 @@ function main(){
     const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
       vid:'new-'+fm.name.replace(/\.[^.]+$/,'') };
     v.thumb=v.mock;
-    if(allMode){ allMode=false; $('garment').value=garment; BR=0; }   // All shows only the references: open the product it joins
-    upEntry={ v, flat:kindFlat() };
-    (uploaded[garment]=uploaded[garment]||[]).push(upEntry);
+    upEntry={ v, flat:kindFlat() }; v.isFlat=upEntry.flat;
+    const bucket=allMode?'__all':garment;   // on All the photo joins the overview, next to the references
+    (uploaded[bucket]=uploaded[bucket]||[]).push(upEntry);
     selectView(v);
   };
   const fname=(id,label)=>{ const f=$(id).files[0]; $(id+'Name').textContent=f?f.name:label; };
   $('upMock').onchange=()=>{ fname('upMock','Choose image'); addUpload(); };
   $('upMap').onchange=()=>{ fname('upMap','Choose PNG'); addUpload(); };
-  for(const el of document.querySelectorAll('input[name=upKind]')) el.onchange=()=>{ if(!upEntry) return; upEntry.flat=kindFlat();
+  for(const el of document.querySelectorAll('input[name=upKind]')) el.onchange=()=>{ if(!upEntry) return; upEntry.flat=upEntry.v.isFlat=kindFlat();
     const s=st(upEntry.v); s.G=null; s.img={}; s.key={}; if(view===upEntry.v) selectView(view); };
 
   $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / br from pattern-mockup.html?')) return;

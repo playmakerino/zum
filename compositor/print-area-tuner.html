@@ -40,7 +40,10 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 .side input[type=range]{ width:100%; }
 .side input[type=number]{ flex:1; }
 .side .sp{ flex:1; }
-.pad{ display:grid; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(3,32px); gap:4px; }
+.pad{ flex-basis:100%; display:grid; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(3,32px); gap:4px; justify-content:center; }
+.xy{ flex-basis:100%; display:flex; gap:6px; align-items:center; }
+.xy span{ color:var(--mute); font-size:12px; }
+.xy input{ min-width:0; width:0; flex:1; }
 .pad button{ padding:0; font-size:15px; }
 .stage{ position:relative; flex:1; overflow:hidden; background:#cfcfcb; }
 .stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; outline:none; }
@@ -86,7 +89,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
         <button id="bcL" aria-label="Left">←</button><span></span><button id="bcR" aria-label="Right">→</button>
         <span></span><button id="bcD" aria-label="Down">↓</button><span></span>
       </div>
-      <input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span>
+      <div class="xy"><span>x</span><input type="number" id="bx" step="0.005"><span>y</span><input type="number" id="by" step="0.005"></div><span class="orig" id="bc0"></span>
     </div>
     <div class="grp" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
     <div class="grp"><span class="lbl">br</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span></div>

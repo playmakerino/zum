@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -56,28 +56,28 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 <body>
 <div class="app" id="app">
   <aside>
-    <div class="step">1. Sản phẩm</div>
+    <div class="step">1. Product</div>
     <select id="garment"></select>
 
-    <div class="step">2. Kiểu in</div>
-    <div class="tabs" id="mode"><button data-m="placement">In thân</button><button data-m="allover">Lặp toàn bộ</button></div>
+    <div class="step">2. Print layout</div>
+    <div class="tabs" id="mode"><button data-m="allover">All-over</button><button data-m="placement">Body + rest</button></div>
     <p class="hint" id="modeNote"></p>
-    <div class="slider" id="fracRow"><span class="hint" style="margin:0">Cỡ in thân</span><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
+    <div class="slider" id="fracRow"><span class="hint" style="margin:0">Body print size</span><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
 
-    <div class="step">3. Chọn ảnh <span class="hint">(chấm cam = đã sửa)</span></div>
+    <div class="step">3. Photo <span class="hint">(orange dot = edited)</span></div>
     <div class="views" id="views"></div>
 
-    <div class="step">Pattern để xem thử</div>
-    <div class="drop" id="patDrop">Bấm hoặc thả ảnh pattern</div>
+    <div class="step">Test pattern</div>
+    <div class="drop" id="patDrop">Click or drop a pattern image</div>
     <input type="file" id="patFile" accept="image/*" hidden>
 
     <details>
-      <summary>Thêm ảnh mới (mock + map)</summary>
+      <summary>Add a new photo (mock + map)</summary>
       <div class="up"><span class="hint" style="margin:0">Mock</span><input type="file" id="upMock" accept="image/*"></div>
       <div class="up"><span class="hint" style="margin:0">Map</span><input type="file" id="upMap" accept="image/png"></div>
-      <div class="up"><span class="hint" style="margin:0">Loại</span><select id="upKind"><option value="model">Ảnh người mặc</option><option value="flat">Flatlay</option></select></div>
-      <p class="hint">Tên file map có <code>-r1.25</code> thì lấy làm r ban đầu.</p>
-      <button id="upAdd" style="margin-top:6px">Thêm vào sản phẩm này</button>
+      <div class="up"><span class="hint" style="margin:0">Kind</span><select id="upKind"><option value="model">On-model</option><option value="flat">Flatlay</option></select></div>
+      <p class="hint">A <code>-r1.25</code> suffix in the map filename sets the starting r.</p>
+      <button id="upAdd" style="margin-top:6px">Add to this product</button>
     </details>
   </aside>
 
@@ -85,13 +85,13 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="bar">
       <div class="grp"><span class="lbl">r</span><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
       <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
-      <div class="grp" id="bcBtns"><button id="bcAuto" title="Xoá bc: engine tự lấy tâm thân áo (chấm đỏ)">Tự lấy tâm</button><button id="bcNone" title="bc [10,10]">Không in thân</button></div>
-      <button id="reset">Về gốc</button>
+      <div class="grp" id="bcBtns"><button id="bcAuto" title="Clear bc: the engine uses the body centroid (red dot)">Auto centre</button><button id="bcNone" title="bc [10,10]">No body print</button></div>
+      <button id="reset">Reset</button>
       <span class="sp"></span>
-      <label class="hint" style="margin:0"><input type="checkbox" id="showMap" checked> Tô vùng vải</label>
-      <button id="holdMock" title="Giữ chuột để xem ảnh gốc">Giữ: xem gốc</button>
-      <button class="pri" id="copyAll" disabled>Copy 0 dòng đã sửa</button>
-      <button id="clearAll" title="Xoá mọi sửa đã lưu">Xoá sửa</button>
+      <label class="hint" style="margin:0"><input type="checkbox" id="showMap" checked> Tint fabric</label>
+      <button id="holdMock" title="Hold to see the original photo">Hold: original</button>
+      <button class="pri" id="copyAll" disabled>Copy 0 edited lines</button>
+      <button id="clearAll" title="Discard every saved edit">Clear edits</button>
     </div>
     <main class="stage" id="stage">
       <canvas id="cv"></canvas>
@@ -110,12 +110,15 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
   const SRC='pattern-mockup.html';
   let text;
   try{ const res=await fetch(SRC,{cache:'no-store'}); if(!res.ok) throw new Error(res.status); text=await res.text(); }
-  catch(e){ document.getElementById('app').innerHTML='<div class="err">Không đọc được '+SRC+' ('+e.message+'). Mở trang qua http server ở thư mục compositor, ví dụ preview server can-dia: http://localhost:4178/compositor/print-area-tuner.html</div>'; return; }
+  catch(e){ document.getElementById('app').innerHTML='<div class="err">Cannot read '+SRC+' ('+e.message+'). Open this page through an http server, e.g. http://localhost:4178/compositor/print-area-tuner.html</div>'; return; }
   const cut=(a,b)=>{ const i=text.indexOf(a), j=text.indexOf(b,i); if(i<0||j<0) throw new Error('marker missing: '+a); return text.slice(i,j+b.length); };
   const code=cut('// ===== GARMENT DATA','// ===== END GARMENT DATA =====')+'\n'+cut('// ===== SHARED BLOCK','// ===== END SHARED BLOCK =====');
   const s=document.createElement('script'); s.textContent="'use strict';\n"+code+'\nwindow.__ENGINE_OK=true;';
+  // products with no separate body panel: page code of the dev tool, outside both blocks
+  const np=/const NO_PLACEMENT=new Set\((\[[^\]]*\])\)/.exec(text);
+  window.__NO_PLACEMENT=np?JSON.parse(np[1].replace(/'/g,'"')):[];
   document.head.appendChild(s);
-  if(!window.__ENGINE_OK){ document.getElementById('app').innerHTML='<div class="err">Engine trong '+SRC+' lỗi khi chạy, xem console.</div>'; return; }
+  if(!window.__ENGINE_OK){ document.getElementById('app').innerHTML='<div class="err">The engine in '+SRC+' failed to run, see the console.</div>'; return; }
   main();
 })();
 
@@ -127,7 +130,8 @@ function main(){
   const fmt=(x,d)=>+(+x).toFixed(d);
 
   // ---- state ----
-  let garment=Object.keys(GARMENTS)[0], view=null, mode='placement';
+  let garment=Object.keys(GARMENTS)[0], view=null, mode='allover';
+  const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
   let edits={}; try{ edits=JSON.parse(localStorage.getItem(LS)||'{}')||{}; }catch(e){ edits={}; }
   const saveEdits=()=>{ try{ localStorage.setItem(LS,JSON.stringify(edits)); }catch(e){} };
   const uploaded={};             // garment -> [view] added in this tab
@@ -155,7 +159,7 @@ function main(){
 
   // ---- UI: garment + views ----
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
-  $('garment').onchange=()=>{ garment=$('garment').value; K=0; selectView(allViews(garment)[0].v); };
+  $('garment').onchange=()=>{ garment=$('garment').value; K=0; setMode(mode); selectView(allViews(garment)[0].v); };
 
   function paintViews(){
     const box=$('views'); box.innerHTML='';
@@ -170,16 +174,16 @@ function main(){
   async function selectView(v){
     view=v; renderImg=null; mockImg=null; mapOv=null; G=null; cent=null;
     paintViews(); syncInputs(); draw();
-    busy('Đang tải ảnh…');
+    busy('Loading photo…');
     try{
       const a=await loadAssets(v);
       if(view!==v) return;
       mockImg=a.mock; mapOv=a.ov; cent=a.cent; draw();
-      busy('Đang phân tích map…');
+      busy('Analysing map…');
       G=await analyzeGarment(v, !isFlat(v));
       if(view!==v) return;
       await updateK();
-    }catch(e){ console.error(e); hud('<span class="warn">Lỗi: '+e.message+'</span>'); busy(''); return; }
+    }catch(e){ console.error(e); hud('<span class="warn">Error: '+e.message+'</span>'); busy(''); return; }
     busy(''); draw(); doRender();
   }
 
@@ -274,15 +278,15 @@ function main(){
   function hudInfo(b){
     const {bc}=cur(view), L=[];
     if(mode==='placement'){
-      if(b&&b.none) L.push('<span class="warn">Thân áo bị cắt khỏi khung và chưa có tâm: không in gì lên thân. Bấm vào chỗ muốn đặt tâm.</span>');
-      else if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">Đang đặt "không in thân". Bấm vào ảnh để đặt lại tâm.</span>');
-      else if(b&&b.kind==='auto') L.push('Tâm đang tự lấy (chấm đỏ). Kéo khung để đặt tâm riêng.');
-      if(rLocked()) L.push('<span class="warn">Ảnh này là chuẩn cỡ của cả sản phẩm: cỡ in thân không chỉnh ở đây. Đổi r ở tab Lặp toàn bộ.</span>');
+      if(b&&b.none) L.push('<span class="warn">The body is cropped and has no centre: nothing prints on it. Click where the centre should go.</span>');
+      else if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">Set to "no body print". Click the photo to place a centre.</span>');
+      else if(b&&b.kind==='auto') L.push('Centre is automatic (red dot). Drag the box to set your own.');
+      if(rLocked()) L.push('<span class="warn">This photo sets the body size for the whole product, so the box size is fixed here. Change its r in the All-over tab.</span>');
     }
     hud(L.join('<br>'));
     $('legend').innerHTML=mode==='placement'
-      ? '<i style="background:#1f6feb"></i>Vùng in thân: kéo để dời, kéo góc để đổi cỡ<br><i style="background:#e5484d;border-radius:50%"></i>Tâm thân tự tính'
-      : '<i style="background:#1f6feb"></i>1 ô lặp: kéo góc để đổi cỡ';
+      ? '<i style="background:#1f6feb"></i>Body print: drag to move, drag a corner to resize<br><i style="background:#e5484d;border-radius:50%"></i>Automatic body centre'
+      : '<i style="background:#1f6feb"></i>One repeat tile: drag a corner to resize';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
@@ -351,8 +355,8 @@ function main(){
   function syncInputs(){
     if(!view) return; const {r,bc}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null);
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
-    $('r0').textContent=r!==r0?'(gốc '+r0+')':'';
-    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(gốc '+(b0?b0.join(', '):'tự lấy')+')':'';
+    $('r0').textContent=r!==r0?'(was '+r0+')':'';
+    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
     const off=mode!=='placement'; for(const id of ['bx','by','bcAuto','bcNone']) $(id).disabled=off; $('bcGrp').style.opacity=off?.45:1;
   }
   $('r').onchange=()=>{ const v=parseFloat($('r').value); if(v>0){ setVal({r:v}); afterEdit(); } };
@@ -363,10 +367,11 @@ function main(){
   $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); draw(); };
 
   // ---- mode / frac / toggles ----
-  function setMode(m){ mode=m; for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
+  function setMode(m){ if(!hasBody()) m='allover'; mode=m; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
+    for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
     $('modeNote').textContent=m==='placement'
-      ? 'Pattern in 1 lần lên thân áo. Chỉnh vị trí (bc) và cỡ (r).'
-      : 'Pattern lặp kín vải. Chỉ chỉnh cỡ ô lặp (r).';
+      ? 'The pattern prints once on the body. Set its position (bc) and size (r).'
+      : 'The pattern repeats over the fabric. Set the tile size (r).';
     $('fracRow').style.display=m==='placement'?'':'none';
     syncInputs(); draw(); if(view&&mockImg) doRender(); }
   for(const b of $('mode').children) b.onclick=()=>setMode(b.dataset.m);
@@ -388,7 +393,7 @@ function main(){
   let rendering=0;
   async function doRender(){
     if(!view) return; const v=view, key=stateKey(), my=++rendering;
-    busy('Đang render…');
+    busy('Rendering…');
     try{
       const Gv=await analyzeGarment(v, !isFlat(v));
       const {r,bc}=cur(v); let opt;
@@ -399,7 +404,7 @@ function main(){
       const canvas=compose(Gv, pat, r, null, opt);
       if(my!==rendering||view!==v) return;
       renderImg=canvas; renderKey=key;
-    }catch(e){ console.error(e); hud('<span class="warn">Render lỗi: '+e.message+'</span>'); }
+    }catch(e){ console.error(e); hud('<span class="warn">Render failed: '+e.message+'</span>'); }
     if(my===rendering) busy('');
     draw();
   }
@@ -407,7 +412,7 @@ function main(){
   // ---- upload new mock + map ----
   $('upAdd').onclick=async()=>{
     const fm=$('upMock').files[0], fp=$('upMap').files[0];
-    if(!fm||!fp){ alert('Chọn cả mock và map.'); return; }
+    if(!fm||!fp){ alert('Pick both a mock and a map.'); return; }
     const m=/-r(\d+(?:\.\d+)?)(?=\.[a-z]+$)/i.exec(fp.name), r0=m?parseFloat(m[1]):1;
     const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
       vid:'new-'+fm.name.replace(/\.[^.]+$/,''), mockName:fm.name, mapName:fp.name.replace(/-r\d+(?:\.\d+)?(?=\.[a-z]+$)/i,''), thumb:null };
@@ -435,15 +440,15 @@ function main(){
     return out;
   }
   function paintChanges(){
-    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent='Copy '+n+' dòng đã sửa';
-    $('copyAll').title='Copy các dòng V(...) mới, dán đè dòng cùng tên file trong GARMENT DATA của pattern-mockup.html';
+    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent='Copy '+n+' edited line'+(n!==1?'s':'');
+    $('copyAll').title='Copies the new V(...) lines: paste over the lines with the same file names in GARMENT DATA of pattern-mockup.html';
   }
-  async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Đã copy'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
+  async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Copied'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
   $('copyAll').onclick=()=>{ const L=changeList(); if(L.length) copy(L.map(c=>'// '+c.g+' · '+vid(c.v)+'\n'+c.line+',').join('\n')); };
-  $('clearAll').onclick=()=>{ if(!confirm('Xoá mọi sửa r/bc đã lưu?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
+  $('clearAll').onclick=()=>{ if(!confirm('Discard every saved r / bc edit?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
 
   // ---- start ----
-  setMode('placement'); paintChanges();
+  setMode('allover'); paintChanges();
   selectView(allViews(garment)[0].v);
 }
 </script>

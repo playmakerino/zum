@@ -350,7 +350,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // so they align to the photo exactly; the mock is the original photo.
 // bc (optional) = [nx,ny] the real centre of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
 // Body + rest on a view whose frame crops the body. A cropped body without bc gets only the background colour (bodyMode).
-const V=(mock,map,r,bc)=>({ mock:CDN+mock, map:CDN+map, r, bc });
+// k (optional) = this view's own K (pattern width / body width) for Body + rest, for a twisted pose where the garment's
+// K does not hold; empty = the garment's K, measured on its bodyRef flat. Pass null for bc to set k alone.
+const V=(mock,map,r,bc,k)=>({ mock:CDN+mock, map:CDN+map, r, bc, k });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos); the production
 // form ships only the first flatlay of a type. Every view carries r: the pattern raster width as a fraction of the mock width
 // (pattern px = r x mock W), multiplied by the Motif-size slider. Each mock is tuned by eye on its own,
@@ -1360,8 +1362,8 @@ async function generate(){
         const G=await analyzeGarment(c.view, !c.isFlat);
         let opt=lopt;
         if(lopt.body){
-          if(K===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; K=f ? bodyK(await analyzeGarment(f, false), f.r) : 0; }
-          opt=bodyOpt(lopt, G, c.view, K); }   // a cropped body without bc renders with the body in the background colour
+          if(!c.view.k&&K===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; K=f ? bodyK(await analyzeGarment(f, false), f.r) : 0; }
+          opt=bodyOpt(lopt, G, c.view, c.view.k||K); }   // the view's own k first, else the garment's K   // a cropped body without bc renders with the body in the background colour
         const canvas=compose(G, patImg, scale*c.view.r, trim, opt);   // motif size = the view's own r x the slider
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');

@@ -76,19 +76,19 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
       <div class="up"><span class="hint" style="margin:0">Mock</span><input type="file" id="upMock" accept="image/*"></div>
       <div class="up"><span class="hint" style="margin:0">Map</span><input type="file" id="upMap" accept="image/png"></div>
       <div class="up"><span class="hint" style="margin:0">Kind</span><select id="upKind"><option value="model">On-model</option><option value="flat">Flatlay</option></select></div>
-      <p class="hint">A <code>-r1.25</code> suffix in the map filename sets the starting r.</p>
+      <p class="hint">A <code>-r1.25</code> suffix in the map filename sets the starting r. A new photo is not on the CDN yet, so Save skips it: tell Claude its r / bc when uploading.</p>
       <button id="upAdd" style="margin-top:6px">Add to this product</button>
     </details>
   </aside>
 
   <div class="right">
     <div class="bar">
-      <div class="grp"><span class="lbl">r</span><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
+      <div class="grp"><span class="lbl">r</span><input type="range" id="rRange" min="0" max="1" step="0.001" style="width:180px"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
       <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
       <div class="grp" id="bcBtns"><button id="bcAuto" title="Clear bc: the engine uses the body centroid (red dot)">Auto centre</button><button id="bcNone" title="bc [10,10]">No body print</button></div>
       <button id="reset" title="Put r and bc of this photo back to the values in pattern-mockup.html">Undo this photo</button>
       <span class="sp"></span>
-      <button class="pri" id="copyAll" disabled>Copy new r/bc</button>
+      <button class="pri" id="copyAll" disabled>Save to pattern-mockup</button>
       <button id="clearAll" title="Put every photo back to the values in pattern-mockup.html">Undo all photos</button>
     </div>
     <main class="stage" id="stage">
@@ -111,7 +111,8 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
   catch(e){ document.getElementById('app').innerHTML='<div class="err">Cannot read '+SRC+' ('+e.message+'). Open this page through an http server, e.g. http://localhost:4178/compositor/print-area-tuner.html</div>'; return; }
   const cut=(a,b)=>{ const i=text.indexOf(a), j=text.indexOf(b,i); if(i<0||j<0) throw new Error('marker missing: '+a); return text.slice(i,j+b.length); };
   const code=cut('// ===== GARMENT DATA','// ===== END GARMENT DATA =====')+'\n'+cut('// ===== SHARED BLOCK','// ===== END SHARED BLOCK =====');
-  const s=document.createElement('script'); s.textContent="'use strict';\n"+code+'\nwindow.__ENGINE_OK=true;';
+  // this page renders at ~1/4 of the production pixel count: motif size is scale-free (r x width), and switching photos stays quick
+  const s=document.createElement('script'); s.textContent="'use strict';\n"+code.replace(/const OUT_AREA=[^;]+;/,'const OUT_AREA=1000*1240;')+'\nwindow.__ENGINE_OK=true;';
   // products with no separate body panel: page code of the dev tool, outside both blocks
   const np=/const NO_PLACEMENT=new Set\((\[[^\]]*\])\)/.exec(text);
   window.__NO_PLACEMENT=np?JSON.parse(np[1].replace(/'/g,'"')):[];
@@ -147,15 +148,15 @@ function main(){
   const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{}); return S.get(v); };
   const assetCache=new Map();
 
+  // default pattern: 4 x 4 checks per tile, so the number of checks across the chest can be counted on both photos
   function testPattern(){
-    const c=document.createElement('canvas'); c.width=c.height=600; const x=c.getContext('2d');
-    x.fillStyle='#f3d9b1'; x.fillRect(0,0,600,600);
-    x.fillStyle='#e07a5f'; x.fillRect(0,0,300,300); x.fillRect(300,300,300,300);
-    x.strokeStyle='#3d405b'; x.lineWidth=14; x.strokeRect(7,7,586,586);
-    x.fillStyle='#3d405b'; x.beginPath(); x.arc(300,300,150,0,Math.PI*2); x.fill();
-    x.fillStyle='#fff'; x.font='bold 110px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('TOP',300,300);
+    const N=4, c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'), q=400/N;
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
+    x.fillStyle='#e07a5f'; x.fillRect(0,0,q,q);   // one marked check per tile = where each repeat starts
     return c;
   }
+  const PAT_LS='printAreaTuner.pattern';
+  async function savedPattern(){ try{ const u=localStorage.getItem(PAT_LS); if(u) return { img:await loadImg(u), name:localStorage.getItem(PAT_LS+'.name')||'saved pattern' }; }catch(e){} return null; }
 
   // ---- UI: garment + views ----
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
@@ -183,6 +184,8 @@ function main(){
     busy('Loading…');
     try{
       const ref=refFlat();
+      await Promise.all([v,ref].filter(Boolean).map(async o=>{ const s=st(o); if(!s.a) s.a=await loadAssets(o); }));   // quick: preview shows
+      if(view!==v) return; draw(); busy('Rendering…');
       await Promise.all([prep(v), ref?prep(ref):null]);
       if(view!==v) return;
       await updateK();
@@ -193,7 +196,9 @@ function main(){
   // mock + two alpha masks at display size (fabric = ids 1..8, body = id 1) + the body centroid
   async function loadAssets(v){
     if(assetCache.has(v.map)) return assetCache.get(v.map);
-    const [mock,map]=await Promise.all([loadImg(v.mock), loadPng(v.map)]);
+    // display copies resized by the CDN (the engine loads the full files itself); a resized map blurs ids only on the edges
+    const small=u=>u.startsWith(CDN)?u+(u.includes('?')?'&':'?')+'width=1200':u;
+    const [mock,map]=await Promise.all([loadImg(small(v.mock)), loadPng(small(v.map))]);
     const sc=Math.min(1, 1200/mock.width), w=Math.round(mock.width*sc), h=Math.round(mock.height*sc);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d',{willReadFrequently:true});
     x.imageSmoothingEnabled=false; x.drawImage(map,0,0,w,h);
@@ -261,7 +266,8 @@ function main(){
   const GAP=12;
   function panes(){
     const W=cv.width, H=cv.height, top=34*(window.devicePixelRatio||1), hw=(W-GAP*3)/2;
-    return { L:{ x:GAP, y:top, w:hw, h:H-top-GAP }, R:{ x:GAP*2+hw, y:top, w:hw, h:H-top-GAP } };
+    const L={ x:GAP, y:top, w:hw, h:H-top-GAP }, R={ x:GAP*2+hw, y:top, w:hw, h:H-top-GAP };
+    return { L, R, E:view===refFlat()?{ x:L.x, y:L.y, w:R.x+R.w-L.x, h:L.h }:R };   // E = the editable pane
   }
   // pad = margin around the photo as a fraction of its size; the edited photo keeps room to drag bc outside the frame
   function fit(A,P,pad){
@@ -298,8 +304,9 @@ function main(){
     ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
     if(!view) return;
     const {L,R}=panes(), ref=refFlat();
-    if(ref&&st(ref).a){ drawView(ref, fit(st(ref).a,L,0.02), false); label('Reference: '+(MOC[vid(ref)]||vid(ref))+' · r '+fmt(cur(ref).r,4), L, dpr); }
-    if(st(view).a){ drawView(view, fit(st(view).a,R,padR()), true); label('Editing: '+(MOC[vid(view)]||vid(view))+' · r '+fmt(cur(view).r,4), R, dpr); }
+    const one=view===ref, E=panes().E;
+    if(!one&&ref&&st(ref).a){ drawView(ref, fit(st(ref).a,L,0.02), false); label('Reference: '+(MOC[vid(ref)]||vid(ref))+' · r '+fmt(cur(ref).r,4), L, dpr); }
+    if(st(view).a){ drawView(view, fit(st(view).a,E,padR()), true); label((one?'Editing the reference flatlay: ':'Editing: ')+(MOC[vid(view)]||vid(view))+' · r '+fmt(cur(view).r,4), E, dpr); }
     hudInfo();
   }
   function hud(h){ $('hud').innerHTML=h; }
@@ -314,15 +321,15 @@ function main(){
     hud(L.join('<br>'));
     $('legend').innerHTML=mode==='placement'
       ? 'Blue box = the pattern printed on the body.<br>Drag the box to move it, drag a corner to resize.'
-      : 'Blue box = one repeat of the pattern.<br>Drag anywhere on the right photo: away from the red dot = bigger, towards it = smaller. Mouse wheel also works.';
+      : 'Blue box = one repeat of the pattern.<br>Drag anywhere on the right photo: away from the red dot = bigger, towards it = smaller.';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
 
   // ---- interaction (right pane only) ----
-  const at=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=fit(st(view).a,panes().R,padR());
+  const at=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=fit(st(view).a,panes().E,padR());
     const px=(e.clientX-rc.left)*dpr, py=(e.clientY-rc.top)*dpr; return { px, py, nx:(px-T.ox)/T.W, ny:(py-T.oy)/T.H, T }; };
-  const inRight=p=>{ const R=panes().R; return p.px>=R.x&&p.px<=R.x+R.w&&p.py>=R.y&&p.py<=R.y+R.h; };
+  const inRight=p=>{ const R=panes().E; return p.px>=R.x&&p.px<=R.x+R.w&&p.py>=R.y&&p.py<=R.y+R.h; };
   function hit(p){
     const b=box(view); if(!b||b.none) return null;
     const cx=p.T.ox+b.cx*p.T.W, cy=p.T.oy+b.cy*p.T.H, w=b.w*p.T.W, h=b.h*p.T.H;
@@ -349,23 +356,19 @@ function main(){
     if(!drag){ let c='default';
       if(inRight(p)){ const h=hit(p); c=mode==='allover'?(rLocked(view)?'default':'nwse-resize'):h&&h.type==='resize'?'nwse-resize':h&&h.type==='move'?'move':'crosshair'; }
       cv.style.cursor=c; return; }
+    if(drag.type==='slider') return;
     if(drag.type==='move') setVal({ bc:[fmt(drag.bc0[0]+(p.nx-drag.p0.nx),3), fmt(drag.bc0[1]+(p.ny-drag.p0.ny),3)] });
     else if(drag.d0>2) setVal({ r:fmt(drag.r0*Math.hypot(p.px-drag.cx,p.py-drag.cy)/drag.d0,4) });
   });
   const end=()=>{ if(!drag) return; drag=null; afterEdit(); };
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
   let idleT=0;
-  cv.addEventListener('wheel',e=>{
-    if(!ready()||rLocked(view)||!inRight(at(e))) return; e.preventDefault();
-    setVal({ r:fmt(cur(view).r*(e.deltaY<0?1.02:1/1.02),4) });
-    clearTimeout(idleT); idleT=setTimeout(afterEdit,500);
-  },{passive:false});
   cv.tabIndex=0;
   cv.addEventListener('keydown',e=>{
     if(!ready()||mode!=='placement') return;
     const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
     e.preventDefault(); const b=box(view); if(!b||b.none) return;
-    const T=fit(st(view).a,panes().R,padR()), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
+    const T=fit(st(view).a,panes().E,padR()), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
     setVal({ bc:[fmt(b.cx+d[0]*px/T.W,3), fmt(b.cy+d[1]*px/T.H,3)] });
     clearTimeout(idleT); idleT=setTimeout(afterEdit,600);
   });
@@ -386,10 +389,15 @@ function main(){
   function syncInputs(){
     if(!view) return; const {r,bc}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null);
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
+    $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN); $('rRange').disabled=rLocked(view);
     $('r0').textContent=r!==r0?'(was '+r0+')':'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
     const off=mode!=='placement'; $('bcGrp').style.display=$('bcBtns').style.display=off?'none':'';
   }
+  const RMIN=0.4, RMAX=2.5;   // r slider: 0.4x .. 2.5x the original r, log scale
+  const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
+  $('rRange').oninput=()=>{ if(!ready()) return; drag={ type:'slider' }; setVal({ r:rFromRange() }); };
+  $('rRange').onchange=()=>{ drag=null; afterEdit(); };
   $('r').onchange=()=>{ const v=parseFloat($('r').value); if(v>0){ setVal({r:v}); afterEdit(); } };
   const bcIn=()=>{ const x=parseFloat($('bx').value), y=parseFloat($('by').value); if(isFinite(x)&&isFinite(y)){ setVal({bc:[x,y]}); afterEdit(); } };
   $('bx').onchange=bcIn; $('by').onchange=bcIn;
@@ -415,7 +423,10 @@ function main(){
   $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
   $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
   let patId=0;
-  async function setPat(f){ pat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll(); }
+  async function setPat(f){ pat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
+    try{ const u=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });   // remembered for the next visit
+      localStorage.setItem(PAT_LS,u); localStorage.setItem(PAT_LS+'.name',f.name); }catch(e){} }
+  savedPattern().then(s=>{ if(s){ pat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
 
   // ---- real render through the engine (the preview is only an approximation) ----
   const stateKey=v=>{ const {r,bc}=cur(v); return [vid(v),mode,$('frac').value,r,JSON.stringify(bc),kOf(v),patId].join('|'); };
@@ -457,20 +468,30 @@ function main(){
     if(v.k) s+=','+v.k;
     return s+')';
   };
+  // edited views already in GARMENT DATA (an uploaded photo is not on the CDN yet, so it has no line to update)
   function changeList(){
     const out=[];
-    for(const g of Object.keys(GARMENTS)){
-      for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]){ const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, line:vLine(v,e.r,e.bc) }); }
-      for(const {v} of uploaded[g]||[]) out.push({ g, v, line:vLine(v,v.r,v.bc) });
-    }
+    for(const g of Object.keys(GARMENTS))
+      for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]){ const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, e, mock:fileOf(v.mock), map:fileOf(v.map), call:vLine(v,e.r,e.bc) }); }
     return out;
   }
   function paintChanges(){
-    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent=n?'Copy new r/bc ('+n+' photo'+(n!==1?'s':'')+')':'Copy new r/bc';
-    $('copyAll').title=n?'Copies the V(...) line of every changed photo. Send it to Claude, or paste it over the matching lines in GARMENT DATA of pattern-mockup.html':'Nothing changed yet';
+    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent=n?'Save to pattern-mockup ('+n+' photo'+(n!==1?'s':'')+')':'Save to pattern-mockup';
+    $('copyAll').title=n?'Writes the new r / bc of every changed photo into GARMENT DATA of pattern-mockup.html (local file, not pushed)':'Nothing changed yet';
   }
-  async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Copied'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
-  $('copyAll').onclick=()=>{ const L=changeList(); if(L.length) copy(L.map(c=>'// '+c.g+' · '+vid(c.v)+'\n'+c.line+',').join('\n')); };
+  // POST to the local preview server, which rewrites only the matching V(...) calls in pattern-mockup.html
+  $('copyAll').onclick=async()=>{
+    const L=changeList(); if(!L.length) return;
+    busy('Saving…');
+    try{
+      const res=await fetch('/__tuner/save',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ changes:L.map(c=>({ mock:c.mock, map:c.map, call:c.call })) }) });
+      const j=await res.json().catch(()=>({ error:'HTTP '+res.status }));
+      if(!res.ok||j.error) throw new Error(j.error||('HTTP '+res.status));
+      for(const c of L){ c.v.r=c.e.r; c.v.bc=c.e.bc; delete edits[c.g+'/'+flatName(c.v)]; }   // saved values become the originals
+      saveEdits(); syncInputs(); paintViews(); paintChanges();
+      busy('Saved '+j.changed+' photo'+(j.changed!==1?'s':'')); setTimeout(()=>busy(''),1500);
+    }catch(e){ busy(''); alert('Save failed: '+e.message+(/404|Failed to fetch/.test(e.message)?'\nThe page must be opened through the local preview server (localhost:4178).':'')); }
+  };
   $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its original r and bc?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
 
   // ---- start ----

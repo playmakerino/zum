@@ -314,7 +314,7 @@ function main(){
     const s=st(v), A=s.a; if(!A) return;
     const fresh=s.img[m]&&s.key[m]===stateKey(v,m);
     ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
-    if(fresh&&!(editable&&drag)) ctx.drawImage(s.img[m],T.ox,T.oy,T.W,T.H);
+    if(fresh) ctx.drawImage(s.img[m],T.ox,T.oy,T.W,T.H);   // still valid (e.g. all-over while bc moves): keep the real render
     else { ctx.drawImage(A.mock,T.ox,T.oy,T.W,T.H); const p=preview(v,m);
       if(p){ ctx.globalCompositeOperation='multiply'; ctx.drawImage(p,T.ox,T.oy,T.W,T.H); ctx.globalCompositeOperation='source-over'; } }
     ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);

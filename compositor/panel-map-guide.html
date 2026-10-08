@@ -181,6 +181,19 @@
 </figure>
 <p>Mỗi ảnh chụp crop to nhỏ khác nhau, nên mỗi ảnh cần một <code>r</code> riêng để hoạ tiết trên áo trông cùng cỡ. Ghi <code>r</code> vào cuối tên file.</p>
 
+<h2>Số bc (tâm thân áo khi ảnh bị cắt)</h2>
+<p><code>bc</code> = vị trí tâm của <b>cả thân áo</b> (mảnh mức xám 20), tính theo tỉ lệ ảnh mock: <code>bc = [X ÷ rộng mock, Y ÷ cao mock]</code>. Chỉ cần khi khung ảnh cắt mất một phần thân. Thân nằm trọn trong ảnh thì bỏ trống.</p>
+<ol>
+  <li>Edit &gt; Preferences &gt; Units &amp; Rulers, chọn Rulers = Pixels.</li>
+  <li>Image &gt; Image Size: ghi lại rộng và cao của mock.</li>
+  <li>Image &gt; Canvas Size: tick Relative, cộng thêm khoảng 100% mỗi chiều, Anchor ở giữa.</li>
+  <li>Bật thước (Ctrl+R). Kéo ô vuông ở góc giao hai thước, thả đúng vào góc trên trái của ảnh mock gốc. Từ đây toạ độ tính theo ảnh gốc, phía trái và phía trên ảnh là số âm.</li>
+  <li>Kéo 4 guide: hai đường sườn trái, phải; vai hoặc cổ ở trên; gấu áo ở dưới. Đường nào bị cắt thì kéo dài theo phần còn thấy.</li>
+  <li>Mở Window &gt; Info (F8), đưa chuột vào điểm giữa khung 4 guide, đọc X, Y.</li>
+  <li>Tính: <code>bc = [X ÷ rộng, Y ÷ cao]</code>, lấy 2 số lẻ. Ví dụ mock 2000 × 2500, X = 1100, Y = -300 thì <code>bc = [0.55, -0.12]</code>.</li>
+</ol>
+<p>Chỉ tính thân, không tính tay áo, quần, mũ. Muốn thân không in hoạ tiết thì ghi <code>bc = [10, 10]</code>.</p>
+
 <h2>Kích thước, kiểm tra, đặt tên</h2>
 <ul>
   <li><b>Kích thước:</b> bằng ảnh gốc, hoặc phóng cả hai chiều cùng một số nguyên (×2, ×3). Không resize tuỳ ý, lệch tỷ lệ làm hoạ tiết bị xô. Tối đa 25 MP (rộng × cao ÷ 1.000.000); ảnh gốc lớn chỉ cần ×2.</li>

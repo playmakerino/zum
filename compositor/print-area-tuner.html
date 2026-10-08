@@ -143,18 +143,20 @@ function main(){
   const refFlat=()=>GARMENTS[garment].flats[0];                       // left pane: always the first flatlay
   const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // K reference (Body + rest)
 
-  let pat=testPattern(), K=0;
+  let pat=null, userPat=null, K=0;   // userPat = a pattern the user dropped (replaces both defaults)
   // per view: { a: assets, G: analysed garment, img: last real render, key: its state key }
   const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{}); return S.get(v); };
   const assetCache=new Map();
 
-  // default pattern: 4 x 4 checks per tile, so the number of checks across the chest can be counted on both photos
-  function testPattern(){
-    const N=4, c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'), q=400/N;
+  // default patterns: N x N checks per tile, so the checks across the chest can be counted on both photos.
+  // All-over gets the finer one (8 x 8 per repeat), Body + rest the coarser one (4 x 4, printed once).
+  function testPattern(N){
+    const c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'), q=400/N;
     for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
     x.fillStyle='#e07a5f'; x.fillRect(0,0,q,q);   // one marked check per tile = where each repeat starts
     return c;
   }
+  const DEF={ allover:testPattern(8), placement:testPattern(4) }; pat=DEF.allover;
   const PAT_LS='printAreaTuner.pattern';
   async function savedPattern(){ try{ const u=localStorage.getItem(PAT_LS); if(u) return { img:await loadImg(u), name:localStorage.getItem(PAT_LS+'.name')||'saved pattern' }; }catch(e){} return null; }
 
@@ -292,7 +294,6 @@ function main(){
     const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
     ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
     ctx.lineWidth=2*dpr; ctx.strokeStyle='#1f6feb'; ctx.strokeRect(-w/2,-h/2,w,h);
-    if(!rLocked(v)){ ctx.fillStyle='#fff'; for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ ctx.beginPath(); ctx.arc(sx*w/2,sy*h/2,6*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke(); } }
     ctx.restore();
     ctx.fillStyle='#fff'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
     ctx.beginPath(); ctx.arc(cx,cy,4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke();
@@ -320,8 +321,8 @@ function main(){
     }
     hud(L.join('<br>'));
     $('legend').innerHTML=mode==='placement'
-      ? 'Blue box = the pattern printed on the body.<br>Drag the box to move it, drag a corner to resize.'
-      : 'Blue box = one repeat of the pattern.<br>Drag anywhere on the right photo: away from the red dot = bigger, towards it = smaller.';
+      ? 'Blue box = the pattern printed on the body.<br>Drag the box to move it. Size: the r slider above.'
+      : 'Blue box = one repeat of the pattern.<br>Size: the r slider above.';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
@@ -334,8 +335,6 @@ function main(){
     const b=box(view); if(!b||b.none) return null;
     const cx=p.T.ox+b.cx*p.T.W, cy=p.T.oy+b.cy*p.T.H, w=b.w*p.T.W, h=b.h*p.T.H;
     const dx=p.px-cx, dy=p.py-cy, c=Math.cos(-b.th), s=Math.sin(-b.th), lx=dx*c-dy*s, ly=dx*s+dy*c;
-    const R=12*(window.devicePixelRatio||1);
-    if(!rLocked(view)) for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]) if(Math.hypot(lx-sx*w/2,ly-sy*h/2)<R) return { type:'resize', cx, cy };
     if(Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2) return { type:'move', b, cx, cy };
     return { type:'out', cx, cy };
   }
@@ -343,22 +342,18 @@ function main(){
   cv.addEventListener('pointerdown',e=>{
     if(!ready()) return; const p=at(e); if(!inRight(p)) return;
     const h=hit(p); cv.focus();
-    if(mode==='allover'){
-      if(!h) return; const d0=Math.hypot(p.px-h.cx,p.py-h.cy);
-      drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.max(d0,8), r0:cur(view).r };
-    } else if(h&&h.type==='resize') drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.hypot(p.px-h.cx,p.py-h.cy), r0:cur(view).r };
-    else if(h&&h.type==='move') drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
+    if(mode==='allover') return;   // r only from the slider / number box; all-over has no bc to drag
+    if(h&&h.type==='move') drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
     else { const bc=[fmt(p.nx,3),fmt(p.ny,3)]; setVal({ bc }); drag={ type:'move', p0:p, bc0:bc }; }
     cv.setPointerCapture(e.pointerId); draw();
   });
   cv.addEventListener('pointermove',e=>{
     if(!ready()) return; const p=at(e);
     if(!drag){ let c='default';
-      if(inRight(p)){ const h=hit(p); c=mode==='allover'?(rLocked(view)?'default':'nwse-resize'):h&&h.type==='resize'?'nwse-resize':h&&h.type==='move'?'move':'crosshair'; }
+      if(inRight(p)){ const h=hit(p); c=mode==='allover'?'default':h&&h.type==='move'?'move':'crosshair'; }
       cv.style.cursor=c; return; }
     if(drag.type==='slider') return;
     if(drag.type==='move') setVal({ bc:[fmt(drag.bc0[0]+(p.nx-drag.p0.nx),3), fmt(drag.bc0[1]+(p.ny-drag.p0.ny),3)] });
-    else if(drag.d0>2) setVal({ r:fmt(drag.r0*Math.hypot(p.px-drag.cx,p.py-drag.cy)/drag.d0,4) });
   });
   const end=()=>{ if(!drag) return; drag=null; afterEdit(); };
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
@@ -406,7 +401,7 @@ function main(){
   $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
 
   // ---- mode / frac ----
-  function setMode(m,quiet){ if(!hasBody()) m='allover'; mode=m; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
+  function setMode(m,quiet){ if(!hasBody()) m='allover'; mode=m; if(!userPat) pat=DEF[m]; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
     for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
     $('modeNote').textContent=m==='placement'
       ? 'The pattern prints once on the body. Set its position (bc) and size (r).'
@@ -423,10 +418,10 @@ function main(){
   $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
   $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
   let patId=0;
-  async function setPat(f){ pat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
+  async function setPat(f){ pat=userPat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
     try{ const u=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });   // remembered for the next visit
       localStorage.setItem(PAT_LS,u); localStorage.setItem(PAT_LS+'.name',f.name); }catch(e){} }
-  savedPattern().then(s=>{ if(s){ pat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
+  savedPattern().then(s=>{ if(s){ pat=userPat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
 
   // ---- real render through the engine (the preview is only an approximation) ----
   const stateKey=v=>{ const {r,bc}=cur(v); return [vid(v),mode,$('frac').value,r,JSON.stringify(bc),kOf(v),patId].join('|'); };

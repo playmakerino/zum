@@ -75,7 +75,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
       <div class="grp"><span class="lbl">r</span><input type="range" id="rRange" min="0" max="1" step="0.001" style="width:180px"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
       <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
       <div class="grp" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
-      <div class="grp"><span class="lbl">k</span><input type="number" id="k" step="0.01"><span class="orig" id="k0"></span></div>
+      <div class="grp"><span class="lbl">br</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span></div>
       <button class="pri" id="copy">Copy</button>
       <button id="reset">Undo this photo</button>
       <span class="sp"></span>
@@ -125,12 +125,12 @@ function main(){
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>garment+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
-  const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, k:v.k||null }; };
+  const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, br:v.br||null }; };
   const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
   const refFlat=()=>GARMENTS[garment].flats[0];                       // left column: always the first flatlay
-  const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // K reference (Body + rest)
+  const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // br reference (Body + rest)
 
-  let userPat=null, K=0;   // userPat = a pattern the user dropped (replaces both defaults)
+  let userPat=null, BR=0;   // userPat = a pattern the user dropped (replaces both defaults)
   // per view: { a: assets, G: analysed garment, img:{mode:render}, key:{mode:state key}, pv:{mode:preview canvas} }
   const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{ img:{}, key:{}, pv:{} }); return S.get(v); };
   const assetCache=new Map();
@@ -150,7 +150,7 @@ function main(){
 
   // ---- UI: garment + views ----
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
-  $('garment').onchange=()=>{ garment=$('garment').value; K=0; selectView(allViews(garment)[0].v); };
+  $('garment').onchange=()=>{ garment=$('garment').value; BR=0; selectView(allViews(garment)[0].v); };
 
   function paintViews(){
     const box=$('views'); box.innerHTML='';
@@ -178,7 +178,7 @@ function main(){
       if(view!==v) return; draw(); busy('Rendering…');
       await Promise.all([prep(v), ref?prep(ref):null]);
       if(view!==v) return;
-      await updateK(); syncInputs();
+      await updateBr(); syncInputs();
     }catch(e){ console.error(e); busy('Error: '+e.message); return; }
     busy(''); draw(); renderAll();
   }
@@ -203,27 +203,27 @@ function main(){
     assetCache.set(v.map,a); return a;
   }
 
-  // K = pattern width / body width of the garment's bodyRef flat at its CURRENT r (an edit to that r moves every other view)
-  async function updateK(){
-    const ref=refView(); if(!ref){ K=0; return; }
-    K=bodyK((await prep(ref)).G, cur(ref).r);
+  // br = body width / pattern width of the garment's bodyRef flat at its CURRENT r (an edit to that r moves every other view)
+  async function updateBr(){
+    const ref=refView(); if(!ref){ BR=0; return; }
+    BR=bodyBr((await prep(ref)).G, cur(ref).r);
   }
-  const kOf=v=>cur(v).k||K;
-  // Body + rest on the K reference view without its own k: body width is the measured one, r does not change it
-  const bodyFixed=v=>v===refView()&&!cur(v).k;
+  const brOf=v=>cur(v).br||BR;
+  // Body + rest on the br reference view without its own br: body width is the measured one, r does not change it
+  const bodyFixed=v=>v===refView()&&!cur(v).br;
 
   // ---- geometry: the print box of a view in one mode, mock-normalised ----
   // all-over: one repeat tile, width r, centred on the body centroid (the engine's center:true).
-  // placement: the file printed once, width frac x K x r, centre bc | centroid.
+  // placement: the file printed once, width frac x br x r, centre bc | centroid.
   function box(v,m){
     const s=st(v); if(!s.a) return null;
     const {r,bc}=cur(v), A=s.a, G=s.G, P=patOf(m), ar=P.height/P.width;
     let wN, c, kind;
     if(m==='placement'){
-      const k=kOf(v), frac=+$('frac').value; if(!k) return null;
+      const br=brOf(v), frac=+$('frac').value; if(!br) return null;
       const md=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
       if(md==='none') return { none:true };
-      if(bodyFixed(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*k*r;
+      if(bodyFixed(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*br*r;
       c=bc||A.cent; kind=md;
     } else { wN=r; c=A.cent; kind='tile'; }
     const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;
@@ -340,25 +340,25 @@ function main(){
   // write r / bc / k for the current view (an edit equal to the loaded value is dropped)
   function setVal(p){
     const key=keyOf(view), n={ ...cur(view), ...p };
-    const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null) && (n.k||null)===(view.k||null);
-    if(view.vid){ view.r=n.r; view.bc=n.bc; view.k=n.k; }   // uploaded views carry their own values
+    const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null) && (n.br||null)===(view.br||null);
+    if(view.vid){ view.r=n.r; view.bc=n.bc; view.br=n.br; }   // uploaded views carry their own values
     else if(same) delete edits[key]; else edits[key]=n;
     syncInputs(); draw();
   }
   async function afterEdit(){
     paintViews();
-    if(view===refView()) await updateK();
+    if(view===refView()) await updateBr();
     syncInputs(); draw(); renderAll();
   }
   const RMIN=0.4, RMAX=2.5;   // r slider: 0.4x .. 2.5x the original r, log scale
   function syncInputs(){
-    if(!view) return; const {r,bc,k}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null), k0=view.vid?null:(view.k||null);
+    if(!view) return; const {r,bc,br}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null), br0=view.vid?null:(view.br||null);
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
-    $('k').value=k||''; $('k').placeholder=K?String(fmt(K,3)):'';
+    $('br').value=br||''; $('br').placeholder=BR?String(fmt(BR,3)):'';
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
     $('r0').textContent=r!==r0?'(was '+r0+')':'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    $('k0').textContent=(k||null)!==k0?'(was '+(k0||'auto')+')':'';
+    $('br0').textContent=(br||null)!==br0?'(was '+(br0||'auto')+')':'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
   $('rRange').oninput=()=>{ if(!ready()) return; drag={ type:'slider' }; setVal({ r:rFromRange() }); };
@@ -368,11 +368,11 @@ function main(){
   $('bx').onchange=bcIn; $('by').onchange=bcIn;
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
-  $('k').onchange=()=>{ const v=parseFloat($('k').value); setVal({ k:v>0?v:null }); afterEdit(); };   // empty = the garment's K
-  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.k=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
+  $('br').onchange=()=>{ const v=parseFloat($('br').value); setVal({ br:v>0?v:null }); afterEdit(); };   // empty = the garment's br
+  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
   $('copy').onclick=async()=>{
-    if(!view) return; const {r,bc,k}=cur(view);
-    const s=(MOC[vid(view)]||vid(view))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(k?' k='+fmt(k,4):'');   // k only when this view has its own
+    if(!view) return; const {r,bc,br}=cur(view);
+    const s=(MOC[vid(view)]||vid(view))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(br?' br='+fmt(br,4):'');   // br only when this view has its own
     try{ await navigator.clipboard.writeText(s); busy('Copied: '+s); setTimeout(()=>busy(''),1500); }catch(e){ prompt('Copy:',s); }
   };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
@@ -390,13 +390,13 @@ function main(){
   savedPattern().then(s=>{ if(s){ userPat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
 
   // ---- real render through the engine (the preview is only an approximation) ----
-  const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value:'',r,m==='placement'?JSON.stringify(bc)+kOf(v):'',patId].join('|'); };
+  const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value:'',r,m==='placement'?JSON.stringify(bc)+brOf(v):'',patId].join('|'); };
   let jobs=0;
   async function render(v,m){
     const s=st(v), key=stateKey(v,m); if(s.img[m]&&s.key[m]===key) return;
     const {G}=await prep(v), {r,bc}=cur(v);
     const opt=m==='placement'
-      ? bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:REST } }, G, { ...v, r, bc }, kOf(v))
+      ? bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:REST } }, G, { ...v, r, bc }, brOf(v))
       : { center:true };
     const c=compose(G, patOf(m), r, null, opt), o=document.createElement('canvas');   // compose reuses one canvas: copy it out
     o.width=c.width; o.height=c.height; o.getContext('2d').drawImage(c,0,0);
@@ -425,8 +425,8 @@ function main(){
     selectView(v);
   };
 
-  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / k from pattern-mockup.html?')) return;
-    edits={}; syncInputs(); paintViews(); updateK().then(()=>{ syncInputs(); draw(); renderAll(); }); };
+  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / br from pattern-mockup.html?')) return;
+    edits={}; syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
   selectView(allViews(garment)[0].v);

@@ -350,9 +350,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // so they align to the photo exactly; the mock is the original photo.
 // bc (optional) = [nx,ny] the real centre of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
 // Body + rest on a view whose frame crops the body. A cropped body without bc gets only the background colour (bodyMode).
-// k (optional) = this view's own K (body width / pattern width: larger k, larger body print) for Body + rest, for a twisted pose where the garment's
-// K does not hold; empty = the garment's K, measured on its bodyRef flat. Pass null for bc to set k alone.
-const V=(mock,map,r,bc,k)=>({ mock:CDN+mock, map:CDN+map, r, bc, k });
+// br (optional) = this view's own body ratio (body width / pattern width: larger br, larger body print) for Body + rest, for
+// a twisted pose where the garment's br does not hold; empty = the garment's br, measured on its bodyRef flat. Pass null for bc to set br alone.
+const V=(mock,map,r,bc,br)=>({ mock:CDN+mock, map:CDN+map, r, bc, br });
 // A garment carries flats:[...] (one or more flatlay views) + models:[...] (on-model photos); the production
 // form ships only the first flatlay of a type. Every view carries r: the pattern raster width as a fraction of the mock width
 // (pattern px = r x mock W), multiplied by the Motif-size slider. Each mock is tuned by eye on its own,
@@ -400,7 +400,7 @@ const GARMENTS={
                        V('zum-model-pajama-men-9.jpg?v=1789642260','zum-flatlay-model-map-pajama-men-9.png?v=1789461620',0.848),
                        V('zum-model-pajama-men-10.jpg?v=1789642263','zum-flatlay-model-map-pajama-men-10.png?v=1789461065',2.176),
                        V('zum-model-pajama-men-11.jpg?v=1789642267','zum-flatlay-model-map-pajama-men-11.png?v=1789380839',1.84) ] },
-  // bodyRef = the flat whose body is whole: it gives K = pattern width / body width for every view (default flats[0]).
+  // bodyRef = the flat whose body is whole: it gives br = body width / pattern width for every view (default flats[0]).
   // bc = Photoshop px on the mock / mock size (2026-10-08 list from the user; 11 kept from 2026-10-07: a pants shot,
   // only the hem of the top in frame, so the body centre sits above it). bc [10,10] = far outside the frame: no print on the body.
   womenPajama:{ bodyRef:2, flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789642270','zum-flatlay-map-women-pajama.png?v=1789030368',0.5804,[0.303,0.299]),
@@ -973,15 +973,15 @@ const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the
 // Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
 // centroid holds; 'none' = cropped and no bc: the print cannot be placed, so the body panel takes only the background (body.bg).
 const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_FRAC*(G.pbox[2][MAIN_PANEL]-G.pbox[0][MAIN_PANEL]+1)?'auto':'none';
-// K = body width / pattern width (a larger K, a larger body print; flipped 2026-10-08, was pattern / body). With the pattern
-// width P = r x W and the body width B (panel-1 width in its tiling frame):  K = B / P = B / (r x W). r keeps the motif count
-// across the chest equal between the views of a garment, so K is one number per garment: measured on an uncropped view,
-// it gives the body width of any view as B = K x r x W, whatever the frame crops.
-function bodyK(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k]&&r>0 ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
-// compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), K = bodyK of the garment's uncropped
-// reference view. Width = frac x K x r x W on every view; centre = spec.bc, else the centroid; mode 'none' = body.none.
-function bodyOpt(base,G,spec,K){ const mode=bodyMode(G,spec);
-  return { ...base, body:{ ...base.body, K, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:mode==='none'?{ none:true }:{}) } }; }
+// br (body ratio) = body width / pattern width (a larger br, a larger body print; until 2026-10-08 it was K = pattern / body).
+// With the pattern width P = r x W and the body width B (panel-1 width in its tiling frame):  br = B / P = B / (r x W). r keeps
+// the motif count across the chest equal between the views of a garment, so br is one number per garment: measured on an
+// uncropped view, it gives the body width of any view as B = br x r x W, whatever the frame crops.
+function bodyBr(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k]&&r>0 ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
+// compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), br = bodyBr of the garment's uncropped
+// reference view. Width = frac x br x r x W on every view; centre = spec.bc, else the centroid; mode 'none' = body.none.
+function bodyOpt(base,G,spec,br){ const mode=bodyMode(G,spec);
+  return { ...base, body:{ ...base.body, br, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:mode==='none'?{ none:true }:{}) } }; }
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
@@ -1002,11 +1002,11 @@ function compose(G, pat, ratio, trim, opt){
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, file centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
-  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.K x
-  // body.r x W (body.K = bodyK of an uncropped view) replaces the measured width: the frame may crop the body.
+  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.br x
+  // body.r x W (body.br = bodyBr of an uncropped view) replaces the measured width: the frame may crop the body.
   // body.bg = [r,g,b]: the body panel around the file takes this colour (else the rest). body.none: no file on the body
   // (a cropped body with no centre to place it on): the body panel takes body.bg only, or keeps the mock without one.
-  const B=opt.body, noBody=!!(B&&rest&&B.none), bodyBg=B&&rest&&B.bg||null, bW=B&&(B.K&&B.r ? B.K*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
+  const B=opt.body, noBody=!!(B&&rest&&B.none), bodyBg=B&&rest&&B.bg||null, bW=B&&(B.br&&B.r ? B.br*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
   const PB=B&&rest&&!noBody&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
   // the tiled main raster: skipped when the body file (or an empty body) + a rest cover every fabric panel (nothing would sample it)
   const P=(PB||noBody)&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);
@@ -1360,7 +1360,7 @@ async function generate(){
   const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex), scale=parseFloat($('scale').value);
   const lopt=layoutOpt();
   const t0=performance.now(); let failed=0, done=0;
-  let K=null;   // Body + rest: K = pattern width / body width, from the garment's bodyRef flat, measured once per Generate
+  let BR=null;   // Body + rest: br = body width / pattern width, from the garment's bodyRef flat, measured once per Generate
   try{
     for(let i=0;i<sel.length;i++){
       if(stopReq) break;
@@ -1371,8 +1371,8 @@ async function generate(){
         const G=await analyzeGarment(c.view, !c.isFlat);
         let opt=lopt;
         if(lopt.body){
-          if(!c.view.k&&K===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; K=f ? bodyK(await analyzeGarment(f, false), f.r) : 0; }
-          opt=bodyOpt(lopt, G, c.view, c.view.k||K); }   // the view's own k first, else the garment's K   // a cropped body without bc renders with the body in the background colour
+          if(!c.view.br&&BR===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; BR=f ? bodyBr(await analyzeGarment(f, false), f.r) : 0; }
+          opt=bodyOpt(lopt, G, c.view, c.view.br||BR); }   // the view's own br first, else the garment's   // a cropped body without bc renders with the body in the background colour
         const canvas=compose(G, patImg, scale*c.view.r, trim, opt);   // motif size = the view's own r x the slider
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');

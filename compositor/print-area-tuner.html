@@ -255,9 +255,14 @@ function main(){
   // ---- layout: one row per mode (all-over on top, Body + rest below); left column = the first flatlay, right = the
   // photo being edited. The first flatlay itself edits in place on the left, the right column then stays empty.
   const GAP=12;
+  // cells take the photos' aspect (the wider of the two), so the photos sit edge to edge with the same GAP across and down;
+  // the whole grid is as large as fits and centred in the canvas
   function cells(){
-    const W=cv.width, H=cv.height, M=modes(), cw=(W-GAP*3)/2, ch=(H-GAP*(M.length+1))/M.length, one=view===refFlat();
-    return M.map((m,i)=>{ const y=GAP+i*(ch+GAP), L={ x:GAP, y, w:cw, h:ch }, R={ x:GAP*2+cw, y, w:cw, h:ch };
+    const W=cv.width, H=cv.height, M=modes(), n=M.length, one=view===refFlat(), g=GAP*(window.devicePixelRatio||1);
+    const asp=Math.max(...[view,refFlat()].filter(v=>v&&st(v).a).map(v=>st(v).a.mock.width/st(v).a.mock.height), 0.1)||0.75;
+    const cw=Math.max(1,Math.min((W-g*3)/2, (H-g*(n+1))/n*asp)), ch=cw/asp;
+    const x0=(W-(2*cw+g))/2, y0=(H-(n*ch+(n-1)*g))/2;
+    return M.map((m,i)=>{ const y=y0+i*(ch+g), L={ x:x0, y, w:cw, h:ch }, R={ x:x0+cw+g, y, w:cw, h:ch };
       return { m, L, R, E:one?L:R }; });
   }
   // every cell is the same size and the photo fills it the same way, so all photos show at one size

@@ -372,7 +372,7 @@ function main(){
   $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.k=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
   $('copy').onclick=async()=>{
     if(!view) return; const {r,bc,k}=cur(view);
-    const s=(MOC[vid(view)]||vid(view))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+' k='+(k?fmt(k,4):K?fmt(K,4):'auto');
+    const s=(MOC[vid(view)]||vid(view))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(k?' k='+fmt(k,4):'');   // k only when this view has its own
     try{ await navigator.clipboard.writeText(s); busy('Copied: '+s); setTimeout(()=>busy(''),1500); }catch(e){ prompt('Copy:',s); }
   };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };

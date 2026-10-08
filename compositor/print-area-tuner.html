@@ -202,8 +202,17 @@ function main(){
   const GOF=new Map(); for(const g of Object.keys(GARMENTS)) for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]) GOF.set(v,g);
   const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
   const modes=()=>!allMode&&hasBody()?['allover','placement']:['allover'];   // canvas rows, top to bottom
-  // edits = current values that differ from the ones loaded with the page (this page never writes them anywhere: use Copy)
+  // edits = current values that differ from the ones in pattern-mockup.html. Kept in this browser (localStorage) so a reload
+  // or a closed tab loses nothing; never written to the file (results leave through Copy). On load an edit is dropped when
+  // its photo is gone or the file already holds the same values (it was pasted in).
+  const ED_LS='printAreaTuner.edits';
   let edits={};
+  { let saved={}; try{ saved=JSON.parse(localStorage.getItem(ED_LS)||'{}')||{}; }catch(e){}
+    const byKey=new Map(); for(const [v,g] of GOF) byKey.set(g+'/'+flatName(v),v);
+    for(const [k,e] of Object.entries(saved)){ const v=byKey.get(k); if(!v||!e||!(e.r>0)) continue;
+      if(e.r===v.r&&JSON.stringify(e.bc||null)===JSON.stringify(v.bc||null)&&(e.br||null)===(v.br||null)) continue;
+      edits[k]={ r:e.r, bc:e.bc||null, br:e.br||null }; } }
+  const saveEdits=()=>{ try{ localStorage.setItem(ED_LS,JSON.stringify(edits)); }catch(e){} };
   const uploaded={};             // garment -> [{v,flat}] added in this tab
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>(GOF.get(v)||garment)+'/'+vid(v);
@@ -465,6 +474,7 @@ function main(){
     const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null) && (n.br||null)===(view.br||null);
     if(view.vid){ view.r=n.r; view.bc=n.bc; view.br=n.br; }   // uploaded views carry their own values
     else if(same) delete edits[key]; else edits[key]=n;
+    saveEdits();
     syncInputs(); draw();
   }
   async function afterEdit(){
@@ -508,7 +518,7 @@ function main(){
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
   $('br').onchange=()=>{ const v=parseFloat($('br').value); setVal({ br:v>0?v:null }); afterEdit(); };   // empty = the garment's br
-  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
+  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
   // "<mockup id> r= bc=" (+ br= only when the view has its own)
   const lineOf=v=>{ const {r,bc,br}=cur(v); return (MOC[vid(v)]||vid(v))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(br?' br='+fmt(br,4):''); };
   const copyText=async(s,note)=>{ try{ await navigator.clipboard.writeText(s); busy(note); setTimeout(()=>busy(''),1500); }catch(e){ prompt('Copy:',s); } };
@@ -609,7 +619,7 @@ function main(){
     const s=st(upEntry.v); s.G=null; s.img={}; s.key={}; if(view===upEntry.v) selectView(view); };
 
   $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / br from pattern-mockup.html?')) return;
-    edits={}; syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
+    edits={}; saveEdits(); syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
   selectView(allMode?refOf(garment):allViews(garment)[0].v);

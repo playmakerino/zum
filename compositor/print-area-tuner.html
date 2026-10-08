@@ -234,9 +234,12 @@ function main(){
   // default patterns: all-over = 16 x 16 checks per repeat, so the checks across the chest can be counted on both photos;
   // Body + rest = 3 x 3 checks, printed once on the body.
   function testPattern(N){
-    const c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'), q=400/N;
+    const c=document.createElement('canvas'); c.width=c.height=N*64; const x=c.getContext('2d'), q=64;
     for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
     x.fillStyle='#e07a5f'; x.fillRect(0,0,q,q);   // one marked check per tile = where each repeat starts
+    // column number in every check (1..N), so the checks across the chest can be read off directly
+    x.font='600 '+Math.round(q*(N>9?0.42:0.5))+'px system-ui,sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#2f4b7c':'#f1e6d0'; x.fillText(String(i+1),(i+.5)*q,(j+.5)*q+q*0.03); }
     return c;
   }
   const DEF={ allover:testPattern(16), placement:testPattern(3) };

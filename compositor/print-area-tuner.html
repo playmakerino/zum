@@ -396,7 +396,7 @@ function main(){
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
     $('r0').textContent=r!==r0?'(was '+r0+')':'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    for(const id of ['rGrp','bcGrp','bcBtns','brGrp']){ const g=$(id), off=allMode||id!=='rGrp'&&!hasBody();   // All = view only   // no Body + rest on this product (or the All overview): bc / br unused
+    for(const id of ['bcGrp','bcBtns','brGrp']){ const g=$(id), off=allMode||!hasBody();   // no Body + rest here (or the All overview): bc / br unused   // no Body + rest on this product (or the All overview): bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
     { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
       $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'This photo uses its own br. Empty the box to follow '+id+' again.'

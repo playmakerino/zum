@@ -140,7 +140,7 @@ function main(){
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
   const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, br:v.br||null }; };
   const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
-  const refFlat=()=>GARMENTS[garment].flats[0];                       // left column: always the first flatlay
+  const refFlat=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // left column: the garment's reference flatlay (bodyRef, the one br comes from)
   const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // br reference (Body + rest)
 
   let userPat=null, BR=0;   // userPat = a pattern the user dropped (replaces both defaults)

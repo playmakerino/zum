@@ -559,6 +559,7 @@ function main(){
     const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
       vid:'new-'+fm.name.replace(/\.[^.]+$/,'') };
     v.thumb=v.mock;
+    if(allMode){ allMode=false; $('garment').value=garment; BR=0; }   // All shows only the references: open the product it joins
     upEntry={ v, flat:kindFlat() };
     (uploaded[garment]=uploaded[garment]||[]).push(upEntry);
     selectView(v);

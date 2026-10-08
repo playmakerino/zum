@@ -8,93 +8,98 @@
 :root{ --bg:#f4f4f2; --panel:#fff; --line:#ddd; --ink:#222; --mute:#777; --acc:#1f6feb; --warn:#b54708; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif; }
-.app{ display:grid; grid-template-columns:300px 1fr 340px; height:100vh; }
+.app{ display:grid; grid-template-columns:290px 1fr; height:100vh; }
 aside{ background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:12px; }
-aside.right{ border-right:0; border-left:1px solid var(--line); }
-h2{ font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--mute); margin:16px 0 6px; }
-h2:first-child{ margin-top:0; }
-select,input[type=number],input[type=text]{ width:100%; padding:5px 6px; border:1px solid var(--line); border-radius:4px; font:inherit; background:#fff; }
-input[type=number]{ width:auto; flex:1; min-width:0; }
-button{ font:inherit; padding:5px 10px; border:1px solid var(--line); border-radius:4px; background:#fff; cursor:pointer; }
+.step{ font-size:12px; font-weight:600; color:var(--mute); margin:16px 0 6px; }
+.step:first-child{ margin-top:0; }
+select{ width:100%; padding:6px; border:1px solid var(--line); border-radius:4px; font:inherit; background:#fff; }
+input[type=number]{ width:72px; padding:4px 6px; border:1px solid var(--line); border-radius:4px; font:inherit; }
+button{ font:inherit; padding:5px 10px; border:1px solid var(--line); border-radius:4px; background:#fff; cursor:pointer; white-space:nowrap; }
 button:hover{ border-color:#aaa; }
 button.pri{ background:var(--acc); border-color:var(--acc); color:#fff; }
-.row{ display:flex; gap:6px; align-items:center; margin:6px 0; }
-.row label{ min-width:58px; color:var(--mute); }
-.seg{ display:flex; border:1px solid var(--line); border-radius:4px; overflow:hidden; }
-.seg button{ flex:1; border:0; border-radius:0; }
-.seg button.on{ background:var(--acc); color:#fff; }
+button:disabled{ opacity:.45; cursor:default; }
+.tabs{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+.tabs button{ flex:1; border:0; border-radius:0; padding:8px 4px; }
+.tabs button.on{ background:var(--acc); color:#fff; }
+.hint{ color:var(--mute); font-size:12px; margin:6px 0 0; }
+.slider{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+.slider input{ flex:1; }
 .views{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
 .views .v{ position:relative; border:2px solid transparent; border-radius:4px; cursor:pointer; background:#eee; aspect-ratio:3/4; overflow:hidden; }
 .views .v img{ width:100%; height:100%; object-fit:cover; display:block; }
 .views .v.on{ border-color:var(--acc); }
 .views .v .tag{ position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:1px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.views .v.edited::after{ content:''; position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%; background:#f59e0b; }
-.stage{ position:relative; overflow:hidden; background:#cfcfcb; }
-.stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
-.hud{ position:absolute; left:10px; top:10px; background:rgba(255,255,255,.92); border-radius:4px; padding:6px 8px; font-size:12px; pointer-events:none; max-width:60%; }
+.views .v.edited::after{ content:''; position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%; background:#f59e0b; border:1px solid #fff; }
+.drop{ border:1px dashed #bbb; border-radius:4px; padding:8px; text-align:center; color:var(--mute); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+details{ margin-top:16px; }
+details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:pointer; }
+.up{ display:grid; grid-template-columns:40px 1fr; gap:6px; align-items:center; margin-top:8px; }
+.up input[type=file]{ font-size:11px; min-width:0; }
+.right{ display:flex; flex-direction:column; min-width:0; }
+.bar{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); }
+.bar .grp{ display:flex; gap:6px; align-items:center; }
+.bar .lbl{ color:var(--mute); }
+.bar .sp{ flex:1; }
+.bar .orig{ color:var(--mute); font-size:12px; }
+.stage{ position:relative; flex:1; overflow:hidden; background:#cfcfcb; }
+.stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; outline:none; }
+.hud{ position:absolute; left:10px; bottom:10px; background:rgba(255,255,255,.94); border-radius:4px; padding:6px 10px; font-size:12px; pointer-events:none; max-width:70%; }
+.hud:empty{ display:none; }
 .hud .warn{ color:var(--warn); }
 .busy{ position:absolute; right:10px; top:10px; background:#222; color:#fff; border-radius:4px; padding:4px 8px; font-size:12px; }
-.note{ color:var(--mute); font-size:12px; margin:4px 0; }
-.note.warn{ color:var(--warn); }
-.out{ font:12px/1.5 ui-monospace,Consolas,monospace; background:#f7f7f7; border:1px solid var(--line); border-radius:4px; padding:8px; white-space:pre-wrap; word-break:break-all; max-height:45vh; overflow:auto; }
-.chg{ border-bottom:1px solid var(--line); padding:6px 0; }
-.chg b{ font-weight:600; }
-.chg .old{ color:var(--mute); }
-.drop{ border:1px dashed #bbb; border-radius:4px; padding:8px; text-align:center; color:var(--mute); cursor:pointer; }
+.legend{ position:absolute; right:10px; bottom:10px; background:rgba(255,255,255,.94); border-radius:4px; padding:6px 10px; font-size:12px; line-height:1.6; pointer-events:none; }
+.legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
 .err{ padding:40px; color:#b42318; font-size:14px; }
-@media (max-width:900px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 60vh auto; height:auto; } }
+@media (max-width:800px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 70vh; height:auto; } }
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <aside>
-    <h2>Garment</h2>
+    <div class="step">1. Sản phẩm</div>
     <select id="garment"></select>
-    <h2>View</h2>
+
+    <div class="step">2. Kiểu in</div>
+    <div class="tabs" id="mode"><button data-m="placement">In thân</button><button data-m="allover">Lặp toàn bộ</button></div>
+    <p class="hint" id="modeNote"></p>
+    <div class="slider" id="fracRow"><span class="hint" style="margin:0">Cỡ in thân</span><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
+
+    <div class="step">3. Chọn ảnh <span class="hint">(chấm cam = đã sửa)</span></div>
     <div class="views" id="views"></div>
-    <h2>Thêm ảnh mới</h2>
-    <div class="row"><label>Mock</label><input type="file" id="upMock" accept="image/*"></div>
-    <div class="row"><label>Map</label><input type="file" id="upMap" accept="image/png"></div>
-    <div class="row"><label>Loại</label><select id="upKind"><option value="model">On-model</option><option value="flat">Flatlay</option></select></div>
-    <button id="upAdd">Thêm vào garment này</button>
-    <p class="note">Map có hậu tố <code>-r1.25</code> trong tên file thì lấy làm r ban đầu. Ảnh mới chỉ sống trong tab này.</p>
-  </aside>
 
-  <main class="stage" id="stage">
-    <canvas id="cv"></canvas>
-    <div class="hud" id="hud"></div>
-    <div class="busy" id="busy" hidden></div>
-  </main>
-
-  <aside class="right">
-    <h2>Chế độ</h2>
-    <div class="seg" id="mode"><button data-m="placement">Body + rest</button><button data-m="allover">All-over</button></div>
-    <p class="note" id="modeNote"></p>
-    <div class="row"><label>Body size</label><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75" style="flex:1"><span id="fracV">0.75</span></div>
-
-    <h2>Giá trị</h2>
-    <div class="row"><label>r</label><input type="number" id="r" step="0.001"><span class="note" id="r0"></span></div>
-    <div class="row"><label>bc x / y</label><input type="number" id="bx" step="0.001"><input type="number" id="by" step="0.001"></div>
-    <div class="row">
-      <button id="bcAuto" title="Xoá bc: engine dùng tâm khối body (chỉ đúng khi body không bị cắt)">Bỏ bc</button>
-      <button id="bcNone" title="bc [10,10]: không in gì lên body">Không in body</button>
-      <button id="reset">Về gốc</button>
-    </div>
-    <p class="note">Kéo khung = dời bc. Kéo góc hoặc lăn chuột trên khung = đổi r. Phím mũi tên = dời 1px (Shift 10px).</p>
-
-    <h2>Pattern</h2>
-    <div class="drop" id="patDrop">Bấm hoặc thả ảnh pattern (mặc định: pattern thử)</div>
+    <div class="step">Pattern để xem thử</div>
+    <div class="drop" id="patDrop">Bấm hoặc thả ảnh pattern</div>
     <input type="file" id="patFile" accept="image/*" hidden>
 
-    <h2>Xem</h2>
-    <div class="row"><label><input type="checkbox" id="showMap" checked> Map</label><label><input type="checkbox" id="showBox" checked> Khung</label><label><input type="checkbox" id="autoRender" checked> Render khi thả</label></div>
-    <div class="row"><button class="pri" id="render">Render thật (engine)</button><button id="showMock">Ảnh gốc</button></div>
-
-    <h2>Dòng đã sửa <span id="nChg"></span></h2>
-    <div id="changes"></div>
-    <div class="row"><button id="copyAll">Copy tất cả</button><button id="clearAll">Xoá hết sửa</button></div>
-    <p class="note">Dán đè dòng <code>V(...)</code> cùng tên file trong GARMENT DATA của <code>pattern-mockup.html</code> (và form nếu view có ở đó).</p>
+    <details>
+      <summary>Thêm ảnh mới (mock + map)</summary>
+      <div class="up"><span class="hint" style="margin:0">Mock</span><input type="file" id="upMock" accept="image/*"></div>
+      <div class="up"><span class="hint" style="margin:0">Map</span><input type="file" id="upMap" accept="image/png"></div>
+      <div class="up"><span class="hint" style="margin:0">Loại</span><select id="upKind"><option value="model">Ảnh người mặc</option><option value="flat">Flatlay</option></select></div>
+      <p class="hint">Tên file map có <code>-r1.25</code> thì lấy làm r ban đầu.</p>
+      <button id="upAdd" style="margin-top:6px">Thêm vào sản phẩm này</button>
+    </details>
   </aside>
+
+  <div class="right">
+    <div class="bar">
+      <div class="grp"><span class="lbl">r</span><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
+      <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
+      <div class="grp" id="bcBtns"><button id="bcAuto" title="Xoá bc: engine tự lấy tâm thân áo (chấm đỏ)">Tự lấy tâm</button><button id="bcNone" title="bc [10,10]">Không in thân</button></div>
+      <button id="reset">Về gốc</button>
+      <span class="sp"></span>
+      <label class="hint" style="margin:0"><input type="checkbox" id="showMap" checked> Tô vùng vải</label>
+      <button id="holdMock" title="Giữ chuột để xem ảnh gốc">Giữ: xem gốc</button>
+      <button class="pri" id="copyAll" disabled>Copy 0 dòng đã sửa</button>
+      <button id="clearAll" title="Xoá mọi sửa đã lưu">Xoá sửa</button>
+    </div>
+    <main class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="legend" id="legend"></div>
+      <div class="busy" id="busy" hidden></div>
+    </main>
+  </div>
 </div>
 
 <script>
@@ -134,7 +139,7 @@ function main(){
   const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
 
   // ---- per-view loaded assets ----
-  let mockImg=null, mapOv=null, cent=null, G=null, K=0, renderImg=null, renderKey='', showRender=false;
+  let mockImg=null, mapOv=null, cent=null, G=null, K=0, renderImg=null, renderKey='', holding=false;
   let pat=testPattern();
   const assetCache=new Map();
 
@@ -163,7 +168,7 @@ function main(){
   }
 
   async function selectView(v){
-    view=v; renderImg=null; showRender=false; mockImg=null; mapOv=null; G=null; cent=null;
+    view=v; renderImg=null; mockImg=null; mapOv=null; G=null; cent=null;
     paintViews(); syncInputs(); draw();
     busy('Đang tải ảnh…');
     try{
@@ -174,8 +179,8 @@ function main(){
       G=await analyzeGarment(v, !isFlat(v));
       if(view!==v) return;
       await updateK();
-    }catch(e){ console.error(e); hud('<span class="warn">Lỗi: '+e.message+'</span>'); }
-    busy(''); draw();
+    }catch(e){ console.error(e); hud('<span class="warn">Lỗi: '+e.message+'</span>'); busy(''); return; }
+    busy(''); draw(); doRender();
   }
 
   // mock image + a display-size overlay of the map (panel 1 blue, other fabric orange, trim grey) + panel-1 centroid
@@ -241,12 +246,12 @@ function main(){
     if(!view||!mockImg){ return; }
     const T=view2screen();
     ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
-    const live=showRender&&renderImg&&renderKey===stateKey();
+    const live=!holding&&!drag&&renderImg&&renderKey===stateKey();
     ctx.drawImage(live?renderImg:mockImg, T.ox,T.oy,T.W,T.H);
-    if($('showMap').checked&&!live&&mapOv) ctx.drawImage(mapOv, T.ox,T.oy,T.W,T.H);
+    if($('showMap').checked&&!live&&!holding&&mapOv) ctx.drawImage(mapOv, T.ox,T.oy,T.W,T.H);
     ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);
     const b=box(); const dpr1=dpr;
-    if(b&&!b.none&&$('showBox').checked){
+    if(b&&!b.none&&!holding){
       const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
       ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
       if(b.kind==='tile'){   // neighbouring tiles, faint, to show the repeat
@@ -262,23 +267,22 @@ function main(){
     // centroid marker
     if(cent){ ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
       ctx.beginPath(); ctx.arc(T.ox+cent[0]*T.W, T.oy+cent[1]*T.H, 4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
-    hudInfo(b, live);
+    hudInfo(b);
   }
   function hud(h){ $('hud').innerHTML=h; }
-  function hudInfo(b, live){
-    const {r,bc}=cur(view); const L=[];
-    L.push('<b>'+vid(view)+'</b> · '+(MOC[vid(view)]||'')+(isFlat(view)?' · flatlay':' · on-model'));
-    L.push('r = '+fmt(r,4)+(r!==view.r?' (gốc '+view.r+')':'')+' · bc = '+(bc?'['+bc.map(x=>fmt(x,3)).join(', ')+']':'—'));
+  // only what needs attention: the box itself says the rest
+  function hudInfo(b){
+    const {bc}=cur(view), L=[];
     if(mode==='placement'){
-      L.push('K = '+(viewK()?fmt(viewK(),4):'…')+(view.k?' (k riêng)':' (từ '+vid(refView())+')'));
-      if(b&&b.none) L.push('<span class="warn">Body bị cắt và không có bc: engine không in gì lên body. Bấm vào ảnh để đặt bc.</span>');
-      else if(b&&b.kind==='auto') L.push('Không có bc: engine đặt theo tâm khối body (chấm đỏ).');
-      if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">bc ngoài xa khung: không in body. Bấm vào ảnh để đặt lại.</span>');
-      if(rLocked()) L.push('<span class="warn">View này là chuẩn K: ở Body + rest r không đổi cỡ khung. Đổi r ở chế độ All-over (sẽ đổi cỡ body ở mọi view khác).</span>');
+      if(b&&b.none) L.push('<span class="warn">Thân áo bị cắt khỏi khung và chưa có tâm: không in gì lên thân. Bấm vào chỗ muốn đặt tâm.</span>');
+      else if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">Đang đặt "không in thân". Bấm vào ảnh để đặt lại tâm.</span>');
+      else if(b&&b.kind==='auto') L.push('Tâm đang tự lấy (chấm đỏ). Kéo khung để đặt tâm riêng.');
+      if(rLocked()) L.push('<span class="warn">Ảnh này là chuẩn cỡ của cả sản phẩm: cỡ in thân không chỉnh ở đây. Đổi r ở tab Lặp toàn bộ.</span>');
     }
-    if(live) L.push('Đang xem render thật.');
-    else if(renderImg&&showRender) L.push('<span class="warn">Render cũ, đã sửa sau đó.</span>');
     hud(L.join('<br>'));
+    $('legend').innerHTML=mode==='placement'
+      ? '<i style="background:#1f6feb"></i>Vùng in thân: kéo để dời, kéo góc để đổi cỡ<br><i style="background:#e5484d;border-radius:50%"></i>Tâm thân tự tính'
+      : '<i style="background:#1f6feb"></i>1 ô lặp: kéo góc để đổi cỡ';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
@@ -303,7 +307,7 @@ function main(){
     else if(h&&h.type==='move'&&mode==='placement'){ drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] }; }
     else if(mode==='placement'){ setVal({ bc:[fmt(p.nx,3),fmt(p.ny,3)] }); drag={ type:'move', p0:p, bc0:[fmt(p.nx,3),fmt(p.ny,3)] }; }
     else return;
-    cv.setPointerCapture(e.pointerId); showRender=false;
+    cv.setPointerCapture(e.pointerId); draw();
   });
   cv.addEventListener('pointermove',e=>{
     if(!view||!mockImg) return;
@@ -317,7 +321,7 @@ function main(){
   let wheelT=0;
   cv.addEventListener('wheel',e=>{
     if(!view||!mockImg||rLocked()) return; const h=hit(toMock(e)); if(!h) return;
-    e.preventDefault(); showRender=false;
+    e.preventDefault();
     setVal({ r:fmt(cur(view).r*(e.deltaY<0?1.02:1/1.02),4) });
     clearTimeout(wheelT); wheelT=setTimeout(afterEdit,500);
   },{passive:false});
@@ -326,7 +330,7 @@ function main(){
     if(!view||!mockImg||mode!=='placement') return;
     const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
     e.preventDefault(); const T=view2screen(), st=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
-    const b=box(); if(!b||b.none) return; showRender=false;
+    const b=box(); if(!b||b.none) return;
     setVal({ bc:[fmt(b.cx+d[0]*st/T.W,3), fmt(b.cy+d[1]*st/T.H,3)] });
     clearTimeout(wheelT); wheelT=setTimeout(afterEdit,600);
   });
@@ -342,12 +346,14 @@ function main(){
   async function afterEdit(){
     paintViews(); paintChanges();
     if(view===refView()){ await updateK(); draw(); }
-    if($('autoRender').checked) doRender();
+    doRender();
   }
   function syncInputs(){
-    if(!view) return; const {r,bc}=cur(view);
+    if(!view) return; const {r,bc}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null);
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
-    $('r0').textContent='gốc '+(view.origR!==undefined?view.origR:view.r);
+    $('r0').textContent=r!==r0?'(gốc '+r0+')':'';
+    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(gốc '+(b0?b0.join(', '):'tự lấy')+')':'';
+    const off=mode!=='placement'; for(const id of ['bx','by','bcAuto','bcNone']) $(id).disabled=off; $('bcGrp').style.opacity=off?.45:1;
   }
   $('r').onchange=()=>{ const v=parseFloat($('r').value); if(v>0){ setVal({r:v}); afterEdit(); } };
   const bcIn=()=>{ const x=parseFloat($('bx').value), y=parseFloat($('by').value); if(isFinite(x)&&isFinite(y)){ setVal({bc:[x,y]}); afterEdit(); } };
@@ -359,21 +365,23 @@ function main(){
   // ---- mode / frac / toggles ----
   function setMode(m){ mode=m; for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
     $('modeNote').textContent=m==='placement'
-      ? 'Khung = file pattern in 1 lần lên body. Tâm khung = bc, rộng = Body size × r × W / K.'
-      : 'Khung = 1 ô lặp của pattern, rộng = r × bề rộng ảnh. Tâm ô đặt ở tâm khối body.';
-    showRender=false; draw(); }
+      ? 'Pattern in 1 lần lên thân áo. Chỉnh vị trí (bc) và cỡ (r).'
+      : 'Pattern lặp kín vải. Chỉ chỉnh cỡ ô lặp (r).';
+    $('fracRow').style.display=m==='placement'?'':'none';
+    syncInputs(); draw(); if(view&&mockImg) doRender(); }
   for(const b of $('mode').children) b.onclick=()=>setMode(b.dataset.m);
-  $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; showRender=false; draw(); };
-  $('frac').onchange=()=>{ if($('autoRender').checked) doRender(); };
-  $('showMap').onchange=draw; $('showBox').onchange=draw;
-  $('showMock').onclick=()=>{ showRender=false; draw(); };
+  $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
+  $('frac').onchange=()=>doRender();
+  $('showMap').onchange=draw;
+  const hold=on=>()=>{ holding=on; draw(); };
+  $('holdMock').onpointerdown=hold(true); for(const ev of ['pointerup','pointerleave','pointercancel']) $('holdMock').addEventListener(ev,hold(false));
 
   // ---- pattern ----
   $('patDrop').onclick=()=>$('patFile').click();
   $('patDrop').ondragover=e=>e.preventDefault();
   $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
   $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
-  async function setPat(f){ pat=await decodeFile(f); $('patDrop').textContent=f.name; renderImg=null; draw(); if($('autoRender').checked) doRender(); }
+  async function setPat(f){ pat=await decodeFile(f); $('patDrop').textContent=f.name; renderImg=null; draw(); doRender(); }
 
   // ---- real render through the engine ----
   const stateKey=()=>{ const {r,bc}=cur(view); return [vid(view),mode,$('frac').value,r,JSON.stringify(bc),viewK(),pat.width+'x'+pat.height,$('patDrop').textContent].join('|'); };
@@ -390,12 +398,11 @@ function main(){
       } else opt={ center:true };
       const canvas=compose(Gv, pat, r, null, opt);
       if(my!==rendering||view!==v) return;
-      renderImg=canvas; renderKey=key; showRender=true;
+      renderImg=canvas; renderKey=key;
     }catch(e){ console.error(e); hud('<span class="warn">Render lỗi: '+e.message+'</span>'); }
     if(my===rendering) busy('');
     draw();
   }
-  $('render').onclick=doRender;
 
   // ---- upload new mock + map ----
   $('upAdd').onclick=async()=>{
@@ -428,12 +435,8 @@ function main(){
     return out;
   }
   function paintChanges(){
-    const L=changeList(), box=$('changes'); box.innerHTML=''; $('nChg').textContent=L.length?'('+L.length+')':'';
-    if(!L.length){ box.innerHTML='<p class="note">Chưa sửa gì.</p>'; return; }
-    for(const c of L){ const d=document.createElement('div'); d.className='chg';
-      d.innerHTML='<b>'+c.g+' · '+vid(c.v)+'</b>'+(c.old?'<div class="out old">'+c.old+'</div>':'<div class="note">ảnh mới: upload mock/map lên CDN rồi thêm ?v</div>')+'<div class="out">'+c.line+'</div>';
-      const b=document.createElement('button'); b.textContent='Copy'; b.onclick=()=>copy(c.line); d.appendChild(b);
-      box.appendChild(d); }
+    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent='Copy '+n+' dòng đã sửa';
+    $('copyAll').title='Copy các dòng V(...) mới, dán đè dòng cùng tên file trong GARMENT DATA của pattern-mockup.html';
   }
   async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Đã copy'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
   $('copyAll').onclick=()=>{ const L=changeList(); if(L.length) copy(L.map(c=>'// '+c.g+' · '+vid(c.v)+'\n'+c.line+',').join('\n')); };

@@ -119,10 +119,9 @@ function main(){
   let garment=Object.keys(GARMENTS)[0], view=null;
   const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
   const modes=()=>hasBody()?['allover','placement']:['allover'];   // canvas rows, top to bottom
-  // edits = current values that differ from the ones loaded with the page; every finished edit is written to pattern-mockup.html
+  // edits = current values that differ from the ones loaded with the page (this page never writes them anywhere: use Copy)
   let edits={};
   const uploaded={};             // garment -> [{v,flat}] added in this tab
-  const fileOf=u=>String(u).startsWith(CDN)?u.slice(CDN.length):u;
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>garment+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
@@ -347,7 +346,7 @@ function main(){
     syncInputs(); draw();
   }
   async function afterEdit(){
-    paintViews(); save([view]);
+    paintViews();
     if(view===refView()) await updateK();
     syncInputs(); draw(); renderAll();
   }
@@ -426,27 +425,8 @@ function main(){
     selectView(v);
   };
 
-  // ---- output ----
-  const vLine=(v,{r,bc,k})=>{
-    let s="V('"+fileOf(v.mock)+"','"+fileOf(v.map)+"',"+fmt(r,4);
-    if(bc) s+=',['+bc.map(x=>String(fmt(x,3))).join(',')+']'; else if(k) s+=',null';
-    if(k) s+=','+fmt(k,4);
-    return s+')';
-  };
-  // write the current values of these views into GARMENT DATA of pattern-mockup.html (local preview server; an uploaded
-  // photo is not on the CDN yet, so it has no line there and is skipped)
-  async function save(views){
-    const L=views.filter(v=>!v.vid).map(v=>({ mock:fileOf(v.mock), map:fileOf(v.map), call:vLine(v,cur(v)) }));
-    if(!L.length) return;
-    try{
-      const res=await fetch('/__tuner/save',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ changes:L }) });
-      const j=await res.json().catch(()=>({ error:'HTTP '+res.status }));
-      if(!res.ok||j.error) throw new Error(j.error||('HTTP '+res.status));
-    }catch(e){ console.error(e); busy('Not saved: '+e.message); }
-  }
-  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / k from when this page was opened?')) return;
-    const back=[]; for(const g of Object.keys(GARMENTS)) for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]) if(edits[g+'/'+flatName(v)]) back.push(v);
-    edits={}; save(back); syncInputs(); paintViews(); updateK().then(()=>{ syncInputs(); draw(); renderAll(); }); };
+  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / k from pattern-mockup.html?')) return;
+    edits={}; syncInputs(); paintViews(); updateK().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
   selectView(allViews(garment)[0].v);

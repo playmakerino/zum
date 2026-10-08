@@ -93,10 +93,7 @@ button:disabled,input:disabled{ cursor:default; }
 .busy{ position:absolute; right:12px; top:12px; display:flex; align-items:center; gap:8px; background:rgba(29,29,27,.88); color:#fff; border-radius:999px; padding:5px 12px; font-size:12px; pointer-events:none; }
 .busy.spin::before{ content:''; width:10px; height:10px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
-.alert{ margin:10px 12px 0; padding:10px 12px; border-radius:var(--r); background:#fff4e5; border:1px solid #f5c38a; color:#7a3d00; font-size:12px; line-height:1.45; display:flex; flex-direction:column; gap:8px; }
-.alert[hidden]{ display:none; }
-.alert b{ font-weight:600; }
-.alert button{ align-self:flex-start; height:26px; border-color:#f5c38a; background:#fff; }
+.sub.warn{ color:#b54708; font-weight:500; }
 .err{ padding:40px; color:#b42318; font-size:14px; }
 @media (max-width:980px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 70vh auto; height:auto; } .pane.left,.pane.right{ border:0; } }
 </style>
@@ -139,7 +136,6 @@ button:disabled,input:disabled{ cursor:default; }
   </main>
 
   <aside class="pane right">
-    <div class="alert" id="refWarn" hidden><div id="refWarnText"></div><button id="refUndo">Undo reference r</button></div>
     <section class="sec">
       <div class="who" id="who"></div>
       <div class="sub" id="whoSub"></div>
@@ -487,20 +483,17 @@ function main(){
     // All compares reference flatlays: a photo added there is a flatlay, On-model is greyed out
     { const mr=document.querySelector('input[name=upKind][value=model]'), fr=document.querySelector('input[name=upKind][value=flat]');
       mr.disabled=allMode; mr.parentElement.classList.toggle('off',allMode); if(allMode) fr.checked=true; }
-    // the product's reference r is changed: every photo without its own br gets a different body print size
-    { const ref=refView(), on=!!ref&&hasBody()&&cur(ref).r!==ref.r;
-      $('refWarn').hidden=!on;
-      if(on){ const r0=ref.r, r1=cur(ref).r, pct=Math.round((r0/r1-1)*100);
-        $('refWarnText').innerHTML='<b>Reference r changed</b> ('+(MOC[vid(ref)]||vid(ref))+'): '+r0+' → '+fmt(r1,4)+'.<br>'
-          +'Body print on every photo of this product without its own br is now '+Math.abs(pct)+'% '+(pct<0?'smaller':'larger')+'.'; } }
     // header: which photo is being edited
     $('who').textContent=MOC[vid(view)]||vid(view);
     $('whoSub').textContent=(GOF.get(view)||garment)+' · '+(isFlat(view)?'flatlay':'on-model')+(view===refView()?' · reference':'')+(view.vid?' · new upload':'');
     for(const id of ['bcGrp','brGrp']){ const g=$(id), off=allMode||!hasBody();   // no Body + rest here (or the All overview): bc / br unused   // no Body + rest on this product (or the All overview): bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
     { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
+      const r1=ref?cur(ref).r:0, moved=!!ref&&r1!==ref.r, pct=moved?Math.round((ref.r/r1-1)*100):0;   // reference r edited: say so here
       $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'Own value. Empty it to follow '+id+' again.'
-        : 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(cur(ref).r,4)+'. Changing that r changes it here too.'; }
+        : moved ? 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(r1,4)+' (was '+ref.r+'): body print '+Math.abs(pct)+'% '+(pct<0?'smaller':'larger')+' on every photo without its own br.'
+        : 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(r1,4)+'. Changing that r changes it here too.';
+      $('brWhy').classList.toggle('warn',moved&&!br&&hasBody()&&!allMode); }
     $('br0').textContent=(br||null)!==br0?'was '+(br0||'auto'):'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
@@ -515,10 +508,6 @@ function main(){
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
   $('br').onchange=()=>{ const v=parseFloat($('br').value); setVal({ br:v>0?v:null }); afterEdit(); };   // empty = the garment's br
-  // put only the reference's r back (its bc / br edits stay)
-  $('refUndo').onclick=async()=>{ const ref=refView(); if(!ref) return; const k=keyOf(ref), e=edits[k]; if(!e) return;
-    const n={ ...e, r:ref.r }; if(JSON.stringify(n.bc)===JSON.stringify(ref.bc||null)&&(n.br||null)===(ref.br||null)) delete edits[k]; else edits[k]=n;
-    await updateBr(); syncInputs(); paintViews(); draw(); renderAll(); };
   $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
   // "<mockup id> r= bc=" (+ br= only when the view has its own)
   const lineOf=v=>{ const {r,bc,br}=cur(v); return (MOC[vid(v)]||vid(v))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(br?' br='+fmt(br,4):''); };

@@ -184,7 +184,9 @@ function main(){
       const im=document.createElement('img'); im.loading='lazy'; im.src=v.thumb||(v.mock+(v.mock.includes('?')?'&':'?')+'width=200'); d.appendChild(im);
       const t=document.createElement('div'); t.className='tag'; t.textContent=allMode?GOF.get(v):(flat?'F · ':'')+(MOC[vid(v)]||vid(v)); d.appendChild(t);
       d.title=vid(v); d.onclick=()=>selectView(v); box.appendChild(d);
-    }
+    }    // Copy all carries the number of changed photos (every product + uploads)
+    const n=Object.keys(edits).length+Object.values(uploaded).reduce((s,l)=>s+l.length,0);
+    $('copyAll').textContent='Copy all ('+n+' edited)';
   }
 
   // load + analyse one view (mock, masks, engine garment); cached

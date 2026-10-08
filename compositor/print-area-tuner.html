@@ -5,81 +5,121 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Print Area Tuner</title>
 <style>
-:root{ --bg:#f4f4f2; --panel:#fff; --line:#ddd; --ink:#222; --mute:#777; --acc:#1f6feb; --warn:#b54708; }
+:root{
+  --bg:#ecebe7; --panel:#fff; --sunk:#f6f5f2; --line:#e3e1dc; --line2:#d3d0c9; --ink:#1d1d1b; --mute:#77746d; --faint:#a5a29b;
+  --acc:#1f6feb; --acc-ink:#fff; --acc-soft:#e8f0fe; --dot:#f59e0b;
+  --r:6px; --h:30px;
+}
 *{ box-sizing:border-box; }
-html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif; }
-.app{ display:grid; grid-template-columns:290px 1fr 250px; height:100vh; }
-aside{ background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:12px; }
-.step{ font-size:12px; font-weight:600; color:var(--mute); margin:16px 0 6px; }
-.step:first-child{ margin-top:0; }
-select{ width:100%; padding:6px; border:1px solid var(--line); border-radius:4px; font:inherit; background:#fff; }
-input[type=number]{ width:72px; padding:4px 6px; border:1px solid var(--line); border-radius:4px; font:inherit; }
-button{ font:inherit; padding:5px 10px; border:1px solid var(--line); border-radius:4px; background:#fff; cursor:pointer; white-space:nowrap; }
-button:hover{ border-color:#aaa; }
-button.pri{ background:var(--acc); border-color:var(--acc); color:#fff; }
-button:disabled{ opacity:.45; cursor:default; }
-.hint{ color:var(--mute); font-size:12px; margin:6px 0 0; }
-.slider{ display:flex; gap:8px; align-items:center; margin-top:8px; }
-.slider input{ flex:1; }
+html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.app{ display:grid; grid-template-columns:280px minmax(0,1fr) 260px; height:100vh; }
+
+/* sidebars: stacked sections split by a hairline */
+.pane{ background:var(--panel); overflow:auto; display:flex; flex-direction:column; }
+.pane.left{ border-right:1px solid var(--line); }
+.pane.right{ border-left:1px solid var(--line); }
+.sec{ padding:14px 16px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+.sec:last-child{ border-bottom:0; }
+.sec.grow{ flex:1; }
+.sec.foot{ margin-top:auto; border-top:1px solid var(--line); border-bottom:0; }
+.h{ font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--mute); display:flex; align-items:baseline; gap:6px; }
+.h .val{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
+.row{ display:flex; gap:6px; align-items:center; }
+.row > *{ min-width:0; }
+.sub{ font-size:12px; color:var(--mute); line-height:1.45; }
+.sub:empty{ display:none; }
+
+/* controls */
+select,input[type=number]{ height:var(--h); padding:0 8px; border:1px solid var(--line2); border-radius:var(--r); font:inherit; background:#fff; color:var(--ink); }
+select{ width:100%; }
+input[type=number]{ width:100%; font-variant-numeric:tabular-nums; }
+input[type=number]::placeholder{ color:var(--faint); }
+input[type=range]{ width:100%; margin:0; accent-color:var(--acc); }
+button{ height:var(--h); padding:0 12px; font:inherit; border:1px solid var(--line2); border-radius:var(--r); background:#fff; color:var(--ink); cursor:pointer; white-space:nowrap; }
+button:hover:not(:disabled){ background:var(--sunk); }
+button.pri{ background:var(--acc); border-color:var(--acc); color:var(--acc-ink); }
+button.pri:hover:not(:disabled){ background:#1a5fd0; }
+button:disabled,input:disabled{ cursor:default; }
+.wide{ width:100%; }
+.row > button{ flex:1; }
+:focus-visible{ outline:2px solid var(--acc); outline-offset:1px; }
+.off{ opacity:.4; pointer-events:none; }
+
+/* photo grid */
 .views{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-.views .v{ position:relative; border:2px solid transparent; border-radius:4px; cursor:pointer; background:#eee; aspect-ratio:3/4; overflow:hidden; }
-.views .v img{ width:100%; height:100%; object-fit:cover; display:block; }
-.views .v.on{ border-color:var(--acc); }
-.views .v .tag{ position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:1px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.views .v.edited::after{ content:''; position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%; background:#f59e0b; border:1px solid #fff; }
-.drop{ border:1px dashed #bbb; border-radius:4px; padding:8px; text-align:center; color:var(--mute); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-details{ margin-top:16px; }
-details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:pointer; }
-.up{ display:grid; grid-template-columns:40px 1fr; gap:6px; align-items:center; margin-top:8px; }
-.up input[type=file]{ font-size:11px; min-width:0; }
-.side{ background:var(--panel); border-left:1px solid var(--line); overflow:auto; padding:12px; display:flex; flex-direction:column; gap:14px; }
-.side .grp{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-.side .lbl{ width:100%; font-size:12px; font-weight:600; color:var(--mute); }
-.side .orig{ width:100%; color:var(--mute); font-size:12px; }
-.side .orig:empty{ display:none; }
-.side input[type=range]{ width:100%; }
-.side input[type=number]{ flex:1; }
-.side .sp{ flex:1; }
-.kind{ display:flex; gap:12px; font-size:12px; }
-.kind label{ display:flex; gap:4px; align-items:center; cursor:pointer; }
-#copyAll{ margin-bottom:-6px; }
-.side .why{ width:100%; color:var(--mute); font-size:12px; line-height:1.45; }
-.side .off{ opacity:.35; pointer-events:none; }
-.pad{ flex-basis:100%; display:grid; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(3,32px); gap:4px; justify-content:center; }
-.xy{ flex-basis:100%; display:flex; gap:6px; align-items:center; }
-.xy span{ color:var(--mute); font-size:12px; }
-.xy input{ min-width:0; width:0; flex:1; }
-.pad button{ padding:0; font-size:15px; }
-.stage{ position:relative; flex:1; overflow:hidden; background:#cfcfcb; }
+.v{ position:relative; border-radius:var(--r); cursor:pointer; background:var(--sunk); aspect-ratio:3/4; overflow:hidden; outline:2px solid transparent; outline-offset:-2px; }
+.v:hover{ outline-color:var(--line2); }
+.v.on{ outline-color:var(--acc); }
+.v img{ width:100%; height:100%; object-fit:cover; display:block; }
+.v .tag{ position:absolute; left:0; right:0; bottom:0; padding:2px 5px; background:linear-gradient(transparent,rgba(0,0,0,.6)); color:#fff; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.v.edited::after{ content:''; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:var(--dot); box-shadow:0 0 0 2px #fff; }
+
+/* pattern pickers: swatch + name, click or drop */
+.pats{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.pat{ display:flex; flex-direction:column; gap:4px; }
+.pat .lab{ font-size:12px; color:var(--mute); }
+.drop{ position:relative; height:72px; border:1px dashed var(--line2); border-radius:var(--r); cursor:pointer; overflow:hidden; background:var(--sunk); }
+.drop:hover,.drop.over{ border-color:var(--acc); }
+.drop img{ width:100%; height:100%; object-fit:cover; display:block; }
+.drop .name{ position:absolute; left:0; right:0; bottom:0; padding:2px 5px; background:rgba(255,255,255,.88); font-size:10px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.drop .x{ position:absolute; top:3px; right:3px; width:20px; height:20px; padding:0; border-radius:50%; font-size:12px; line-height:1; display:none; }
+.drop.custom .x{ display:block; }
+
+/* new photo: file buttons */
+.file{ display:flex; align-items:center; gap:8px; height:var(--h); padding:0 10px; border:1px solid var(--line2); border-radius:var(--r); cursor:pointer; background:#fff; }
+.file:hover{ background:var(--sunk); }
+.file b{ font-weight:500; flex:none; }
+.file span{ color:var(--mute); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file input{ display:none; }
+.kind{ display:flex; gap:14px; font-size:12px; }
+.kind label{ display:flex; gap:5px; align-items:center; cursor:pointer; }
+
+/* right pane */
+.who{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pad{ display:grid; grid-template-columns:repeat(3,34px); grid-template-rows:repeat(3,30px); gap:4px; justify-content:center; }
+.pad button{ height:30px; padding:0; font-size:14px; }
+.xy span{ color:var(--mute); font-size:12px; flex:none; }
+
+/* stage */
+.stage{ position:relative; overflow:hidden; background:var(--bg); }
 .stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; outline:none; }
-.busy{ position:absolute; right:10px; top:10px; background:#222; color:#fff; border-radius:4px; padding:4px 8px; font-size:12px; }
+.busy{ position:absolute; right:12px; top:12px; display:flex; align-items:center; gap:8px; background:rgba(29,29,27,.88); color:#fff; border-radius:999px; padding:5px 12px; font-size:12px; pointer-events:none; }
+.busy.spin::before{ content:''; width:10px; height:10px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
 .err{ padding:40px; color:#b42318; font-size:14px; }
-@media (max-width:900px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 70vh auto; height:auto; } .side{ border-left:0; border-top:1px solid var(--line); } }
+@media (max-width:980px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 70vh auto; height:auto; } .pane.left,.pane.right{ border:0; } }
 </style>
 </head>
 <body>
 <div class="app" id="app">
-  <aside>
-    <div class="step">Product</div>
-    <select id="garment"></select>
-
-    <div class="step">Body print size</div>
-    <div class="slider" id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
-
-    <div class="step">Photo</div>
-    <div class="views" id="views"></div>
-
-    <div class="step">All-over pattern</div>
-    <div class="drop" id="patDrop-allover">Click or drop a pattern image</div>
-    <input type="file" id="patFile-allover" accept="image/*" hidden>
-    <div class="step">Body pattern</div>
-    <div class="drop" id="patDrop-placement">Click or drop a pattern image</div>
-    <input type="file" id="patFile-placement" accept="image/*" hidden>
-
-    <div class="step">Add a new photo (mock + map)</div>
-      <div class="up"><span class="hint" style="margin:0">Mock</span><input type="file" id="upMock" accept="image/*"></div>
-      <div class="up"><span class="hint" style="margin:0">Map</span><input type="file" id="upMap" accept="image/png"></div>
-      <div class="up"><span class="hint" style="margin:0">Kind</span><span id="upKind" class="kind"><label><input type="radio" name="upKind" value="model" checked> On-model</label><label><input type="radio" name="upKind" value="flat"> Flatlay</label></span></div>
+  <aside class="pane left">
+    <section class="sec">
+      <div class="h">Product</div>
+      <select id="garment"></select>
+    </section>
+    <section class="sec grow">
+      <div class="h">Photos</div>
+      <div class="views" id="views"></div>
+    </section>
+    <section class="sec">
+      <div class="h">Preview patterns</div>
+      <div class="pats">
+        <div class="pat"><span class="lab">All-over</span>
+          <div class="drop" id="patDrop-allover" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
+          <input type="file" id="patFile-allover" accept="image/*" hidden></div>
+        <div class="pat"><span class="lab">Body</span>
+          <div class="drop" id="patDrop-placement" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
+          <input type="file" id="patFile-placement" accept="image/*" hidden></div>
+      </div>
+      <div class="h" style="margin-top:4px">Body print size <span class="val" id="fracV">0.75</span></div>
+      <div id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"></div>
+    </section>
+    <section class="sec">
+      <div class="h">Add a photo</div>
+      <label class="file"><b>Mock</b><span id="upMockName">Choose image</span><input type="file" id="upMock" accept="image/*"></label>
+      <label class="file"><b>Map</b><span id="upMapName">Choose PNG</span><input type="file" id="upMap" accept="image/png"></label>
+      <div class="kind" id="upKind"><label><input type="radio" name="upKind" value="model" checked> On-model</label><label><input type="radio" name="upKind" value="flat"> Flatlay</label></div>
+    </section>
   </aside>
 
   <main class="stage" id="stage">
@@ -87,22 +127,38 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="busy" id="busy" hidden></div>
   </main>
 
-  <aside class="side">
-    <div class="grp" id="rGrp"><span class="lbl">Ratio (r)</span><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
-    <div class="grp" id="bcGrp"><span class="lbl">Body center (bc)</span>
+  <aside class="pane right">
+    <section class="sec">
+      <div class="who" id="who"></div>
+      <div class="sub" id="whoSub"></div>
+    </section>
+    <section class="sec" id="rGrp">
+      <div class="h">Ratio (r) <span class="sub" id="r0"></span></div>
+      <input type="range" id="rRange" min="0" max="1" step="0.001">
+      <input type="number" id="r" step="0.01">
+    </section>
+    <section class="sec" id="bcGrp">
+      <div class="h">Body center (bc) <span class="sub" id="bc0"></span></div>
       <div class="pad">
         <span></span><button id="bcU" aria-label="Up">↑</button><span></span>
         <button id="bcL" aria-label="Left">←</button><span></span><button id="bcR" aria-label="Right">→</button>
         <span></span><button id="bcD" aria-label="Down">↓</button><span></span>
       </div>
-      <div class="xy"><span>x</span><input type="number" id="bx" step="0.005"><span>y</span><input type="number" id="by" step="0.005"></div><span class="orig" id="bc0"></span>
-    </div>
-    <div class="grp" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
-    <div class="grp" id="brGrp"><span class="lbl">Body ratio (br)</span><input type="number" id="br" step="0.01"><span class="orig" id="br0"></span><span class="why" id="brWhy"></span></div>
-    <div class="grp"><button class="pri" id="copy">Copy</button><button id="reset">Undo this photo</button></div>
-    <span class="sp"></span>
-    <button class="pri" id="copyAll">Copy all</button>
-    <button id="clearAll">Undo all photos</button>
+      <div class="row xy"><span>x</span><input type="number" id="bx" step="0.005"><span>y</span><input type="number" id="by" step="0.005"></div>
+      <div class="row" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
+    </section>
+    <section class="sec" id="brGrp">
+      <div class="h">Body ratio (br) <span class="sub" id="br0"></span></div>
+      <input type="number" id="br" step="0.01">
+      <div class="sub" id="brWhy"></div>
+    </section>
+    <section class="sec">
+      <div class="row"><button class="pri" id="copy">Copy</button><button id="reset">Undo this photo</button></div>
+    </section>
+    <section class="sec foot">
+      <button class="pri wide" id="copyAll">Copy all</button>
+      <button class="wide" id="clearAll">Undo all photos</button>
+    </section>
   </aside>
 </div>
 
@@ -184,7 +240,8 @@ function main(){
       const im=document.createElement('img'); im.loading='lazy'; im.src=v.thumb||(v.mock+(v.mock.includes('?')?'&':'?')+'width=200'); d.appendChild(im);
       const t=document.createElement('div'); t.className='tag'; t.textContent=allMode?GOF.get(v):(flat?'F · ':'')+(MOC[vid(v)]||vid(v)); d.appendChild(t);
       d.title=vid(v); d.onclick=()=>selectView(v); box.appendChild(d);
-    }    // Copy all carries the number of changed photos (every product + uploads)
+    }
+    // Copy all carries the number of changed photos (every product + uploads)
     const n=Object.keys(edits).length+Object.values(uploaded).reduce((s,l)=>s+l.length,0);
     $('copyAll').textContent='Copy all ('+n+' edited)';
   }
@@ -339,7 +396,7 @@ function main(){
       if(st(view).a) drawView(view, c.m, fit(st(view).a,c.E), true);
     }
   }
-  function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
+  function busy(t){ const b=$('busy'); b.hidden=!t; b.textContent=t; b.classList.toggle('spin',/…$/.test(t)); }
   new ResizeObserver(draw).observe($('stage'));
 
   // ---- interaction: bc is dragged on the edited photo of the Body + rest row ----
@@ -401,14 +458,17 @@ function main(){
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
     $('br').value=br||''; $('br').placeholder=BR?String(fmt(BR,3)):'';
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
-    $('r0').textContent=r!==r0?'(was '+r0+')':'';
-    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    for(const id of ['bcGrp','bcBtns','brGrp']){ const g=$(id), off=allMode||!hasBody();   // no Body + rest here (or the All overview): bc / br unused   // no Body + rest on this product (or the All overview): bc / br unused
+    $('r0').textContent=r!==r0?'was '+r0:'';
+    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'was '+(b0?b0.join(', '):'auto'):'';
+    // header: which photo is being edited
+    $('who').textContent=MOC[vid(view)]||vid(view);
+    $('whoSub').textContent=(GOF.get(view)||garment)+' · '+(isFlat(view)?'flatlay':'on-model')+(view===refView()?' · reference':'')+(view.vid?' · new upload':'');
+    for(const id of ['bcGrp','brGrp']){ const g=$(id), off=allMode||!hasBody();   // no Body + rest here (or the All overview): bc / br unused   // no Body + rest on this product (or the All overview): bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
     { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
       $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'This photo uses its own br. Empty the box to follow '+id+' again.'
         : 'br '+(BR?fmt(BR,3):'…')+' comes from '+id+' at r '+fmt(cur(ref).r,4)+'. Changing that r resizes the body print on every photo without its own br.'; }
-    $('br0').textContent=(br||null)!==br0?'(was '+(br0||'auto')+')':'';
+    $('br0').textContent=(br||null)!==br0?'was '+(br0||'auto'):'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
   $('rRange').oninput=()=>{ if(!ready()) return; drag={ type:'slider' }; setVal({ r:rFromRange() }); };
@@ -442,15 +502,24 @@ function main(){
 
   // ---- pattern ----
   let patId=0;
+  function paintPat(m,name){
+    const d=$('patDrop-'+m), P=patOf(m), c=document.createElement('canvas'), s=Math.min(1,240/Math.max(P.width,P.height));
+    c.width=Math.max(1,Math.round(P.width*s)); c.height=Math.max(1,Math.round(P.height*s)); c.getContext('2d').drawImage(P,0,0,c.width,c.height);
+    d.querySelector('img').src=c.toDataURL(); d.querySelector('.name').textContent=userPat[m]?name:'Default'; d.classList.toggle('custom',!!userPat[m]);
+  }
   for(const m of ['allover','placement']){
     const drop=$('patDrop-'+m), file=$('patFile-'+m);
     drop.onclick=()=>file.click();
-    drop.ondragover=e=>e.preventDefault();
-    drop.ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(m,f); };
-    file.onchange=()=>{ const f=file.files[0]; if(f) setPat(m,f); };
-    savedPattern(m).then(s=>{ if(s){ userPat[m]=s.img; patId++; drop.textContent=s.name; draw(); if(ready()) renderAll(); } });
+    drop.ondragover=e=>{ e.preventDefault(); drop.classList.add('over'); };
+    drop.ondragleave=()=>drop.classList.remove('over');
+    drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) setPat(m,f); };
+    file.onchange=()=>{ const f=file.files[0]; if(f) setPat(m,f); file.value=''; };
+    drop.querySelector('.x').onclick=e=>{ e.stopPropagation(); userPat[m]=null; patId++; paintPat(m);
+      try{ localStorage.removeItem(PAT_LS+'.'+m); localStorage.removeItem(PAT_LS+'.'+m+'.name'); }catch(err){} draw(); renderAll(); };
+    paintPat(m);
+    savedPattern(m).then(s=>{ if(s){ userPat[m]=s.img; patId++; paintPat(m,s.name); draw(); if(ready()) renderAll(); } });
   }
-  async function setPat(m,f){ userPat[m]=await decodeFile(f); patId++; $('patDrop-'+m).textContent=f.name; draw(); renderAll();
+  async function setPat(m,f){ userPat[m]=await decodeFile(f); patId++; paintPat(m,f.name); draw(); renderAll();
     try{ const u=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });   // remembered for the next visit
       localStorage.setItem(PAT_LS+'.'+m,u); localStorage.setItem(PAT_LS+'.'+m+'.name',f.name); }catch(e){} }
 
@@ -494,7 +563,9 @@ function main(){
     (uploaded[garment]=uploaded[garment]||[]).push(upEntry);
     selectView(v);
   };
-  $('upMock').onchange=addUpload; $('upMap').onchange=addUpload;
+  const fname=(id,label)=>{ const f=$(id).files[0]; $(id+'Name').textContent=f?f.name:label; };
+  $('upMock').onchange=()=>{ fname('upMock','Choose image'); addUpload(); };
+  $('upMap').onchange=()=>{ fname('upMap','Choose PNG'); addUpload(); };
   for(const el of document.querySelectorAll('input[name=upKind]')) el.onchange=()=>{ if(!upEntry) return; upEntry.flat=kindFlat();
     const s=st(upEntry.v); s.G=null; s.img={}; s.key={}; if(view===upEntry.v) selectView(view); };
 

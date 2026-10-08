@@ -214,7 +214,7 @@ function main(){
 
   // ---- geometry: the print box of a view in one mode, mock-normalised ----
   // all-over: one repeat tile, width r, centred on the body centroid (the engine's center:true).
-  // placement: the file printed once, width frac x r / K, centre bc | centroid.
+  // placement: the file printed once, width frac x K x r, centre bc | centroid.
   function box(v,m){
     const s=st(v); if(!s.a) return null;
     const {r,bc}=cur(v), A=s.a, G=s.G, P=patOf(m), ar=P.height/P.width;
@@ -223,7 +223,7 @@ function main(){
       const k=kOf(v), frac=+$('frac').value; if(!k) return null;
       const md=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
       if(md==='none') return { none:true };
-      if(bodyFixed(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
+      if(bodyFixed(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*k*r;
       c=bc||A.cent; kind=md;
     } else { wN=r; c=A.cent; kind='tile'; }
     const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;

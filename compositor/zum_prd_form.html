@@ -1246,13 +1246,13 @@ const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the
 // Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the
 // centroid holds; 'none' = cropped and no bc: the print cannot be placed, so the body panel takes only the background (body.bg).
 const bodyMode=(G,spec)=>spec.bc?'bc':G.cut<BODY_CUT_FRAC*(G.pbox[2][MAIN_PANEL]-G.pbox[0][MAIN_PANEL]+1)?'auto':'none';
-// K = pattern width / body width (the same way round as r: a larger K, a larger motif against the body). With the pattern
-// width P = r x W and the body width B (panel-1 width in its tiling frame):  K = P / B = r x W / B. r keeps the motif count
+// K = body width / pattern width (a larger K, a larger body print; flipped 2026-10-08, was pattern / body). With the pattern
+// width P = r x W and the body width B (panel-1 width in its tiling frame):  K = B / P = B / (r x W). r keeps the motif count
 // across the chest equal between the views of a garment, so K is one number per garment: measured on an uncropped view,
-// it gives the body width of any view as B = r x W / K, whatever the frame crops.
-function bodyK(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k] ? r*G.w/(e.x1[k]-e.x0[k]) : 0; }
+// it gives the body width of any view as B = K x r x W, whatever the frame crops.
+function bodyK(G,r){ const e=G.ext, k=MAIN_PANEL; return e.x1[k]>e.x0[k]&&r>0 ? (e.x1[k]-e.x0[k])/(r*G.w) : 0; }
 // compose opt for Body + rest on one view: base = the page's opt (body.frac + rest), K = bodyK of the garment's uncropped
-// reference view. Width = frac x r x W / K on every view; centre = spec.bc, else the centroid; mode 'none' = body.none.
+// reference view. Width = frac x K x r x W on every view; centre = spec.bc, else the centroid; mode 'none' = body.none.
 function bodyOpt(base,G,spec,K){ const mode=bodyMode(G,spec);
   return { ...base, body:{ ...base.body, K, r:spec.r, ...(mode==='bc'?{ at:spec.bc }:mode==='none'?{ none:true }:{}) } }; }
 function compose(G, pat, ratio, trim, opt){
@@ -1275,11 +1275,11 @@ function compose(G, pat, ratio, trim, opt){
   // { body:{frac}, rest }: panel MAIN_PANEL prints the pattern file ONCE (no tiling, ratio ignored there): file width =
   // frac x the panel's width in its tiling frame, file centre on the panel centroid. Outside the file the panel takes
   // the rest (solid colour, or rest.pat at ratio). Every other panel as in the plain rest.
-  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.r x W /
-  // body.K (bodyK of an uncropped view) replaces the measured width: the frame may crop the body.
+  // body.at = [nx,ny] the body centre as a fraction of the mock (may lie outside it) replaces the centroid, and body.K x
+  // body.r x W (body.K = bodyK of an uncropped view) replaces the measured width: the frame may crop the body.
   // body.bg = [r,g,b]: the body panel around the file takes this colour (else the rest). body.none: no file on the body
   // (a cropped body with no centre to place it on): the body panel takes body.bg only, or keeps the mock without one.
-  const B=opt.body, noBody=!!(B&&rest&&B.none), bodyBg=B&&rest&&B.bg||null, bW=B&&(B.K&&B.r ? B.r*W/B.K : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
+  const B=opt.body, noBody=!!(B&&rest&&B.none), bodyBg=B&&rest&&B.bg||null, bW=B&&(B.K&&B.r ? B.K*B.r*W : ext.x1[MAIN_PANEL]-ext.x0[MAIN_PANEL]);
   const PB=B&&rest&&!noBody&&bW>0 ? rasterWidth(pat, Math.max(2,Math.round(B.frac*bW)), true) : null;
   // the tiled main raster: skipped when the body file (or an empty body) + a rest cover every fabric panel (nothing would sample it)
   const P=(PB||noBody)&&(solid||rest.pat) ? null : rasterWidth(pat, Math.max(2,Math.round(patW)), true);

@@ -490,8 +490,8 @@ function main(){
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
     $('br').value=br||''; $('br').placeholder=BR?String(fmt(BR,3)):'';
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
-    $('r0').textContent=r!==r0?'was '+r0:'';
-    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'was '+(b0?b0.join(', '):'auto'):'';
+    $('r0').textContent=!view.vid&&r!==r0?'was '+r0:'';   // a new photo has no file value to compare with
+    $('bc0').textContent=!view.vid&&JSON.stringify(bc)!==JSON.stringify(b0)?'was '+(b0?b0.join(', '):'auto'):'';
     // All compares reference flatlays: a photo added there is a flatlay, On-model is greyed out
     { const mr=document.querySelector('input[name=upKind][value=model]'), fr=document.querySelector('input[name=upKind][value=flat]');
       mr.disabled=allMode; mr.parentElement.classList.toggle('off',allMode); if(allMode) fr.checked=true; }
@@ -506,7 +506,7 @@ function main(){
         : moved ? 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(r1,4)+' (was '+ref.r+'): body print '+Math.abs(pct)+'% '+(pct<0?'smaller':'larger')+' on every photo without its own br.'
         : 'Auto '+(BR?fmt(BR,3):'…')+' from '+id+' at r '+fmt(r1,4)+'. Changing that r changes it here too.';
       $('brWhy').classList.toggle('warn',moved&&!br&&hasBody()&&!allMode); }
-    $('br0').textContent=(br||null)!==br0?'was '+(br0||'auto'):'';
+    $('br0').textContent=!view.vid&&(br||null)!==br0?'was '+(br0||'auto'):'';
   }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
   $('rRange').oninput=()=>{ if(!ready()) return; drag={ type:'slider' }; setVal({ r:rFromRange() }); };

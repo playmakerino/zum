@@ -18,9 +18,6 @@ button{ font:inherit; padding:5px 10px; border:1px solid var(--line); border-rad
 button:hover{ border-color:#aaa; }
 button.pri{ background:var(--acc); border-color:var(--acc); color:#fff; }
 button:disabled{ opacity:.45; cursor:default; }
-.tabs{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-.tabs button{ flex:1; border:0; border-radius:0; padding:8px 4px; }
-.tabs button.on{ background:var(--acc); color:#fff; }
 .hint{ color:var(--mute); font-size:12px; margin:6px 0 0; }
 .slider{ display:flex; gap:8px; align-items:center; margin-top:8px; }
 .slider input{ flex:1; }
@@ -43,12 +40,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 .bar .orig{ color:var(--mute); font-size:12px; }
 .stage{ position:relative; flex:1; overflow:hidden; background:#cfcfcb; }
 .stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; outline:none; }
-.hud{ position:absolute; left:10px; bottom:10px; background:rgba(255,255,255,.94); border-radius:4px; padding:6px 10px; font-size:12px; pointer-events:none; max-width:70%; }
-.hud:empty{ display:none; }
-.hud .warn{ color:var(--warn); }
 .busy{ position:absolute; right:10px; top:10px; background:#222; color:#fff; border-radius:4px; padding:4px 8px; font-size:12px; }
-.legend{ position:absolute; right:10px; bottom:10px; background:rgba(255,255,255,.94); border-radius:4px; padding:6px 10px; font-size:12px; line-height:1.6; pointer-events:none; }
-.legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
 .err{ padding:40px; color:#b42318; font-size:14px; }
 @media (max-width:800px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 70vh; height:auto; } }
 </style>
@@ -59,12 +51,10 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="step">1. Product</div>
     <select id="garment"></select>
 
-    <div class="step">2. Print layout</div>
-    <div class="tabs" id="mode"><button data-m="allover">All-over</button><button data-m="placement">Body + rest</button></div>
-    <p class="hint" id="modeNote"></p>
-    <div class="slider" id="fracRow"><span class="hint" style="margin:0">Body print size</span><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
+    <div class="step">2. Body print size</div>
+    <div class="slider" id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"><span id="fracV">0.75</span></div>
 
-    <div class="step">3. Photo <span class="hint">(orange dot = edited)</span></div>
+    <div class="step">3. Photo</div>
     <div class="views" id="views"></div>
 
     <div class="step">Test pattern</div>
@@ -76,7 +66,6 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
       <div class="up"><span class="hint" style="margin:0">Mock</span><input type="file" id="upMock" accept="image/*"></div>
       <div class="up"><span class="hint" style="margin:0">Map</span><input type="file" id="upMap" accept="image/png"></div>
       <div class="up"><span class="hint" style="margin:0">Kind</span><select id="upKind"><option value="model">On-model</option><option value="flat">Flatlay</option></select></div>
-      <p class="hint">A <code>-r1.25</code> suffix in the map filename sets the starting r. A new photo is not on the CDN yet, so Save skips it: tell Claude its r / bc when uploading.</p>
       <button id="upAdd" style="margin-top:6px">Add to this product</button>
     </details>
   </aside>
@@ -85,16 +74,15 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="bar">
       <div class="grp"><span class="lbl">r</span><input type="range" id="rRange" min="0" max="1" step="0.001" style="width:180px"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
       <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
-      <div class="grp" id="bcBtns"><button id="bcAuto" title="Clear bc: the engine uses the body centroid (red dot)">Auto centre</button><button id="bcNone" title="bc [10,10]">No body print</button></div>
-      <button id="reset" title="Put r and bc of this photo back to the values in pattern-mockup.html">Undo this photo</button>
+      <div class="grp" id="bcBtns"><button id="bcAuto">Auto centre</button><button id="bcNone">No body print</button></div>
+      <div class="grp"><span class="lbl">k</span><input type="number" id="k" step="0.01"><span class="orig" id="k0"></span></div>
+      <button class="pri" id="copy">Copy</button>
+      <button id="reset">Undo this photo</button>
       <span class="sp"></span>
-      <button class="pri" id="copyAll" disabled>Save to pattern-mockup</button>
-      <button id="clearAll" title="Put every photo back to the values in pattern-mockup.html">Undo all photos</button>
+      <button id="clearAll">Undo all photos</button>
     </div>
     <main class="stage" id="stage">
       <canvas id="cv"></canvas>
-      <div class="hud" id="hud"></div>
-      <div class="legend" id="legend"></div>
       <div class="busy" id="busy" hidden></div>
     </main>
   </div>
@@ -124,28 +112,28 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 function main(){
   const $=id=>document.getElementById(id);
   const cv=$('cv'), ctx=cv.getContext('2d');
-  const LS='printAreaTuner.v1';
   const fmt=(x,d)=>+(+x).toFixed(d);
-  const REST=[232,232,232];      // Body + rest preview: rest of the fabric in light grey, body around the file white
+  const REST=[232,232,232];      // Body + rest: rest of the fabric in light grey, body around the file white
 
   // ---- state ----
-  let garment=Object.keys(GARMENTS)[0], view=null, mode='allover';
+  let garment=Object.keys(GARMENTS)[0], view=null;
   const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
-  let edits={}; try{ edits=JSON.parse(localStorage.getItem(LS)||'{}')||{}; }catch(e){ edits={}; }
-  const saveEdits=()=>{ try{ localStorage.setItem(LS,JSON.stringify(edits)); }catch(e){} };
+  const modes=()=>hasBody()?['allover','placement']:['allover'];   // canvas rows, top to bottom
+  // edits = current values that differ from the ones loaded with the page; every finished edit is written to pattern-mockup.html
+  let edits={};
   const uploaded={};             // garment -> [{v,flat}] added in this tab
   const fileOf=u=>String(u).startsWith(CDN)?u.slice(CDN.length):u;
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>garment+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
-  const cur=v=>{ const e=edits[keyOf(v)]; return { r:e?e.r:v.r, bc:e?e.bc:(v.bc||null) }; };
+  const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, k:v.k||null }; };
   const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
-  const refFlat=()=>GARMENTS[garment].flats[0];                       // left pane: always the first flatlay
+  const refFlat=()=>GARMENTS[garment].flats[0];                       // left column: always the first flatlay
   const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // K reference (Body + rest)
 
-  let pat=null, userPat=null, K=0;   // userPat = a pattern the user dropped (replaces both defaults)
-  // per view: { a: assets, G: analysed garment, img: last real render, key: its state key }
-  const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{}); return S.get(v); };
+  let userPat=null, K=0;   // userPat = a pattern the user dropped (replaces both defaults)
+  // per view: { a: assets, G: analysed garment, img:{mode:render}, key:{mode:state key}, pv:{mode:preview canvas} }
+  const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{ img:{}, key:{}, pv:{} }); return S.get(v); };
   const assetCache=new Map();
 
   // default patterns: N x N checks per tile, so the checks across the chest can be counted on both photos.
@@ -156,13 +144,14 @@ function main(){
     x.fillStyle='#e07a5f'; x.fillRect(0,0,q,q);   // one marked check per tile = where each repeat starts
     return c;
   }
-  const DEF={ allover:testPattern(8), placement:testPattern(4) }; pat=DEF.allover;
+  const DEF={ allover:testPattern(8), placement:testPattern(4) };
+  const patOf=m=>userPat||DEF[m];
   const PAT_LS='printAreaTuner.pattern';
   async function savedPattern(){ try{ const u=localStorage.getItem(PAT_LS); if(u) return { img:await loadImg(u), name:localStorage.getItem(PAT_LS+'.name')||'saved pattern' }; }catch(e){} return null; }
 
   // ---- UI: garment + views ----
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
-  $('garment').onchange=()=>{ garment=$('garment').value; K=0; setMode(mode,true); selectView(allViews(garment)[0].v); };
+  $('garment').onchange=()=>{ garment=$('garment').value; K=0; selectView(allViews(garment)[0].v); };
 
   function paintViews(){
     const box=$('views'); box.innerHTML='';
@@ -190,8 +179,8 @@ function main(){
       if(view!==v) return; draw(); busy('Rendering…');
       await Promise.all([prep(v), ref?prep(ref):null]);
       if(view!==v) return;
-      await updateK();
-    }catch(e){ console.error(e); hud('<span class="warn">Error: '+e.message+'</span>'); busy(''); return; }
+      await updateK(); syncInputs();
+    }catch(e){ console.error(e); busy('Error: '+e.message); return; }
     busy(''); draw(); renderAll();
   }
 
@@ -220,77 +209,77 @@ function main(){
     const ref=refView(); if(!ref){ K=0; return; }
     K=bodyK((await prep(ref)).G, cur(ref).r);
   }
-  const kOf=v=>v.k||K;
+  const kOf=v=>cur(v).k||K;
   // Body + rest on the K reference view without its own k: body width is the measured one, r does not change it
-  const rLocked=v=>mode==='placement'&&v===refView()&&!v.k;
+  const bodyFixed=v=>v===refView()&&!cur(v).k;
 
-  // ---- geometry: the print box of a view, mock-normalised ----
+  // ---- geometry: the print box of a view in one mode, mock-normalised ----
   // all-over: one repeat tile, width r, centred on the body centroid (the engine's center:true).
   // placement: the file printed once, width frac x r / K, centre bc | centroid.
-  function box(v){
+  function box(v,m){
     const s=st(v); if(!s.a) return null;
-    const {r,bc}=cur(v), A=s.a, G=s.G, ar=pat.height/pat.width;
+    const {r,bc}=cur(v), A=s.a, G=s.G, P=patOf(m), ar=P.height/P.width;
     let wN, c, kind;
-    if(mode==='placement'){
+    if(m==='placement'){
       const k=kOf(v), frac=+$('frac').value; if(!k) return null;
-      const m=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
-      if(m==='none') return { none:true };
-      if(rLocked(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
-      c=bc||A.cent; kind=m;
+      const md=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
+      if(md==='none') return { none:true };
+      if(bodyFixed(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
+      c=bc||A.cent; kind=md;
     } else { wN=r; c=A.cent; kind='tile'; }
     const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;
     return { cx:c[0], cy:c[1], w:wN, h:wN*A.mock.width*ar/A.mock.height, th, kind };
   }
 
   // quick preview of the print at display size (multiplied onto the mock): pattern tiled / placed, clipped to the map
-  function preview(v){
-    const s=st(v), A=s.a, b=box(v); if(!A) return null;
-    const c=s.pv||(s.pv=document.createElement('canvas')); c.width=A.w; c.height=A.h; const x=c.getContext('2d');
-    if(mode==='allover'){
+  function preview(v,m){
+    const s=st(v), A=s.a, b=box(v,m), P=patOf(m); if(!A) return null;
+    const c=s.pv[m]||(s.pv[m]=document.createElement('canvas')); c.width=A.w; c.height=A.h; const x=c.getContext('2d');
+    if(m==='allover'){
       if(!b) return null;
-      const tw=b.w*A.w, th=tw*pat.height/pat.width, P=x.createPattern(pat,'repeat');
-      P.setTransform(new DOMMatrix().translate(b.cx*A.w,b.cy*A.h).rotate(b.th*180/Math.PI).translate(-tw/2,-th/2).scale(tw/pat.width,th/pat.height));
-      x.fillStyle=P; x.fillRect(0,0,A.w,A.h);
+      const tw=b.w*A.w, th=tw*P.height/P.width, F=x.createPattern(P,'repeat');
+      F.setTransform(new DOMMatrix().translate(b.cx*A.w,b.cy*A.h).rotate(b.th*180/Math.PI).translate(-tw/2,-th/2).scale(tw/P.width,th/P.height));
+      x.fillStyle=F; x.fillRect(0,0,A.w,A.h);
       x.globalCompositeOperation='destination-in'; x.drawImage(A.fab,0,0); x.globalCompositeOperation='source-over';
     } else {
       x.fillStyle='rgb('+REST+')'; x.fillRect(0,0,A.w,A.h);
       x.globalCompositeOperation='destination-in'; x.drawImage(A.fab,0,0); x.globalCompositeOperation='source-over';
       const t=s.pb||(s.pb=document.createElement('canvas')); t.width=A.w; t.height=A.h; const y=t.getContext('2d');
       y.fillStyle='#fff'; y.fillRect(0,0,A.w,A.h);
-      if(b&&!b.none){ y.save(); y.translate(b.cx*A.w,b.cy*A.h); y.rotate(b.th); const w=b.w*A.w, h=b.h*A.h; y.drawImage(pat,-w/2,-h/2,w,h); y.restore(); }
+      if(b&&!b.none){ y.save(); y.translate(b.cx*A.w,b.cy*A.h); y.rotate(b.th); const w=b.w*A.w, h=b.h*A.h; y.drawImage(P,-w/2,-h/2,w,h); y.restore(); }
       y.globalCompositeOperation='destination-in'; y.drawImage(A.body,0,0); y.globalCompositeOperation='source-over';
       x.drawImage(t,0,0);
     }
     return c;
   }
 
-  // ---- layout: left half = first flatlay (reference), right half = the photo being edited ----
+  // ---- layout: one row per mode (all-over on top, Body + rest below); left column = the first flatlay, right = the
+  // photo being edited. The first flatlay itself edits in place on the left, the right column then stays empty.
   const GAP=12;
-  function panes(){
-    const W=cv.width, H=cv.height, top=34*(window.devicePixelRatio||1), hw=(W-GAP*3)/2;
-    const L={ x:GAP, y:top, w:hw, h:H-top-GAP }, R={ x:GAP*2+hw, y:top, w:hw, h:H-top-GAP };
-    return { L, R, E:view===refFlat()?{ x:L.x, y:L.y, w:R.x+R.w-L.x, h:L.h }:R };   // E = the editable pane
+  function cells(){
+    const W=cv.width, H=cv.height, M=modes(), cw=(W-GAP*3)/2, ch=(H-GAP*(M.length+1))/M.length, one=view===refFlat();
+    return M.map((m,i)=>{ const y=GAP+i*(ch+GAP), L={ x:GAP, y, w:cw, h:ch }, R={ x:GAP*2+cw, y, w:cw, h:ch };
+      return { m, L, R, E:one?L:R }; });
   }
-  // pad = margin around the photo as a fraction of its size; the edited photo keeps room to drag bc outside the frame
-  function fit(A,P,pad){
-    const W0=A.mock.width, H0=A.mock.height, s=Math.min(P.w/(W0*(1+2*pad)), P.h/(H0*(1+2*pad)));
+  // every cell is the same size and the photo fills it the same way, so all photos show at one size
+  function fit(A,P){
+    const W0=A.mock.width, H0=A.mock.height, s=Math.min(P.w/W0, P.h/H0);
     return { ox:P.x+(P.w-W0*s)/2, oy:P.y+(P.h-H0*s)/2, W:W0*s, H:H0*s };
   }
-  const padR=()=>mode==='placement'?0.25:0.02;
 
   // ---- draw ----
   let raf=0, drag=null;
   function draw(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; paint(); }); }
-  function drawView(v, T, editable){
+  function drawView(v, m, T, editable){
     const s=st(v), A=s.a; if(!A) return;
-    const fresh=s.img&&s.key===stateKey(v);
+    const fresh=s.img[m]&&s.key[m]===stateKey(v,m);
     ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
-    if(fresh&&!(editable&&drag)) ctx.drawImage(s.img,T.ox,T.oy,T.W,T.H);
-    else { ctx.drawImage(A.mock,T.ox,T.oy,T.W,T.H); const p=preview(v);
+    if(fresh&&!(editable&&drag)) ctx.drawImage(s.img[m],T.ox,T.oy,T.W,T.H);
+    else { ctx.drawImage(A.mock,T.ox,T.oy,T.W,T.H); const p=preview(v,m);
       if(p){ ctx.globalCompositeOperation='multiply'; ctx.drawImage(p,T.ox,T.oy,T.W,T.H); ctx.globalCompositeOperation='source-over'; } }
     ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);
     if(!editable) return;
-    const b=box(v), dpr=window.devicePixelRatio||1; if(!b||b.none) return;
+    const b=box(v,m), dpr=window.devicePixelRatio||1; if(!b||b.none) return;
     const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
     ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
     ctx.lineWidth=2*dpr; ctx.strokeStyle='#1f6feb'; ctx.strokeRect(-w/2,-h/2,w,h);
@@ -298,98 +287,80 @@ function main(){
     ctx.fillStyle='#fff'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
     ctx.beginPath(); ctx.arc(cx,cy,4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke();
   }
-  function label(t,P,dpr){ ctx.fillStyle='#333'; ctx.font=(12*dpr)+'px system-ui,sans-serif'; ctx.textBaseline='middle'; ctx.fillText(t,P.x,P.y/2+2*dpr); }
   function paint(){
     const dpr=window.devicePixelRatio||1, rc=cv.getBoundingClientRect();
     if(cv.width!==Math.round(rc.width*dpr)||cv.height!==Math.round(rc.height*dpr)){ cv.width=Math.round(rc.width*dpr); cv.height=Math.round(rc.height*dpr); }
     ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
     if(!view) return;
-    const {L,R}=panes(), ref=refFlat();
-    const one=view===ref, E=panes().E;
-    if(!one&&ref&&st(ref).a){ drawView(ref, fit(st(ref).a,L,0.02), false); label('Reference: '+(MOC[vid(ref)]||vid(ref))+' · r '+fmt(cur(ref).r,4), L, dpr); }
-    if(st(view).a){ drawView(view, fit(st(view).a,E,padR()), true); label((one?'Editing the reference flatlay: ':'Editing: ')+(MOC[vid(view)]||vid(view))+' · r '+fmt(cur(view).r,4), E, dpr); }
-    hudInfo();
-  }
-  function hud(h){ $('hud').innerHTML=h; }
-  function hudInfo(){
-    const b=box(view), {bc}=cur(view), L=[];
-    if(mode==='placement'){
-      if(b&&b.none) L.push('<span class="warn">The body is cropped and has no centre: nothing prints on it. Click where the centre should go.</span>');
-      else if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">Set to "no body print". Click the photo to place a centre.</span>');
-      else if(b&&b.kind==='auto') L.push('Centre is automatic (red dot). Drag the box to set your own.');
-      if(rLocked(view)) L.push('<span class="warn">This photo sets the body size for the whole product, so the box size is fixed here. Change its r in the All-over tab.</span>');
+    const ref=refFlat();
+    for(const c of cells()){
+      if(view!==ref&&ref&&st(ref).a) drawView(ref, c.m, fit(st(ref).a,c.L), false);
+      if(st(view).a) drawView(view, c.m, fit(st(view).a,c.E), true);
     }
-    hud(L.join('<br>'));
-    $('legend').innerHTML=mode==='placement'
-      ? 'Blue box = the pattern printed on the body.<br>Drag the box to move it. Size: the r slider above.'
-      : 'Blue box = one repeat of the pattern.<br>Size: the r slider above.';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
 
-  // ---- interaction (right pane only) ----
-  const at=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=fit(st(view).a,panes().E,padR());
-    const px=(e.clientX-rc.left)*dpr, py=(e.clientY-rc.top)*dpr; return { px, py, nx:(px-T.ox)/T.W, ny:(py-T.oy)/T.H, T }; };
-  const inRight=p=>{ const R=panes().E; return p.px>=R.x&&p.px<=R.x+R.w&&p.py>=R.y&&p.py<=R.y+R.h; };
+  // ---- interaction: bc is dragged on the edited photo of the Body + rest row ----
+  const bodyCell=()=>cells().find(c=>c.m==='placement');
+  const at=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, C=bodyCell(), T=fit(st(view).a,C.E);
+    const px=(e.clientX-rc.left)*dpr, py=(e.clientY-rc.top)*dpr; return { px, py, nx:(px-T.ox)/T.W, ny:(py-T.oy)/T.H, T, C }; };
+  const inCell=p=>{ const R=p.C.E; return p.px>=R.x&&p.px<=R.x+R.w&&p.py>=R.y&&p.py<=R.y+R.h; };
   function hit(p){
-    const b=box(view); if(!b||b.none) return null;
+    const b=box(view,'placement'); if(!b||b.none) return null;
     const cx=p.T.ox+b.cx*p.T.W, cy=p.T.oy+b.cy*p.T.H, w=b.w*p.T.W, h=b.h*p.T.H;
     const dx=p.px-cx, dy=p.py-cy, c=Math.cos(-b.th), s=Math.sin(-b.th), lx=dx*c-dy*s, ly=dx*s+dy*c;
-    if(Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2) return { type:'move', b, cx, cy };
-    return { type:'out', cx, cy };
+    return Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2 ? { b } : null;
   }
   const ready=()=>view&&st(view).a;
   cv.addEventListener('pointerdown',e=>{
-    if(!ready()) return; const p=at(e); if(!inRight(p)) return;
+    if(!ready()||!bodyCell()) return; const p=at(e); if(!inCell(p)) return;
     const h=hit(p); cv.focus();
-    if(mode==='allover') return;   // r only from the slider / number box; all-over has no bc to drag
-    if(h&&h.type==='move') drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
+    if(h) drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
     else { const bc=[fmt(p.nx,3),fmt(p.ny,3)]; setVal({ bc }); drag={ type:'move', p0:p, bc0:bc }; }
     cv.setPointerCapture(e.pointerId); draw();
   });
   cv.addEventListener('pointermove',e=>{
-    if(!ready()) return; const p=at(e);
-    if(!drag){ let c='default';
-      if(inRight(p)){ const h=hit(p); c=mode==='allover'?'default':h&&h.type==='move'?'move':'crosshair'; }
-      cv.style.cursor=c; return; }
-    if(drag.type==='slider') return;
+    if(!ready()||!bodyCell()){ cv.style.cursor='default'; return; } const p=at(e);
+    if(!drag){ cv.style.cursor=inCell(p)?(hit(p)?'move':'crosshair'):'default'; return; }
     if(drag.type==='move') setVal({ bc:[fmt(drag.bc0[0]+(p.nx-drag.p0.nx),3), fmt(drag.bc0[1]+(p.ny-drag.p0.ny),3)] });
   });
-  const end=()=>{ if(!drag) return; drag=null; afterEdit(); };
+  const end=()=>{ if(!drag||drag.type!=='move') return; drag=null; afterEdit(); };
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
   let idleT=0;
   cv.tabIndex=0;
   cv.addEventListener('keydown',e=>{
-    if(!ready()||mode!=='placement') return;
+    if(!ready()||!bodyCell()) return;
     const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
-    e.preventDefault(); const b=box(view); if(!b||b.none) return;
-    const T=fit(st(view).a,panes().E,padR()), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
+    e.preventDefault(); const b=box(view,'placement'); if(!b||b.none) return;
+    const T=fit(st(view).a,bodyCell().E), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
     setVal({ bc:[fmt(b.cx+d[0]*px/T.W,3), fmt(b.cy+d[1]*px/T.H,3)] });
     clearTimeout(idleT); idleT=setTimeout(afterEdit,600);
   });
 
-  // write r / bc for the current view (an edit equal to the original is dropped)
+  // write r / bc / k for the current view (an edit equal to the loaded value is dropped)
   function setVal(p){
-    const k=keyOf(view), c=cur(view), n={ r:p.r!==undefined?p.r:c.r, bc:p.bc!==undefined?p.bc:c.bc };
-    const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null);
-    if(view.vid){ view.r=n.r; view.bc=n.bc; }   // uploaded views carry their own values
-    else if(same) delete edits[k]; else edits[k]=n;
-    saveEdits(); syncInputs(); draw();
+    const key=keyOf(view), n={ ...cur(view), ...p };
+    const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null) && (n.k||null)===(view.k||null);
+    if(view.vid){ view.r=n.r; view.bc=n.bc; view.k=n.k; }   // uploaded views carry their own values
+    else if(same) delete edits[key]; else edits[key]=n;
+    syncInputs(); draw();
   }
   async function afterEdit(){
-    paintViews(); paintChanges();
+    paintViews(); save([view]);
     if(view===refView()) await updateK();
-    draw(); renderAll();
-  }
-  function syncInputs(){
-    if(!view) return; const {r,bc}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null);
-    $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
-    $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN); $('rRange').disabled=rLocked(view);
-    $('r0').textContent=r!==r0?'(was '+r0+')':'';
-    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    const off=mode!=='placement'; $('bcGrp').style.display=$('bcBtns').style.display=off?'none':'';
+    syncInputs(); draw(); renderAll();
   }
   const RMIN=0.4, RMAX=2.5;   // r slider: 0.4x .. 2.5x the original r, log scale
+  function syncInputs(){
+    if(!view) return; const {r,bc,k}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null), k0=view.vid?null:(view.k||null);
+    $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
+    $('k').value=k||''; $('k').placeholder=K?String(fmt(K,3)):'';
+    $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
+    $('r0').textContent=r!==r0?'(was '+r0+')':'';
+    $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
+    $('k0').textContent=(k||null)!==k0?'(was '+(k0||'auto')+')':'';
+  }
   const rFromRange=()=>{ const r0=view.origR!==undefined?view.origR:view.r; return fmt(r0*RMIN*Math.pow(RMAX/RMIN,+$('rRange').value),4); };
   $('rRange').oninput=()=>{ if(!ready()) return; drag={ type:'slider' }; setVal({ r:rFromRange() }); };
   $('rRange').onchange=()=>{ drag=null; afterEdit(); };
@@ -398,17 +369,13 @@ function main(){
   $('bx').onchange=bcIn; $('by').onchange=bcIn;
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
-  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
-
-  // ---- mode / frac ----
-  function setMode(m,quiet){ if(!hasBody()) m='allover'; mode=m; if(!userPat) pat=DEF[m]; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
-    for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
-    $('modeNote').textContent=m==='placement'
-      ? 'The pattern prints once on the body. Set its position (bc) and size (r).'
-      : 'The pattern repeats over the fabric. Set the tile size (r).';
-    $('fracRow').style.display=m==='placement'?'':'none';
-    syncInputs(); draw(); if(!quiet&&ready()) renderAll(); }
-  for(const b of $('mode').children) b.onclick=()=>setMode(b.dataset.m);
+  $('k').onchange=()=>{ const v=parseFloat($('k').value); setVal({ k:v>0?v:null }); afterEdit(); };   // empty = the garment's K
+  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.k=null; } delete edits[keyOf(view)]; syncInputs(); afterEdit(); };
+  $('copy').onclick=async()=>{
+    if(!view) return; const {r,bc,k}=cur(view);
+    const s=(MOC[vid(view)]||vid(view))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+' k='+(k?fmt(k,4):K?fmt(K,4):'auto');
+    try{ await navigator.clipboard.writeText(s); busy('Copied: '+s); setTimeout(()=>busy(''),1500); }catch(e){ prompt('Copy:',s); }
+  };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
   $('frac').onchange=()=>renderAll();
 
@@ -418,28 +385,32 @@ function main(){
   $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
   $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
   let patId=0;
-  async function setPat(f){ pat=userPat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
+  async function setPat(f){ userPat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
     try{ const u=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });   // remembered for the next visit
       localStorage.setItem(PAT_LS,u); localStorage.setItem(PAT_LS+'.name',f.name); }catch(e){} }
-  savedPattern().then(s=>{ if(s){ pat=userPat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
+  savedPattern().then(s=>{ if(s){ userPat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
 
   // ---- real render through the engine (the preview is only an approximation) ----
-  const stateKey=v=>{ const {r,bc}=cur(v); return [vid(v),mode,$('frac').value,r,JSON.stringify(bc),kOf(v),patId].join('|'); };
+  const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value:'',r,m==='placement'?JSON.stringify(bc)+kOf(v):'',patId].join('|'); };
   let jobs=0;
-  async function render(v){
-    const s=st(v), key=stateKey(v); if(s.img&&s.key===key) return;
+  async function render(v,m){
+    const s=st(v), key=stateKey(v,m); if(s.img[m]&&s.key[m]===key) return;
     const {G}=await prep(v), {r,bc}=cur(v);
-    const opt=mode==='placement'
+    const opt=m==='placement'
       ? bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:REST } }, G, { ...v, r, bc }, kOf(v))
       : { center:true };
-    const c=compose(G, pat, r, null, opt), o=document.createElement('canvas');   // compose reuses one canvas: copy it out
+    const c=compose(G, patOf(m), r, null, opt), o=document.createElement('canvas');   // compose reuses one canvas: copy it out
     o.width=c.width; o.height=c.height; o.getContext('2d').drawImage(c,0,0);
-    if(stateKey(v)===key){ s.img=o; s.key=key; }
+    if(stateKey(v,m)===key){ s.img[m]=o; s.key[m]=key; }
   }
+  // the edited photo first (both rows), then the reference flatlay
   async function renderAll(){
-    const my=++jobs; busy('Rendering…');
-    try{ await render(view); draw(); const ref=refFlat(); if(ref&&ref!==view&&my===jobs) await render(ref); }
-    catch(e){ console.error(e); hud('<span class="warn">Render failed: '+e.message+'</span>'); }
+    const my=++jobs, ref=refFlat(), todo=[];
+    for(const m of modes()) todo.push([view,m]);
+    if(ref&&ref!==view) for(const m of modes()) todo.push([ref,m]);
+    busy('Rendering…');
+    try{ for(const [v,m] of todo){ if(my!==jobs) return; await render(v,m); draw(); } }
+    catch(e){ console.error(e); busy('Render failed: '+e.message); draw(); return; }
     if(my===jobs) busy(''); draw();
   }
 
@@ -449,48 +420,35 @@ function main(){
     if(!fm||!fp){ alert('Pick both a mock and a map.'); return; }
     const m=/-r(\d+(?:\.\d+)?)(?=\.[a-z]+$)/i.exec(fp.name), r0=m?parseFloat(m[1]):1;
     const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
-      vid:'new-'+fm.name.replace(/\.[^.]+$/,''), mockName:fm.name, mapName:fp.name.replace(/-r\d+(?:\.\d+)?(?=\.[a-z]+$)/i,'') };
+      vid:'new-'+fm.name.replace(/\.[^.]+$/,'') };
     v.thumb=v.mock;
     (uploaded[garment]=uploaded[garment]||[]).push({ v, flat:$('upKind').value==='flat' });
-    selectView(v); paintChanges();
+    selectView(v);
   };
 
   // ---- output ----
-  const vLine=(v,r,bc)=>{
-    const mk=v.vid?v.mockName:fileOf(v.mock), mp=v.vid?v.mapName:fileOf(v.map);
-    let s="V('"+mk+"','"+mp+"',"+fmt(r,4);
-    if(bc) s+=',['+bc.map(x=>String(fmt(x,3))).join(',')+']'; else if(v.k) s+=',null';
-    if(v.k) s+=','+v.k;
+  const vLine=(v,{r,bc,k})=>{
+    let s="V('"+fileOf(v.mock)+"','"+fileOf(v.map)+"',"+fmt(r,4);
+    if(bc) s+=',['+bc.map(x=>String(fmt(x,3))).join(',')+']'; else if(k) s+=',null';
+    if(k) s+=','+fmt(k,4);
     return s+')';
   };
-  // edited views already in GARMENT DATA (an uploaded photo is not on the CDN yet, so it has no line to update)
-  function changeList(){
-    const out=[];
-    for(const g of Object.keys(GARMENTS))
-      for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]){ const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, e, mock:fileOf(v.mock), map:fileOf(v.map), call:vLine(v,e.r,e.bc) }); }
-    return out;
-  }
-  function paintChanges(){
-    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent=n?'Save to pattern-mockup ('+n+' photo'+(n!==1?'s':'')+')':'Save to pattern-mockup';
-    $('copyAll').title=n?'Writes the new r / bc of every changed photo into GARMENT DATA of pattern-mockup.html (local file, not pushed)':'Nothing changed yet';
-  }
-  // POST to the local preview server, which rewrites only the matching V(...) calls in pattern-mockup.html
-  $('copyAll').onclick=async()=>{
-    const L=changeList(); if(!L.length) return;
-    busy('Saving…');
+  // write the current values of these views into GARMENT DATA of pattern-mockup.html (local preview server; an uploaded
+  // photo is not on the CDN yet, so it has no line there and is skipped)
+  async function save(views){
+    const L=views.filter(v=>!v.vid).map(v=>({ mock:fileOf(v.mock), map:fileOf(v.map), call:vLine(v,cur(v)) }));
+    if(!L.length) return;
     try{
-      const res=await fetch('/__tuner/save',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ changes:L.map(c=>({ mock:c.mock, map:c.map, call:c.call })) }) });
+      const res=await fetch('/__tuner/save',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ changes:L }) });
       const j=await res.json().catch(()=>({ error:'HTTP '+res.status }));
       if(!res.ok||j.error) throw new Error(j.error||('HTTP '+res.status));
-      for(const c of L){ c.v.r=c.e.r; c.v.bc=c.e.bc; delete edits[c.g+'/'+flatName(c.v)]; }   // saved values become the originals
-      saveEdits(); syncInputs(); paintViews(); paintChanges();
-      busy('Saved '+j.changed+' photo'+(j.changed!==1?'s':'')); setTimeout(()=>busy(''),1500);
-    }catch(e){ busy(''); alert('Save failed: '+e.message+(/404|Failed to fetch/.test(e.message)?'\nThe page must be opened through the local preview server (localhost:4178).':'')); }
-  };
-  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its original r and bc?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
+    }catch(e){ console.error(e); busy('Not saved: '+e.message); }
+  }
+  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / k from when this page was opened?')) return;
+    const back=[]; for(const g of Object.keys(GARMENTS)) for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]) if(edits[g+'/'+flatName(v)]) back.push(v);
+    edits={}; save(back); syncInputs(); paintViews(); updateK().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
-  setMode('allover',true); paintChanges();
   selectView(allViews(garment)[0].v);
 }
 </script>

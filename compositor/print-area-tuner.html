@@ -67,9 +67,12 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
     <div class="step">3. Photo</div>
     <div class="views" id="views"></div>
 
-    <div class="step">Test pattern</div>
-    <div class="drop" id="patDrop">Click or drop a pattern image</div>
-    <input type="file" id="patFile" accept="image/*" hidden>
+    <div class="step">All-over pattern</div>
+    <div class="drop" id="patDrop-allover">Click or drop a pattern image</div>
+    <input type="file" id="patFile-allover" accept="image/*" hidden>
+    <div class="step">Body pattern</div>
+    <div class="drop" id="patDrop-placement">Click or drop a pattern image</div>
+    <input type="file" id="patFile-placement" accept="image/*" hidden>
 
     <details>
       <summary>Add a new photo (mock + map)</summary>
@@ -148,7 +151,8 @@ function main(){
   const refOf=g=>GARMENTS[g].flats[GARMENTS[g].bodyRef||0];
   const allRefs=()=>Object.keys(GARMENTS).map(refOf);
 
-  let userPat=null, BR=0;   // userPat = a pattern the user dropped (replaces both defaults)
+  const userPat={ allover:null, placement:null };   // patterns the user dropped, one per row (replace the defaults)
+  let BR=0;
   // per view: { a: assets, G: analysed garment, img:{mode:render}, key:{mode:state key}, pv:{mode:preview canvas} }
   const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{ img:{}, key:{}, pv:{} }); return S.get(v); };
   const assetCache=new Map();
@@ -163,9 +167,9 @@ function main(){
   }
   function solidPattern(){ const c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'); x.fillStyle='#2f4b7c'; x.fillRect(0,0,400,400); return c; }
   const DEF={ allover:testPattern(16), placement:solidPattern() };
-  const patOf=m=>userPat||DEF[m];
+  const patOf=m=>userPat[m]||DEF[m];
   const PAT_LS='printAreaTuner.pattern';
-  async function savedPattern(){ try{ const u=localStorage.getItem(PAT_LS); if(u) return { img:await loadImg(u), name:localStorage.getItem(PAT_LS+'.name')||'saved pattern' }; }catch(e){} return null; }
+  async function savedPattern(m){ try{ const k=PAT_LS+'.'+m, u=localStorage.getItem(k); if(u) return { img:await loadImg(u), name:localStorage.getItem(k+'.name')||'saved pattern' }; }catch(e){} return null; }
 
   // ---- UI: garment + views ----
   { const o=document.createElement('option'); o.value='__all'; o.textContent='All (reference flatlays)'; $('garment').appendChild(o); }
@@ -436,15 +440,18 @@ function main(){
   $('frac').onchange=()=>renderAll();
 
   // ---- pattern ----
-  $('patDrop').onclick=()=>$('patFile').click();
-  $('patDrop').ondragover=e=>e.preventDefault();
-  $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
-  $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
   let patId=0;
-  async function setPat(f){ userPat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll();
+  for(const m of ['allover','placement']){
+    const drop=$('patDrop-'+m), file=$('patFile-'+m);
+    drop.onclick=()=>file.click();
+    drop.ondragover=e=>e.preventDefault();
+    drop.ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(m,f); };
+    file.onchange=()=>{ const f=file.files[0]; if(f) setPat(m,f); };
+    savedPattern(m).then(s=>{ if(s){ userPat[m]=s.img; patId++; drop.textContent=s.name; draw(); if(ready()) renderAll(); } });
+  }
+  async function setPat(m,f){ userPat[m]=await decodeFile(f); patId++; $('patDrop-'+m).textContent=f.name; draw(); renderAll();
     try{ const u=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); });   // remembered for the next visit
-      localStorage.setItem(PAT_LS,u); localStorage.setItem(PAT_LS+'.name',f.name); }catch(e){} }
-  savedPattern().then(s=>{ if(s){ userPat=s.img; patId++; $('patDrop').textContent=s.name; draw(); if(ready()) renderAll(); } });
+      localStorage.setItem(PAT_LS+'.'+m,u); localStorage.setItem(PAT_LS+'.'+m+'.name',f.name); }catch(e){} }
 
   // ---- real render through the engine (the preview is only an approximation) ----
   const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value:'',r,m==='placement'?JSON.stringify(bc)+brOf(v):'',patId].join('|'); };

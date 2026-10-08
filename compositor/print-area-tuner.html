@@ -84,7 +84,7 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
   </main>
 
   <aside class="side">
-    <div class="grp"><span class="lbl">r</span><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
+    <div class="grp" id="rGrp"><span class="lbl">r</span><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
     <div class="grp" id="bcGrp"><span class="lbl">bc</span>
       <div class="pad">
         <span></span><button id="bcU" aria-label="Up">↑</button><span></span>
@@ -129,7 +129,7 @@ function main(){
   const REST=[232,232,232];      // Body + rest: rest of the fabric in light grey, body around the file white
 
   // ---- state ----
-  let garment=Object.keys(GARMENTS)[0], view=null, allMode=false;   // allMode: the canvas shows every product's reference flatlay
+  let garment=Object.keys(GARMENTS)[0], view=null, allMode=true;   // allMode: the canvas shows every product's reference flatlay
   const GOF=new Map(); for(const g of Object.keys(GARMENTS)) for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]) GOF.set(v,g);
   const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
   const modes=()=>!allMode&&hasBody()?['allover','placement']:['allover'];   // canvas rows, top to bottom
@@ -168,7 +168,7 @@ function main(){
   // ---- UI: garment + views ----
   { const o=document.createElement('option'); o.value='__all'; o.textContent='All (reference flatlays)'; $('garment').appendChild(o); }
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
-  $('garment').value=garment;
+  $('garment').value=allMode?'__all':garment;
   $('garment').onchange=()=>{ const g=$('garment').value; BR=0; allMode=g==='__all';
     if(allMode) selectView(refOf(garment)); else { garment=g; selectView(allViews(garment)[0].v); } };
 
@@ -396,7 +396,7 @@ function main(){
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
     $('r0').textContent=r!==r0?'(was '+r0+')':'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    for(const id of ['bcGrp','bcBtns','brGrp']){ const g=$(id), off=!hasBody()||allMode;   // no Body + rest on this product (or the All overview): bc / br unused
+    for(const id of ['rGrp','bcGrp','bcBtns','brGrp']){ const g=$(id), off=allMode||id!=='rGrp'&&!hasBody();   // All = view only   // no Body + rest on this product (or the All overview): bc / br unused
       g.classList.toggle('off',off); for(const el of g.querySelectorAll('input,button')) el.disabled=off; }
     { const ref=refView(), id=ref?(MOC[vid(ref)]||vid(ref)):'';   // where the product's br comes from, in one line
       $('brWhy').textContent=!hasBody()||allMode||!ref ? '' : br ? 'This photo uses its own br. Empty the box to follow '+id+' again.'
@@ -491,7 +491,7 @@ function main(){
     edits={}; syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
-  selectView(allViews(garment)[0].v);
+  selectView(allMode?refOf(garment):allViews(garment)[0].v);
 }
 </script>
 </body>

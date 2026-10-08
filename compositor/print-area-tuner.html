@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Print Area Tuner</title>
+<style>
+:root{ --bg:#f4f4f2; --panel:#fff; --line:#ddd; --ink:#222; --mute:#777; --acc:#1f6feb; --warn:#b54708; }
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif; }
+.app{ display:grid; grid-template-columns:300px 1fr 340px; height:100vh; }
+aside{ background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:12px; }
+aside.right{ border-right:0; border-left:1px solid var(--line); }
+h2{ font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--mute); margin:16px 0 6px; }
+h2:first-child{ margin-top:0; }
+select,input[type=number],input[type=text]{ width:100%; padding:5px 6px; border:1px solid var(--line); border-radius:4px; font:inherit; background:#fff; }
+input[type=number]{ width:auto; flex:1; min-width:0; }
+button{ font:inherit; padding:5px 10px; border:1px solid var(--line); border-radius:4px; background:#fff; cursor:pointer; }
+button:hover{ border-color:#aaa; }
+button.pri{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.row{ display:flex; gap:6px; align-items:center; margin:6px 0; }
+.row label{ min-width:58px; color:var(--mute); }
+.seg{ display:flex; border:1px solid var(--line); border-radius:4px; overflow:hidden; }
+.seg button{ flex:1; border:0; border-radius:0; }
+.seg button.on{ background:var(--acc); color:#fff; }
+.views{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.views .v{ position:relative; border:2px solid transparent; border-radius:4px; cursor:pointer; background:#eee; aspect-ratio:3/4; overflow:hidden; }
+.views .v img{ width:100%; height:100%; object-fit:cover; display:block; }
+.views .v.on{ border-color:var(--acc); }
+.views .v .tag{ position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:1px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.views .v.edited::after{ content:''; position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%; background:#f59e0b; }
+.stage{ position:relative; overflow:hidden; background:#cfcfcb; }
+.stage canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+.hud{ position:absolute; left:10px; top:10px; background:rgba(255,255,255,.92); border-radius:4px; padding:6px 8px; font-size:12px; pointer-events:none; max-width:60%; }
+.hud .warn{ color:var(--warn); }
+.busy{ position:absolute; right:10px; top:10px; background:#222; color:#fff; border-radius:4px; padding:4px 8px; font-size:12px; }
+.note{ color:var(--mute); font-size:12px; margin:4px 0; }
+.note.warn{ color:var(--warn); }
+.out{ font:12px/1.5 ui-monospace,Consolas,monospace; background:#f7f7f7; border:1px solid var(--line); border-radius:4px; padding:8px; white-space:pre-wrap; word-break:break-all; max-height:45vh; overflow:auto; }
+.chg{ border-bottom:1px solid var(--line); padding:6px 0; }
+.chg b{ font-weight:600; }
+.chg .old{ color:var(--mute); }
+.drop{ border:1px dashed #bbb; border-radius:4px; padding:8px; text-align:center; color:var(--mute); cursor:pointer; }
+.err{ padding:40px; color:#b42318; font-size:14px; }
+@media (max-width:900px){ .app{ grid-template-columns:1fr; grid-template-rows:auto 60vh auto; height:auto; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside>
+    <h2>Garment</h2>
+    <select id="garment"></select>
+    <h2>View</h2>
+    <div class="views" id="views"></div>
+    <h2>Thêm ảnh mới</h2>
+    <div class="row"><label>Mock</label><input type="file" id="upMock" accept="image/*"></div>
+    <div class="row"><label>Map</label><input type="file" id="upMap" accept="image/png"></div>
+    <div class="row"><label>Loại</label><select id="upKind"><option value="model">On-model</option><option value="flat">Flatlay</option></select></div>
+    <button id="upAdd">Thêm vào garment này</button>
+    <p class="note">Map có hậu tố <code>-r1.25</code> trong tên file thì lấy làm r ban đầu. Ảnh mới chỉ sống trong tab này.</p>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="hud" id="hud"></div>
+    <div class="busy" id="busy" hidden></div>
+  </main>
+
+  <aside class="right">
+    <h2>Chế độ</h2>
+    <div class="seg" id="mode"><button data-m="placement">Body + rest</button><button data-m="allover">All-over</button></div>
+    <p class="note" id="modeNote"></p>
+    <div class="row"><label>Body size</label><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75" style="flex:1"><span id="fracV">0.75</span></div>
+
+    <h2>Giá trị</h2>
+    <div class="row"><label>r</label><input type="number" id="r" step="0.001"><span class="note" id="r0"></span></div>
+    <div class="row"><label>bc x / y</label><input type="number" id="bx" step="0.001"><input type="number" id="by" step="0.001"></div>
+    <div class="row">
+      <button id="bcAuto" title="Xoá bc: engine dùng tâm khối body (chỉ đúng khi body không bị cắt)">Bỏ bc</button>
+      <button id="bcNone" title="bc [10,10]: không in gì lên body">Không in body</button>
+      <button id="reset">Về gốc</button>
+    </div>
+    <p class="note">Kéo khung = dời bc. Kéo góc hoặc lăn chuột trên khung = đổi r. Phím mũi tên = dời 1px (Shift 10px).</p>
+
+    <h2>Pattern</h2>
+    <div class="drop" id="patDrop">Bấm hoặc thả ảnh pattern (mặc định: pattern thử)</div>
+    <input type="file" id="patFile" accept="image/*" hidden>
+
+    <h2>Xem</h2>
+    <div class="row"><label><input type="checkbox" id="showMap" checked> Map</label><label><input type="checkbox" id="showBox" checked> Khung</label><label><input type="checkbox" id="autoRender" checked> Render khi thả</label></div>
+    <div class="row"><button class="pri" id="render">Render thật (engine)</button><button id="showMock">Ảnh gốc</button></div>
+
+    <h2>Dòng đã sửa <span id="nChg"></span></h2>
+    <div id="changes"></div>
+    <div class="row"><button id="copyAll">Copy tất cả</button><button id="clearAll">Xoá hết sửa</button></div>
+    <p class="note">Dán đè dòng <code>V(...)</code> cùng tên file trong GARMENT DATA của <code>pattern-mockup.html</code> (và form nếu view có ở đó).</p>
+  </aside>
+</div>
+
+<script>
+'use strict';
+// Loads GARMENT DATA + SHARED BLOCK straight out of pattern-mockup.html, so this page always runs the current views and
+// the real engine (no third copy to keep in sync). Needs http(s): file:// cannot fetch a sibling file.
+(async()=>{
+  const SRC='pattern-mockup.html';
+  let text;
+  try{ const res=await fetch(SRC,{cache:'no-store'}); if(!res.ok) throw new Error(res.status); text=await res.text(); }
+  catch(e){ document.getElementById('app').innerHTML='<div class="err">Không đọc được '+SRC+' ('+e.message+'). Mở trang qua http server ở thư mục compositor, ví dụ preview server can-dia: http://localhost:4178/compositor/print-area-tuner.html</div>'; return; }
+  const cut=(a,b)=>{ const i=text.indexOf(a), j=text.indexOf(b,i); if(i<0||j<0) throw new Error('marker missing: '+a); return text.slice(i,j+b.length); };
+  const code=cut('// ===== GARMENT DATA','// ===== END GARMENT DATA =====')+'\n'+cut('// ===== SHARED BLOCK','// ===== END SHARED BLOCK =====');
+  const s=document.createElement('script'); s.textContent="'use strict';\n"+code+'\nwindow.__ENGINE_OK=true;';
+  document.head.appendChild(s);
+  if(!window.__ENGINE_OK){ document.getElementById('app').innerHTML='<div class="err">Engine trong '+SRC+' lỗi khi chạy, xem console.</div>'; return; }
+  main();
+})();
+
+function main(){
+  const $=id=>document.getElementById(id);
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  const PAD=0.3;                 // empty margin around the mock (fraction of its size) so bc can be dragged outside the frame
+  const LS='printAreaTuner.v1';
+  const fmt=(x,d)=>+(+x).toFixed(d);
+
+  // ---- state ----
+  let garment=Object.keys(GARMENTS)[0], view=null, mode='placement';
+  let edits={}; try{ edits=JSON.parse(localStorage.getItem(LS)||'{}')||{}; }catch(e){ edits={}; }
+  const saveEdits=()=>{ try{ localStorage.setItem(LS,JSON.stringify(edits)); }catch(e){} };
+  const uploaded={};             // garment -> [view] added in this tab
+  const fileOf=u=>String(u).startsWith(CDN)?u.slice(CDN.length):u;
+  const vid=v=>v.vid||flatName(v);
+  const keyOf=v=>garment+'/'+vid(v);
+  const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
+  const cur=v=>{ const e=edits[keyOf(v)]; return { r:e?e.r:v.r, bc:e?e.bc:(v.bc||null) }; };
+  const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
+
+  // ---- per-view loaded assets ----
+  let mockImg=null, mapOv=null, cent=null, G=null, K=0, renderImg=null, renderKey='', showRender=false;
+  let pat=testPattern();
+  const assetCache=new Map();
+
+  function testPattern(){
+    const c=document.createElement('canvas'); c.width=c.height=600; const x=c.getContext('2d');
+    x.fillStyle='#f3d9b1'; x.fillRect(0,0,600,600);
+    x.fillStyle='#e07a5f'; x.fillRect(0,0,300,300); x.fillRect(300,300,300,300);
+    x.strokeStyle='#3d405b'; x.lineWidth=14; x.strokeRect(7,7,586,586);
+    x.fillStyle='#3d405b'; x.beginPath(); x.arc(300,300,150,0,Math.PI*2); x.fill();
+    x.fillStyle='#fff'; x.font='bold 110px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('TOP',300,300);
+    return c;
+  }
+
+  // ---- UI: garment + views ----
+  for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
+  $('garment').onchange=()=>{ garment=$('garment').value; K=0; selectView(allViews(garment)[0].v); };
+
+  function paintViews(){
+    const box=$('views'); box.innerHTML='';
+    for(const {v,flat} of allViews(garment)){
+      const d=document.createElement('div'); d.className='v'+(v===view?' on':'')+(edits[keyOf(v)]?' edited':'');
+      const im=document.createElement('img'); im.loading='lazy'; im.src=v.thumb||(v.mock+(v.mock.includes('?')?'&':'?')+'width=200'); d.appendChild(im);
+      const t=document.createElement('div'); t.className='tag'; t.textContent=(flat?'F · ':'')+(MOC[vid(v)]||vid(v)); d.appendChild(t);
+      d.title=vid(v); d.onclick=()=>selectView(v); box.appendChild(d);
+    }
+  }
+
+  async function selectView(v){
+    view=v; renderImg=null; showRender=false; mockImg=null; mapOv=null; G=null; cent=null;
+    paintViews(); syncInputs(); draw();
+    busy('Đang tải ảnh…');
+    try{
+      const a=await loadAssets(v);
+      if(view!==v) return;
+      mockImg=a.mock; mapOv=a.ov; cent=a.cent; draw();
+      busy('Đang phân tích map…');
+      G=await analyzeGarment(v, !isFlat(v));
+      if(view!==v) return;
+      await updateK();
+    }catch(e){ console.error(e); hud('<span class="warn">Lỗi: '+e.message+'</span>'); }
+    busy(''); draw();
+  }
+
+  // mock image + a display-size overlay of the map (panel 1 blue, other fabric orange, trim grey) + panel-1 centroid
+  async function loadAssets(v){
+    if(assetCache.has(v.map)) return assetCache.get(v.map);
+    const [mock,map]=await Promise.all([loadImg(v.mock), loadPng(v.map)]);
+    const S=Math.min(1, 1200/mock.width), w=Math.round(mock.width*S), h=Math.round(mock.height*S);
+    const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d',{willReadFrequently:true});
+    x.imageSmoothingEnabled=false; x.drawImage(map,0,0,w,h);
+    const id=x.getImageData(0,0,w,h), d=id.data; let sx=0, sy=0, n=0;
+    for(let i=0,p=0;i<w*h;i++,p+=4){ const k=((d[p]+10)/20)|0;
+      if(k===1){ d[p]=40; d[p+1]=110; d[p+2]=255; d[p+3]=110; sx+=i%w; sy+=(i/w)|0; n++; }
+      else if(k>=2&&k<=8){ d[p]=255; d[p+1]=150; d[p+2]=40; d[p+3]=80; }
+      else if(k===9){ d[p]=120; d[p+1]=120; d[p+2]=120; d[p+3]=90; }
+      else d[p+3]=0; }
+    x.putImageData(id,0,0);
+    const a={ mock, ov:c, cent:n?[(sx/n+0.5)/w,(sy/n+0.5)/h]:[0.5,0.5] };
+    assetCache.set(v.map,a); return a;
+  }
+
+  // K = pattern width / body width of the garment's bodyRef flat at its CURRENT r (an edit to that r moves every other view)
+  async function updateK(){
+    const g=GARMENTS[garment], ref=g.flats[g.bodyRef||0];
+    if(!ref){ K=0; return; }
+    const Gr=await analyzeGarment(ref,false);
+    K=bodyK(Gr, cur(ref).r);
+  }
+  const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };
+  const viewK=()=>view&&view.k||K;
+  // placement + this view is the K reference without its own k: body width is the measured one, r does not change it
+  const rLocked=()=>mode==='placement'&&view===refView()&&!view.k;
+
+  // ---- geometry: the print box in mock-normalised units ----
+  // placement: width = frac x r / K (of mock W), centre = bc | centroid. all-over: one tile, width = r, centred on the centroid.
+  function box(){
+    if(!view||!mockImg) return null;
+    const {r,bc}=cur(view), W0=mockImg.width, H0=mockImg.height, ar=pat.height/pat.width;
+    let wN, c, kind;
+    if(mode==='placement'){
+      const frac=+$('frac').value, k=viewK();
+      if(!k) return null;
+      const m=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
+      if(m==='none') return { none:true };
+      if(rLocked()&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
+      c=bc||cent; kind=m;
+    } else { wN=r; c=cent; kind='tile'; }
+    const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;
+    return { cx:c[0], cy:c[1], w:wN, h:wN*W0*ar/H0, th, kind };
+  }
+  function view2screen(){
+    const W0=mockImg.width, H0=mockImg.height, cw=cv.width, ch=cv.height;
+    const s=Math.min(cw/(W0*(1+2*PAD)), ch/(H0*(1+2*PAD)));
+    return { s, ox:(cw-W0*s)/2, oy:(ch-H0*s)/2, W:W0*s, H:H0*s };
+  }
+
+  // ---- draw ----
+  let raf=0;
+  function draw(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; paint(); }); }
+  function paint(){
+    const dpr=window.devicePixelRatio||1, rc=cv.getBoundingClientRect();
+    if(cv.width!==Math.round(rc.width*dpr)||cv.height!==Math.round(rc.height*dpr)){ cv.width=Math.round(rc.width*dpr); cv.height=Math.round(rc.height*dpr); }
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+    if(!view||!mockImg){ return; }
+    const T=view2screen();
+    ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
+    const live=showRender&&renderImg&&renderKey===stateKey();
+    ctx.drawImage(live?renderImg:mockImg, T.ox,T.oy,T.W,T.H);
+    if($('showMap').checked&&!live&&mapOv) ctx.drawImage(mapOv, T.ox,T.oy,T.W,T.H);
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);
+    const b=box(); const dpr1=dpr;
+    if(b&&!b.none&&$('showBox').checked){
+      const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
+      if(b.kind==='tile'){   // neighbouring tiles, faint, to show the repeat
+        ctx.globalAlpha=live?0:0.35;
+        for(let j=-3;j<=3;j++) for(let i=-3;i<=3;i++) if(i||j) ctx.drawImage(pat,-w/2+i*w,-h/2+j*h,w,h);
+      }
+      ctx.globalAlpha=live?0:0.75; ctx.drawImage(pat,-w/2,-h/2,w,h); ctx.globalAlpha=1;
+      ctx.lineWidth=2*dpr1; ctx.strokeStyle='#1f6feb'; ctx.setLineDash(live?[6*dpr1,4*dpr1]:[]); ctx.strokeRect(-w/2,-h/2,w,h); ctx.setLineDash([]);
+      if(!(rLocked())){ ctx.fillStyle='#fff'; for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ ctx.beginPath(); ctx.arc(sx*w/2,sy*h/2,6*dpr1,0,Math.PI*2); ctx.fill(); ctx.stroke(); } }
+      ctx.beginPath(); ctx.moveTo(-8*dpr1,0); ctx.lineTo(8*dpr1,0); ctx.moveTo(0,-8*dpr1); ctx.lineTo(0,8*dpr1); ctx.stroke();
+      ctx.restore();
+    }
+    // centroid marker
+    if(cent){ ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
+      ctx.beginPath(); ctx.arc(T.ox+cent[0]*T.W, T.oy+cent[1]*T.H, 4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    hudInfo(b, live);
+  }
+  function hud(h){ $('hud').innerHTML=h; }
+  function hudInfo(b, live){
+    const {r,bc}=cur(view); const L=[];
+    L.push('<b>'+vid(view)+'</b> · '+(MOC[vid(view)]||'')+(isFlat(view)?' · flatlay':' · on-model'));
+    L.push('r = '+fmt(r,4)+(r!==view.r?' (gốc '+view.r+')':'')+' · bc = '+(bc?'['+bc.map(x=>fmt(x,3)).join(', ')+']':'—'));
+    if(mode==='placement'){
+      L.push('K = '+(viewK()?fmt(viewK(),4):'…')+(view.k?' (k riêng)':' (từ '+vid(refView())+')'));
+      if(b&&b.none) L.push('<span class="warn">Body bị cắt và không có bc: engine không in gì lên body. Bấm vào ảnh để đặt bc.</span>');
+      else if(b&&b.kind==='auto') L.push('Không có bc: engine đặt theo tâm khối body (chấm đỏ).');
+      if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">bc ngoài xa khung: không in body. Bấm vào ảnh để đặt lại.</span>');
+      if(rLocked()) L.push('<span class="warn">View này là chuẩn K: ở Body + rest r không đổi cỡ khung. Đổi r ở chế độ All-over (sẽ đổi cỡ body ở mọi view khác).</span>');
+    }
+    if(live) L.push('Đang xem render thật.');
+    else if(renderImg&&showRender) L.push('<span class="warn">Render cũ, đã sửa sau đó.</span>');
+    hud(L.join('<br>'));
+  }
+  function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
+  new ResizeObserver(draw).observe($('stage'));
+
+  // ---- interaction ----
+  let drag=null;
+  const toMock=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=view2screen();
+    const px=(e.clientX-rc.left)*dpr, py=(e.clientY-rc.top)*dpr; return { px, py, nx:(px-T.ox)/T.W, ny:(py-T.oy)/T.H, T }; };
+  function hit(p){
+    const b=box(); if(!b||b.none) return null;
+    const cx=p.T.ox+b.cx*p.T.W, cy=p.T.oy+b.cy*p.T.H, w=b.w*p.T.W, h=b.h*p.T.H;
+    const dx=p.px-cx, dy=p.py-cy, c=Math.cos(-b.th), s=Math.sin(-b.th), lx=dx*c-dy*s, ly=dx*s+dy*c;
+    const R=12*(window.devicePixelRatio||1);
+    if(!rLocked()) for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]) if(Math.hypot(lx-sx*w/2,ly-sy*h/2)<R) return { type:'resize', b, cx, cy };
+    if(Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2) return { type:'move', b };
+    return null;
+  }
+  cv.addEventListener('pointerdown',e=>{
+    if(!view||!mockImg) return;
+    const p=toMock(e), h=hit(p); cv.focus();
+    if(h&&h.type==='resize'){ drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.hypot(p.px-h.cx,p.py-h.cy), r0:cur(view).r }; }
+    else if(h&&h.type==='move'&&mode==='placement'){ drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] }; }
+    else if(mode==='placement'){ setVal({ bc:[fmt(p.nx,3),fmt(p.ny,3)] }); drag={ type:'move', p0:p, bc0:[fmt(p.nx,3),fmt(p.ny,3)] }; }
+    else return;
+    cv.setPointerCapture(e.pointerId); showRender=false;
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!view||!mockImg) return;
+    const p=toMock(e);
+    if(!drag){ const h=hit(p); cv.style.cursor=h?(h.type==='resize'?'nwse-resize':'move'):(mode==='placement'?'crosshair':'default'); return; }
+    if(drag.type==='move') setVal({ bc:[fmt(drag.bc0[0]+(p.nx-drag.p0.nx),3), fmt(drag.bc0[1]+(p.ny-drag.p0.ny),3)] });
+    else { const d=Math.hypot(p.px-drag.cx,p.py-drag.cy); if(drag.d0>2) setVal({ r:fmt(drag.r0*d/drag.d0,4) }); }
+  });
+  const end=()=>{ if(!drag) return; drag=null; afterEdit(); };
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  let wheelT=0;
+  cv.addEventListener('wheel',e=>{
+    if(!view||!mockImg||rLocked()) return; const h=hit(toMock(e)); if(!h) return;
+    e.preventDefault(); showRender=false;
+    setVal({ r:fmt(cur(view).r*(e.deltaY<0?1.02:1/1.02),4) });
+    clearTimeout(wheelT); wheelT=setTimeout(afterEdit,500);
+  },{passive:false});
+  cv.tabIndex=0;
+  cv.addEventListener('keydown',e=>{
+    if(!view||!mockImg||mode!=='placement') return;
+    const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
+    e.preventDefault(); const T=view2screen(), st=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
+    const b=box(); if(!b||b.none) return; showRender=false;
+    setVal({ bc:[fmt(b.cx+d[0]*st/T.W,3), fmt(b.cy+d[1]*st/T.H,3)] });
+    clearTimeout(wheelT); wheelT=setTimeout(afterEdit,600);
+  });
+
+  // write r / bc for the current view (an edit equal to the original is dropped)
+  function setVal(p){
+    const k=keyOf(view), c=cur(view), n={ r:p.r!==undefined?p.r:c.r, bc:p.bc!==undefined?p.bc:c.bc };
+    const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null);
+    if(view.vid){ view.r=n.r; view.bc=n.bc; }   // uploaded views carry their own values
+    else if(same) delete edits[k]; else edits[k]=n;
+    saveEdits(); syncInputs(); draw();
+  }
+  async function afterEdit(){
+    paintViews(); paintChanges();
+    if(view===refView()){ await updateK(); draw(); }
+    if($('autoRender').checked) doRender();
+  }
+  function syncInputs(){
+    if(!view) return; const {r,bc}=cur(view);
+    $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
+    $('r0').textContent='gốc '+(view.origR!==undefined?view.origR:view.r);
+  }
+  $('r').onchange=()=>{ const v=parseFloat($('r').value); if(v>0){ setVal({r:v}); afterEdit(); } };
+  const bcIn=()=>{ const x=parseFloat($('bx').value), y=parseFloat($('by').value); if(isFinite(x)&&isFinite(y)){ setVal({bc:[x,y]}); afterEdit(); } };
+  $('bx').onchange=bcIn; $('by').onchange=bcIn;
+  $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
+  $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
+  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); draw(); };
+
+  // ---- mode / frac / toggles ----
+  function setMode(m){ mode=m; for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
+    $('modeNote').textContent=m==='placement'
+      ? 'Khung = file pattern in 1 lần lên body. Tâm khung = bc, rộng = Body size × r × W / K.'
+      : 'Khung = 1 ô lặp của pattern, rộng = r × bề rộng ảnh. Tâm ô đặt ở tâm khối body.';
+    showRender=false; draw(); }
+  for(const b of $('mode').children) b.onclick=()=>setMode(b.dataset.m);
+  $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; showRender=false; draw(); };
+  $('frac').onchange=()=>{ if($('autoRender').checked) doRender(); };
+  $('showMap').onchange=draw; $('showBox').onchange=draw;
+  $('showMock').onclick=()=>{ showRender=false; draw(); };
+
+  // ---- pattern ----
+  $('patDrop').onclick=()=>$('patFile').click();
+  $('patDrop').ondragover=e=>e.preventDefault();
+  $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
+  $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
+  async function setPat(f){ pat=await decodeFile(f); $('patDrop').textContent=f.name; renderImg=null; draw(); if($('autoRender').checked) doRender(); }
+
+  // ---- real render through the engine ----
+  const stateKey=()=>{ const {r,bc}=cur(view); return [vid(view),mode,$('frac').value,r,JSON.stringify(bc),viewK(),pat.width+'x'+pat.height,$('patDrop').textContent].join('|'); };
+  let rendering=0;
+  async function doRender(){
+    if(!view) return; const v=view, key=stateKey(), my=++rendering;
+    busy('Đang render…');
+    try{
+      const Gv=await analyzeGarment(v, !isFlat(v));
+      const {r,bc}=cur(v); let opt;
+      if(mode==='placement'){
+        if(!viewK()) await updateK();
+        opt=bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:[232,232,232] } }, Gv, { ...v, r, bc }, viewK());
+      } else opt={ center:true };
+      const canvas=compose(Gv, pat, r, null, opt);
+      if(my!==rendering||view!==v) return;
+      renderImg=canvas; renderKey=key; showRender=true;
+    }catch(e){ console.error(e); hud('<span class="warn">Render lỗi: '+e.message+'</span>'); }
+    if(my===rendering) busy('');
+    draw();
+  }
+  $('render').onclick=doRender;
+
+  // ---- upload new mock + map ----
+  $('upAdd').onclick=async()=>{
+    const fm=$('upMock').files[0], fp=$('upMap').files[0];
+    if(!fm||!fp){ alert('Chọn cả mock và map.'); return; }
+    const m=/-r(\d+(?:\.\d+)?)(?=\.[a-z]+$)/i.exec(fp.name), r0=m?parseFloat(m[1]):1;
+    const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
+      vid:'new-'+fm.name.replace(/\.[^.]+$/,''), mockName:fm.name, mapName:fp.name.replace(/-r\d+(?:\.\d+)?(?=\.[a-z]+$)/i,''), thumb:null };
+    v.thumb=v.mock;
+    (uploaded[garment]=uploaded[garment]||[]).push({ v, flat:$('upKind').value==='flat' });
+    selectView(v); paintChanges();
+  };
+
+  // ---- output ----
+  const num=x=>String(fmt(x,4));
+  const vLine=(v,r,bc)=>{
+    const mk=v.vid?v.mockName:fileOf(v.mock), mp=v.vid?v.mapName:fileOf(v.map);
+    let s="V('"+mk+"','"+mp+"',"+num(r);
+    if(bc) s+=',['+bc.map(x=>String(fmt(x,3))).join(',')+']'; else if(v.k) s+=',null';
+    if(v.k) s+=','+v.k;
+    return s+')';
+  };
+  function changeList(){
+    const out=[];
+    for(const g of Object.keys(GARMENTS)){
+      for(const {v} of [...GARMENTS[g].flats.map(v=>({v})), ...GARMENTS[g].models.map(v=>({v}))]){
+        const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, line:vLine(v,e.r,e.bc), old:vLine(v,v.r,v.bc||null) }); }
+      for(const {v} of uploaded[g]||[]) out.push({ g, v, line:vLine(v,v.r,v.bc), old:null });
+    }
+    return out;
+  }
+  function paintChanges(){
+    const L=changeList(), box=$('changes'); box.innerHTML=''; $('nChg').textContent=L.length?'('+L.length+')':'';
+    if(!L.length){ box.innerHTML='<p class="note">Chưa sửa gì.</p>'; return; }
+    for(const c of L){ const d=document.createElement('div'); d.className='chg';
+      d.innerHTML='<b>'+c.g+' · '+vid(c.v)+'</b>'+(c.old?'<div class="out old">'+c.old+'</div>':'<div class="note">ảnh mới: upload mock/map lên CDN rồi thêm ?v</div>')+'<div class="out">'+c.line+'</div>';
+      const b=document.createElement('button'); b.textContent='Copy'; b.onclick=()=>copy(c.line); d.appendChild(b);
+      box.appendChild(d); }
+  }
+  async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Đã copy'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
+  $('copyAll').onclick=()=>{ const L=changeList(); if(L.length) copy(L.map(c=>'// '+c.g+' · '+vid(c.v)+'\n'+c.line+',').join('\n')); };
+  $('clearAll').onclick=()=>{ if(!confirm('Xoá mọi sửa r/bc đã lưu?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
+
+  // ---- start ----
+  setMode('placement'); paintChanges();
+  selectView(allViews(garment)[0].v);
+}
+</script>
+</body>
+</html>

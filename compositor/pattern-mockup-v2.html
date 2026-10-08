@@ -102,22 +102,14 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // (Swapped 2026-09-16: before that blue = perspective, cyan = fan. The old perspective map ?v=1789551352 has blue dots and would now read as a fan.)
 // bc (optional) = [nx,ny] the real centre of panel 1 (R 20) as a fraction of the mock, may lie outside the frame: set it on a
 // view whose body is cropped, where the measured centroid only covers what the frame shows (Body + rest).
-const V=(mock,map,r,name,bc)=>({ mock:CDN+mock, map:CDN+map, r, name, bc });
+// k (optional) = this view's own K (pattern width / body width) for Body + rest, for a twisted pose where the garment's
+// K does not hold; empty = the garment's K, measured on its bodyRef. Pass null for bc to set k alone.
+const V=(mock,map,r,name,bc,k)=>({ mock:CDN+mock, map:CDN+map, r, name, bc, k });
 // A garment carries flats:[...] + models:[...]; every view carries r = the pattern raster width as a fraction of the
 // mock width (pattern px = r x mock W). This page has no Motif-size slider: scale is fixed at 1.
-// 2026-10-07: women pajama on-model 10, 11, 12 (wo-sst-20) only, r as in pattern-mockup.html
+// Empty: add the views to test here. Garment shape (bodyRef only needed when a view has no k):
+//   key:{ bodyRef:V(mock,map,r), flats:[ V(...) ], models:[ V(mock,map,r,name,bc,k) ] },
 const GARMENTS={
-  // 2026-10-07: pajama women 10 / 11 are pants shots, only the hem of the top (panel 1) is in frame. 10 has no bc (body = background
-  // only); 11: bc y = the hem (0.27)
-  // minus 0.446 of the top's box height (1.68 x the body width r x W / K), so the print centre sits far above the frame. bc x = mid of the
-  // two side seams.
-  // wo-sst-20 = pajama women 12, body cropped left (placket at x 0.093), top (neck) and bottom (hem below the frame).
-  // bodyRef = the uncropped women top flatlay (not rendered): it gives K = pattern width / body width. bc: x = the placket,
-  // y = 0.82 = the flatlay's centroid (0.554 down its panel-1 box, box height 1.68 x width) carried to this view's scale.
-  womenPajama:{ bodyRef:V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024),
-                flats:[], models:[ V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.552,'pajama_women_10'),
-                                   V('zum-model-pajama-women-11.jpg?v=1789642307','zum-flatlay-model-map-pajama-women-11.png?v=1789380894',1.576,'pajama_women_11',[0.527,-0.2]),
-                                   V('zum-model-pajama-women-12.jpg?v=1790656952','zum-flatlay-model-map-pajama-women-12.png?v=1790656944',2.16,'wo-sst-20',[0.093,0.82]) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);   // read by regress-engine.js render
 const flatName=f=>f.mock.split('/').pop().replace(/^zum-(flatlay-mock|model)-/,'').replace(/\.(jpg|png).*$/,'');
@@ -746,9 +738,8 @@ const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
 const PROD_OPT={ quads:false, showQuad:false, center:true };
 
 // Layout (sidebar): 'allover' | 'placement' (Body + rest: the pattern file printed once on panel 1 = map R 20 at BODY_FRAC of
-// its width, every other fabric panel = rest colour). In Body + rest each view renders twice: 'measured' = the print sized
-// and centred on the body as seen in the photo (the rule before 2026-10-07), 'production' = the current rule (bodyOpt:
-// width r x W / K from the bodyRef, centre from bc). All-over renders once.
+// its width, every other fabric panel = rest colour), rendered as production does (bodyOpt: width r x W / K, K = the
+// view's k else the garment's bodyRef K, centre from bc). One render per view.
 const BODY_FRAC=0.75;
 const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
@@ -756,7 +747,7 @@ function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PR
 // [label, compose opt] per column for one analysed view (production: a cropped body without bc gets only the rest colour)
 function columns(G, spec, K){
   const o=prodOpt(); if(!o.body) return [['all-over',o]];
-  return [['measured',o], ['production',bodyOpt(o, G, spec, K)]];
+  return [['production',bodyOpt(o, G, spec, spec.k||K)]];
 }
 
 async function toBlobURL(canvas){
@@ -791,7 +782,7 @@ async function generate(){
     for(const gk of FLAT_KEYS){
       const g=GARMENTS[gk];
       let K=0;   // pattern width / body width from the uncropped bodyRef, only for Body + rest
-      if(g.bodyRef&&layoutV()==='placement'){ msg(gk+' · body reference…'); await nextPaint(); K=bodyK(await analyzeGarment(g.bodyRef), g.bodyRef.r); }
+      if(g.bodyRef&&layoutV()==='placement'&&[...g.flats,...g.models].some(v=>!v.k)){ msg(gk+' · body reference…'); await nextPaint(); K=bodyK(await analyzeGarment(g.bodyRef), g.bodyRef.r); }
       const views=[...g.flats.map(v=>[v,false,results.flats,'flatlay',flatName(v)]), ...g.models.map(v=>[v,true,results.models,'model',v.name||modelName(v)])];
       for(let i=0;i<views.length;i++){ const [v,model,bucket,kind,name]=views[i];
         msg(gk+' · '+kind+' '+(i+1)+'/'+views.length+'…'); await nextPaint();

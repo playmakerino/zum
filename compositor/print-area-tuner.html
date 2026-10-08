@@ -86,12 +86,10 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
       <div class="grp"><span class="lbl">r</span><input type="number" id="r" step="0.01"><span class="orig" id="r0"></span></div>
       <div class="grp" id="bcGrp"><span class="lbl">bc</span><input type="number" id="bx" step="0.005"><input type="number" id="by" step="0.005"><span class="orig" id="bc0"></span></div>
       <div class="grp" id="bcBtns"><button id="bcAuto" title="Clear bc: the engine uses the body centroid (red dot)">Auto centre</button><button id="bcNone" title="bc [10,10]">No body print</button></div>
-      <button id="reset">Reset</button>
+      <button id="reset" title="Put r and bc of this photo back to the values in pattern-mockup.html">Undo this photo</button>
       <span class="sp"></span>
-      <label class="hint" style="margin:0"><input type="checkbox" id="showMap" checked> Tint fabric</label>
-      <button id="holdMock" title="Hold to see the original photo">Hold: original</button>
-      <button class="pri" id="copyAll" disabled>Copy 0 edited lines</button>
-      <button id="clearAll" title="Discard every saved edit">Clear edits</button>
+      <button class="pri" id="copyAll" disabled>Copy new r/bc</button>
+      <button id="clearAll" title="Put every photo back to the values in pattern-mockup.html">Undo all photos</button>
     </div>
     <main class="stage" id="stage">
       <canvas id="cv"></canvas>
@@ -125,26 +123,28 @@ details summary{ font-size:12px; font-weight:600; color:var(--mute); cursor:poin
 function main(){
   const $=id=>document.getElementById(id);
   const cv=$('cv'), ctx=cv.getContext('2d');
-  const PAD=0.3;                 // empty margin around the mock (fraction of its size) so bc can be dragged outside the frame
   const LS='printAreaTuner.v1';
   const fmt=(x,d)=>+(+x).toFixed(d);
+  const REST=[232,232,232];      // Body + rest preview: rest of the fabric in light grey, body around the file white
 
   // ---- state ----
   let garment=Object.keys(GARMENTS)[0], view=null, mode='allover';
   const hasBody=()=>!window.__NO_PLACEMENT.includes(garment);
   let edits={}; try{ edits=JSON.parse(localStorage.getItem(LS)||'{}')||{}; }catch(e){ edits={}; }
   const saveEdits=()=>{ try{ localStorage.setItem(LS,JSON.stringify(edits)); }catch(e){} };
-  const uploaded={};             // garment -> [view] added in this tab
+  const uploaded={};             // garment -> [{v,flat}] added in this tab
   const fileOf=u=>String(u).startsWith(CDN)?u.slice(CDN.length):u;
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>garment+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
   const cur=v=>{ const e=edits[keyOf(v)]; return { r:e?e.r:v.r, bc:e?e.bc:(v.bc||null) }; };
   const isFlat=v=>allViews(garment).some(o=>o.v===v&&o.flat);
+  const refFlat=()=>GARMENTS[garment].flats[0];                       // left pane: always the first flatlay
+  const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // K reference (Body + rest)
 
-  // ---- per-view loaded assets ----
-  let mockImg=null, mapOv=null, cent=null, G=null, K=0, renderImg=null, renderKey='', holding=false;
-  let pat=testPattern();
+  let pat=testPattern(), K=0;
+  // per view: { a: assets, G: analysed garment, img: last real render, key: its state key }
+  const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{}); return S.get(v); };
   const assetCache=new Map();
 
   function testPattern(){
@@ -159,7 +159,7 @@ function main(){
 
   // ---- UI: garment + views ----
   for(const g of Object.keys(GARMENTS)){ const o=document.createElement('option'); o.value=g; o.textContent=g+(TYPE_CODE[g]?' ('+TYPE_CODE[g]+')':''); $('garment').appendChild(o); }
-  $('garment').onchange=()=>{ garment=$('garment').value; K=0; setMode(mode); selectView(allViews(garment)[0].v); };
+  $('garment').onchange=()=>{ garment=$('garment').value; K=0; setMode(mode,true); selectView(allViews(garment)[0].v); };
 
   function paintViews(){
     const box=$('views'); box.innerHTML='';
@@ -171,172 +171,203 @@ function main(){
     }
   }
 
+  // load + analyse one view (mock, masks, engine garment); cached
+  async function prep(v){
+    const s=st(v);
+    if(!s.a) s.a=await loadAssets(v);
+    if(!s.G) s.G=await analyzeGarment(v, !isFlat(v));
+    return s;
+  }
   async function selectView(v){
-    view=v; renderImg=null; mockImg=null; mapOv=null; G=null; cent=null;
-    paintViews(); syncInputs(); draw();
-    busy('Loading photo…');
+    view=v; paintViews(); syncInputs(); draw();
+    busy('Loading…');
     try{
-      const a=await loadAssets(v);
-      if(view!==v) return;
-      mockImg=a.mock; mapOv=a.ov; cent=a.cent; draw();
-      busy('Analysing map…');
-      G=await analyzeGarment(v, !isFlat(v));
+      const ref=refFlat();
+      await Promise.all([prep(v), ref?prep(ref):null]);
       if(view!==v) return;
       await updateK();
     }catch(e){ console.error(e); hud('<span class="warn">Error: '+e.message+'</span>'); busy(''); return; }
-    busy(''); draw(); doRender();
+    busy(''); draw(); renderAll();
   }
 
-  // mock image + a display-size overlay of the map (panel 1 blue, other fabric orange, trim grey) + panel-1 centroid
+  // mock + two alpha masks at display size (fabric = ids 1..8, body = id 1) + the body centroid
   async function loadAssets(v){
     if(assetCache.has(v.map)) return assetCache.get(v.map);
     const [mock,map]=await Promise.all([loadImg(v.mock), loadPng(v.map)]);
-    const S=Math.min(1, 1200/mock.width), w=Math.round(mock.width*S), h=Math.round(mock.height*S);
+    const sc=Math.min(1, 1200/mock.width), w=Math.round(mock.width*sc), h=Math.round(mock.height*sc);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d',{willReadFrequently:true});
     x.imageSmoothingEnabled=false; x.drawImage(map,0,0,w,h);
-    const id=x.getImageData(0,0,w,h), d=id.data; let sx=0, sy=0, n=0;
+    const d=x.getImageData(0,0,w,h).data;
+    const mk=()=>{ const m=document.createElement('canvas'); m.width=w; m.height=h; const mx=m.getContext('2d'); return { m, mx, id:mx.createImageData(w,h) }; };
+    const F=mk(), B=mk(); let sx=0, sy=0, n=0;
     for(let i=0,p=0;i<w*h;i++,p+=4){ const k=((d[p]+10)/20)|0;
-      if(k===1){ d[p]=40; d[p+1]=110; d[p+2]=255; d[p+3]=110; sx+=i%w; sy+=(i/w)|0; n++; }
-      else if(k>=2&&k<=8){ d[p]=255; d[p+1]=150; d[p+2]=40; d[p+3]=80; }
-      else if(k===9){ d[p]=120; d[p+1]=120; d[p+2]=120; d[p+3]=90; }
-      else d[p+3]=0; }
-    x.putImageData(id,0,0);
-    const a={ mock, ov:c, cent:n?[(sx/n+0.5)/w,(sy/n+0.5)/h]:[0.5,0.5] };
+      if(k>=1&&k<=8) F.id.data[p+3]=255;
+      if(k===1){ B.id.data[p+3]=255; sx+=i%w; sy+=(i/w)|0; n++; } }
+    F.mx.putImageData(F.id,0,0); B.mx.putImageData(B.id,0,0);
+    const a={ mock, w, h, fab:F.m, body:B.m, cent:n?[(sx/n+0.5)/w,(sy/n+0.5)/h]:[0.5,0.5] };
     assetCache.set(v.map,a); return a;
   }
 
   // K = pattern width / body width of the garment's bodyRef flat at its CURRENT r (an edit to that r moves every other view)
   async function updateK(){
-    const g=GARMENTS[garment], ref=g.flats[g.bodyRef||0];
-    if(!ref){ K=0; return; }
-    const Gr=await analyzeGarment(ref,false);
-    K=bodyK(Gr, cur(ref).r);
+    const ref=refView(); if(!ref){ K=0; return; }
+    K=bodyK((await prep(ref)).G, cur(ref).r);
   }
-  const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };
-  const viewK=()=>view&&view.k||K;
-  // placement + this view is the K reference without its own k: body width is the measured one, r does not change it
-  const rLocked=()=>mode==='placement'&&view===refView()&&!view.k;
+  const kOf=v=>v.k||K;
+  // Body + rest on the K reference view without its own k: body width is the measured one, r does not change it
+  const rLocked=v=>mode==='placement'&&v===refView()&&!v.k;
 
-  // ---- geometry: the print box in mock-normalised units ----
-  // placement: width = frac x r / K (of mock W), centre = bc | centroid. all-over: one tile, width = r, centred on the centroid.
-  function box(){
-    if(!view||!mockImg) return null;
-    const {r,bc}=cur(view), W0=mockImg.width, H0=mockImg.height, ar=pat.height/pat.width;
+  // ---- geometry: the print box of a view, mock-normalised ----
+  // all-over: one repeat tile, width r, centred on the body centroid (the engine's center:true).
+  // placement: the file printed once, width frac x r / K, centre bc | centroid.
+  function box(v){
+    const s=st(v); if(!s.a) return null;
+    const {r,bc}=cur(v), A=s.a, G=s.G, ar=pat.height/pat.width;
     let wN, c, kind;
     if(mode==='placement'){
-      const frac=+$('frac').value, k=viewK();
-      if(!k) return null;
+      const k=kOf(v), frac=+$('frac').value; if(!k) return null;
       const m=G?bodyMode(G,{r,bc}):(bc?'bc':'auto');
       if(m==='none') return { none:true };
-      if(rLocked()&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
-      c=bc||cent; kind=m;
-    } else { wN=r; c=cent; kind='tile'; }
+      if(rLocked(v)&&G){ const e=G.ext; wN=frac*(e.x1[1]-e.x0[1])/G.w; } else wN=frac*r/k;
+      c=bc||A.cent; kind=m;
+    } else { wN=r; c=A.cent; kind='tile'; }
     const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;
-    return { cx:c[0], cy:c[1], w:wN, h:wN*W0*ar/H0, th, kind };
-  }
-  function view2screen(){
-    const W0=mockImg.width, H0=mockImg.height, cw=cv.width, ch=cv.height;
-    const s=Math.min(cw/(W0*(1+2*PAD)), ch/(H0*(1+2*PAD)));
-    return { s, ox:(cw-W0*s)/2, oy:(ch-H0*s)/2, W:W0*s, H:H0*s };
+    return { cx:c[0], cy:c[1], w:wN, h:wN*A.mock.width*ar/A.mock.height, th, kind };
   }
 
+  // quick preview of the print at display size (multiplied onto the mock): pattern tiled / placed, clipped to the map
+  function preview(v){
+    const s=st(v), A=s.a, b=box(v); if(!A) return null;
+    const c=s.pv||(s.pv=document.createElement('canvas')); c.width=A.w; c.height=A.h; const x=c.getContext('2d');
+    if(mode==='allover'){
+      if(!b) return null;
+      const tw=b.w*A.w, th=tw*pat.height/pat.width, P=x.createPattern(pat,'repeat');
+      P.setTransform(new DOMMatrix().translate(b.cx*A.w,b.cy*A.h).rotate(b.th*180/Math.PI).translate(-tw/2,-th/2).scale(tw/pat.width,th/pat.height));
+      x.fillStyle=P; x.fillRect(0,0,A.w,A.h);
+      x.globalCompositeOperation='destination-in'; x.drawImage(A.fab,0,0); x.globalCompositeOperation='source-over';
+    } else {
+      x.fillStyle='rgb('+REST+')'; x.fillRect(0,0,A.w,A.h);
+      x.globalCompositeOperation='destination-in'; x.drawImage(A.fab,0,0); x.globalCompositeOperation='source-over';
+      const t=s.pb||(s.pb=document.createElement('canvas')); t.width=A.w; t.height=A.h; const y=t.getContext('2d');
+      y.fillStyle='#fff'; y.fillRect(0,0,A.w,A.h);
+      if(b&&!b.none){ y.save(); y.translate(b.cx*A.w,b.cy*A.h); y.rotate(b.th); const w=b.w*A.w, h=b.h*A.h; y.drawImage(pat,-w/2,-h/2,w,h); y.restore(); }
+      y.globalCompositeOperation='destination-in'; y.drawImage(A.body,0,0); y.globalCompositeOperation='source-over';
+      x.drawImage(t,0,0);
+    }
+    return c;
+  }
+
+  // ---- layout: left half = first flatlay (reference), right half = the photo being edited ----
+  const GAP=12;
+  function panes(){
+    const W=cv.width, H=cv.height, top=34*(window.devicePixelRatio||1), hw=(W-GAP*3)/2;
+    return { L:{ x:GAP, y:top, w:hw, h:H-top-GAP }, R:{ x:GAP*2+hw, y:top, w:hw, h:H-top-GAP } };
+  }
+  // pad = margin around the photo as a fraction of its size; the edited photo keeps room to drag bc outside the frame
+  function fit(A,P,pad){
+    const W0=A.mock.width, H0=A.mock.height, s=Math.min(P.w/(W0*(1+2*pad)), P.h/(H0*(1+2*pad)));
+    return { ox:P.x+(P.w-W0*s)/2, oy:P.y+(P.h-H0*s)/2, W:W0*s, H:H0*s };
+  }
+  const padR=()=>mode==='placement'?0.25:0.02;
+
   // ---- draw ----
-  let raf=0;
+  let raf=0, drag=null;
   function draw(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; paint(); }); }
+  function drawView(v, T, editable){
+    const s=st(v), A=s.a; if(!A) return;
+    const fresh=s.img&&s.key===stateKey(v);
+    ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
+    if(fresh&&!(editable&&drag)) ctx.drawImage(s.img,T.ox,T.oy,T.W,T.H);
+    else { ctx.drawImage(A.mock,T.ox,T.oy,T.W,T.H); const p=preview(v);
+      if(p){ ctx.globalCompositeOperation='multiply'; ctx.drawImage(p,T.ox,T.oy,T.W,T.H); ctx.globalCompositeOperation='source-over'; } }
+    ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);
+    if(!editable) return;
+    const b=box(v), dpr=window.devicePixelRatio||1; if(!b||b.none) return;
+    const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
+    ctx.lineWidth=2*dpr; ctx.strokeStyle='#1f6feb'; ctx.strokeRect(-w/2,-h/2,w,h);
+    if(!rLocked(v)){ ctx.fillStyle='#fff'; for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ ctx.beginPath(); ctx.arc(sx*w/2,sy*h/2,6*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke(); } }
+    ctx.restore();
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
+    ctx.beginPath(); ctx.arc(cx,cy,4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+  function label(t,P,dpr){ ctx.fillStyle='#333'; ctx.font=(12*dpr)+'px system-ui,sans-serif'; ctx.textBaseline='middle'; ctx.fillText(t,P.x,P.y/2+2*dpr); }
   function paint(){
     const dpr=window.devicePixelRatio||1, rc=cv.getBoundingClientRect();
     if(cv.width!==Math.round(rc.width*dpr)||cv.height!==Math.round(rc.height*dpr)){ cv.width=Math.round(rc.width*dpr); cv.height=Math.round(rc.height*dpr); }
     ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
-    if(!view||!mockImg){ return; }
-    const T=view2screen();
-    ctx.fillStyle='#fff'; ctx.fillRect(T.ox,T.oy,T.W,T.H);
-    const live=!holding&&!drag&&renderImg&&renderKey===stateKey();
-    ctx.drawImage(live?renderImg:mockImg, T.ox,T.oy,T.W,T.H);
-    if($('showMap').checked&&!live&&!holding&&mapOv) ctx.drawImage(mapOv, T.ox,T.oy,T.W,T.H);
-    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1; ctx.strokeRect(T.ox+.5,T.oy+.5,T.W-1,T.H-1);
-    const b=box(); const dpr1=dpr;
-    if(b&&!b.none&&!holding){
-      const cx=T.ox+b.cx*T.W, cy=T.oy+b.cy*T.H, w=b.w*T.W, h=b.h*T.H;
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(b.th);
-      if(b.kind==='tile'){   // neighbouring tiles, faint, to show the repeat
-        ctx.globalAlpha=live?0:0.35;
-        for(let j=-3;j<=3;j++) for(let i=-3;i<=3;i++) if(i||j) ctx.drawImage(pat,-w/2+i*w,-h/2+j*h,w,h);
-      }
-      ctx.globalAlpha=live?0:0.75; ctx.drawImage(pat,-w/2,-h/2,w,h); ctx.globalAlpha=1;
-      ctx.lineWidth=2*dpr1; ctx.strokeStyle='#1f6feb'; ctx.setLineDash(live?[6*dpr1,4*dpr1]:[]); ctx.strokeRect(-w/2,-h/2,w,h); ctx.setLineDash([]);
-      if(!(rLocked())){ ctx.fillStyle='#fff'; for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){ ctx.beginPath(); ctx.arc(sx*w/2,sy*h/2,6*dpr1,0,Math.PI*2); ctx.fill(); ctx.stroke(); } }
-      ctx.beginPath(); ctx.moveTo(-8*dpr1,0); ctx.lineTo(8*dpr1,0); ctx.moveTo(0,-8*dpr1); ctx.lineTo(0,8*dpr1); ctx.stroke();
-      ctx.restore();
-    }
-    // centroid marker
-    if(cent){ ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='#e5484d'; ctx.lineWidth=2*dpr;
-      ctx.beginPath(); ctx.arc(T.ox+cent[0]*T.W, T.oy+cent[1]*T.H, 4*dpr,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
-    hudInfo(b);
+    if(!view) return;
+    const {L,R}=panes(), ref=refFlat();
+    if(ref&&st(ref).a){ drawView(ref, fit(st(ref).a,L,0.02), false); label('Reference: '+(MOC[vid(ref)]||vid(ref))+' · r '+fmt(cur(ref).r,4), L, dpr); }
+    if(st(view).a){ drawView(view, fit(st(view).a,R,padR()), true); label('Editing: '+(MOC[vid(view)]||vid(view))+' · r '+fmt(cur(view).r,4), R, dpr); }
+    hudInfo();
   }
   function hud(h){ $('hud').innerHTML=h; }
-  // only what needs attention: the box itself says the rest
-  function hudInfo(b){
-    const {bc}=cur(view), L=[];
+  function hudInfo(){
+    const b=box(view), {bc}=cur(view), L=[];
     if(mode==='placement'){
       if(b&&b.none) L.push('<span class="warn">The body is cropped and has no centre: nothing prints on it. Click where the centre should go.</span>');
       else if(bc&&(bc[0]>3||bc[1]>3)) L.push('<span class="warn">Set to "no body print". Click the photo to place a centre.</span>');
       else if(b&&b.kind==='auto') L.push('Centre is automatic (red dot). Drag the box to set your own.');
-      if(rLocked()) L.push('<span class="warn">This photo sets the body size for the whole product, so the box size is fixed here. Change its r in the All-over tab.</span>');
+      if(rLocked(view)) L.push('<span class="warn">This photo sets the body size for the whole product, so the box size is fixed here. Change its r in the All-over tab.</span>');
     }
     hud(L.join('<br>'));
     $('legend').innerHTML=mode==='placement'
-      ? '<i style="background:#1f6feb"></i>Body print: drag to move, drag a corner to resize<br><i style="background:#e5484d;border-radius:50%"></i>Automatic body centre'
-      : '<i style="background:#1f6feb"></i>One repeat tile: drag a corner to resize';
+      ? 'Blue box = the pattern printed on the body.<br>Drag the box to move it, drag a corner to resize.'
+      : 'Blue box = one repeat of the pattern.<br>Drag anywhere on the right photo: away from the red dot = bigger, towards it = smaller. Mouse wheel also works.';
   }
   function busy(t){ $('busy').hidden=!t; $('busy').textContent=t; }
   new ResizeObserver(draw).observe($('stage'));
 
-  // ---- interaction ----
-  let drag=null;
-  const toMock=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=view2screen();
+  // ---- interaction (right pane only) ----
+  const at=e=>{ const rc=cv.getBoundingClientRect(), dpr=cv.width/rc.width, T=fit(st(view).a,panes().R,padR());
     const px=(e.clientX-rc.left)*dpr, py=(e.clientY-rc.top)*dpr; return { px, py, nx:(px-T.ox)/T.W, ny:(py-T.oy)/T.H, T }; };
+  const inRight=p=>{ const R=panes().R; return p.px>=R.x&&p.px<=R.x+R.w&&p.py>=R.y&&p.py<=R.y+R.h; };
   function hit(p){
-    const b=box(); if(!b||b.none) return null;
+    const b=box(view); if(!b||b.none) return null;
     const cx=p.T.ox+b.cx*p.T.W, cy=p.T.oy+b.cy*p.T.H, w=b.w*p.T.W, h=b.h*p.T.H;
     const dx=p.px-cx, dy=p.py-cy, c=Math.cos(-b.th), s=Math.sin(-b.th), lx=dx*c-dy*s, ly=dx*s+dy*c;
     const R=12*(window.devicePixelRatio||1);
-    if(!rLocked()) for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]) if(Math.hypot(lx-sx*w/2,ly-sy*h/2)<R) return { type:'resize', b, cx, cy };
-    if(Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2) return { type:'move', b };
-    return null;
+    if(!rLocked(view)) for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]) if(Math.hypot(lx-sx*w/2,ly-sy*h/2)<R) return { type:'resize', cx, cy };
+    if(Math.abs(lx)<=w/2&&Math.abs(ly)<=h/2) return { type:'move', b, cx, cy };
+    return { type:'out', cx, cy };
   }
+  const ready=()=>view&&st(view).a;
   cv.addEventListener('pointerdown',e=>{
-    if(!view||!mockImg) return;
-    const p=toMock(e), h=hit(p); cv.focus();
-    if(h&&h.type==='resize'){ drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.hypot(p.px-h.cx,p.py-h.cy), r0:cur(view).r }; }
-    else if(h&&h.type==='move'&&mode==='placement'){ drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] }; }
-    else if(mode==='placement'){ setVal({ bc:[fmt(p.nx,3),fmt(p.ny,3)] }); drag={ type:'move', p0:p, bc0:[fmt(p.nx,3),fmt(p.ny,3)] }; }
-    else return;
+    if(!ready()) return; const p=at(e); if(!inRight(p)) return;
+    const h=hit(p); cv.focus();
+    if(mode==='allover'){
+      if(!h) return; const d0=Math.hypot(p.px-h.cx,p.py-h.cy);
+      drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.max(d0,8), r0:cur(view).r };
+    } else if(h&&h.type==='resize') drag={ type:'resize', cx:h.cx, cy:h.cy, d0:Math.hypot(p.px-h.cx,p.py-h.cy), r0:cur(view).r };
+    else if(h&&h.type==='move') drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
+    else { const bc=[fmt(p.nx,3),fmt(p.ny,3)]; setVal({ bc }); drag={ type:'move', p0:p, bc0:bc }; }
     cv.setPointerCapture(e.pointerId); draw();
   });
   cv.addEventListener('pointermove',e=>{
-    if(!view||!mockImg) return;
-    const p=toMock(e);
-    if(!drag){ const h=hit(p); cv.style.cursor=h?(h.type==='resize'?'nwse-resize':'move'):(mode==='placement'?'crosshair':'default'); return; }
+    if(!ready()) return; const p=at(e);
+    if(!drag){ let c='default';
+      if(inRight(p)){ const h=hit(p); c=mode==='allover'?(rLocked(view)?'default':'nwse-resize'):h&&h.type==='resize'?'nwse-resize':h&&h.type==='move'?'move':'crosshair'; }
+      cv.style.cursor=c; return; }
     if(drag.type==='move') setVal({ bc:[fmt(drag.bc0[0]+(p.nx-drag.p0.nx),3), fmt(drag.bc0[1]+(p.ny-drag.p0.ny),3)] });
-    else { const d=Math.hypot(p.px-drag.cx,p.py-drag.cy); if(drag.d0>2) setVal({ r:fmt(drag.r0*d/drag.d0,4) }); }
+    else if(drag.d0>2) setVal({ r:fmt(drag.r0*Math.hypot(p.px-drag.cx,p.py-drag.cy)/drag.d0,4) });
   });
   const end=()=>{ if(!drag) return; drag=null; afterEdit(); };
   cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
-  let wheelT=0;
+  let idleT=0;
   cv.addEventListener('wheel',e=>{
-    if(!view||!mockImg||rLocked()) return; const h=hit(toMock(e)); if(!h) return;
-    e.preventDefault();
+    if(!ready()||rLocked(view)||!inRight(at(e))) return; e.preventDefault();
     setVal({ r:fmt(cur(view).r*(e.deltaY<0?1.02:1/1.02),4) });
-    clearTimeout(wheelT); wheelT=setTimeout(afterEdit,500);
+    clearTimeout(idleT); idleT=setTimeout(afterEdit,500);
   },{passive:false});
   cv.tabIndex=0;
   cv.addEventListener('keydown',e=>{
-    if(!view||!mockImg||mode!=='placement') return;
+    if(!ready()||mode!=='placement') return;
     const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
-    e.preventDefault(); const T=view2screen(), st=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
-    const b=box(); if(!b||b.none) return;
-    setVal({ bc:[fmt(b.cx+d[0]*st/T.W,3), fmt(b.cy+d[1]*st/T.H,3)] });
-    clearTimeout(wheelT); wheelT=setTimeout(afterEdit,600);
+    e.preventDefault(); const b=box(view); if(!b||b.none) return;
+    const T=fit(st(view).a,panes().R,padR()), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
+    setVal({ bc:[fmt(b.cx+d[0]*px/T.W,3), fmt(b.cy+d[1]*px/T.H,3)] });
+    clearTimeout(idleT); idleT=setTimeout(afterEdit,600);
   });
 
   // write r / bc for the current view (an edit equal to the original is dropped)
@@ -349,83 +380,79 @@ function main(){
   }
   async function afterEdit(){
     paintViews(); paintChanges();
-    if(view===refView()){ await updateK(); draw(); }
-    doRender();
+    if(view===refView()) await updateK();
+    draw(); renderAll();
   }
   function syncInputs(){
     if(!view) return; const {r,bc}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null);
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
     $('r0').textContent=r!==r0?'(was '+r0+')':'';
     $('bc0').textContent=JSON.stringify(bc)!==JSON.stringify(b0)?'(was '+(b0?b0.join(', '):'auto')+')':'';
-    const off=mode!=='placement'; for(const id of ['bx','by','bcAuto','bcNone']) $(id).disabled=off; $('bcGrp').style.opacity=off?.45:1;
+    const off=mode!=='placement'; $('bcGrp').style.display=$('bcBtns').style.display=off?'none':'';
   }
   $('r').onchange=()=>{ const v=parseFloat($('r').value); if(v>0){ setVal({r:v}); afterEdit(); } };
   const bcIn=()=>{ const x=parseFloat($('bx').value), y=parseFloat($('by').value); if(isFinite(x)&&isFinite(y)){ setVal({bc:[x,y]}); afterEdit(); } };
   $('bx').onchange=bcIn; $('by').onchange=bcIn;
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
-  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); draw(); };
+  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
 
-  // ---- mode / frac / toggles ----
-  function setMode(m){ if(!hasBody()) m='allover'; mode=m; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
+  // ---- mode / frac ----
+  function setMode(m,quiet){ if(!hasBody()) m='allover'; mode=m; $('mode').querySelector('[data-m=placement]').style.display=hasBody()?'':'none';
     for(const b of $('mode').children) b.classList.toggle('on',b.dataset.m===m);
     $('modeNote').textContent=m==='placement'
       ? 'The pattern prints once on the body. Set its position (bc) and size (r).'
       : 'The pattern repeats over the fabric. Set the tile size (r).';
     $('fracRow').style.display=m==='placement'?'':'none';
-    syncInputs(); draw(); if(view&&mockImg) doRender(); }
+    syncInputs(); draw(); if(!quiet&&ready()) renderAll(); }
   for(const b of $('mode').children) b.onclick=()=>setMode(b.dataset.m);
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
-  $('frac').onchange=()=>doRender();
-  $('showMap').onchange=draw;
-  const hold=on=>()=>{ holding=on; draw(); };
-  $('holdMock').onpointerdown=hold(true); for(const ev of ['pointerup','pointerleave','pointercancel']) $('holdMock').addEventListener(ev,hold(false));
+  $('frac').onchange=()=>renderAll();
 
   // ---- pattern ----
   $('patDrop').onclick=()=>$('patFile').click();
   $('patDrop').ondragover=e=>e.preventDefault();
   $('patDrop').ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setPat(f); };
   $('patFile').onchange=()=>{ const f=$('patFile').files[0]; if(f) setPat(f); };
-  async function setPat(f){ pat=await decodeFile(f); $('patDrop').textContent=f.name; renderImg=null; draw(); doRender(); }
+  let patId=0;
+  async function setPat(f){ pat=await decodeFile(f); patId++; $('patDrop').textContent=f.name; draw(); renderAll(); }
 
-  // ---- real render through the engine ----
-  const stateKey=()=>{ const {r,bc}=cur(view); return [vid(view),mode,$('frac').value,r,JSON.stringify(bc),viewK(),pat.width+'x'+pat.height,$('patDrop').textContent].join('|'); };
-  let rendering=0;
-  async function doRender(){
-    if(!view) return; const v=view, key=stateKey(), my=++rendering;
-    busy('Rendering…');
-    try{
-      const Gv=await analyzeGarment(v, !isFlat(v));
-      const {r,bc}=cur(v); let opt;
-      if(mode==='placement'){
-        if(!viewK()) await updateK();
-        opt=bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:[232,232,232] } }, Gv, { ...v, r, bc }, viewK());
-      } else opt={ center:true };
-      const canvas=compose(Gv, pat, r, null, opt);
-      if(my!==rendering||view!==v) return;
-      renderImg=canvas; renderKey=key;
-    }catch(e){ console.error(e); hud('<span class="warn">Render failed: '+e.message+'</span>'); }
-    if(my===rendering) busy('');
-    draw();
+  // ---- real render through the engine (the preview is only an approximation) ----
+  const stateKey=v=>{ const {r,bc}=cur(v); return [vid(v),mode,$('frac').value,r,JSON.stringify(bc),kOf(v),patId].join('|'); };
+  let jobs=0;
+  async function render(v){
+    const s=st(v), key=stateKey(v); if(s.img&&s.key===key) return;
+    const {G}=await prep(v), {r,bc}=cur(v);
+    const opt=mode==='placement'
+      ? bodyOpt({ center:true, body:{ frac:+$('frac').value, bg:[255,255,255] }, rest:{ solid:REST } }, G, { ...v, r, bc }, kOf(v))
+      : { center:true };
+    const c=compose(G, pat, r, null, opt), o=document.createElement('canvas');   // compose reuses one canvas: copy it out
+    o.width=c.width; o.height=c.height; o.getContext('2d').drawImage(c,0,0);
+    if(stateKey(v)===key){ s.img=o; s.key=key; }
+  }
+  async function renderAll(){
+    const my=++jobs; busy('Rendering…');
+    try{ await render(view); draw(); const ref=refFlat(); if(ref&&ref!==view&&my===jobs) await render(ref); }
+    catch(e){ console.error(e); hud('<span class="warn">Render failed: '+e.message+'</span>'); }
+    if(my===jobs) busy(''); draw();
   }
 
   // ---- upload new mock + map ----
-  $('upAdd').onclick=async()=>{
+  $('upAdd').onclick=()=>{
     const fm=$('upMock').files[0], fp=$('upMap').files[0];
     if(!fm||!fp){ alert('Pick both a mock and a map.'); return; }
     const m=/-r(\d+(?:\.\d+)?)(?=\.[a-z]+$)/i.exec(fp.name), r0=m?parseFloat(m[1]):1;
     const v={ mock:URL.createObjectURL(fm), map:URL.createObjectURL(fp), r:r0, origR:r0, bc:null,
-      vid:'new-'+fm.name.replace(/\.[^.]+$/,''), mockName:fm.name, mapName:fp.name.replace(/-r\d+(?:\.\d+)?(?=\.[a-z]+$)/i,''), thumb:null };
+      vid:'new-'+fm.name.replace(/\.[^.]+$/,''), mockName:fm.name, mapName:fp.name.replace(/-r\d+(?:\.\d+)?(?=\.[a-z]+$)/i,'') };
     v.thumb=v.mock;
     (uploaded[garment]=uploaded[garment]||[]).push({ v, flat:$('upKind').value==='flat' });
     selectView(v); paintChanges();
   };
 
   // ---- output ----
-  const num=x=>String(fmt(x,4));
   const vLine=(v,r,bc)=>{
     const mk=v.vid?v.mockName:fileOf(v.mock), mp=v.vid?v.mapName:fileOf(v.map);
-    let s="V('"+mk+"','"+mp+"',"+num(r);
+    let s="V('"+mk+"','"+mp+"',"+fmt(r,4);
     if(bc) s+=',['+bc.map(x=>String(fmt(x,3))).join(',')+']'; else if(v.k) s+=',null';
     if(v.k) s+=','+v.k;
     return s+')';
@@ -433,22 +460,21 @@ function main(){
   function changeList(){
     const out=[];
     for(const g of Object.keys(GARMENTS)){
-      for(const {v} of [...GARMENTS[g].flats.map(v=>({v})), ...GARMENTS[g].models.map(v=>({v}))]){
-        const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, line:vLine(v,e.r,e.bc), old:vLine(v,v.r,v.bc||null) }); }
-      for(const {v} of uploaded[g]||[]) out.push({ g, v, line:vLine(v,v.r,v.bc), old:null });
+      for(const v of [...GARMENTS[g].flats, ...GARMENTS[g].models]){ const e=edits[g+'/'+flatName(v)]; if(e) out.push({ g, v, line:vLine(v,e.r,e.bc) }); }
+      for(const {v} of uploaded[g]||[]) out.push({ g, v, line:vLine(v,v.r,v.bc) });
     }
     return out;
   }
   function paintChanges(){
-    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent='Copy '+n+' edited line'+(n!==1?'s':'');
-    $('copyAll').title='Copies the new V(...) lines: paste over the lines with the same file names in GARMENT DATA of pattern-mockup.html';
+    const n=changeList().length; $('copyAll').disabled=!n; $('copyAll').textContent=n?'Copy new r/bc ('+n+' photo'+(n!==1?'s':'')+')':'Copy new r/bc';
+    $('copyAll').title=n?'Copies the V(...) line of every changed photo. Send it to Claude, or paste it over the matching lines in GARMENT DATA of pattern-mockup.html':'Nothing changed yet';
   }
   async function copy(t){ try{ await navigator.clipboard.writeText(t); busy('Copied'); setTimeout(()=>busy(''),900); }catch(e){ prompt('Copy:',t); } }
   $('copyAll').onclick=()=>{ const L=changeList(); if(L.length) copy(L.map(c=>'// '+c.g+' · '+vid(c.v)+'\n'+c.line+',').join('\n')); };
-  $('clearAll').onclick=()=>{ if(!confirm('Discard every saved r / bc edit?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
+  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its original r and bc?')) return; edits={}; saveEdits(); syncInputs(); paintViews(); paintChanges(); afterEdit(); };
 
   // ---- start ----
-  setMode('allover'); paintChanges();
+  setMode('allover',true); paintChanges();
   selectView(allViews(garment)[0].v);
 }
 </script>

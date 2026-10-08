@@ -143,15 +143,16 @@ function main(){
   const S=new Map(); const st=v=>{ if(!S.has(v)) S.set(v,{ img:{}, key:{}, pv:{} }); return S.get(v); };
   const assetCache=new Map();
 
-  // default patterns: N x N checks per tile, so the checks across the chest can be counted on both photos.
-  // All-over gets the finer one (8 x 8 per repeat), Body + rest the coarser one (4 x 4, printed once).
+  // default patterns: all-over = 16 x 16 checks per repeat, so the checks across the chest can be counted on both photos;
+  // Body + rest = one plain colour, so only the printed area shows.
   function testPattern(N){
     const c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'), q=400/N;
     for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
     x.fillStyle='#e07a5f'; x.fillRect(0,0,q,q);   // one marked check per tile = where each repeat starts
     return c;
   }
-  const DEF={ allover:testPattern(8), placement:testPattern(4) };
+  function solidPattern(){ const c=document.createElement('canvas'); c.width=c.height=400; const x=c.getContext('2d'); x.fillStyle='#2f4b7c'; x.fillRect(0,0,400,400); return c; }
+  const DEF={ allover:testPattern(16), placement:solidPattern() };
   const patOf=m=>userPat||DEF[m];
   const PAT_LS='printAreaTuner.pattern';
   async function savedPattern(){ try{ const u=localStorage.getItem(PAT_LS); if(u) return { img:await loadImg(u), name:localStorage.getItem(PAT_LS+'.name')||'saved pattern' }; }catch(e){} return null; }

@@ -750,7 +750,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // raster width as a fraction of the mock width (pattern px = r x mock W), multiplied by the Motif-size
 // slider; each mock is tuned by eye on its own. Same values as the dev tool for the views it shares.
 // mid = mockup id (per mock-map pair): baked into the flatlay filename so ads can carry it. PILOT: sample codes.
-const V=(mock,map,r,mid)=>({ mock:CDN+mock, map:CDN+map, r, mockupId:mid });
+const V=(mock,map,r,mid,bc)=>({ mock:CDN+mock, map:CDN+map, r, mockupId:mid, ...(bc?{ bc }:{}) });
 const GARMENTS={
   romper:{ flat:V('zum-flatlay-mock-romper.jpg?v=1789642309','zum-flatlay-map-romper.png?v=1788601403',0.853,'SMP-RMP'),
            models:[ V('zum-model-romper-1.jpg?v=1789642313','zum-flatlay-model-map-romper-1.png?v=1788949187',1.634,'SMP-RMP-M1'),
@@ -758,12 +758,12 @@ const GARMENTS={
                     V('zum-model-romper-3.jpg?v=1789642318','zum-flatlay-model-map-romper-3.png?v=1788949407',1.932,'SMP-RMP-M3'),
                     V('zum-model-romper-7.jpg?v=1790151900','zum-flatlay-model-map-romper-7.png?v=1790156528',1.25,'SMP-RMP-M7'),
                     V('zum-model-romper-10.jpg?v=1790588943','zum-flatlay-model-map-romper-10.png?v=1790588949',1.35,'SMP-RMP-M10') ] },
-  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1791282238',0.67,'SMP-PJM'),
-           models:[ V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.417,'SMP-PJM-B2'),
-                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32,'SMP-PJM-B3'),
-                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266,'SMP-PJM-G2'),
-                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1791455853',1.476,'SMP-PJM-G3'),
-                    V('zum-model-pajama-girl-5.jpg?v=1790588888','zum-flatlay-model-map-pajama-girl-5.png?v=1790588894',1.25,'SMP-PJM-G5') ] },
+  pajama:{ flat:V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1791282238',0.33,'SMP-PJM',[0.444,0.334]),
+           models:[ V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',0.6015,'SMP-PJM-B2',[0.444,0.358]),
+                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',0.65,'SMP-PJM-B3',[0.534,0.425]),
+                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',0.56,'SMP-PJM-G2',[0.47,0.336]),
+                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1791455853',0.5571,'SMP-PJM-G3',[0.473,0.428]),
+                    V('zum-model-pajama-girl-5.jpg?v=1790588888','zum-flatlay-model-map-pajama-girl-5.png?v=1790588894',0.7455,'SMP-PJM-G5',[0.507,0.584]) ] },
 };
 const FLAT_KEYS=Object.keys(GARMENTS);   // 'romper','pajama' - one flatlay per product type
 const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.jpg.*$/,'');

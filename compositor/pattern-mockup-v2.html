@@ -122,52 +122,14 @@ const V=(mock,map,r,name,bc,br)=>({ mock:CDN+mock, map:CDN+map, r, name, bc, br 
 // Empty: add the views to test here. Garment shape (bodyRef only needed when a view has no k):
 //   key:{ bodyRef:V(mock,map,r), flats:[ V(...) ], models:[ V(mock,map,r,name,bc,br) ] },
 const GARMENTS={
-  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1791282238',0.67,null,[0.444,0.338]),
-                   V('zum-flatlay-mock-pajama-long.png?v=1789641883','zum-flatlay-map-pajama-long.png?v=1789030256',0.6272,null,[0.316,0.346]) ],
-           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.246,null,[0.444,0.403]),
-                    V('zum-model-pajama-boy-2.jpg?v=1789641888','zum-flatlay-model-map-pajama-boy-2.png?v=1788949249',1.157,null,[0.428,0.312]),
-                    V('zum-model-pajama-boy-3.jpg?v=1789639780','zum-flatlay-model-map-pajama-boy-3.png?v=1789718017',1.32,null,[0.589,0.381]),
-                    V('zum-model-pajama-girl-1.jpg?v=1789641890','zum-flatlay-model-map-pajama-girl-1.png?v=1788949276',1.412,null,[0.442,0.47]),
-                    V('zum-model-pajama-girl-2.jpg?v=1789641892','zum-flatlay-model-map-pajama-girl-2.png?v=1788949282',1.266),
-                    V('zum-model-pajama-girl-3.jpg?v=1789641896','zum-flatlay-model-map-pajama-girl-3.png?v=1791455853',1.181,null,[0.473,0.418]),
-                    V('zum-model-pajama-girl-4.jpg?v=1790152469','zum-flatlay-model-map-pajama-girl-4.png?v=1790243226',1.46,null,[10,10]),
-                    V('zum-model-pajama-girl-5.jpg?v=1790588888','zum-flatlay-model-map-pajama-girl-5.png?v=1790588894',1.25,null,[0.507,0.542]),
-                    V('zum-model-pajama-girl-6.jpg?v=1790588916','zum-flatlay-model-map-pajama-girl-6.png?v=1790588923',1.3,null,[0.444,0.452]),
-                    V('zum-model-pajama-girl-7.jpg?v=1790588929','zum-flatlay-model-map-pajama-girl-7.png?v=1790588935',1.43,null,[10,10]) ] },
-  // men's & women's pajama: four flatlays (the white mockup + the flat-laid -1 photo + a top-only and a
-  // pants-only product shot), then on-model photos (-2..-11, women -12).
-  menPajama:{ bodyRef:2, flats:[ V('zum-flatlay-mock-men-pajama.png?v=1789642229','zum-flatlay-map-men-pajama.png?v=1789460957',0.552,null,[0.319,0.28]),
-                      V('zum-model-pajama-men-1.jpg?v=1789642232','zum-flatlay-model-map-pajama-men-1.png?v=1789461023',0.768,null,[0.468,0.368]),
-                      V('zum-flatlay-mock-men-pajama-top.png?v=1789642235','zum-flatlay-map-men-pajama-top.png?v=1789461011',0.8784,null,[0.494,0.461]),
-                      V('zum-flatlay-mock-men-pajama-pants.png?v=1789642238','zum-flatlay-map-men-pajama-pants.png?v=1789461017',0.8) ],
-              models:[ V('zum-model-pajama-men-2.jpg?v=1789642241','zum-flatlay-model-map-pajama-men-2.png?v=1789461029',0.456,null,[0.504,0.287]),
-                       V('zum-model-pajama-men-3.jpg?v=1789642243','zum-flatlay-model-map-pajama-men-3.png?v=1789461035',0.648,null,[0.594,0.488]),
-                       V('zum-model-pajama-men-4.jpg?v=1789642246','zum-flatlay-model-map-pajama-men-4.png?v=1791455858',0.9498,null,[0.537,0.56]),
-                       V('zum-model-pajama-men-5.jpg?v=1789642249','zum-flatlay-model-map-pajama-men-5.png?v=1789461047',0.744,null,[0.542,0.49]),
-                       V('zum-model-pajama-men-6.jpg?v=1789642252','zum-flatlay-model-map-pajama-men-6.png?v=1789461053',0.768,null,[0.532,0.559]),
-                       V('zum-model-pajama-men-7.jpg?v=1789642255','zum-flatlay-model-map-pajama-men-7.png?v=1789461059',0.9216,null,[0.541,0.545]),
-                       V('zum-model-pajama-men-8.jpg?v=1789642258','zum-flatlay-model-map-pajama-men-8.png?v=1789461614',0.768),
-                       V('zum-model-pajama-men-9.jpg?v=1789642260','zum-flatlay-model-map-pajama-men-9.png?v=1789461620',0.848),
-                       V('zum-model-pajama-men-10.jpg?v=1789642263','zum-flatlay-model-map-pajama-men-10.png?v=1789461065',2.176),
-                       V('zum-model-pajama-men-11.jpg?v=1789642267','zum-flatlay-model-map-pajama-men-11.png?v=1789380839',1.84) ] },
-  // bodyRef = the flat whose body is whole: it gives br = body width / pattern width for every view (default flats[0]).
-  // bc = Photoshop px on the mock / mock size (2026-10-08 list from the user; 11 kept from 2026-10-07: a pants shot,
-  // only the hem of the top in frame, so the body centre sits above it). bc [10,10] = far outside the frame: no print on the body.
-  womenPajama:{ bodyRef:2, flats:[ V('zum-flatlay-mock-women-pajama.png?v=1789642270','zum-flatlay-map-women-pajama.png?v=1789030368',0.5804,null,[0.303,0.299]),
-                        V('zum-model-pajama-women-1.jpg?v=1789642273','zum-flatlay-model-map-pajama-women-1.png?v=1789030383',0.7757,null,[0.397,0.412]),
-                        V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024,null,[0.51,0.502]),
-                        V('zum-flatlay-mock-women-pajama-pants.png?v=1789642279','zum-flatlay-map-women-pajama-pants.png?v=1789380953',0.776) ],
-                models:[ V('zum-model-pajama-women-2.jpg?v=1789642282','zum-flatlay-model-map-pajama-women-2.png?v=1791455863',0.4435),
-                         V('zum-model-pajama-women-3.jpg?v=1789642284','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',0.8187,null,[0.456,0.494]),
-                         V('zum-model-pajama-women-4.jpg?v=1789642287','zum-flatlay-model-map-pajama-women-4.png?v=1791455868',1.218,null,[0.451,0.583]),
-                         V('zum-model-pajama-women-5.jpg?v=1789642290','zum-flatlay-model-map-pajama-women-5.png?v=1789030390',0.8127,null,[0.461,0.473]),
-                         V('zum-model-pajama-women-6.jpg?v=1789642293','zum-flatlay-model-map-pajama-women-6.png?v=1789030392',0.7976,null,[0.494,0.572]),
-                         V('zum-model-pajama-women-7.jpg?v=1789642296','zum-flatlay-model-map-pajama-women-7.png?v=1791455820',0.9188,null,[0.343,0.437]),
-                         V('zum-model-pajama-women-8.jpg?v=1790588312','zum-flatlay-model-map-pajama-women-8.png?v=1791371243',1.07,null,[0.848,0.238]),
-                         V('zum-model-pajama-women-9.jpg?v=1789642301','zum-flatlay-model-map-pajama-women-9.png?v=1789380882',0.776),
-                         V('zum-model-pajama-women-10.jpg?v=1789642304','zum-flatlay-model-map-pajama-women-10.png?v=1789380888',1.505),
-                         V('zum-model-pajama-women-11.jpg?v=1789642307','zum-flatlay-model-map-pajama-women-11.png?v=1789380894',1.529,null,[0.527,-0.2]),
-                         V('zum-model-pajama-women-12.jpg?v=1790656952','zum-flatlay-model-map-pajama-women-12.png?v=1790656944',1.99,null,[0.09,0.816]) ] },
+  // 4 test views (2026-10-09): kids pajama flatlay + boy-1, men-3, women-3. bodyRef = the whole-body flat that
+  // pattern-mockup.html measures br on (kids flats[0], men / women the top-only flat): read for br only, not rendered.
+  pajama:{ flats:[ V('zum-flatlay-mock-pajama.jpg?v=1789641881','zum-flatlay-map-pajama.png?v=1791282238',0.67,null,[0.444,0.338]) ],
+           models:[ V('zum-model-pajama-boy-1.jpg?v=1789641886','zum-flatlay-model-map-pajama-boy-1.png?v=1788949141',1.246,null,[0.444,0.403]) ] },
+  menPajama:{ bodyRef:V('zum-flatlay-mock-men-pajama-top.png?v=1789642235','zum-flatlay-map-men-pajama-top.png?v=1789461011',0.8784,null,[0.494,0.461]), flats:[],
+              models:[ V('zum-model-pajama-men-3.jpg?v=1789642243','zum-flatlay-model-map-pajama-men-3.png?v=1789461035',0.648,null,[0.594,0.488]) ] },
+  womenPajama:{ bodyRef:V('zum-flatlay-mock-women-pajama-top.png?v=1789642276','zum-flatlay-map-women-pajama-top.png?v=1789380947',1.024,null,[0.51,0.502]), flats:[],
+                models:[ V('zum-model-pajama-women-3.jpg?v=1789642284','zum-flatlay-model-map-pajama-women-3.png?v=1789030387',0.8187,null,[0.456,0.494]) ] },
 };
 // bodyRef as in pattern-mockup.html (an index into flats, default 0) -> the view itself, as this page reads it
 for(const g of Object.values(GARMENTS)) if(typeof g.bodyRef!=='object') g.bodyRef=g.flats[g.bodyRef||0];

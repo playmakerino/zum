@@ -40,6 +40,9 @@
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
+  .nudge{ display:flex; gap:6px; align-items:center; }
+  .nudge button{ padding:6px 10px; min-width:36px; }
+  .nudge span{ font-size:12px; color:var(--mut); font-family:ui-monospace,"SF Mono",Menlo,monospace; margin-left:4px; }
 </style>
 </head>
 <body>
@@ -68,6 +71,15 @@
       <div class="trim">
         <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
         <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
+      </div>
+      <label style="margin-top:10px">Move body print</label>
+      <div class="nudge">
+        <button type="button" class="secondary" data-d="-1,0" aria-label="Move left">←</button>
+        <button type="button" class="secondary" data-d="0,-1" aria-label="Move up">↑</button>
+        <button type="button" class="secondary" data-d="0,1" aria-label="Move down">↓</button>
+        <button type="button" class="secondary" data-d="1,0" aria-label="Move right">→</button>
+        <button type="button" class="secondary" id="nudgeReset">0</button>
+        <span id="nudgeVal">x 0 · y 0</span>
       </div>
     </div>
 
@@ -747,7 +759,23 @@ function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PR
 // [label, compose opt] per column for one analysed view (production: a cropped body without bc gets only the rest colour)
 function columns(G, spec, BR){
   const o=prodOpt(); if(!o.body) return [['all-over',o]];
-  return [['production',bodyOpt(o, G, spec, spec.br||BR)]];
+  return [['production',nudgeBody(bodyOpt(o, G, spec, spec.br||BR), G)]];
+}
+// Move body print (testing): one offset for every view, in steps of NUDGE_STEP x the body width (br x r x W), so the print
+// moves the same share of the body on every mock. Done through body.at (the engine is untouched): centre = spec.bc, else
+// the panel-1 centroid in mock pixels, + the offset. Offset 0 = the opt as production builds it. A body with no print
+// (cropped, no bc) stays as it is.
+const NUDGE_STEP=0.05;
+let nudge=[0,0];
+function nudgeBody(o, G){
+  const b=o.body; if(b.none||(!nudge[0]&&!nudge[1])) return o;
+  const W=G.w, H=G.h; let cx, cy;
+  if(b.at){ cx=b.at[0]*W; cy=b.at[1]*H; }
+  else { const [ex0,ey0,ex1]=G.ebox, EW=ex1-ex0+1; let n=0, sx=0, sy=0;
+    for(let j=0;j<G.ids.length;j++) if(G.ids[j]===MAIN_PANEL){ n++; sx+=ex0+j%EW; sy+=ey0+(j/EW|0); }
+    if(!n) return o; cx=sx/n; cy=sy/n; }
+  const s=NUDGE_STEP*b.br*b.r*W;
+  return { ...o, body:{ ...b, at:[(cx+nudge[0]*s)/W, (cy+nudge[1]*s)/H] } };
 }
 
 async function toBlobURL(canvas){
@@ -794,8 +822,14 @@ async function generate(){
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
-  finally{ busy=false; $('go').disabled=false; }
+  finally{ busy=false; $('go').disabled=false; if(rerun){ rerun=false; generate(); } }
 }
+let rerun=false;   // an arrow pressed during a run: render again once it ends, with the latest offset
+function setNudge(x,y){ nudge=[x,y]; $('nudgeVal').textContent='x '+x+' · y '+y;
+  if(!patImg&&!patLoading) return; if(busy) rerun=true; else generate(); }
+document.querySelectorAll('.nudge [data-d]').forEach(btn=>btn.addEventListener('click', ()=>{
+  const [dx,dy]=btn.dataset.d.split(',').map(Number); setNudge(nudge[0]+dx, nudge[1]+dy); }));
+$('nudgeReset').addEventListener('click', ()=>setNudge(0,0));
 
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{

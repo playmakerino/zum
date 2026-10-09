@@ -339,10 +339,9 @@
       <div class="fs-row" data-dim="group">
         <span class="fs-label">Product group</span>
         <div class="fs-chips">
-          <a class="form-chip" data-val="single" data-tip="Create ads for one product at a time">Single product</a>
-          <a class="form-chip" data-val="theme" data-tip="Apply one print theme across multiple products">By print theme</a>
-          <a class="form-chip" data-val="type" data-tip="Group products by their type group">By type group</a>
-          <a class="form-chip" data-val="oneprint" data-tip="One print applied to several products">One print</a>
+          <a class="form-chip" data-val="single" data-tip="Unrelated products, each with its own print">Any products</a>
+          <a class="form-chip" data-val="theme" data-tip="Several prints of one theme across multiple products">By print theme</a>
+          <a class="form-chip" data-val="oneprint" data-tip="One print applied to several products">By print</a>
         </div>
       </div>
     </nav>
@@ -350,7 +349,7 @@
       (function(){
         var FORMS={
           'device|single':'tc_form_1.html','dropbox|single':'tc_form_4.html','shopify|single':'tc_form_3.html',
-          'shopify|theme':'tc_form_2.html','dropbox|type':'tc_prd_form.html','shopify|type':'tc_form_5.html',
+          'shopify|theme':'tc_form_2.html',
           'shopify|oneprint':'tc_form_6.html'
         };
         var REV={};for(var k in FORMS){REV[FORMS[k].toLowerCase()]=k.split('|');}

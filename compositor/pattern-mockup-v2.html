@@ -705,16 +705,28 @@ function compose(G, pat, ratio, trim, opt){
     // src: 1 = main pattern (tiled), 2 = rest, 3 = body file (opt.body, inside the file's rectangle)
     let src=k===MAIN_PANEL?1:2, bu=0, bv=0;
     if(PB&&k===MAIN_PANEL){ bu=LX+pbx; bv=LY+pby; src=bu>=0&&bv>=0&&bu<=PB.w-1&&bv<=PB.h-1?3:2; }
-    const fill=src===2 ? (k===MAIN_PANEL&&bodyBg ? bodyBg : solid) : null;
-    if(fill){ R=fill[0]*Pr; Gc=fill[1]*Pg; Bc=fill[2]*Pb; }
-    else if(src===3){
+    // body file with alpha (transparent PNG): its premultiplied colour over what the panel takes outside the file
+    let bA=1, bR=0, bG=0, bB=0;
+    if(src===3){
       const u0=bu|0, v0=bv|0, au=bu-u0, av=bv-v0, u1=u0+1<PB.w?u0+1:u0, v1=v0+1<PB.h?v0+1:v0, bd=PB.data;
       const p00=(v0*PB.w+u0)*4, p10=(v0*PB.w+u1)*4, p01=(v1*PB.w+u0)*4, p11=(v1*PB.w+u1)*4;
       const w00=(1-au)*(1-av), w10=au*(1-av), w01=(1-au)*av, w11=au*av;
-      R=(bd[p00]*w00+bd[p10]*w10+bd[p01]*w01+bd[p11]*w11)*Pr;
-      Gc=(bd[p00+1]*w00+bd[p10+1]*w10+bd[p01+1]*w01+bd[p11+1]*w11)*Pg;
-      Bc=(bd[p00+2]*w00+bd[p10+2]*w10+bd[p01+2]*w01+bd[p11+2]*w11)*Pb;
-    } else {
+      if((bd[p00+3]&bd[p10+3]&bd[p01+3]&bd[p11+3])===255){
+        R=(bd[p00]*w00+bd[p10]*w10+bd[p01]*w01+bd[p11]*w11)*Pr;
+        Gc=(bd[p00+1]*w00+bd[p10+1]*w10+bd[p01+1]*w01+bd[p11+1]*w11)*Pg;
+        Bc=(bd[p00+2]*w00+bd[p10+2]*w10+bd[p01+2]*w01+bd[p11+2]*w11)*Pb;
+      } else {
+        const a00=bd[p00+3]*w00/255, a10=bd[p10+3]*w10/255, a01=bd[p01+3]*w01/255, a11=bd[p11+3]*w11/255;
+        bA=a00+a10+a01+a11;
+        bR=(bd[p00]*a00+bd[p10]*a10+bd[p01]*a01+bd[p11]*a11)*Pr;
+        bG=(bd[p00+1]*a00+bd[p10+1]*a10+bd[p01+1]*a01+bd[p11+1]*a11)*Pg;
+        bB=(bd[p00+2]*a00+bd[p10+2]*a10+bd[p01+2]*a01+bd[p11+2]*a11)*Pb;
+        src=2;   // the rest below the file, blended after
+      }
+    }
+    const fill=src===2 ? (k===MAIN_PANEL&&bodyBg ? bodyBg : solid) : null;
+    if(fill){ R=fill[0]*Pr; Gc=fill[1]*Pg; Bc=fill[2]*Pb; }
+    else if(src!==3){
     const two=!!P2&&src===2, qd=two?pd2:pd, QW=two?PW2:PW, QH=two?PH2:PH, qx=two?ox2:ox, qy=two?oy2:oy;
     let fx=LX+qx[k]; fx-=Math.floor(fx/QW)*QW; if(fx>=QW) fx=0; let fy=LY+qy[k]; fy-=Math.floor(fy/QH)*QH; if(fy>=QH) fy=0;
     if(k===COLLAR_ID){ fx=QW-fx; if(fx>=QW) fx=0; }
@@ -727,6 +739,7 @@ function compose(G, pat, ratio, trim, opt){
     if(k===COLLAR_ID){ pr=pr*0.4+126; pg=pg*0.4+126; pb=pb*0.4+126; }
     R=pr*Pr; Gc=pg*Pg; Bc=pb*Pb;
     }
+    if(bA<1){ const t=1-bA; R=bR+t*R; Gc=bG+t*Gc; Bc=bB+t*Bc; }
     }
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
     if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }

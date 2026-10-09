@@ -38,7 +38,7 @@
   .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
   .shot{ margin:0; flex:0 0 calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); display:flex; flex-direction:column; gap:8px; }
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
-  .shot img{ width:100%; max-height:74vh; object-fit:contain; display:block; }
+  .shot img,.shot canvas{ width:100%; max-height:74vh; object-fit:contain; display:block; }
   figcaption{ text-align:center; }
   .nudge{ display:flex; gap:6px; align-items:center; }
   .nudge button{ padding:6px 10px; min-width:36px; }
@@ -756,7 +756,7 @@ let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in fli
 // Trim colour: the field (picker + hex, same as the dev tool). Empty = keep the mock's own trim. Auto-filled from the
 // pattern's dominant hue on load, editable by hand after that.
 function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
-const results={ flats:[], models:[] };   // each: {name,blob,url,fig}
+const results={ flats:[], models:[] };   // each: {name,canvas,fig,live}
 
 // Same opt as pattern-mockup.html layoutOpt(): the map's cyan perspective dots apply when present. Panel 1 (R 20) centred on its centroid.
 const PROD_OPT={ center:true };
@@ -769,48 +769,112 @@ const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
 // Body print size slider (testing): the file width as a share of the body width, BODY_FRAC = production's value
 const bodyFrac=()=>+$('bodySize').value||BODY_FRAC;
-function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:bodyFrac(), bg }, rest:{ solid:bg } } : PROD_OPT; }
-// [label, compose opt] per column for one analysed view (production: a cropped body without bc gets only the rest colour)
-function columns(G, spec, BR){
-  const o=prodOpt(); if(!o.body) return [['all-over',o]];
-  return [['production',nudgeBody(bodyOpt(o, G, spec, spec.br||BR), G)]];
-}
-// Move body print (testing): one offset for every view, in steps of NUDGE_STEP x the body width (br x r x W), so the print
-// moves the same share of the body on every mock. Done through body.at (the engine is untouched): centre = spec.bc, else
-// the panel-1 centroid in mock pixels, + the offset. Offset 0 = the opt as production builds it. A body with no print
-// (cropped, no bc) stays as it is.
+function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC, bg }, rest:{ solid:bg } } : PROD_OPT; }
+// Move body print (testing): one offset for every view, in steps of NUDGE_STEP x the body width (br x r x W) in the body's
+// tiling frame, so the print moves the same share of the body on every mock.
 const NUDGE_STEP=0.05;
 let nudge=[0,0];
-function nudgeBody(o, G){
-  const b=o.body; if(b.none||(!nudge[0]&&!nudge[1])) return o;
-  const W=G.w, H=G.h; let cx, cy;
-  if(b.at){ cx=b.at[0]*W; cy=b.at[1]*H; }
-  else { const [ex0,ey0,ex1]=G.ebox, EW=ex1-ex0+1; let n=0, sx=0, sy=0;
-    for(let j=0;j<G.ids.length;j++) if(G.ids[j]===MAIN_PANEL){ n++; sx+=ex0+j%EW; sy+=ey0+(j/EW|0); }
-    if(!n) return o; cx=sx/n; cy=sy/n; }
-  const s=NUDGE_STEP*b.br*b.r*W;
-  return { ...o, body:{ ...b, at:[(cx+nudge[0]*s)/W, (cy+nudge[1]*s)/H] } };
+
+// ===== live body print (testing, page-local, NOT the engine) =====
+// Size slider + arrows redraw only the body panel, in real time. Generate runs the engine once per view with the body left
+// empty (body.none + bg: the body panel takes the rest colour), then buildLive replays compose's per-pixel steps for panel
+// MAIN_PANEL alone (fold displacement, localXY, fabric-white normalise, edge coverage) and keeps, per body pixel, its print
+// coordinate + mock factor. renderLive then only samples the body file at the new size / offset and downsamples.
+// It copies compose's math for panel 1: an engine change to that part must be copied here by hand (offset 0 + size 0.75 =
+// the engine's own output for the body).
+function buildLive(G, pat, ratio, trim, o){
+  const B=o.body, k=MAIN_PANEL;
+  compose(G, pat, ratio, trim, { ...o, body:{ ...B, none:true } });   // base: everything but the body print; sets G.H
+  const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G, BW=bx1-bx0+1;
+  const vbig=document.createElement('canvas'); vbig.width=W; vbig.height=H;
+  const vctx=vbig.getContext('2d',{willReadFrequently:true}); vctx.drawImage(big,0,0);
+  // the mock exactly as compose rasterises it
+  bctx.imageSmoothingEnabled=true; bctx.imageSmoothingQuality='high'; bctx.drawImage(G.mockImg,0,0,W,H);
+  const md=bctx.getImageData(0,0,W,H).data;
+  const ext=G.H?panelExtents(G):G.ext;
+  const bW=B.br&&B.r ? B.br*B.r*W : ext.x1[k]-ext.x0[k];
+  let cx=ext.sx[k]/ext.n[k], cy=ext.sy[k]/ext.n[k];
+  if(B.at){ localXY(G,k,B.at[0]*W,B.at[1]*H); cx=LX; cy=LY; }
+  const {ebox:[ex0,ey0,ex1,ey1]}=G, {j:eJ,k:eK,c:eC}=G.edge, nE=eJ.length;
+  // pass 1: count the body pixels + their bbox
+  let n=0, rx0=W, ry0=H, rx1=-1, ry1=-1;
+  { let e=0, ej=nE?eJ[0]:-1;
+    for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0; x<=ex1; x++, j++){ let kk;
+      if(j===ej){ kk=eK[e]; e++; ej=e<nE?eJ[e]:-1; } else kk=ids[j];
+      if(kk!==k) continue; n++; if(x<rx0) rx0=x; if(x>rx1) rx1=x; if(y<ry0) ry0=y; if(y>ry1) ry1=y; } }
+  if(!n||!(bW>0)) return null;
+  const RW=rx1-rx0+1, RH=ry1-ry0+1;
+  const ri=new Int32Array(n), lx=new Float32Array(n), ly=new Float32Array(n), pf=new Float32Array(n*3), mk=new Uint8Array(n*4);
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
+  const dpx=Math.max(1,Math.round(DISP_BLUR*SS)), amp=DISP_AMP*SS, dl=foldLum(md,W,ids,G.box,G.ebox,dpx);
+  // pass 2: the same walk as compose's main loop, panel k only
+  { let e=0, ej=nE?eJ[0]:-1, m=0;
+    for(let y=ey0, j=0; y<=ey1; y++) for(let x=ex0, i=y*W+ex0; x<=ex1; x++, i++, j++){ let kk, a=255;
+      if(j===ej){ kk=eK[e]; a=eC[e]; e++; ej=e<nE?eJ[e]:-1; } else kk=ids[j];
+      if(kk!==k) continue;
+      const q=i*4, r=md[q], g=md[q+1], b=md[q+2];
+      let Pr=r*iFr, Pg=g*iFg, Pb=b*iFb; if(Pr>1) Pr=1; if(Pg>1) Pg=1; if(Pb>1) Pb=1;
+      let xs=x, ys=y;
+      if(x>bx0&&x<bx1&&y>by0&&y<by1){ const jj=(y-by0)*BW+(x-bx0);
+        let gx=(dl[jj+1]-dl[jj-1])*(0.5/DISP_GREF), gy=(dl[jj+BW]-dl[jj-BW])*(0.5/DISP_GREF);
+        if(gx>1) gx=1; else if(gx<-1) gx=-1; if(gy>1) gy=1; else if(gy<-1) gy=-1;
+        xs=x+gx*amp; ys=y+gy*amp; }
+      localXY(G,k,xs,ys);
+      ri[m]=(y-ry0)*RW+(x-rx0); lx[m]=LX; ly[m]=LY;
+      pf[m*3]=Pr; pf[m*3+1]=Pg; pf[m*3+2]=Pb;
+      mk[m*4]=r; mk[m*4+1]=g; mk[m*4+2]=b; mk[m*4+3]=a; m++; } }
+  const out=document.createElement('canvas'); out.width=Math.round(W/SS); out.height=Math.round(H/SS);
+  return { pat, bg:B.bg, bW, cx, cy, n, ri, lx, ly, pf, mk, vbig, vctx, rx0, ry0, reg:vctx.getImageData(rx0,ry0,RW,RH), out, PB:null, pbW:0 };
+}
+function renderLive(L){
+  const w=Math.max(2,Math.round(bodyFrac()*L.bW));
+  if(L.pbW!==w){ L.PB=rasterWidth(L.pat, w, true); L.pbW=w; }
+  const PB=L.PB, PW=PB.w, PH=PB.h, bd=PB.data, s=NUDGE_STEP*L.bW;
+  const pbx=PW/2-(L.cx+nudge[0]*s), pby=PH/2-(L.cy+nudge[1]*s);
+  const {n,ri,lx,ly,pf,mk,bg}=L, od=L.reg.data;
+  for(let m=0;m<n;m++){
+    const Pr=pf[m*3], Pg=pf[m*3+1], Pb=pf[m*3+2], bu=lx[m]+pbx, bv=ly[m]+pby;
+    let R,Gc,Bc;
+    if(bu>=0&&bv>=0&&bu<=PW-1&&bv<=PH-1){
+      const u0=bu|0, v0=bv|0, au=bu-u0, av=bv-v0, u1=u0+1<PW?u0+1:u0, v1=v0+1<PH?v0+1:v0;
+      const p00=(v0*PW+u0)*4, p10=(v0*PW+u1)*4, p01=(v1*PW+u0)*4, p11=(v1*PW+u1)*4;
+      const w00=(1-au)*(1-av), w10=au*(1-av), w01=(1-au)*av, w11=au*av;
+      R=(bd[p00]*w00+bd[p10]*w10+bd[p01]*w01+bd[p11]*w11)*Pr;
+      Gc=(bd[p00+1]*w00+bd[p10+1]*w10+bd[p01+1]*w01+bd[p11+1]*w11)*Pg;
+      Bc=(bd[p00+2]*w00+bd[p10+2]*w10+bd[p01+2]*w01+bd[p11+2]*w11)*Pb;
+    } else { R=bg[0]*Pr; Gc=bg[1]*Pg; Bc=bg[2]*Pb; }
+    const a=mk[m*4+3];
+    if(a<255){ const f=a/255, r=mk[m*4], g=mk[m*4+1], b=mk[m*4+2]; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
+    const q=ri[m]*4; od[q]=R|0; od[q+1]=Gc|0; od[q+2]=Bc|0;
+  }
+  L.vctx.putImageData(L.reg, L.rx0, L.ry0);
+  const c=L.out.getContext('2d'); c.imageSmoothingQuality='high'; c.drawImage(L.vbig,0,0,L.out.width,L.out.height);
+}
+// slider / arrows: at most one redraw of every live view per frame
+let liveFrame=0;
+function scheduleLive(){
+  const lives=[...results.flats,...results.models].filter(r=>r.live);
+  if(!lives.length){ if((patImg||patLoading)&&!busy&&layoutV()==='placement') generate(); return; }
+  if(liveFrame) return;
+  liveFrame=requestAnimationFrame(()=>{ liveFrame=0; const t0=performance.now();
+    for(const r of [...results.flats,...results.models]) if(r.live) renderLive(r.live);
+    msg('Live · size '+bodyFrac().toFixed(2)+' · offset '+nudge[0]+', '+nudge[1]+' · '+Math.round(performance.now()-t0)+' ms'); });
 }
 
-async function toBlobURL(canvas){
-  const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-  if(!blob) throw new Error('PNG encode failed');
-  return { blob, url:URL.createObjectURL(blob) };
-}
 function clearShots(list){
-  for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
+  for(const r of list) r.fig.remove();
   list.length=0;
 }
 // new shots wait in stage and replace the old ones in one swap at the end of the run (no blank page while re-rendering)
 let stage=document.createDocumentFragment();
-async function showShot(bucket, canvas, name, caption){
-  const r=await toBlobURL(canvas);
+function showShot(bucket, canvas, name, caption, live){
   const fig=document.createElement('figure'); fig.className='shot';
-  const img=document.createElement('img'); img.alt=caption;
+  canvas.setAttribute('role','img'); canvas.setAttribute('aria-label',caption);
   const cap=document.createElement('figcaption'); cap.textContent=caption;
-  img.src=r.url; fig.append(img,cap); stage.append(fig);
-  bucket.push({ ...r, name, fig });
+  fig.append(canvas,cap); stage.append(fig);
+  bucket.push({ canvas, name, fig, live });
 }
+function copyCanvas(src){ const c=document.createElement('canvas'); c.width=src.width; c.height=src.height; c.getContext('2d').drawImage(src,0,0); return c; }
 
 async function generate(){
   if(busy) return;
@@ -832,24 +896,25 @@ async function generate(){
       for(let i=0;i<views.length;i++){ const [v,model,bucket,kind,name]=views[i];
         msg(gk+' · '+kind+' '+(i+1)+'/'+views.length+'…'); await nextPaint();
         const G=await analyzeGarment(v, model);
-        for(const [lab,o] of columns(G, v, BR))
-          await showShot(bucket, compose(G, pat, v.r, trim, o), lab+'-'+kind+'-'+name, name+' · '+lab);
+        const o=prodOpt();
+        if(!o.body){ showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, o)), 'all-over-'+kind+'-'+name, name+' · all-over'); continue; }
+        const bo=bodyOpt(o, G, v, v.br||BR);
+        const L=bo.body.none ? null : buildLive(G, pat, v.r, trim, bo);
+        if(L){ renderLive(L); showShot(bucket, L.out, 'production-'+kind+'-'+name, name+' · production', L); }
+        else showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, bo)), 'production-'+kind+'-'+name, name+' · production');
       }
     }
     clearShots(old); $('view').append(stage);
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
-  finally{ busy=false; $('go').disabled=false; if(rerun){ rerun=false; generate(); } }
+  finally{ busy=false; $('go').disabled=false; }
 }
-let rerun=false;   // an arrow pressed during a run: render again once it ends, with the latest offset
-function setNudge(x,y){ nudge=[x,y]; $('nudgeVal').textContent='x '+x+' · y '+y;
-  if(!patImg&&!patLoading) return; if(busy) rerun=true; else generate(); }
+function setNudge(x,y){ nudge=[x,y]; $('nudgeVal').textContent='x '+x+' · y '+y; scheduleLive(); }
 document.querySelectorAll('.nudge [data-d]').forEach(btn=>btn.addEventListener('click', ()=>{
   const [dx,dy]=btn.dataset.d.split(',').map(Number); setNudge(nudge[0]+dx, nudge[1]+dy); }));
 $('nudgeReset').addEventListener('click', ()=>setNudge(0,0));
-$('bodySize').addEventListener('input', e=>{ $('bodySizeVal').textContent=(+e.target.value).toFixed(2);
-  if(!patImg&&!patLoading) return; if(busy) rerun=true; else generate(); });
+$('bodySize').addEventListener('input', e=>{ $('bodySizeVal').textContent=(+e.target.value).toFixed(2); scheduleLive(); });
 
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{
@@ -876,10 +941,11 @@ $('go').addEventListener('click', generate);
 $('dl').addEventListener('click', async ()=>{
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
   const items=[];
-  for(const r of [...results.flats,...results.models]) items.push({ name:r.name+'.png', blob:r.blob, url:r.url });
-  for(const it of items){
+  for(const r of [...results.flats,...results.models]) items.push({ name:r.name+'.png', blob:await new Promise(res=>r.canvas.toBlob(res,'image/png')) });
+  for(const it of items){ if(!it.blob) continue;
     if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
-    else { const a=document.createElement('a'); a.href=it.url; a.download=it.name; a.click(); await new Promise(res=>setTimeout(res,300)); }
+    else { const url=URL.createObjectURL(it.blob), a=document.createElement('a'); a.href=url; a.download=it.name; a.click();
+      await new Promise(res=>setTimeout(res,300)); URL.revokeObjectURL(url); }
   }
 });
 </script>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>By theme</title>
+  <title>By print theme from Dropbox</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -174,13 +174,50 @@
 
     .field-row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
 
+    /* Ad images chooser (per product row) */
+    .chooser-field {
+      background: var(--surface-elevated);
+      border-radius: 4px;
+      padding: 6px 8px 6px 12px;
+      display: flex; align-items: center; gap: 10px;
+      height: 42px;
+      transition: background 0.15s;
+    }
+    .chooser-field:hover { background: #2a2a2a; }
+    .chooser-field.has-value { background: rgba(30,215,96,0.10); }
+    .chooser-field .chooser-path {
+      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
+    .chooser-btn {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid rgba(255,255,255,0.20); color: var(--text);
+      font-family: var(--font); font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 500px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em; white-space: nowrap;
+    }
+    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.06); transform: scale(1.04); }
+    .chooser-btn svg { width: 12px; height: 12px; }
+    .clear-btn {
+      flex-shrink: 0; background: none; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 4px; display: none; border-radius: 50%;
+      transition: color 0.15s, background 0.15s;
+    }
+    .chooser-field.has-value .clear-btn { display: flex; }
+    .clear-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+
+    .row .chooser-field { height: 42px; padding: 0 6px 0 12px; }
+    .row .chooser-path { font-size: 13px; }
+
     .row {
       display: grid;
-      grid-template-columns: 170px 1fr 120px 36px;
+      grid-template-columns: 170px 1fr 1fr 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -337,6 +374,11 @@
       }
     }
   </style>
+  <script type="text/javascript"
+    src="https://www.dropbox.com/static/api/2/dropins.js"
+    id="dropboxjs"
+    data-app-key="omrmsrosehpy3vi">
+  </script>
   <script src="auth.js"></script>
 </head>
 <body>
@@ -415,7 +457,7 @@
 
     <div class="header">
       <h1>Test print theme</h1>
-      <p>One print theme applied to multiple products. Images are pulled from the product page, one ad per image.</p>
+      <p>One print theme applied to multiple products. Choose the ad images of each product from Dropbox, one ad per image.</p>
     </div>
 
     <div class="card">
@@ -437,11 +479,6 @@
               <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
             </div>
           </div>
-          <div class="field">
-            <label>Image positions (shared)</label>
-            <input type="text" id="image_positions" placeholder="2, 3, 4" />
-            <div class="field-hint">Counted from the first image. Used by every row that leaves its own Image positions empty. Both empty = all images.</div>
-          </div>
         </div>
       </div>
 
@@ -453,7 +490,7 @@
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product url</label>
-          <label class="row-col-label">Image positions</label>
+          <label class="row-col-label">Ad images</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -464,7 +501,7 @@
             </svg>
             Add product
           </button>
-          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID.</span>
+          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID. Then select the ad images of each row.</span>
         </div>
       </div>
 
@@ -538,6 +575,7 @@
       const container = document.getElementById('rowsContainer');
       const div = document.createElement('div');
       div.className = 'row';
+      div.dataset.rid = 'r' + (rowSeq++);
       div.innerHTML = `
         <div class="row-cell row-cell-print">
           <label class="row-inline-label">Print ID</label>
@@ -548,8 +586,24 @@
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label">Image positions</label>
-          <input type="text" class="row-pos" placeholder="Same as shared" />
+          <label class="row-inline-label">Ad images</label>
+          <div class="chooser-field">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span class="chooser-path"></span>
+            <button class="chooser-btn" type="button" onclick="pickAds(this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Select
+            </button>
+            <button class="clear-btn" type="button" onclick="clearAds(this)" title="Clear">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -562,8 +616,44 @@
     }
 
     function removeRow(btn) {
-      btn.closest('.row').remove();
+      const row = btn.closest('.row');
+      delete rowAds[row.dataset.rid];
+      row.remove();
       updateCount();
+    }
+
+    // ---------- Ad images per product row ----------
+    let rowSeq = 0;
+    const rowAds = {};   // rid -> [ad image, ...] (1 image = 1 ad)
+
+    function renderRowAds(row) {
+      const list = rowAds[row.dataset.rid] || [];
+      const field = row.querySelector('.chooser-field');
+      field.classList.toggle('has-value', list.length > 0);
+      field.querySelector('.chooser-path').textContent = list.length ? list.length + (list.length === 1 ? ' image' : ' images') : '';
+      field.title = list.map(f => f.name).join('\n');
+    }
+
+    function pickAds(btn) {
+      const row = btn.closest('.row');
+      Dropbox.choose({
+        success(files) {
+          const list = rowAds[row.dataset.rid] || (rowAds[row.dataset.rid] = []);
+          files.forEach(f => { if (!list.some(x => x.link === f.link)) list.push({ name: f.name, link: f.link }); });
+          renderRowAds(row);
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
+    }
+
+    function clearAds(btn) {
+      const row = btn.closest('.row');
+      delete rowAds[row.dataset.rid];
+      renderRowAds(row);
     }
 
     function cleanProductUrl(url) {
@@ -575,8 +665,9 @@
       document.querySelectorAll('#rowsContainer .row').forEach(r => {
         const print_id = r.querySelector('.row-print').value.trim();
         const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
-        if (print_id && product_url) {
-          rows.push({ Print_ID: print_id, Product_url: product_url, Image_positions: r.querySelector('.row-pos').value.trim() });
+        const ads = rowAds[r.dataset.rid] || [];
+        if (print_id || product_url || ads.length) {
+          rows.push({ Print_ID: print_id, Product_url: product_url, ads });
         }
       });
       return rows;
@@ -589,11 +680,12 @@
 
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
+      if (rows.some(r => !r.Print_ID || !r.Product_url)) return showStatus('error', '⚠️ Every row needs a Print ID and a Product URL.');
+      if (rows.some(r => !r.ads.length)) return showStatus('error', '⚠️ Every row needs at least one ad image.');
+      const totalImages = rows.reduce((a, r) => a + r.ads.length, 0);
 
-      // Shared value; a row's own Image_positions overrides it (workflow Split Images)
-      const image_positions = document.getElementById('image_positions').value.trim();
-
-      const payload = { ad_set_name, product_type, image_positions, rows };
+      // Ad images: Dropbox direct links in rows[].ad_images; workflow uses them instead of the product page images
+      const payload = { ad_set_name, product_type, rows: rows.map(r => ({ Print_ID: r.Print_ID, Product_url: r.Product_url, ad_images: r.ads.map(f => f.link) })) };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -612,10 +704,7 @@
         }
 
         if (res.ok) {
-          showStatus('success', '✅ Successfully sent! n8n workflow is running.');
-          const preview = document.getElementById('payloadPreview');
-          preview.style.display = 'block';
-          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
+          showStatus('success', '✅ Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + ', creating ' + totalImages + ' ad' + (totalImages === 1 ? '' : 's') + '.');
         } else {
           const errText = await res.text();
           showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);
@@ -894,7 +983,7 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này dùng cho 1 mẫu theme in áp dụng trên nhiều sản phẩm quilt cùng lúc. Bạn chỉ cần điền tên theme, chọn loại sản phẩm và liệt kê các mã in theo các bước bên dưới.</p>
+      <p class="guide-intro">Form này dùng cho 1 theme in áp dụng trên nhiều sản phẩm cùng lúc, ảnh quảng cáo chọn từ Dropbox. Điền tên theme, chọn loại sản phẩm, rồi liệt kê từng sản phẩm kèm ảnh quảng cáo theo các bước bên dưới.</p>
 
       <div class="guide-sec">Các bước điền</div>
 
@@ -917,26 +1006,16 @@
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Image positions (shared)</span>: chọn ảnh nào lên ad</h4>
-          <p>Điền vị trí các ảnh trên trang sản phẩm cần lấy làm quảng cáo, đếm từ ảnh đầu tiên. Nhiều vị trí thì ngăn cách bằng dấu phẩy.</p>
-          <span class="guide-eg">Ví dụ: <code>2, 3, 4</code> nghĩa là lấy ảnh thứ 2, thứ 3 và thứ 4.</span>
-          <p style="margin-top:7px">Ô này là mặc định cho mọi dòng trong bảng bên dưới. Dòng nào cần vị trí khác thì điền vào ô <span class="g-field">Image positions</span> của riêng dòng đó (bước 4); ô riêng để trống thì dùng theo ô chung này. Cả hai đều trống thì lấy toàn bộ ảnh trên trang sản phẩm.</p>
+          <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
+          <p>Mỗi dòng trong bảng là 1 sản phẩm, gồm 3 ô:</p>
+          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã in của sản phẩm (ví dụ <code>NGT1234</code>).<br>
+          b) <span class="g-field">Product url</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt. Quảng cáo dẫn về đúng link này.<br>
+          c) <span class="g-field">Ad images</span>: bấm <strong>Select</strong> để chọn ảnh quảng cáo chọn từ Dropbox. Có thể chọn nhiều ảnh cùng lúc, bấm Select thêm lần nữa để thêm ảnh. Link Dropbox chỉ dùng được trong 4 giờ, chọn ảnh xong thì gửi luôn. Mỗi ảnh thành một quảng cáo. Bấm dấu <strong>X</strong> trong ô để chọn lại từ đầu.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">4</div>
-        <div class="guide-sb">
-          <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
-          <p>Mỗi dòng trong bảng là 1 sản phẩm, gồm 3 ô:</p>
-          <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã in của sản phẩm (ví dụ <code>NGT1234</code>).<br>
-          b) <span class="g-field">Product url</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.<br>
-          c) <span class="g-field">Image positions</span> (không bắt buộc): vị trí ảnh riêng cho sản phẩm này, để trống thì dùng ô chung ở bước 3.</p>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">5</div>
         <div class="guide-sb">
           <h4>Thêm và xóa dòng</h4>
           <p>Bấm <strong>Add product</strong> để thêm một dòng trống. Bấm nút dấu <strong>X</strong> ở cuối mỗi dòng để xóa dòng đó. Bạn có thể thêm bao nhiêu dòng tùy ý.</p>
@@ -944,7 +1023,7 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">6</div>
+        <div class="guide-num">5</div>
         <div class="guide-sb">
           <h4>Mẹo nhập nhanh từ Excel</h4>
           <p>Nếu đã có danh sách sẵn trong Excel hoặc Google Sheets, bạn có thể copy rồi dán thẳng vào ô <span class="g-field">Print ID</span> đầu tiên, không cần gõ từng dòng:</p>
@@ -954,17 +1033,17 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">7</div>
+        <div class="guide-num">6</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
-          <p>Kiểm tra lại rồi bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Successfully sent" là đã gửi thành công.</p>
+          <p>Kiểm tra lại rồi bấm <strong>Create Ads</strong>. Chờ tới khi thấy dòng chữ xanh báo đã gửi, đừng đóng tab khi đang gửi.</p>
         </div>
       </div>
 
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Mỗi dòng cần điền đủ cả <span class="g-field">Print ID</span> và <span class="g-field">Product url</span>. Cần có ít nhất 1 dòng đầy đủ.
+        Mỗi dòng cần điền đủ <span class="g-field">Print ID</span>, <span class="g-field">Product url</span> và chọn ít nhất một ảnh ở <span class="g-field">Ad images</span>. Số quảng cáo của mỗi dòng bằng số ảnh đã chọn.
       </div>
 
       <div class="guide-note">

@@ -72,6 +72,8 @@
         <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
         <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
       </div>
+      <label for="bodySize" style="margin-top:10px">Body print size · <span id="bodySizeVal">0.75</span></label>
+      <input type="range" id="bodySize" min="0.3" max="1.5" step="0.05" value="0.75">
       <label style="margin-top:10px">Move body print</label>
       <div class="nudge">
         <button type="button" class="secondary" data-d="-1,0" aria-label="Move left">←</button>
@@ -765,7 +767,9 @@ const PROD_OPT={ center:true };
 const BODY_FRAC=0.75;
 const layoutV=()=>$('layout').value;
 const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[255,255,255]; };
-function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC, bg }, rest:{ solid:bg } } : PROD_OPT; }
+// Body print size slider (testing): the file width as a share of the body width, BODY_FRAC = production's value
+const bodyFrac=()=>+$('bodySize').value||BODY_FRAC;
+function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:bodyFrac(), bg }, rest:{ solid:bg } } : PROD_OPT; }
 // [label, compose opt] per column for one analysed view (production: a cropped body without bc gets only the rest colour)
 function columns(G, spec, BR){
   const o=prodOpt(); if(!o.body) return [['all-over',o]];
@@ -797,12 +801,14 @@ function clearShots(list){
   for(const r of list){ URL.revokeObjectURL(r.url); r.fig.remove(); }
   list.length=0;
 }
+// new shots wait in stage and replace the old ones in one swap at the end of the run (no blank page while re-rendering)
+let stage=document.createDocumentFragment();
 async function showShot(bucket, canvas, name, caption){
   const r=await toBlobURL(canvas);
   const fig=document.createElement('figure'); fig.className='shot';
   const img=document.createElement('img'); img.alt=caption;
   const cap=document.createElement('figcaption'); cap.textContent=caption;
-  img.src=r.url; fig.append(img,cap); $('view').append(fig);
+  img.src=r.url; fig.append(img,cap); stage.append(fig);
   bucket.push({ ...r, name, fig });
 }
 
@@ -816,7 +822,8 @@ async function generate(){
   const t0=performance.now();
   try{
     const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    clearShots(results.flats); clearShots(results.models);
+    const old=[...results.flats, ...results.models];
+    results.flats=[]; results.models=[]; stage=document.createDocumentFragment();
     for(const gk of FLAT_KEYS){
       const g=GARMENTS[gk];
       let BR=0;   // body ratio (body width / pattern width) from the uncropped bodyRef, only for Body + rest
@@ -829,6 +836,7 @@ async function generate(){
           await showShot(bucket, compose(G, pat, v.r, trim, o), lab+'-'+kind+'-'+name, name+' · '+lab);
       }
     }
+    clearShots(old); $('view').append(stage);
     $('dl').disabled=false;
     msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s');
   }catch(err){ msg('Error: '+err.message); }
@@ -840,6 +848,8 @@ function setNudge(x,y){ nudge=[x,y]; $('nudgeVal').textContent='x '+x+' · y '+y
 document.querySelectorAll('.nudge [data-d]').forEach(btn=>btn.addEventListener('click', ()=>{
   const [dx,dy]=btn.dataset.d.split(',').map(Number); setNudge(nudge[0]+dx, nudge[1]+dy); }));
 $('nudgeReset').addEventListener('click', ()=>setNudge(0,0));
+$('bodySize').addEventListener('input', e=>{ $('bodySizeVal').textContent=(+e.target.value).toFixed(2);
+  if(!patImg&&!patLoading) return; if(busy) rerun=true; else generate(); });
 
 $('patternBtn').addEventListener('click', ()=>$('pattern').click());
 $('pattern').addEventListener('change', async e=>{

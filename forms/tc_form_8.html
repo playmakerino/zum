@@ -73,10 +73,8 @@
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
     .section-label {
-      font-size: 12px; font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      font-size: 16px; font-weight: 700;
+      color: var(--text);
       margin: 28px 0 14px;
       padding-top: 22px;
       border-top: 1px solid var(--divider);
@@ -86,9 +84,8 @@
       margin-top: 0; padding-top: 0; border-top: none;
     }
     .section-label .count {
-      font-size: 12px; font-weight: 500;
+      font-size: 14px; font-weight: 500;
       color: var(--text-muted);
-      letter-spacing: 0.05em;
       text-transform: none;
     }
 
@@ -174,9 +171,10 @@
 
     .field-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 176px; /* same columns as form 2; 3rd column is empty here */
       gap: 16px 10px;
     }
+    .field-row .field { margin-bottom: 0; }
 
     /* Ad images chooser (per product row) */
     .chooser-field {

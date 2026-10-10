@@ -73,10 +73,8 @@
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
     .section-label {
-      font-size: 12px; font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      font-size: 16px; font-weight: 700;
+      color: var(--text);
       margin: 28px 0 14px;
       padding-top: 22px;
       border-top: 1px solid var(--divider);
@@ -86,9 +84,8 @@
       margin-top: 0; padding-top: 0; border-top: none;
     }
     .section-label .count {
-      font-size: 12px; font-weight: 500;
+      font-size: 14px; font-weight: 500;
       color: var(--text-muted);
-      letter-spacing: 0.05em;
       text-transform: none;
     }
 
@@ -177,6 +174,7 @@
       grid-template-columns: 1fr 1fr 176px;
       gap: 16px 10px;
     }
+    .field-row .field { margin-bottom: 0; }
     #image_positions { max-width: 130px; }
     /* line up with the Image positions column of the rows (starts 130px + 10px gap + 36px remove button from the right edge) */
     @media (min-width: 641px) { .pos-field { justify-self: end; width: 176px; } .pos-field label, .pos-field .field-lbl { white-space: nowrap; } }

@@ -74,17 +74,14 @@
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
     .section-label {
-      font-size: 12px; font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      font-size: 16px; font-weight: 700;
+      color: var(--text);
       margin-bottom: 14px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .section-label .count {
-      font-size: 12px; font-weight: 500;
+      font-size: 14px; font-weight: 500;
       color: var(--text-muted);
-      letter-spacing: 0.05em;
       text-transform: none;
     }
 
@@ -425,7 +422,7 @@
       </div>
 
       <div class="field">
-        <label>Ad images <span class="count" id="adCount"></span></label>
+        <label>Ad images</label>
         <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
         <div class="thumbs" id="thumbs"></div>
         <div class="row-img-count" id="imgCount"></div>
@@ -466,11 +463,6 @@
       document.getElementById('printReqTag').textContent = need ? 'Required' : 'No need';
     }
 
-    function updateCount() {
-      const n = adFiles.length;
-      document.getElementById('adCount').textContent = `${n} ${n === 1 ? 'ad' : 'ads'}`;
-    }
-
     // ---------- Ad images ----------
     function addImages(fileListObj) {
       for (const f of fileListObj) {
@@ -479,13 +471,11 @@
         adFiles.push(f);
       }
       renderThumbs();
-      updateCount();
     }
 
     function removeImage(idx) {
       adFiles.splice(idx, 1);
       renderThumbs();
-      updateCount();
     }
 
     function renderThumbs() {
@@ -823,7 +813,6 @@
       renderThumbs();
       renderPrint();
       updatePrintField();
-      updateCount();
     })();
   </script>
   <!-- ============ Guide (help panel) ============ -->

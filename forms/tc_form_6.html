@@ -92,7 +92,13 @@
 
     /* Print row: Print ID + Print image + Image positions on one line */
     .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 18px; }
-    @media (min-width: 680px) { .print-row { grid-template-columns: 190px 1fr 150px; align-items: start; } }
+    .print-row > div { min-width: 0; }
+    @media (min-width: 680px) {
+      .pos-field { grid-column: 1 / -1; }
+      .pos-line { display: grid; grid-template-columns: 190px 1fr; gap: 18px; align-items: center; }
+      .pos-line .field-hint { margin-top: 0; }
+    }
+    @media (min-width: 680px) { .print-row { grid-template-columns: 190px 1fr; align-items: start; } }
 
     /* Single full-width input, used by Print ID and Image positions */
     .full-input {
@@ -371,7 +377,7 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <p>One print applied to several products. Ad images are pulled from each product page automatically, no upload needed.</p>
+      <p>One print across several products. Ad images come from each product page.</p>
     </div>
 
     <div class="card">
@@ -408,10 +414,12 @@
             <input type="file" id="print_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" onchange="onPrintFile(this)" />
             <div class="field-hint">Print design reference.</div>
           </div>
-          <div>
+          <div class="pos-field">
             <div class="field-lbl">Image positions (shared)</div>
-            <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
-            <div class="field-hint">Applies to all products unless a row sets its own.</div>
+            <div class="pos-line">
+              <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
+              <div class="field-hint">Counted from the first image. A row can set its own. Both empty = all images.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -422,7 +430,7 @@
           <span class="count" id="rowCount"></span>
         </div>
         <div class="row row-header">
-          <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Image positions</label>
           <span></span>
         </div>
@@ -479,7 +487,7 @@
       div.dataset.rid = rid;
       div.innerHTML = `
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product url</label>
+          <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
@@ -507,7 +515,7 @@
       if (!f) return;
       printFile = f;
       document.getElementById('field_print_image').classList.add('has-value');
-      document.getElementById('path_print_image').textContent = f.name;
+      document.getElementById('path_print_image').textContent = '1 image';
     }
 
     function clearField(key) {
@@ -742,7 +750,7 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Cần điền <span class="g-field">Print ID</span>, chọn <span class="g-field">Print image</span> và có ít nhất một dòng <span class="g-field">Product url</span>.
+        Cần điền <span class="g-field">Print ID</span>, chọn <span class="g-field">Print image</span> và có ít nhất một dòng <span class="g-field">Product URL</span>.
       </div>
 
       <div class="guide-note">

@@ -90,17 +90,23 @@
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
 
-    /* Print ID + Product URL: stacked on mobile, side-by-side on desktop */
-    .field-row {
+    /* Print image tile on the left, Print ID + Product URL stacked on its right */
+    .top-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: 12px 18px;
       margin-bottom: 12px;
     }
-    .field-row .field { margin-bottom: 0; }
+    .top-grid .field { margin-bottom: 0; }
+    .top-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
     @media (min-width: 560px) {
-      .field-row { grid-template-columns: minmax(120px, 0.5fr) 1fr; }
+      /* tile height = Print ID + Product URL stack, so top and bottom edges line up */
+      .top-grid { grid-template-columns: 118px 1fr; }
+      .top-grid .field-hint { white-space: nowrap; }
+      .top-grid .print-slot { grid-template-columns: 1fr; }
+      .top-fields #printId { max-width: 190px; }
     }
+    .field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
     .field label {
       display: block; font-size: 12px; font-weight: 500;
       color: var(--text-sub); margin-bottom: 7px; letter-spacing: 0.01em;
@@ -332,20 +338,23 @@
         <span class="count" id="adCount"></span>
       </div>
 
-      <div class="field-row">
+      <div class="top-grid">
         <div class="field">
-          <label>Print ID</label>
-          <input type="text" id="printId" placeholder="xua1234" />
+          <label>Print image</label>
+          <input type="file" id="printFileInput" accept="image/*" style="display:none" />
+          <div class="print-slot" id="printSlot"></div>
+          <div class="field-hint">Print design reference.</div>
         </div>
-        <div class="field">
-          <label>Product URL</label>
-          <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
+        <div class="top-fields">
+          <div class="field">
+            <label>Print ID</label>
+            <input type="text" id="printId" placeholder="NGT1234" />
+          </div>
+          <div class="field">
+            <label>Product URL</label>
+            <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>Print Image or Flatlay Image</label>
-        <input type="file" id="printFileInput" accept="image/*" style="display:none" />
-        <div class="print-slot" id="printSlot"></div>
       </div>
       <div class="field">
         <label>Ad images</label>
@@ -652,8 +661,8 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Print Image or Flatlay Image</span>: ảnh tham chiếu (bắt buộc)</h4>
-          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế) hoặc ảnh flatlay, dùng làm tham chiếu cho nội dung quảng cáo. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
+          <h4><span class="g-field">Print image</span>: ảnh tham chiếu (bắt buộc)</h4>
+          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu cho nội dung quảng cáo. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
         </div>
       </div>
 

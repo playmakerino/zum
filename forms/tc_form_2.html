@@ -174,9 +174,14 @@
 
     .field-row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
+
+    /* Shared image positions: own line, hint to the right of the input */
+    .pos-field { margin-bottom: 0; }
+    .pos-line { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; }
+    .pos-line .field-hint { margin-top: 0; }
 
     .row {
       display: grid;
@@ -310,6 +315,7 @@
 
     @media (max-width: 640px) {
       .field-row { grid-template-columns: 1fr; }
+      .pos-line { grid-template-columns: 1fr; gap: 8px; }
 
       /* Products: drop the shared column header; each row carries its own labels */
       .row-header { display: none; }
@@ -414,7 +420,7 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <p>One print theme applied to multiple products. Images are pulled from the product page, one ad per image.</p>
+      <p>One print theme across several products. Ad images come from each product page.</p>
     </div>
 
     <div class="card">
@@ -436,10 +442,12 @@
               <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
             </div>
           </div>
-          <div class="field">
-            <label>Image positions (shared)</label>
+        </div>
+        <div class="field pos-field">
+          <label>Image positions (shared)</label>
+          <div class="pos-line">
             <input type="text" id="image_positions" placeholder="2, 3, 4" />
-            <div class="field-hint">Counted from the first image. Used by every row that leaves its own Image positions empty. Both empty = all images.</div>
+            <div class="field-hint">Counted from the first image. A row can set its own. Both empty = all images.</div>
           </div>
         </div>
       </div>
@@ -451,7 +459,7 @@
         </div>
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
-          <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Image positions</label>
           <span></span>
         </div>
@@ -543,7 +551,7 @@
           <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product url</label>
+          <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
@@ -929,7 +937,7 @@
           <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
           <p>Mỗi dòng trong bảng là 1 sản phẩm, gồm 3 ô:</p>
           <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã in của sản phẩm (ví dụ <code>NGT1234</code>).<br>
-          b) <span class="g-field">Product url</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.<br>
+          b) <span class="g-field">Product URL</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt.<br>
           c) <span class="g-field">Image positions</span> (không bắt buộc): vị trí ảnh riêng cho sản phẩm này, để trống thì dùng ô chung ở bước 3.</p>
         </div>
       </div>
@@ -963,7 +971,7 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Mỗi dòng cần điền đủ cả <span class="g-field">Print ID</span> và <span class="g-field">Product url</span>. Cần có ít nhất 1 dòng đầy đủ.
+        Mỗi dòng cần điền đủ cả <span class="g-field">Print ID</span> và <span class="g-field">Product URL</span>. Cần có ít nhất 1 dòng đầy đủ.
       </div>
 
       <div class="guide-note">

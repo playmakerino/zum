@@ -217,7 +217,7 @@
 
     .row {
       display: grid;
-      grid-template-columns: 120px 1fr 200px 36px;
+      grid-template-columns: 120px 1fr 240px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -456,7 +456,7 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <p>One print theme applied to multiple products. Choose the ad images of each product from Dropbox, one ad per image.</p>
+      <p>One print theme across several products. Pick each product's ad images from Dropbox.</p>
     </div>
 
     <div class="card">
@@ -488,7 +488,7 @@
         </div>
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
-          <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Ad images</label>
           <span></span>
         </div>
@@ -581,7 +581,7 @@
           <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product url</label>
+          <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
@@ -1008,7 +1008,7 @@
           <h4>Bảng <span class="g-field">Products</span>: danh sách sản phẩm</h4>
           <p>Mỗi dòng trong bảng là 1 sản phẩm, gồm 3 ô:</p>
           <p style="margin-top:7px">a) <span class="g-field">Print ID</span>: mã in của sản phẩm (ví dụ <code>NGT1234</code>).<br>
-          b) <span class="g-field">Product url</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt. Quảng cáo dẫn về đúng link này.<br>
+          b) <span class="g-field">Product URL</span>: link sản phẩm trên zumbamboo.com, copy từ trình duyệt. Quảng cáo dẫn về đúng link này.<br>
           c) <span class="g-field">Ad images</span>: bấm <strong>Select</strong> để chọn ảnh quảng cáo từ Dropbox. Có thể chọn nhiều ảnh cùng lúc, bấm Select thêm lần nữa để thêm ảnh. Link Dropbox chỉ dùng được trong 4 giờ, chọn ảnh xong thì gửi luôn. Mỗi ảnh thành một quảng cáo. Bấm dấu <strong>X</strong> trong ô để chọn lại từ đầu.</p>
         </div>
       </div>
@@ -1042,7 +1042,7 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Mỗi dòng cần điền đủ <span class="g-field">Print ID</span>, <span class="g-field">Product url</span> và chọn ít nhất một ảnh ở <span class="g-field">Ad images</span>. Số quảng cáo của mỗi dòng bằng số ảnh đã chọn.
+        Mỗi dòng cần điền đủ <span class="g-field">Print ID</span>, <span class="g-field">Product URL</span> và chọn ít nhất một ảnh ở <span class="g-field">Ad images</span>. Số quảng cáo của mỗi dòng bằng số ảnh đã chọn.
       </div>
 
       <div class="guide-note">

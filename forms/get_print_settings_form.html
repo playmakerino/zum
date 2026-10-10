@@ -92,6 +92,10 @@
       margin-bottom: 14px;
     }
 
+    /* Print ID + Collection ID side by side */
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row .field { min-width: 0; }
+
     .field label {
       display: block;
       font-size: 12px;
@@ -252,14 +256,15 @@
 
     <div class="card">
 
-      <div class="field">
-        <label>Print ID</label>
-        <input type="text" id="print_id_input" placeholder="e.g. Abc1234" autocomplete="off" />
-      </div>
-
-      <div class="field">
-        <label>Collection ID</label>
-        <input type="text" id="collection_id_input" placeholder="e.g. 654321987" autocomplete="off" />
+      <div class="field-row">
+        <div class="field">
+          <label>Print ID</label>
+          <input type="text" id="print_id_input" placeholder="e.g. Abc1234" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>Collection ID</label>
+          <input type="text" id="collection_id_input" placeholder="e.g. 654321987" autocomplete="off" />
+        </div>
       </div>
 
       <div class="field">

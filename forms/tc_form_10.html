@@ -92,6 +92,7 @@
 
     /* Print row: Print ID + Print image on one line */
     .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 18px; }
+    .print-row > div { min-width: 0; }
     @media (min-width: 680px) { .print-row { grid-template-columns: 190px 1fr; align-items: start; } }
 
     /* Single full-width input, used by Print ID */
@@ -152,7 +153,7 @@
     /* Products table */
     .row {
       display: grid;
-      grid-template-columns: 1fr 1fr 36px;
+      grid-template-columns: 1fr 240px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -379,7 +380,7 @@
     <!-- ============ /Form switcher ============ -->
 
     <div class="header">
-      <p>One print applied to several products. Choose the ad images of each product from Dropbox, one ad per image.</p>
+      <p>One print across several products. Pick each product's ad images from Dropbox.</p>
     </div>
 
     <div class="card">
@@ -424,7 +425,7 @@
           <span class="count" id="rowCount"></span>
         </div>
         <div class="row row-header">
-          <label class="row-col-label">Product url</label>
+          <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Ad images</label>
           <span></span>
         </div>
@@ -481,7 +482,7 @@
       div.dataset.rid = rid;
       div.innerHTML = `
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product url</label>
+          <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
@@ -561,7 +562,7 @@
           const f = files[0];
           printFile = { name: f.name, link: f.link };
           document.getElementById('field_print_image').classList.add('has-value');
-          document.getElementById('path_print_image').textContent = f.name;
+          document.getElementById('path_print_image').textContent = '1 image';
         },
         cancel() {},
         linkType: 'direct',
@@ -804,7 +805,7 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Cần điền <span class="g-field">Print ID</span>, chọn <span class="g-field">Print image</span>, và mỗi dòng cần có <span class="g-field">Product url</span> cùng ít nhất một ảnh ở <span class="g-field">Ad images</span>.
+        Cần điền <span class="g-field">Print ID</span>, chọn <span class="g-field">Print image</span>, và mỗi dòng cần có <span class="g-field">Product URL</span> cùng ít nhất một ảnh ở <span class="g-field">Ad images</span>.
       </div>
 
       <div class="guide-note">

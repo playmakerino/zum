@@ -61,33 +61,12 @@
     }
 
     .header { margin-bottom: 24px; text-align: left; }
-    .header h1 {
-      font-size: 48px; font-weight: 900;
-      color: var(--text);
-      letter-spacing: -0.04em;
-      line-height: 1.05;
-      margin-bottom: 12px;
-    }
     .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
 
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
-    .section-label {
-      font-size: 16px; font-weight: 700;
-      color: var(--text);
-      margin: 28px 0 14px;
-      padding-top: 22px;
-      border-top: 1px solid var(--divider);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .section:first-child .section-label {
-      margin-top: 0; padding-top: 0; border-top: none;
-    }
-    .section-label .count {
-      font-size: 14px; font-weight: 500;
-      color: var(--text-muted);
-      text-transform: none;
-    }
+    /* space between sections (was carried by the section label) */
+    .section + .section { margin-top: 28px; }
 
     .field { margin-bottom: 16px; }
     .field label {
@@ -453,11 +432,10 @@
     </script>
     <!-- ============ /Form switcher ============ -->
 
-    <div class="header">
-      <p>One print theme across several products. Pick each product's ad images from Dropbox.</p>
-    </div>
-
     <div class="card">
+      <div class="header">
+        <p>One print theme across several products. Pick ad images from Dropbox, one ad per image.</p>
+      </div>
 
       <div class="section">
         <div class="field-row">
@@ -480,10 +458,6 @@
       </div>
 
       <div class="section">
-        <div class="section-label">
-          <span>Products</span>
-          <span class="count" id="rowCount"></span>
-        </div>
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product URL</label>
@@ -528,11 +502,6 @@
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    }
-
-    function updateCount() {
-      const n = document.querySelectorAll('#rowsContainer .row').length;
-      document.getElementById('rowCount').textContent = n === 1 ? '1 row' : `${n} rows`;
     }
 
     const URL_PLACEHOLDERS = {
@@ -609,14 +578,12 @@
         </button>
       `;
       container.appendChild(div);
-      updateCount();
     }
 
     function removeRow(btn) {
       const row = btn.closest('.row');
       delete rowAds[row.dataset.rid];
       row.remove();
-      updateCount();
     }
 
     // ---------- Ad images per product row ----------
@@ -762,8 +729,6 @@
           }
         });
       }
-
-      updateCount();
     });
 
     document.getElementById('product_type').addEventListener('change', () => {

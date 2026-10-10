@@ -62,44 +62,14 @@
     }
 
     .header { margin-bottom: 24px; text-align: left; }
-    .header h1 {
-      font-size: 48px; font-weight: 900;
-      color: var(--text);
-      letter-spacing: -0.04em;
-      line-height: 1.05;
-      margin-bottom: 12px;
-    }
     .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
 
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
-    .section-label {
-      font-size: 16px; font-weight: 700;
-      color: var(--text);
-      margin-bottom: 14px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .section-label .count {
-      font-size: 14px; font-weight: 500;
-      color: var(--text-muted);
-      text-transform: none;
-    }
 
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
 
-    /* Print image + Product type: stacked on mobile, side-by-side on desktop */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-      align-items: start;
-    }
-    .field-row .field { margin-bottom: 0; }
-    @media (min-width: 560px) {
-      .field-row { grid-template-columns: calc(var(--tile) + 24px) 1fr; }
-    }
     .field label {
       display: block; font-size: 12px; font-weight: 500;
       color: var(--text-sub); margin-bottom: 7px; letter-spacing: 0.01em;
@@ -387,11 +357,10 @@
     </script>
     <!-- ============ /Form switcher ============ -->
 
-    <div class="header">
-      <p>Filenames: [PrintID-TypeID_MockupID]. One print per upload.</p>
-    </div>
-
     <div class="card">
+      <div class="header">
+        <p>Filenames: [PrintID-TypeID_MockupID]. One print per upload.</p>
+      </div>
 
       <div class="field">
         <div class="seg" id="modeSeg" role="tablist">

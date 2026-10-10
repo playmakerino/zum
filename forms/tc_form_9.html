@@ -61,28 +61,9 @@
     }
 
     .header { margin-bottom: 24px; text-align: left; }
-    .header h1 {
-      font-size: 48px; font-weight: 900;
-      color: var(--text);
-      letter-spacing: -0.04em;
-      line-height: 1.05;
-      margin-bottom: 12px;
-    }
     .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
 
     .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
-
-    .section-label {
-      font-size: 16px; font-weight: 700;
-      color: var(--text);
-      margin: 0 0 14px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .section-label .count {
-      font-size: 14px; font-weight: 500;
-      color: var(--text-muted);
-      text-transform: none;
-    }
 
     /* Sections stack with breathing room between them */
     .section + .section { margin-top: 28px; }
@@ -371,16 +352,12 @@
     </script>
     <!-- ============ /Form switcher ============ -->
 
-    <div class="header">
-      <p>One print across several products. Upload each product's ad images from your device.</p>
-    </div>
-
     <div class="card">
+      <div class="header">
+        <p>One print across several products. Upload ad images from your device, one ad per image.</p>
+      </div>
 
       <div class="section">
-        <div class="section-label">
-          <span>Print</span>
-        </div>
         <div class="print-row">
           <div>
             <div class="field-lbl">Print ID</div>
@@ -413,10 +390,6 @@
       </div>
 
       <div class="section">
-        <div class="section-label">
-          <span>Products</span>
-          <span class="count" id="rowCount"></span>
-        </div>
         <div class="row row-header">
           <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Ad images</label>
@@ -462,11 +435,6 @@
       return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
     }
 
-    function updateCount() {
-      const n = document.querySelectorAll('#rowsContainer .row').length;
-      document.getElementById('rowCount').textContent = n === 1 ? '1 product' : `${n} products`;
-    }
-
     function addRow(product_url = '') {
       const container = document.getElementById('rowsContainer');
       const rid = 'r' + (rowSeq++);
@@ -505,14 +473,12 @@
         </button>
       `;
       container.appendChild(div);
-      updateCount();
     }
 
     function removeRow(btn) {
       const row = btn.closest('.row');
       delete rowAds[row.dataset.rid];
       row.remove();
-      updateCount();
     }
 
     // ---------- Ad images per product row ----------
@@ -659,8 +625,6 @@
           addRow(val);
         }
       });
-
-      updateCount();
     });
 
     addRow();

@@ -92,7 +92,7 @@
       text-transform: none;
     }
 
-    .field { margin-bottom: 14px; }
+    .field { margin-bottom: 16px; }
     .field label {
       display: block; font-size: 12px; font-weight: 500;
       color: var(--text-sub); margin-bottom: 8px; letter-spacing: 0.01em;
@@ -151,7 +151,7 @@
     .combo-input:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
 
     .combo-menu {
-      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      position: absolute; top: calc(100% + 6px); left: 0; width: max(100%, 320px);
       background: var(--surface-elevated);
       border-radius: 8px;
       box-shadow: 0 12px 32px rgba(0,0,0,0.5);
@@ -174,18 +174,16 @@
 
     .field-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: 1fr 1fr 176px;
+      gap: 16px 10px;
     }
-
-    /* Shared image positions: own line, hint to the right of the input */
-    .pos-field { margin-bottom: 0; }
-    .pos-line { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; }
-    .pos-line .field-hint { margin-top: 0; }
+    #image_positions { max-width: 130px; }
+    /* line up with the Image positions column of the rows (starts 130px + 10px gap + 36px remove button from the right edge) */
+    @media (min-width: 641px) { .pos-field { justify-self: end; width: 176px; } .pos-field label, .pos-field .field-lbl { white-space: nowrap; } }
 
     .row {
       display: grid;
-      grid-template-columns: 120px 1fr 130px 36px;
+      grid-template-columns: 130px 1fr 130px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -315,7 +313,6 @@
 
     @media (max-width: 640px) {
       .field-row { grid-template-columns: 1fr; }
-      .pos-line { grid-template-columns: 1fr; gap: 8px; }
 
       /* Products: drop the shared column header; each row carries its own labels */
       .row-header { display: none; }
@@ -442,12 +439,10 @@
               <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
             </div>
           </div>
-        </div>
-        <div class="field pos-field">
-          <label>Image positions (shared)</label>
-          <div class="pos-line">
+          <div class="field pos-field">
+            <label>Image positions (shared)</label>
             <input type="text" id="image_positions" placeholder="2, 3, 4" />
-            <div class="field-hint">Counted from the first image. A row can set its own. Both empty = all images.</div>
+            <div class="field-hint">A row can set its own. Both empty = all images.</div>
           </div>
         </div>
       </div>

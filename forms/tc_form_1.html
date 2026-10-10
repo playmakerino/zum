@@ -87,21 +87,21 @@
       text-transform: none;
     }
 
-    .field { margin-bottom: 12px; }
+    .field { margin-bottom: 16px; }
     .field:last-child { margin-bottom: 0; }
 
     /* Print image tile on the left, Print ID + Product URL stacked on its right */
     .top-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px 18px;
-      margin-bottom: 12px;
+      gap: 16px 10px;
+      margin-bottom: 16px;
     }
     .top-grid .field { margin-bottom: 0; }
-    .top-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .top-fields { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     @media (min-width: 560px) {
       /* tile height = Print ID + Product URL stack, so top and bottom edges line up */
-      .top-grid { grid-template-columns: 118px 1fr; }
+      .top-grid { grid-template-columns: 122px 1fr; }
       .top-grid .field-hint { white-space: nowrap; }
       .top-grid .print-slot { grid-template-columns: 1fr; }
       .top-fields #printId { max-width: 190px; }

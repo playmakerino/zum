@@ -87,6 +87,7 @@
 
     /* Print ID + Collection ID side by side */
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (min-width: 680px) { .field-row { grid-template-columns: 158px 1fr; } }
     .field-row .field { min-width: 0; }
     #page_id_input { max-width: 240px; }
 

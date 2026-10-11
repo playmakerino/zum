@@ -72,7 +72,8 @@
     /* Print row: Print ID + Print image on one line */
     .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 10px; }
     .print-row > div { min-width: 0; }
-    @media (min-width: 680px) { .print-row { grid-template-columns: 190px 240px; align-items: start; } }
+    /* Print ID 158px (same in every form): Print image ends where Product URL ends, 704 - 240 - 36 - 2x10 = 158 + 10 + 240 */
+    @media (min-width: 680px) { .print-row { grid-template-columns: 158px 240px; align-items: start; } }
 
     /* Single full-width input, used by Print ID */
     .full-input {

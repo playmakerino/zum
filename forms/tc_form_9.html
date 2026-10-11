@@ -72,8 +72,9 @@
     /* Print row: Print ID + Print image on one line */
     .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 10px; }
     .print-row > div { min-width: 0; }
-    /* Print ID 158px: Print image ends where Product URL ends, 704 - 240 - 36 - 2x10 = 158 + 10 + 240 */
-    @media (min-width: 680px) { .print-row { grid-template-columns: 158px 240px; align-items: start; } }
+    /* Print ID 130px (same in every form). Print image and Ad images are both 254px so Print image ends where
+       Product URL ends: 704 - 254 - 36 - 2x10 = 394 = 130 + 10 + 254 */
+    @media (min-width: 680px) { .print-row { grid-template-columns: 130px 254px; align-items: start; } }
 
     /* Single full-width input, used by Print ID */
     .full-input {
@@ -134,7 +135,7 @@
     /* Products table */
     .row {
       display: grid;
-      grid-template-columns: 1fr 240px 36px;
+      grid-template-columns: 1fr 254px 36px;
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;

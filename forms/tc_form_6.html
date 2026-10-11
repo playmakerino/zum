@@ -114,6 +114,7 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
+    .chooser-field .chooser-thumb { display: block; width: 30px; height: 30px; object-fit: cover; border-radius: 3px; }
     .chooser-btn {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
       background: transparent; border: 1px solid rgba(255,255,255,0.20); color: var(--text);
@@ -520,6 +521,18 @@
       img.src = src;
     }
 
+    // Small preview in the print chooser instead of "1 image" (30px fits the 42px field)
+    function showPrintThumb(el, src) {
+      el.textContent = '';
+      if (!src) return;
+      const img = new Image();
+      img.className = 'chooser-thumb';
+      img.alt = '';
+      if (src.startsWith('blob:')) img.onload = () => URL.revokeObjectURL(src);
+      img.src = src;
+      el.appendChild(img);
+    }
+
     // ---------- Shared print image, design file (required) ----------
     function onPrintFile(input) {
       const f = input.files && input.files[0];
@@ -527,7 +540,7 @@
       printFile = f;
       setTint(URL.createObjectURL(f));
       document.getElementById('field_print_image').classList.add('has-value');
-      document.getElementById('path_print_image').textContent = '1 image';
+      showPrintThumb(document.getElementById('path_print_image'), URL.createObjectURL(f));
     }
 
     function clearField(key) {
@@ -536,7 +549,7 @@
       setTint(null);
       document.getElementById('print_file').value = '';
       document.getElementById('field_print_image').classList.remove('has-value');
-      document.getElementById('path_print_image').textContent = '';
+      showPrintThumb(document.getElementById('path_print_image'), null);
     }
 
     // ---------- Collect + submit ----------

@@ -9,76 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="forms.css">
   <style>
-    :root {
-      --bg: #121212;
-      --surface: #181818;
-      --surface-hover: #282828;
-      --surface-elevated: #242424;
-      --accent: #1ED760;
-      --accent-hover: #3BE477;
-      --accent-soft: rgba(30,215,96,0.12);
-      --accent-glow: rgba(30,215,96,0.30);
-      --text: #FFFFFF;
-      --text-sub: #a7a7a7;
-      --text-muted: #6A6A6A;
-      --success: #1ED760;
-      --success-soft: rgba(30,215,96,0.10);
-      --error: #F15E6C;
-      --error-soft: rgba(241,94,108,0.10);
-      --divider: rgba(255,255,255,0.06);
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 56px 16px 24px;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 380px;
-      background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
     .container {
       width: 100%;
       max-width: 480px;
       position: relative;
       z-index: 1;
-    }
-
-    .header {
-      margin-bottom: 24px;
-      text-align: left;
-    }
-
-
-
-    .header p {
-      font-size: 14px;
-      color: var(--text-sub);
-      line-height: 1.5;
-      font-weight: 400;
-    }
-
-    .card {
-      background: var(--surface);
-      border-radius: 8px;
-      padding: 32px 28px;
     }
 
     .field {
@@ -159,67 +96,6 @@
       height: 14px;
     }
 
-    .submit-btn:hover {
-      background: var(--accent-hover);
-      transform: scale(1.04);
-      box-shadow: 0 6px 24px var(--accent-glow);
-    }
-
-    .submit-btn:active {
-      transform: scale(0.99);
-    }
-
-    .submit-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .status {
-      margin-top: 14px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      display: none;
-      line-height: 1.5;
-    }
-
-    .status.success {
-      display: block;
-      background: var(--success-soft);
-      color: var(--success);
-    }
-
-    .status.error {
-      display: block;
-      background: var(--error-soft);
-      color: var(--error);
-    }
-
-    .status.loading {
-      display: block;
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid currentColor;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.65s linear infinite;
-      margin-right: 6px;
-      vertical-align: middle;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
       font-size: 12px !important;
@@ -234,6 +110,7 @@
 </head>
 <body>
   <div class="container">
+    <script src="forms.js"></script>
     <div class="card">
       <div class="header">
         <p>Paste a Drive folder of images to auto create ads.</p>
@@ -265,22 +142,6 @@
     // ============================================================
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-img-form-thao";
     // ============================================================
-
-    function extractFolderId(input) {
-      if (!input) return '';
-      const trimmed = input.trim();
-      const patterns = [
-        /\/folders\/([a-zA-Z0-9_-]+)/,
-        /[?&]id=([a-zA-Z0-9_-]+)/,
-        /\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/
-      ];
-      for (const p of patterns) {
-        const m = trimmed.match(p);
-        if (m) return m[1];
-      }
-      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
-      return '';
-    }
 
     async function submitForm() {
       const rawInput = document.getElementById('folder_input').value;
@@ -324,11 +185,6 @@
       }
     }
 
-    function showStatus(type, html) {
-      const el = document.getElementById('statusMsg');
-      el.className = `status ${type}`;
-      el.innerHTML = html;
-    }
   </script>
 </body>
 </html>

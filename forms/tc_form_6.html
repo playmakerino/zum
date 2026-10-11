@@ -9,62 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="forms.css">
   <style>
-    :root {
-      --bg: #121212;
-      --surface: #181818;
-      --surface-hover: #282828;
-      --surface-elevated: #242424;
-      --accent: #1ED760;
-      --accent-hover: #3BE477;
-      --accent-soft: rgba(30,215,96,0.12);
-      --accent-glow: rgba(30,215,96,0.30);
-      --text: #FFFFFF;
-      --text-sub: #a7a7a7;
-      --text-muted: #6A6A6A;
-      --success: #1ED760;
-      --success-soft: rgba(30,215,96,0.10);
-      --error: #F15E6C;
-      --error-soft: rgba(241,94,108,0.10);
-      --divider: rgba(255,255,255,0.06);
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 56px 16px 24px;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 380px;
-      background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
     .container {
       width: 100%;
       max-width: 760px;
       position: relative;
       z-index: 1;
     }
-
-    .header { margin-bottom: 24px; text-align: left; }
-    .header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
-
-    .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
     /* Sections stack with breathing room between them */
     .section + .section { margin-top: 28px; }
@@ -226,35 +178,6 @@
       cursor: pointer;
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
-    .submit-btn:hover {
-      background: var(--accent-hover);
-      transform: scale(1.04);
-      box-shadow: 0 6px 24px var(--accent-glow);
-    }
-    .submit-btn:active { transform: scale(0.99); }
-    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    .status {
-      margin-top: 14px; padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px; font-weight: 500;
-      display: none; line-height: 1.5;
-    }
-    .status.success { display: block; background: var(--success-soft); color: var(--success); }
-    .status.error { display: block; background: var(--error-soft); color: var(--error); }
-    .status.loading { display: block; background: var(--accent-soft); color: var(--accent); }
-
-    .spinner {
-      display: inline-block;
-      width: 12px; height: 12px;
-      border: 2px solid currentColor;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.65s linear infinite;
-      margin-right: 6px;
-      vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 640px) {
       .row-header { display: none; }
@@ -289,77 +212,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- ============ Form switcher ============ -->
-    <style>
-      .form-switcher{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:24px;}
-      .fs-row{display:flex;align-items:flex-start;gap:12px;max-width:100%;}
-      .fs-label{flex:0 0 100px;line-height:32px;font-family:var(--font);font-size:12px;font-weight:500;
-        letter-spacing:.01em;color:var(--text-muted);}
-      .fs-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
-      .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
-        background:var(--surface-hover);color:var(--text);border:none;border-radius:500px;
-        font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
-        text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s,opacity .15s;}
-      .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
-      .form-chip:active{transform:scale(.98);}
-      .form-chip.active{background:var(--text);color:#000;}
-      .form-chip.active:hover{background:#fff;transform:none;}
-      .form-chip.ghost{opacity:.4;}
-      .form-chip.ghost:hover{opacity:1;}
-      .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
-        transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
-        letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,.45);
-        opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
-      .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
-        transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
-        opacity:0;transition:opacity .14s;z-index:30;}
-      .form-chip[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0);}
-      .form-chip[data-tip]:hover::before{opacity:1;}
-      @media(max-width:480px){.fs-row{flex-direction:column;align-items:flex-start;gap:6px;}
-        .fs-label{flex:none;line-height:1.4;}}
-    </style>
-    <nav class="form-switcher" aria-label="Choose form">
-      <div class="fs-row" data-dim="source">
-        <span class="fs-label">Image source</span>
-        <div class="fs-chips">
-          <a class="form-chip" data-val="device" data-tip="Upload product images from your device">Device</a>
-          <a class="form-chip" data-val="dropbox" data-tip="Choose product images from Dropbox">Dropbox</a>
-          <a class="form-chip" data-val="shopify" data-tip="Pull images from the Shopify product page">Shopify</a>
-        </div>
-      </div>
-      <div class="fs-row" data-dim="group">
-        <span class="fs-label">Product group</span>
-        <div class="fs-chips">
-          <a class="form-chip" data-val="single" data-tip="Unrelated products, each with its own print">Any products</a>
-          <a class="form-chip" data-val="theme" data-tip="Several prints of one theme across multiple products">By print theme</a>
-          <a class="form-chip" data-val="oneprint" data-tip="One print applied to several products">By print</a>
-        </div>
-      </div>
-    </nav>
-    <script>
-      (function(){
-        var FORMS={
-          'device|single':'tc_form_1.html','dropbox|single':'tc_form_4.html','shopify|single':'tc_form_3.html',
-          'shopify|theme':'tc_form_2.html','device|theme':'tc_form_7.html','dropbox|theme':'tc_form_8.html',
-          'shopify|oneprint':'tc_form_6.html','device|oneprint':'tc_form_9.html','dropbox|oneprint':'tc_form_10.html'
-        };
-        var REV={};for(var k in FORMS){REV[FORMS[k].toLowerCase()]=k.split('|');}
-        var cur=(location.pathname.split('/').pop()||'').toLowerCase();
-        var pair=REV[cur]||[],curSource=pair[0],curGroup=pair[1];
-        document.querySelectorAll('.form-switcher .form-chip').forEach(function(a){
-          var dim=a.closest('.fs-row').getAttribute('data-dim'),val=a.getAttribute('data-val');
-          var isActive=(dim==='source'&&val===curSource)||(dim==='group'&&val===curGroup);
-          if(isActive){a.classList.add('active');a.setAttribute('aria-current','page');return;}
-          var s=dim==='source'?val:curSource,g=dim==='group'?val:curGroup;
-          var target=FORMS[s+'|'+g];
-          if(!target){a.classList.add('ghost');
-            for(var key in FORMS){var p=key.split('|');
-            if((dim==='source'&&p[0]===val)||(dim==='group'&&p[1]===val)){target=FORMS[key];break;}}}
-          if(target){a.setAttribute('href',target);}
-        });
-      })();
-    </script>
-    <!-- ============ /Form switcher ============ -->
+    <script src="forms.js" data-switcher="tc"></script>
 
     <div class="card">
       <div class="header">
@@ -442,14 +295,6 @@
 
     let rowSeq = 0;
     let printFile = null;   // one shared print image (design file) for the whole submit
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    }
-
-    function cleanProductUrl(url) {
-      return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
-    }
 
     function addRow(product_url = '', image_positions = '') {
       const container = document.getElementById('rowsContainer');
@@ -554,12 +399,6 @@
       }
     }
 
-    function showStatus(type, html) {
-      const el = document.getElementById('statusMsg');
-      el.className = 'status ' + type;
-      el.innerHTML = html;
-    }
-
     // ---------- Paste from Excel (a column of URLs) ----------
     document.getElementById('rowsContainer').addEventListener('paste', function (e) {
       const target = e.target;
@@ -589,61 +428,6 @@
     addRow();
   </script>
   <!-- ============ Guide (help panel) ============ -->
-  <style>
-    .guide-fab{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;
-      background:var(--surface-elevated);color:var(--text-sub);border:none;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;
-      box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
-      transition:transform .15s cubic-bezier(.3,0,0,1),background .15s,color .15s}
-    .guide-fab:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
-    .guide-fab:active{transform:scale(1)}
-    .guide-fab svg{width:22px;height:22px}
-
-    .guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;
-      transition:opacity .3s,visibility .3s;z-index:60}
-    .guide-overlay.open{opacity:1;visibility:visible}
-
-    .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
-      background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);
-      transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
-      z-index:70;display:flex;flex-direction:column;overflow:hidden}
-    .guide-panel.open{transform:translateX(0)}
-
-    .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
-      padding:20px 20px 14px;flex-shrink:0}
-    .guide-head h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
-    .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--text-sub);
-      cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
-    .guide-close:hover{color:var(--text);transform:scale(1.06)}
-    .guide-close svg{width:18px;height:18px}
-
-    .guide-body{padding:6px 20px 32px;overflow-y:auto;flex:1}
-    .guide-body::-webkit-scrollbar{width:12px}
-    .guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:8px;
-      border:3px solid transparent;background-clip:padding-box}
-    .guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.5);
-      border:3px solid transparent;background-clip:padding-box}
-
-    .guide-intro{font-size:14px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
-    .guide-sec{font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:.04em;margin:26px 0 14px}
-    .guide-step{display:flex;gap:13px;margin-bottom:18px}
-    .guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);
-      color:var(--text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
-    .guide-sb{flex:1;min-width:0}
-    .guide-sb h4{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.4}
-    .guide-sb p{font-size:12px;color:var(--text-sub);line-height:1.55}
-    .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:500;
-      font-size:12px;padding:1px 7px;border-radius:4px;white-space:nowrap}
-    .guide-eg{display:block;margin-top:5px;font-size:12px;color:var(--text-muted)}
-    .guide-eg code,.guide-note code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;
-      color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:12px}
-    .guide-note{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;font-size:12px;
-      color:var(--text-sub);line-height:1.6;margin:18px 0 0}
-    .guide-note strong{color:var(--text);font-weight:700}
-    .guide-note + .guide-note{margin-top:10px}
-    .guide-note ul{margin:6px 0 0;padding-left:18px}
-    .guide-note li{margin-bottom:4px}
-  </style>
 
   <button class="guide-fab" id="guideFab" title="Form guide" aria-label="Form guide" onclick="openGuide()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -729,19 +513,6 @@
     </div>
   </aside>
 
-  <script>
-    function openGuide(){
-      document.getElementById('guidePanel').classList.add('open');
-      document.getElementById('guideOverlay').classList.add('open');
-      document.getElementById('guidePanel').setAttribute('aria-hidden','false');
-    }
-    function closeGuide(){
-      document.getElementById('guidePanel').classList.remove('open');
-      document.getElementById('guideOverlay').classList.remove('open');
-      document.getElementById('guidePanel').setAttribute('aria-hidden','true');
-    }
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeGuide(); });
-  </script>
   <!-- ============ /Guide ============ -->
 </body>
 </html>

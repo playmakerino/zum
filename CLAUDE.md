@@ -16,6 +16,17 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 - [`forms/forms.js`](forms/forms.js): đặt **đầu `.container`**. `data-switcher="tc"` (9 form TC) / `"img"` (Kid pajama, Others) vẽ thanh chuyển form tại chỗ; thêm form vào thanh = sửa `SWITCHERS`. Còn có `openGuide/closeGuide`, `escapeHtml`, `cleanProductUrl`, `showStatus`, `extractFolderId`.
 - [`forms/product-type-combo.js`](forms/product-type-combo.js): dropdown Product type + mảng `PRODUCT_TYPES` của form 1_trang, 2, 7, 8 (form gọi `initProductTypeCombo()`).
 
+## Form TC: luật layout (user chốt 2026-10-12, phải giữ đồng thời cả 4)
+1. **Form 9, 10:** mép phải ô Print image thẳng mép phải ô Product URL.
+2. **Trong một form:** các ô up ảnh (Print image, Ad images…) rộng bằng nhau.
+3. **Trong một form có Image positions (form 2, 3, 6):** ô Image positions (ô chung + cột trong bảng) rộng bằng ô Print ID.
+4. **Mọi form:** ô Print ID rộng bằng nhau.
+
+Số hiện tại (desktop, nội dung card 704px = 760 − 2×28): Print ID = Image positions = **130px**. Form 9, 10: Print image = Ad images = **254px**, vì 704 − 254 − 36 (nút xoá) − 2×10 (gap) = 394 = 130 + 10 + 254. Form 1, 4: hai ô ảnh chia đôi (347/347).
+- Đổi Print ID thành P thì phải đổi theo: ô ảnh form 9, 10 = (638 − P) / 2; Image positions form 2, 3, 6 = P; khung căn mép phải `.pos-field` form 2, 6 = P + 10 + 36.
+- Sửa xong phải đo lại bằng `getBoundingClientRect` trên trang thật (desktop 1280px), không tính nhẩm. Các số trên chỉ khớp tuyệt đối khi card đạt bề rộng tối đa (cửa sổ ≥ ~792px).
+- Không cùng nhóm luật nhưng cũng là chuẩn chung: chữ trong ô nhập 14px desktop / 16px ở ≤640px (iPhone tự zoom vào ô dưới 16px), placeholder màu `--text-muted`.
+
 ## Compositor flatlay: 2 file, 1 engine
 [`compositor/pattern-mockup.html`](compositor/pattern-mockup.html) (dev tool) và [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) (form production) chứa **cùng một khối engine byte-identical** giữa 2 dòng marker `// ===== SHARED BLOCK` … `// ===== END SHARED BLOCK =====`. Cả 2 vẫn là one-page HTML (khối được nhân đôi, không load script chung).
 - Sửa engine (compose, analyzeGarment, hằng số, colour helpers) **chỉ trong `pattern-mockup.html`** → `.\compositor\sync-shared.ps1 -Push` → commit **cả 2 file**.

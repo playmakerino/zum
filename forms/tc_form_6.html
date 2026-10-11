@@ -476,7 +476,7 @@
       if (!f) return;
       printFile = f;
       document.getElementById('field_print_image').classList.add('has-value');
-      document.getElementById('path_print_image').textContent = f.name;
+      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = f.name;
     }
 
     function clearField(key) {
@@ -484,7 +484,7 @@
       printFile = null;
       document.getElementById('print_file').value = '';
       document.getElementById('field_print_image').classList.remove('has-value');
-      document.getElementById('path_print_image').textContent = '';
+      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = '';
     }
 
     // ---------- Collect + submit ----------

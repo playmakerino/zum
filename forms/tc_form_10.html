@@ -525,7 +525,7 @@
           const f = files[0];
           printFile = { name: f.name, link: f.link };
           document.getElementById('field_print_image').classList.add('has-value');
-          document.getElementById('path_print_image').textContent = f.name;
+          document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = f.name;
         },
         cancel() {},
         linkType: 'direct',
@@ -539,7 +539,7 @@
       if (key !== 'print_image') return;
       printFile = null;
       document.getElementById('field_print_image').classList.remove('has-value');
-      document.getElementById('path_print_image').textContent = '';
+      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = '';
     }
 
     // ---------- Collect + submit ----------

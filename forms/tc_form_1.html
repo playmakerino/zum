@@ -396,7 +396,8 @@
 
     function renderPrint() {
       document.getElementById('field_print').classList.toggle('has-value', !!printFile);
-      document.querySelector('#field_print .chooser-path').textContent = printFile ? printFile.name : '';
+      const printPath = document.querySelector('#field_print .chooser-path');
+      printPath.textContent = printPath.title = printFile ? printFile.name : '';
     }
 
     async function submitForm() {

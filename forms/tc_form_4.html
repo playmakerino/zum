@@ -374,7 +374,7 @@
           state.print = { name: f.name, link: f.link };
           const field = document.getElementById('field_print');
           field.classList.add('has-value');
-          document.getElementById('path_print').textContent = f.name;
+          document.getElementById('path_print').textContent = document.getElementById('path_print').title = f.name;
         },
         cancel() {},
         linkType: 'direct',
@@ -387,7 +387,7 @@
     function clearPrint() {
       state.print = null;
       document.getElementById('field_print').classList.remove('has-value');
-      document.getElementById('path_print').textContent = '';
+      document.getElementById('path_print').textContent = document.getElementById('path_print').title = '';
     }
 
     // ---------- Ad images (multi) ----------

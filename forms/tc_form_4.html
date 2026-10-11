@@ -54,7 +54,11 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       height: 380px;
-      background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
+      /* --tint = dominant colour of the print image (set by setTint), green until one is picked */
+      background: var(--tint, rgba(30,215,96,0.10));
+      -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+      mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+      transition: background-color .6s ease;
       pointer-events: none;
       z-index: 0;
     }
@@ -213,7 +217,7 @@
       .form-switcher{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:24px;}
       .fs-row{display:flex;align-items:flex-start;gap:12px;max-width:100%;}
       .fs-label{flex:0 0 100px;line-height:32px;font-family:var(--font);font-size:12px;font-weight:500;
-        letter-spacing:.01em;color:var(--text-muted);}
+        letter-spacing:.01em;color:rgba(255,255,255,.7);}
       .fs-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
       .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
         background:var(--surface-hover);color:var(--text);border:none;border-radius:500px;
@@ -366,12 +370,59 @@
       return url.replace(/\/collections\/[^/]+(?=\/products\/)/, '');
     }
 
+    // ---------- Header tint from the print image (Spotify-style) ----------
+    // Dominant colour = heaviest 3-bit/channel bucket, saturated pixels weighted up,
+    // then capped in saturation/lightness so white text stays readable. CORS-blocked
+    // or failed loads keep the default green.
+    let tintToken = 0;
+    function setTint(src) {
+      const token = ++tintToken;
+      if (!src) { document.body.style.removeProperty('--tint'); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+        if (token !== tintToken) return;
+        try {
+          const N = 48, c = document.createElement('canvas');
+          c.width = c.height = N;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, N, N);
+          const d = ctx.getImageData(0, 0, N, N).data, bins = {};
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] < 128) continue;
+            const r = d[i], g = d[i + 1], b = d[i + 2];
+            const w = 1 + 4 * (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+            const k = (r >> 5) << 6 | (g >> 5) << 3 | (b >> 5);
+            const e = bins[k] || (bins[k] = [0, 0, 0, 0]);
+            e[0] += r * w; e[1] += g * w; e[2] += b * w; e[3] += w;
+          }
+          let best = null;
+          for (const k in bins) if (!best || bins[k][3] > best[3]) best = bins[k];
+          if (!best) return;
+          const r = best[0] / best[3] / 255, g = best[1] / best[3] / 255, b = best[2] / best[3] / 255;
+          const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dd = mx - mn;
+          let h = 0, s = 0;
+          if (dd) {
+            s = dd / (1 - Math.abs(2 * l - 1));
+            h = mx === r ? ((g - b) / dd + 6) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4;
+            h *= 60;
+          }
+          const S = Math.min(s, 0.65) * 100, L = Math.min(Math.max(l, 0.22), 0.42) * 100;
+          document.body.style.setProperty('--tint', `hsl(${h.toFixed(0)} ${S.toFixed(0)}% ${L.toFixed(0)}%)`);
+        } catch (e) { document.body.style.removeProperty('--tint'); }
+      };
+      img.onerror = () => { if (token === tintToken) document.body.style.removeProperty('--tint'); };
+      img.src = src;
+    }
+
     // ---------- Print image, design file (single) ----------
     function choosePrint() {
       Dropbox.choose({
         success(files) {
           const f = files[0];
           state.print = { name: f.name, link: f.link };
+          setTint(f.link);
           const field = document.getElementById('field_print');
           field.classList.add('has-value');
           document.getElementById('path_print').textContent = '1 image';
@@ -386,6 +437,7 @@
 
     function clearPrint() {
       state.print = null;
+      setTint(null);
       document.getElementById('field_print').classList.remove('has-value');
       document.getElementById('path_print').textContent = '';
     }

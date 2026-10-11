@@ -435,7 +435,7 @@
         success(files) {
           const f = files[0];
           state.print = { name: f.name, link: f.link };
-          setTint(f.link);
+          setTint(f.thumbnailLink);  // small Dropbox thumbnail, never the full-size print
           const field = document.getElementById('field_print');
           field.classList.add('has-value');
           showPrintThumb(document.getElementById('path_print'), f.thumbnailLink || f.link);

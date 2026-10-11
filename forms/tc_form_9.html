@@ -522,7 +522,7 @@
       if (!f) return;
       printFile = f;
       document.getElementById('field_print_image').classList.add('has-value');
-      document.getElementById('path_print_image').textContent = '1 image';
+      document.getElementById('path_print_image').textContent = f.name;
     }
 
     function clearField(key) {

@@ -374,7 +374,7 @@
           state.print = { name: f.name, link: f.link };
           const field = document.getElementById('field_print');
           field.classList.add('has-value');
-          document.getElementById('path_print').textContent = '1 image';
+          document.getElementById('path_print').textContent = f.name;
         },
         cancel() {},
         linkType: 'direct',

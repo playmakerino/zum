@@ -82,7 +82,7 @@
       border: none; border-radius: 4px;
       padding: 0 16px;
       font-family: var(--font);
-      font-size: 16px; font-weight: 400;
+      font-size: 14px; font-weight: 400;
       color: var(--text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
@@ -161,7 +161,7 @@
 
     .row {
       display: grid;
-      grid-template-columns: 158px 1fr 130px 36px;
+      grid-template-columns: 130px 1fr 130px 36px; /* Print ID as wide as Image positions (130px) */
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -194,6 +194,7 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
+    .row input[type="text"]::placeholder { color: var(--text-muted); }
     .row input[type="text"]:hover { background: #2a2a2a; }
     .row input[type="text"]:focus {
       background: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
@@ -316,6 +317,11 @@
         border-top: 1px solid var(--divider);
         padding-top: 18px;
       }
+    }
+
+    /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
+    @media (max-width: 640px) {
+      .field input[type="text"], .field select, .combo-input, .row input[type="text"] { font-size: 16px; }
     }
   </style>
   <script src="auth.js"></script>

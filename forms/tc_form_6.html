@@ -75,7 +75,8 @@
     #imagePositions { max-width: 130px; }
     /* line up with the Image positions column of the rows (starts 130px + 10px gap + 36px remove button from the right edge) */
     @media (min-width: 680px) { .pos-field { justify-self: end; width: 176px; } .pos-field label, .pos-field .field-lbl { white-space: nowrap; } }
-    @media (min-width: 680px) { .print-row { grid-template-columns: 158px 240px 1fr; align-items: start; } }
+    /* Print ID as wide as the Image positions fields (130px) */
+    @media (min-width: 680px) { .print-row { grid-template-columns: 130px 240px 1fr; align-items: start; } }
 
     /* Single full-width input, used by Print ID and Image positions */
     .full-input {
@@ -90,6 +91,7 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
+    .full-input::placeholder { color: var(--text-muted); }
     .full-input:hover { background: #2a2a2a; }
     .full-input:focus { background: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
     .field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
@@ -163,6 +165,7 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
+    .row input[type="text"]::placeholder { color: var(--text-muted); }
     .row input[type="text"]:hover { background: #2a2a2a; }
     .row input[type="text"]:focus {
       background: #2a2a2a; box-shadow: 0 0 0 2px var(--text);
@@ -275,6 +278,11 @@
         border-top: 1px solid var(--divider);
         padding-top: 18px;
       }
+    }
+
+    /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
+    @media (max-width: 640px) {
+      .full-input, .row input[type="text"] { font-size: 16px; }
     }
   </style>
   <script src="auth.js"></script>

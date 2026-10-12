@@ -163,6 +163,11 @@
       </div>
 
       <div class="field">
+        <label>Submitted by email</label>
+        <input type="text" id="submitted_by_email" placeholder="thaodp@ecomies.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
         <label>Google Drive folder url</label>
         <div id="rowsContainer"></div>
         <div class="add-row-wrap">
@@ -238,7 +243,13 @@
         if (!folder_ids.includes(id)) folder_ids.push(id);
       }
 
-      const payload = { folder_ids };
+      const submitted_by_email = document.getElementById('submitted_by_email').value.trim();
+      if (submitted_by_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) {
+        document.getElementById('submitted_by_email').focus();
+        return showStatus('error', '⚠️ Please enter a valid email.');
+      }
+
+      const payload = { folder_ids, submitted_by_email };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -339,6 +350,14 @@
       <div class="guide-step">
         <div class="guide-num">4</div>
         <div class="guide-sb">
+          <h4>Điền ô <span class="g-field">Submitted by email</span></h4>
+          <p>Nhập email công việc của bạn (ví dụ <code>thaodp@ecomies.com</code>). Email dùng để biết ai đã gửi. Ô này không bắt buộc.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">5</div>
+        <div class="guide-sb">
           <h4>Dán link vào ô <span class="g-field">Google Drive folder url</span></h4>
           <p>Mở thư mục, copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link), rồi dán vào ô.</p>
           <p style="margin-top:7px">Có nhiều thư mục: bấm <strong>+ Add folder</strong> để thêm dòng, mỗi dòng một link. Cũng có thể copy nhiều link cùng lúc (mỗi link một dòng) rồi dán vào một ô, form tự tách ra thành nhiều dòng.</p>
@@ -346,7 +365,7 @@
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">5</div>
+        <div class="guide-num">6</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
           <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công. Mỗi thư mục có một tin báo kết quả riêng qua Telegram.</p>

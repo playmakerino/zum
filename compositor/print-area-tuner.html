@@ -115,19 +115,6 @@ button:disabled,input:disabled{ cursor:default; }
       <div class="h">Photos</div>
       <div class="views" id="views"></div>
     </section>
-    <section class="sec">
-      <div class="h">Preview patterns</div>
-      <div class="pats">
-        <div class="pat"><span class="lab">All-over</span>
-          <div class="drop" id="patDrop-allover" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
-          <input type="file" id="patFile-allover" accept="image/*" hidden></div>
-        <div class="pat"><span class="lab">Body</span>
-          <div class="drop" id="patDrop-placement" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
-          <input type="file" id="patFile-placement" accept="image/*" hidden></div>
-      </div>
-      <div class="h" style="margin-top:4px">Body print size <span class="val" id="fracV">0.75</span></div>
-      <div id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"></div>
-    </section>
   </aside>
 
   <main class="stage" id="stage">
@@ -160,6 +147,19 @@ button:disabled,input:disabled{ cursor:default; }
       <div class="h">Body ratio (br) <span class="sub" id="br0"></span></div>
       <input type="number" id="br" step="0.01">
       <div class="sub" id="brWhy"></div>
+    </section>
+    <section class="sec">
+      <div class="h">Preview patterns</div>
+      <div class="pats">
+        <div class="pat"><span class="lab">All-over</span>
+          <div class="drop" id="patDrop-allover" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
+          <input type="file" id="patFile-allover" accept="image/*" hidden></div>
+        <div class="pat"><span class="lab">Body</span>
+          <div class="drop" id="patDrop-placement" title="Click or drop an image"><img alt=""><span class="name"></span><button class="x" title="Back to the default pattern">×</button></div>
+          <input type="file" id="patFile-placement" accept="image/*" hidden></div>
+      </div>
+      <div class="h" style="margin-top:4px">Body print size <span class="val" id="fracV">0.75</span></div>
+      <div id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"></div>
     </section>
     <section class="sec foot">
       <div class="acts">

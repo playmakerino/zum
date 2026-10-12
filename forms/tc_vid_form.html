@@ -91,6 +91,15 @@
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
+    .guide-tree {
+      background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px;
+      font-size: 12px; color: var(--text-muted); line-height: 2; white-space: pre-wrap;
+    }
+    .guide-tree code, .guide-sb code {
+      background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
+      color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
+    }
+
     .guide-link { color: var(--text); text-decoration: underline; }
     .guide-link:hover { color: var(--accent); }
 
@@ -301,93 +310,62 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này tạo quảng cáo từ các thư mục video trên Google Drive. Mỗi video trong thư mục thành một quảng cáo riêng. Một lần gửi có thể gồm nhiều thư mục.</p>
+      <p class="guide-intro">Mỗi video trong thư mục Google Drive thành một quảng cáo. Một lần gửi được nhiều thư mục.</p>
 
-      <div class="guide-sec">Các bước điền</div>
+      <div class="guide-sec">Ví dụ một thư mục đúng</div>
+      <div class="guide-tree"><code>Ngt20736-kid pajama</code>
+  <code>[Ngt20736-TPJ] video 1.mp4</code>
+  <code>[Ngt20736-TPJ] video 1.jpg</code>  ảnh bìa của video 1
+  <code>[Ngt20736-CZR] video 2.mp4</code>  không có ảnh bìa</div>
+
+      <div class="guide-sec">Các bước</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
         <div class="guide-sb">
-          <h4>Đặt tên file video</h4>
-          <p>Mỗi file video phải đặt tên theo mẫu:</p>
-          <p style="margin-top:7px"><code>[PrintID-TypeID] video ...</code></p>
-          <p style="margin-top:7px">Trong đó:</p>
-          <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in, phải có sẵn trong bảng Print settings (ví dụ <code>Ngt20736</code>).<br>
-          b) <strong>TypeID</strong>: mã loại sản phẩm (ví dụ <code>TPJ</code>, <code>SZR</code>). Xem danh sách mã ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.<br>
-          c) Sau dấu ngoặc vuông là chữ <code>video</code>, tiếp theo ghi tự do để phân biệt các video.</p>
-          <p style="margin-top:7px">Giữ đúng dấu ngoặc vuông và gạch ngang giữa PrintID và TypeID.<span class="guide-eg">Ví dụ tên đúng: <code>[Ngt20736-TPJ] video 1.mp4</code></span></p>
-          <p style="margin-top:7px">Tên file (bỏ phần đuôi) cũng là tên của quảng cáo.</p>
+          <h4>Tên thư mục: <code>PrintID-TypeGroupID</code> hoặc <code>PrintID-TypeID</code></h4>
+          <p>Ví dụ <code>Ngt20736-kid pajama</code> (nhiều loại cùng nhóm) hoặc <code>Ngt20736-TPJ</code> (một loại). Mã xem ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Thêm ảnh bìa cho video (không bắt buộc)</h4>
-          <p>a) Bỏ file ảnh vào cùng thư mục với video.<br>
-          b) Đặt tên ảnh giống hệt tên video, chỉ khác phần đuôi.</p>
-          <span class="guide-eg">Ví dụ: <code>[Ngt20736-TPJ] video 1.mp4</code> dùng ảnh bìa <code>[Ngt20736-TPJ] video 1.jpg</code></span>
-          <p style="margin-top:7px">Video không có ảnh cùng tên sẽ tự lấy một khung hình trong video làm ảnh bìa.</p>
+          <h4>Tên video: <code>[PrintID-TypeID] video ...</code></h4>
+          <p>Ví dụ <code>[Ngt20736-TPJ] video 1.mp4</code>. PrintID phải có trong bảng Print settings.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4>Đặt tên thư mục</h4>
-          <p>Mỗi thư mục đặt tên theo một trong hai mẫu:</p>
-          <p style="margin-top:7px">a) <code>PrintID-TypeGroupID</code>: khi thư mục có video của nhiều loại sản phẩm cùng nhóm.<br>
-          b) <code>PrintID-TypeID</code>: khi thư mục chỉ có video của một loại sản phẩm.</p>
-          <p style="margin-top:7px">Trong đó:</p>
-          <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in của các video trong thư mục.<br>
-          b) <strong>TypeGroupID</strong>: mã nhóm loại sản phẩm.<br>
-          c) <strong>TypeID</strong>: mã loại sản phẩm.</p>
-          <p style="margin-top:7px">Xem danh sách mã ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.</p>
-          <p style="margin-top:7px">Không có dấu ngoặc vuông, chỉ một gạch ngang giữa hai mã. Tên này hiện trong tin báo kết quả gửi về Telegram.</p>
+          <h4>Ảnh bìa (không bắt buộc)</h4>
+          <p>Ảnh cùng tên với video, chỉ khác đuôi. Ví dụ <code>[Ngt20736-TPJ] video 1.jpg</code>. Không có ảnh thì tự lấy một khung hình trong video.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">4</div>
         <div class="guide-sb">
-          <h4>Điền ô <span class="g-field">Submitted by email</span></h4>
-          <p>Nhập email công việc của bạn (ví dụ <code>thaodp@ecomies.com</code>). Email dùng để biết ai đã gửi. Ô này không bắt buộc.</p>
+          <h4>Điền form</h4>
+          <p>a) <span class="g-field">Submitted by email</span>: email của bạn, ví dụ <code>thaodp@ecomies.com</code>.<br>
+          b) <span class="g-field">Google Drive folder url</span>: mỗi dòng một link thư mục. Bấm <strong>+ Add folder</strong> để thêm dòng, hoặc dán nhiều link cùng lúc.<br>
+          c) Bấm <strong>Create Ads</strong>, thấy "Sent successfully" là xong. Mỗi thư mục có một tin báo kết quả qua Telegram.</p>
         </div>
       </div>
 
-      <div class="guide-step">
-        <div class="guide-num">5</div>
-        <div class="guide-sb">
-          <h4>Dán link vào ô <span class="g-field">Google Drive folder url</span></h4>
-          <p>Mở thư mục, copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link), rồi dán vào ô.</p>
-          <p style="margin-top:7px">Có nhiều thư mục: bấm <strong>+ Add folder</strong> để thêm dòng, mỗi dòng một link. Cũng có thể copy nhiều link cùng lúc (mỗi link một dòng) rồi dán vào một ô, form tự tách ra thành nhiều dòng.</p>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">6</div>
-        <div class="guide-sb">
-          <h4>Gửi form</h4>
-          <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công. Mỗi thư mục có một tin báo kết quả riêng qua Telegram.</p>
-        </div>
-      </div>
-
-      <div class="guide-sec">Lưu ý nhỏ</div>
+      <div class="guide-sec">Lưu ý</div>
 
       <div class="guide-note">
-        Nếu thư mục có video mà tên không chứa mã bản in nào trong bảng Print settings, cả thư mục đó sẽ không được tạo quảng cáo, Telegram báo danh sách file cần sửa. Sửa tên file (hoặc thêm mã bản in vào bảng) rồi gửi lại thư mục đó. Các thư mục khác trong cùng lần gửi không bị ảnh hưởng.
+        Thư mục phải chia sẻ <strong>Anyone with the link</strong>.
       </div>
 
       <div class="guide-note">
-        Thư mục cần chia sẻ ở chế độ <strong>Anyone with the link</strong> để đọc được video và ảnh bìa.
+        Có video không chứa PrintID trong bảng Print settings thì cả thư mục đó bị bỏ qua, Telegram báo file cần sửa. Sửa tên rồi gửi lại riêng thư mục đó.
       </div>
 
       <div class="guide-note">
-        <strong>Link dán kiểu nào cũng được:</strong> dạng <code>.../folders/...</code>, <code>...?id=...</code>, <code>.../drive/u/0/folders/...</code>, hoặc dán thẳng mã folder ID.
-      </div>
-
-      <div class="guide-note">
-        Lần đầu dùng form trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải rồi nhập mật khẩu. Trình duyệt nhớ mật khẩu cho các lần sau. Nếu báo <strong>Wrong password</strong>, bấm <strong>Change</strong> và nhập lại.
+        Lần đầu dùng: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải và nhập mật khẩu.
       </div>
     </div>
   </aside>

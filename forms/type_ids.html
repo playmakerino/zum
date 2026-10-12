@@ -41,6 +41,7 @@
       color: var(--text); background: rgba(255,255,255,0.08);
       padding: 2px 6px; border-radius: 4px; white-space: nowrap;
     }
+    .type-line + .type-line { margin-top: 6px; }
     .empty { color: var(--text-muted); font-size: 12px; padding-top: 10px; display: none; }
 
     @media (max-width: 640px) {
@@ -55,7 +56,7 @@
     <div class="card">
       <h2>Type group ID</h2>
       <table>
-        <thead><tr><th>Type group ID</th><th>Type ID</th></tr></thead>
+        <thead><tr><th>Type group ID</th><th>Type ID / Product type</th></tr></thead>
         <tbody id="groupRows"></tbody>
       </table>
     </div>
@@ -128,13 +129,13 @@
       .sort((a, b) => a.names[0].localeCompare(b.names[0])));
 
     const groups = new Map();
-    for (const [id, , group] of TYPES) {
+    for (const [id, name, group] of TYPES) {
       if (!group) continue;
       if (!groups.has(group)) groups.set(group, []);
-      if (!groups.get(group).includes(id)) groups.get(group).push(id);
+      groups.get(group).push([id, name]);
     }
-    document.getElementById('groupRows').innerHTML = [...groups].map(([g, ids]) =>
-      `<tr><td><code>${esc(g)}</code></td><td>${ids.map(i => `<code>${esc(i)}</code>`).join(' ')}</td></tr>`).join('');
+    document.getElementById('groupRows').innerHTML = [...groups].map(([g, types]) =>
+      `<tr><td><code>${esc(g)}</code></td><td>${types.map(([i, n]) => `<div class="type-line"><code>${esc(i)}</code> ${esc(n)}</div>`).join('')}</td></tr>`).join('');
 
     function renderTypes(q = '') {
       q = q.trim().toLowerCase();

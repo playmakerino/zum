@@ -91,6 +91,9 @@
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
+    .guide-link { color: var(--text); text-decoration: underline; }
+    .guide-link:hover { color: var(--accent); }
+
     .folder-row {
       display: grid;
       grid-template-columns: 1fr 36px;
@@ -299,7 +302,7 @@
           <p style="margin-top:7px"><code>[PrintID-TypeID] ...</code></p>
           <p style="margin-top:7px">Trong đó:</p>
           <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in, phải có sẵn trong bảng Print settings (ví dụ <code>Ngt20736</code>).<br>
-          b) <strong>TypeID</strong>: mã loại sản phẩm (ví dụ <code>TPJ</code>, <code>SZR</code>).<br>
+          b) <strong>TypeID</strong>: mã loại sản phẩm (ví dụ <code>TPJ</code>, <code>SZR</code>). Xem danh sách mã ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.<br>
           c) Phần sau dấu ngoặc vuông ghi tự do, dùng để phân biệt các video.</p>
           <p style="margin-top:7px">Giữ đúng dấu ngoặc vuông và gạch ngang giữa PrintID và TypeID.<span class="guide-eg">Ví dụ tên đúng: <code>[Ngt20736-TPJ] Video 1.mp4</code></span></p>
           <p style="margin-top:7px">Tên file (bỏ phần đuôi) cũng là tên của quảng cáo.</p>
@@ -325,7 +328,7 @@
           <p style="margin-top:7px"><code>PrintID-TypeGroupID</code></p>
           <p style="margin-top:7px">Trong đó:</p>
           <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in của các video trong thư mục.<br>
-          b) <strong>TypeGroupID</strong>: mã nhóm loại sản phẩm.</p>
+          b) <strong>TypeGroupID</strong>: mã nhóm loại sản phẩm. Xem danh sách mã ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.</p>
           <p style="margin-top:7px">Không có dấu ngoặc vuông, chỉ một gạch ngang giữa hai mã. Tên này hiện trong tin báo kết quả gửi về Telegram.</p>
         </div>
       </div>

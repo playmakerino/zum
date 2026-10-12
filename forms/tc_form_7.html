@@ -524,6 +524,7 @@
 
         if (res.ok) {
           showStatus('success', '✅ Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + ', creating ' + totalImages + ' ad' + (totalImages === 1 ? '' : 's') + '.');
+          resetProductType();
         } else {
           const errText = await res.text();
           showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);

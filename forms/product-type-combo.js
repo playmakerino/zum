@@ -128,4 +128,11 @@ function initProductTypeCombo() {
   });
 
   input.value = labelFor(hidden.value);
+
+  // Forms call this after a successful submit so the next batch must pick a type again
+  window.resetProductType = () => {
+    hidden.value = '';
+    input.value = '';
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+  };
 }

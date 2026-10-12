@@ -272,7 +272,7 @@
               <input type="text" class="combo-input" id="productTypeSearch"
                      placeholder="Search product type..." autocomplete="off" role="combobox"
                      aria-expanded="false" aria-controls="productTypeMenu" />
-              <input type="hidden" id="product_type" value="QBS" />
+              <input type="hidden" id="product_type" value="" />
               <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
             </div>
           </div>
@@ -408,6 +408,7 @@
       const rows = collectRows();
 
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
+      if (!product_type) return showStatus('error', '⚠️ Please choose a Product type.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
 
       // Shared value; a row's own Image_positions overrides it (workflow Split Images)

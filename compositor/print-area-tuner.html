@@ -21,7 +21,6 @@ html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:1
 .sec{ padding:12px 14px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:7px; }
 .sec:last-child{ border-bottom:0; }
 .sec.grow{ flex:1; }
-.sec.foot{ margin-top:auto; border-top:1px solid var(--line); border-bottom:0; }
 .h{ font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--mute); display:flex; align-items:baseline; gap:6px; }
 .h .val{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
 .row{ display:flex; gap:6px; align-items:center; }
@@ -150,6 +149,12 @@ button:disabled,input:disabled{ cursor:default; }
       <div class="sub" id="brWhy"></div>
     </section>
     <section class="sec">
+      <div class="acts">
+        <button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button>
+        <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
+      </div>
+    </section>
+    <section class="sec">
       <div class="h">Preview patterns</div>
       <div class="pats">
         <div class="pat"><span class="lab">All-over</span>
@@ -161,12 +166,6 @@ button:disabled,input:disabled{ cursor:default; }
       </div>
       <div class="h" style="margin-top:4px">Body print size <span class="val" id="fracV">0.75</span></div>
       <div id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"></div>
-    </section>
-    <section class="sec foot">
-      <div class="acts">
-        <button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button>
-        <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
-      </div>
     </section>
   </aside>
 </div>

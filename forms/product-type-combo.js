@@ -36,7 +36,7 @@ function initProductTypeCombo() {
     { value: 'Hoop', label: 'Hoop' },
     { value: 'LPL', label: 'Letter Pillow' },
     { value: 'PNT', label: 'Pennant' }
-  ];
+  ].sort((a, b) => a.label.localeCompare(b.label));
   const combo  = document.getElementById('productTypeCombo');
   const input  = document.getElementById('productTypeSearch');
   const hidden = document.getElementById('product_type');

@@ -76,7 +76,9 @@ button:disabled,input:disabled{ cursor:default; }
 .kind label{ display:flex; gap:5px; align-items:center; cursor:pointer; }
 
 /* right pane */
-.who{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.whorow{ display:flex; align-items:baseline; gap:8px; min-width:0; }
+.who{ font-size:14px; font-weight:600; white-space:nowrap; flex:none; }
+.whorow .sub{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .pad{ display:grid; grid-template-columns:repeat(3,28px); grid-template-rows:repeat(3,26px); gap:3px; flex:none; }
 .pad button{ height:26px; padding:0; font-size:13px; }
 .bcrow{ display:flex; gap:10px; align-items:center; }
@@ -124,8 +126,7 @@ button:disabled,input:disabled{ cursor:default; }
 
   <aside class="pane right">
     <section class="sec">
-      <div class="who" id="who"></div>
-      <div class="sub" id="whoSub"></div>
+      <div class="whorow"><span class="who" id="who"></span><span class="sub" id="whoSub"></span></div>
     </section>
     <section class="sec" id="rGrp">
       <div class="h">Ratio (r) <span class="sub" id="r0"></span></div>

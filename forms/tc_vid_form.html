@@ -91,9 +91,52 @@
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
-    .submit-btn svg {
-      width: 14px;
-      height: 14px;
+    .folder-row {
+      display: grid;
+      grid-template-columns: 1fr 36px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .folder-row .remove-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .folder-row .remove-btn:hover {
+      color: var(--error); border-color: var(--error); background: var(--error-soft);
+    }
+
+    .add-row-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 6px; flex-wrap: wrap;
+    }
+    .paste-tip {
+      font-size: 12px; color: var(--text-muted); line-height: 1.4;
+    }
+    .add-btn {
+      display: inline-flex; align-items: center;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.20);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px; font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 500px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      letter-spacing: 0.01em;
+    }
+    .add-btn:hover {
+      border-color: var(--text);
+      background: rgba(255,255,255,0.06);
+      transform: scale(1.04);
     }
 
     #payloadPreview {
@@ -113,19 +156,20 @@
     <script src="forms.js"></script>
     <div class="card">
       <div class="header">
-        <p>Paste a Drive folder of videos to auto create ads.</p>
+        <p>Paste Drive folders of videos to auto create ads. Each folder gets its own new campaign.</p>
       </div>
 
       <div class="field">
         <label>Google Drive folder url</label>
-        <input type="text" id="folder_input" placeholder="https://drive.google.com/drive/folders/..." />
+        <div id="rowsContainer"></div>
+        <div class="add-row-wrap">
+          <button class="add-btn" type="button" onclick="addRow()">+ Add folder</button>
+          <span class="paste-tip">Paste several links at once to add one row per link.</span>
+        </div>
       </div>
 
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
           Create Ads
         </button>
         <div class="status" id="statusMsg"></div>
@@ -143,15 +187,55 @@
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/01de568d-39af-4f07-a19b-085d1568150a";
     // ============================================================
 
-    async function submitForm() {
-      const rawInput = document.getElementById('folder_input').value;
-      const folder_id = extractFolderId(rawInput);
+    function addRow(value = '') {
+      const div = document.createElement('div');
+      div.className = 'folder-row';
+      div.innerHTML = `
+        <input type="text" class="folder-input" placeholder="https://drive.google.com/drive/folders/..." value="${escapeHtml(value)}" />
+        <button class="remove-btn" type="button" title="Remove" onclick="removeRow(this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      `;
+      document.getElementById('rowsContainer').appendChild(div);
+    }
 
-      if (!folder_id) {
-        return showStatus('error', '⚠️ Please enter a valid Google Drive folder link or folder ID.');
+    function removeRow(btn) {
+      btn.closest('.folder-row').remove();
+      if (!document.querySelector('.folder-row')) addRow();
+    }
+
+    // Pasting several links into one field fills this row and adds a row for each extra link
+    document.getElementById('rowsContainer').addEventListener('paste', e => {
+      if (!e.target.classList.contains('folder-input')) return;
+      const lines = (e.clipboardData.getData('text') || '').split(/[\r\n\t]+/).map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) return;
+      e.preventDefault();
+      e.target.value = lines[0];
+      lines.slice(1).forEach(l => addRow(l));
+    });
+
+    addRow();
+
+    async function submitForm() {
+      const inputs = [...document.querySelectorAll('.folder-input')];
+      const filled = inputs.filter(i => i.value.trim());
+      if (!filled.length) {
+        return showStatus('error', '⚠️ Please enter at least one Google Drive folder link.');
       }
 
-      const payload = { folder_id };
+      const folder_ids = [];
+      for (const input of filled) {
+        const id = extractFolderId(input.value);
+        if (!id) {
+          input.focus();
+          return showStatus('error', `⚠️ Row ${inputs.indexOf(input) + 1} is not a valid Google Drive folder link or folder ID.`);
+        }
+        if (!folder_ids.includes(id)) folder_ids.push(id);
+      }
+
+      const payload = { folder_ids };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;

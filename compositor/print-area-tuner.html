@@ -22,6 +22,9 @@ html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font:1
 .sec:last-child{ border-bottom:0; }
 .sec.grow{ flex:1; }
 .sec.foot{ margin-top:auto; border-top:1px solid var(--line); border-bottom:0; }
+/* pinned to the bottom of its pane, right above .foot */
+.sec.bottom{ margin-top:auto; border-top:1px solid var(--line); }
+.sec.bottom + .sec.foot{ margin-top:0; border-top:0; }
 .h{ font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--mute); display:flex; align-items:baseline; gap:6px; }
 .h .val{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
 .row{ display:flex; gap:6px; align-items:center; }
@@ -149,7 +152,7 @@ button:disabled,input:disabled{ cursor:default; }
       <input type="number" id="br" step="0.01">
       <div class="sub" id="brWhy"></div>
     </section>
-    <section class="sec">
+    <section class="sec bottom">
       <div class="h">Preview patterns</div>
       <div class="pats">
         <div class="pat"><span class="lab">All-over</span>

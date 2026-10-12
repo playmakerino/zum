@@ -270,5 +270,92 @@
     }
 
   </script>
+
+  <!-- ============ Guide (help panel) ============ -->
+
+  <button class="guide-fab" id="guideFab" title="Form guide" aria-label="Form guide" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Form này tạo quảng cáo từ các thư mục video trên Google Drive. Mỗi video trong thư mục thành một quảng cáo riêng. Một lần gửi có thể gồm nhiều thư mục.</p>
+
+      <div class="guide-sec">Các bước điền</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4>Đặt tên file video</h4>
+          <p>Tên mỗi file video phải chứa mã bản in (Print ID). Mã bản in phải có sẵn trong bảng Print settings.<span class="guide-eg">Ví dụ: <code>Ngt20736 Video 1.mp4</code></span></p>
+          <p style="margin-top:7px">Tên file (bỏ phần đuôi) cũng là tên của quảng cáo.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4>Thêm ảnh bìa cho video (không bắt buộc)</h4>
+          <p>a) Bỏ file ảnh vào cùng thư mục với video.<br>
+          b) Đặt tên ảnh giống hệt tên video, chỉ khác phần đuôi.</p>
+          <span class="guide-eg">Ví dụ: <code>Ngt20736 Video 1.mp4</code> dùng ảnh bìa <code>Ngt20736 Video 1.jpg</code></span>
+          <p style="margin-top:7px">Video không có ảnh cùng tên sẽ tự lấy một khung hình trong video làm ảnh bìa.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4>Đặt tên thư mục</h4>
+          <p>Đặt tên thư mục dễ nhận biết. Tên này hiện trong tin báo kết quả gửi về Telegram.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Dán link vào ô <span class="g-field">Google Drive folder url</span></h4>
+          <p>Mở thư mục, copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link), rồi dán vào ô.</p>
+          <p style="margin-top:7px">Có nhiều thư mục: bấm <strong>+ Add folder</strong> để thêm dòng, mỗi dòng một link. Cũng có thể copy nhiều link cùng lúc (mỗi link một dòng) rồi dán vào một ô, form tự tách ra thành nhiều dòng.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">5</div>
+        <div class="guide-sb">
+          <h4>Gửi form</h4>
+          <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công. Mỗi thư mục có một tin báo kết quả riêng qua Telegram.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Lưu ý nhỏ</div>
+
+      <div class="guide-note">
+        Nếu thư mục có video mà tên không chứa mã bản in nào trong bảng Print settings, cả thư mục đó sẽ không được tạo quảng cáo, Telegram báo danh sách file cần sửa. Sửa tên file (hoặc thêm mã bản in vào bảng) rồi gửi lại thư mục đó. Các thư mục khác trong cùng lần gửi không bị ảnh hưởng.
+      </div>
+
+      <div class="guide-note">
+        Thư mục cần chia sẻ ở chế độ <strong>Anyone with the link</strong> để đọc được video và ảnh bìa.
+      </div>
+
+      <div class="guide-note">
+        <strong>Link dán kiểu nào cũng được:</strong> dạng <code>.../folders/...</code>, <code>...?id=...</code>, <code>.../drive/u/0/folders/...</code>, hoặc dán thẳng mã folder ID.
+      </div>
+
+      <div class="guide-note">
+        Lần đầu dùng form trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải rồi nhập mật khẩu. Trình duyệt nhớ mật khẩu cho các lần sau. Nếu báo <strong>Wrong password</strong>, bấm <strong>Change</strong> và nhập lại.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ /Guide ============ -->
 </body>
 </html>

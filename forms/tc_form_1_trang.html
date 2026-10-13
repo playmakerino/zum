@@ -109,6 +109,8 @@
       padding: 10px 4px 3px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .thumb.bad { outline: 2px solid var(--error, #e5534b); outline-offset: -2px; }
+    .thumb.bad .thumb-name { color: #ffb4ae; }
     .row-img-count {
       font-size: 12px; color: var(--text-muted);
       margin-top: 8px; text-align: right;
@@ -225,6 +227,28 @@
       thumbs.appendChild(add);
 
       countEl.textContent = adFiles.length ? `${adFiles.length} ${adFiles.length === 1 ? 'image' : 'images'}` : '';
+
+      // Check filenames as soon as images are added, not only on submit
+      const err = filenameError();
+      thumbs.querySelectorAll('.thumb').forEach((t, i) => t.classList.toggle('bad', !FILE_RE.test(adFiles[i].name)));
+      if (err) { showStatus('error', err); nameErrShown = true; }
+      else if (nameErrShown) { showStatus('', ''); nameErrShown = false; }
+    }
+
+    let nameErrShown = false;
+
+    // '' when every filename is valid and they share one print, else the error message
+    function filenameError() {
+      const badNames = adFiles.filter(f => !FILE_RE.test(f.name)).map(f => escapeHtml(f.name));
+      if (badNames.length) {
+        return '&#10007; Wrong filename: ' + badNames.join(', ') + '. Use [PrintID-TypeID_MockupID].jpg';
+      }
+      // NFC: macOS/Drive can deliver "ỳ" as y + U+0300 (NFD) in some filenames only
+      const prints = [...new Set(adFiles.map(f => String((f.name.match(FILE_RE) || [])[1] || '').normalize('NFC')))];
+      if (prints.length > 1) {
+        return '&#10007; One print per upload. This batch has: ' + prints.map(escapeHtml).join(', ');
+      }
+      return '';
     }
 
     async function submitForm() {
@@ -233,16 +257,8 @@
       if (adFiles.length === 0) {
         return showStatus('error', '&#9888; Add at least one ad image.');
       }
-      const badNames = adFiles.filter(f => !FILE_RE.test(f.name)).map(f => f.name);
-      if (badNames.length) {
-        return showStatus('error', '&#10007; Wrong filename: ' + badNames.join(', ') + '. Use [PrintID-TypeID_MockupID].jpg');
-      }
-
-      // NFC: macOS/Drive can deliver "ỳ" as y + U+0300 (NFD) in some filenames only
-      const prints = [...new Set(adFiles.map(f => String((f.name.match(FILE_RE) || [])[1] || '').normalize('NFC')))];
-      if (prints.length > 1) {
-        return showStatus('error', '&#10007; One print per upload. This batch has: ' + prints.join(', '));
-      }
+      const nameErr = filenameError();
+      if (nameErr) return showStatus('error', nameErr);
 
       const fd = new FormData();
       adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name.normalize('NFC')));

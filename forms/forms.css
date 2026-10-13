@@ -168,3 +168,13 @@ body::before {
 .guide-note + .guide-note{margin-top:10px}
 .guide-note ul{margin:6px 0 0;padding-left:18px}
 .guide-note li{margin-bottom:4px}
+
+/* Guide panel: file-list example box (shared by forms that show an example folder) */
+.guide-tree {
+  background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px;
+  font-size: 12px; color: var(--text-muted); line-height: 2; white-space: pre-wrap;
+}
+.guide-tree code {
+  background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
+  color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
+}

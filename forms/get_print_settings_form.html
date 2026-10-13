@@ -22,11 +22,10 @@
       margin-bottom: 16px;
     }
 
-    /* Print ID + Collection ID side by side */
+    /* Print ID + Page side by side */
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (min-width: 680px) { .field-row { grid-template-columns: 130px 1fr; } }
     .field-row .field { min-width: 0; }
-    #page_id_input { max-width: 240px; }
 
     .field label {
       display: block;
@@ -138,20 +137,15 @@
           <input type="text" id="print_id_input" placeholder="e.g. Abc1234" autocomplete="off" />
         </div>
         <div class="field">
-          <label>Collection ID</label>
-          <input type="text" id="collection_id_input" placeholder="e.g. 654321987" autocomplete="off" />
+          <label>Page</label>
+          <select id="page_id_input">
+            <option value="1002951846240720">Zumbamboo Pajamas</option>
+            <option value="829112660276441">Zumbamboo Custom</option>
+            <option value="921731684364202">Zumbamboo Gift</option>
+            <option value="431614610037237">Zumbamboo Baby</option>
+            <option value="1020156784524308">Zumbamboo Family</option>
+          </select>
         </div>
-      </div>
-
-      <div class="field">
-        <label>Page</label>
-        <select id="page_id_input">
-          <option value="1002951846240720">Zumbamboo Pajamas</option>
-          <option value="829112660276441">Zumbamboo Custom</option>
-          <option value="921731684364202">Zumbamboo Gift</option>
-          <option value="431614610037237">Zumbamboo Baby</option>
-          <option value="1020156784524308">Zumbamboo Family</option>
-        </select>
       </div>
 
       <div class="submit-wrap">
@@ -169,28 +163,16 @@
   <script>
     const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/get-print-settings";
 
-    function cleanCollectionId(input) {
-      if (!input) return '';
-      const trimmed = input.trim();
-      // Accept a raw number, a full admin URL, or a gid — keep the last run of digits.
-      const matches = trimmed.match(/\d+/g);
-      return matches ? matches[matches.length - 1] : '';
-    }
-
     async function submitForm() {
       const print_id = document.getElementById('print_id_input').value.trim();
-      const collection_id = cleanCollectionId(document.getElementById('collection_id_input').value);
 
       if (!print_id) {
         return showStatus('error', '&#9888; Please enter the Print ID.');
       }
-      if (!collection_id) {
-        return showStatus('error', '&#9888; Please enter a valid Collection ID (numbers only).');
-      }
 
       const page_id = document.getElementById('page_id_input').value;
 
-      const payload = { print_id, collection_id, page_id };
+      const payload = { print_id, page_id };
 
       showStatus('loading', '<span class="spinner"></span> Saving, please wait...');
       document.getElementById('submitBtn').disabled = true;
@@ -222,7 +204,7 @@
           preview.textContent = JSON.stringify(saved || payload, null, 2);
         } else {
           const errText = await res.text();
-          showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 120));
+          showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 300));
         }
       } catch (err) {
         showStatus('error', '&#10007; Cannot connect to n8n: ' + err.message);
@@ -248,7 +230,7 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này lưu lại text quảng cáo (tiêu đề và nội dung) của một bản in đã có sẵn ad trên Facebook, gắn với một collection trên Shopify. Sau khi lưu, các lần tạo ad sau cho bản in đó sẽ dùng lại đúng bộ text này.</p>
+      <p class="guide-intro">Form này lưu lại text quảng cáo (tiêu đề và nội dung) của một bản in đã có sẵn ad trên Facebook, kèm collection của bản in đó trên Shopify. Sau khi lưu, các lần tạo ad sau cho bản in đó sẽ dùng lại đúng bộ text này.</p>
 
       <div class="guide-sec">Các bước điền</div>
 
@@ -258,6 +240,7 @@
           <h4>Điền ô <span class="g-field">Print ID</span></h4>
           <p>Nhập mã bản in. Hệ thống tìm ad TPJ của bản in này (tên dạng <code>[Mã-TPJ...]</code>) đang chạy (ACTIVE) hoặc đang tạm dừng (PAUSED), rồi lấy text của ad đó. Không có ad TPJ thì tìm ad CZR. Đây là bộ text mặc định của bản in.</p>
           <p>Hệ thống cũng lưu thêm một bộ text cho mỗi type group (kid pajama, kid play, adult pajama). Type group của một ad được xác định theo mã type trong tên ad. Ví dụ ad <code>[Mã-CSS]</code> thuộc kid play. Mỗi group lấy text của một ad ACTIVE hoặc PAUSED của bản in thuộc group đó.</p>
+          <p>Collection không cần điền. Hệ thống tìm swatch có Print ID này, rồi lấy collection có điều kiện là swatch đó.</p>
           <span class="guide-eg">Ví dụ: <code>Abc1234</code></span>
         </div>
       </div>
@@ -265,22 +248,13 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Điền ô <span class="g-field">Collection ID</span></h4>
-          <p>Nhập ID collection trên Shopify. Đây là dãy số ở cuối đường dẫn khi mở collection trong admin. Chỉ cần phần số, dán cả đường dẫn cũng được, hệ thống tự lấy ra số.</p>
-          <span class="guide-eg">Đường dẫn <code>.../collections/654321987</code> thì ID là <code>654321987</code></span>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">3</div>
-        <div class="guide-sb">
           <h4>Chọn <span class="g-field">Page</span></h4>
           <p>Chọn page Facebook mà ad của bản in này sẽ chạy. Mặc định là Zumbamboo Pajamas. Mỗi lần gửi form, page của bản in được ghi theo lựa chọn này, nên khi gửi lại một bản in đang ở page khác thì phải chọn lại đúng page đó.</p>
         </div>
       </div>
 
       <div class="guide-step">
-        <div class="guide-num">4</div>
+        <div class="guide-num">3</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
           <p>Bấm <strong>Save print settings</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã lưu thành công.</p>
@@ -291,6 +265,10 @@
 
       <div class="guide-note">
         Bản in phải đã có ít nhất một ad TPJ hoặc CZR ở trạng thái ACTIVE hoặc PAUSED trên Facebook. Nếu không có, form báo lỗi và không lưu gì, kể cả page.
+      </div>
+
+      <div class="guide-note">
+        Bản in cũng phải có collection trên Shopify lấy theo swatch của nó. Không tìm thấy swatch hoặc collection thì form báo lỗi và không lưu gì. Có nhiều collection thì lấy collection đầu tiên.
       </div>
 
       <div class="guide-note">

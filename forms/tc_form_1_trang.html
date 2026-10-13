@@ -293,7 +293,7 @@
     let printFile = null;  // single print image (design file) | null
 
     // Types whose "prompt" is empty in datatable "Product type settings" (BfplDltqK4KKl0Q7):
-    // ad copy comes from asset_feed_spec, so no print image is needed. Keep in sync with the datatable.
+    // ad copy comes from fallback_asset_feed_spec, so no print image is needed. Keep in sync with the datatable.
     const NO_PROMPT_TYPES = new Set(['PLC', 'SBP', 'ACS', 'WCS', 'MCS', 'BGS', 'STB', 'BNB', 'Hoop', 'LPL', 'PNT']);
     function printNeeded() {
       return document.getElementById('ad_mode').value === 'group'

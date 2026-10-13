@@ -11,7 +11,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 | [`compositor/zum-prd/`](compositor/zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo (workflow `kZvHwfNZ6Gz1L5E4`). **Folder local-only, gitignore, KHÔNG push** (đã chuyển vào đây 2026-09-14, chỉ source ~90MB, bỏ ảnh sinh); form của nó vẫn ở [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) |
 
 ## Form TC: code dùng chung (từ 2026-10-12)
-14 form (`forms/tc_form_*`, `tc_img_form_*`, `tc_vid_form`, `get_print_settings_form`) load chung 3 file. Sửa phần chung ở đây, **không chép lại vào từng form**:
+13 form (`forms/tc_form_*`, `tc_img_form_*`, `tc_vid_form`) load chung 3 file. Sửa phần chung ở đây, **không chép lại vào từng form**:
 - [`forms/forms.css`](forms/forms.css): biến màu `:root`, nền trang, `.card`, `.status`, trạng thái `.submit-btn`, thanh chuyển form, panel hướng dẫn. Link trước `<style>` của form, nên rule riêng của form vẫn đè được.
 - [`forms/forms.js`](forms/forms.js): đặt **đầu `.container`**. `data-switcher="tc"` (9 form TC) / `"img"` (Kid pajama, Others) vẽ thanh chuyển form tại chỗ; thêm form vào thanh = sửa `SWITCHERS`. Còn có `openGuide/closeGuide`, `escapeHtml`, `cleanProductUrl`, `showStatus`, `extractFolderId`.
 - [`forms/product-type-combo.js`](forms/product-type-combo.js): dropdown Product type + mảng `PRODUCT_TYPES` của form 1_trang, 2, 7, 8 (form gọi `initProductTypeCombo()`).

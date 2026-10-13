@@ -1,4 +1,4 @@
-/* Shared stylesheet of the TC forms (tc_form_*, tc_img_form_*, tc_vid_form, get_print_settings_form).
+/* Shared stylesheet of the TC forms (tc_form_*, tc_img_form_*, tc_vid_form).
    Each form links it before its own <style>, so a form's own rules still override these.
    Holds: colour tokens + page base, the form switcher (markup rendered by forms.js), the help panel. */
 

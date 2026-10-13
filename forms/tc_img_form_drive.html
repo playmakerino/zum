@@ -189,64 +189,52 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này tạo quảng cáo từ một thư mục ảnh trên Google Drive. Bạn chỉ cần dán link thư mục; lưu ý đặt tên file ảnh đúng mẫu trước khi dán.</p>
+      <p class="guide-intro">Tạo quảng cáo từ một thư mục ảnh trên Google Drive. Mỗi ảnh thành 1 quảng cáo. Một thư mục có thể chứa nhiều print.</p>
 
-      <div class="guide-sec">Các bước điền</div>
+      <div class="guide-sec">Các bước</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
         <div class="guide-sb">
-          <h4>Đặt tên file ảnh theo mẫu</h4>
-          <p>Trong thư mục Google Drive, mỗi file ảnh phải đặt tên đúng theo mẫu:</p>
-          <p style="margin-top:7px"><code>[PrintID-TypeID_MockupID].jpg</code></p>
-          <p style="margin-top:7px">Trong đó:</p>
-          <p style="margin-top:5px">a) <strong>PrintID</strong>: mã bản in (ví dụ <code>Abc1234</code>).<br>
-          b) <strong>TypeID</strong>: mã loại sản phẩm (ví dụ <code>QBL</code>, <code>SZR</code>).<br>
-          c) <strong>MockupID</strong>: mã hoặc số của mockup (ví dụ <code>1</code>).</p>
-          <p style="margin-top:7px">Giữ đúng dấu ngoặc vuông, gạch ngang giữa PrintID và TypeID, gạch dưới giữa TypeID và MockupID, và đuôi .jpg.<span class="guide-eg">Ví dụ tên đúng: <code>[Abc1234-QBL_1].jpg</code></span></p>
+          <h4>Đặt tên file</h4>
+          <p>Dạng <code>[PrintID-TypeID_MockupID].jpg</code>. TypeID xem ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.</p>
+          <p style="margin-top:7px">Ví dụ: <code>[ngt20522-CZR_PI-SIN-51].jpg</code></p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Lấy link thư mục Google Drive</h4>
-          <p>Mở thư mục chứa các ảnh đã đặt tên đúng, rồi copy link trên thanh địa chỉ trình duyệt (hoặc bấm Share rồi Copy link).</p>
+          <h4>Dán link thư mục vào <span class="g-field">Google Drive folder url</span></h4>
+          <p>Link kiểu nào cũng được, hoặc dán thẳng mã thư mục. Thư mục phải chia sẻ cho hệ thống đọc được.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4>Dán vào ô <span class="g-field">Google Drive folder url</span></h4>
-          <p>Dán link vừa copy vào ô này. Dán nguyên link kiểu nào cũng được, hệ thống sẽ tự lấy ra mã thư mục.</p>
+          <h4>Bấm <strong>Create Ads</strong></h4>
+          <p>Thấy "Sent successfully" là xong. Hệ thống xử lý 10 ảnh một lượt, các lượt cách nhau 10 phút, mỗi lượt có một tin báo qua Telegram.</p>
         </div>
       </div>
 
-      <div class="guide-step">
-        <div class="guide-num">4</div>
-        <div class="guide-sb">
-          <h4>Gửi form</h4>
-          <p>Bấm <strong>Create Ads</strong>. Khi thấy dòng chữ xanh báo "Sent successfully" là đã gửi thành công.</p>
-        </div>
+      <div class="guide-sec">Ví dụ</div>
+
+      <div class="guide-tree"><code>[ngt20522-CZR_PI-SIN-51].jpg</code>
+<code>[ngt20522-TPJ_SE-NUR-43].png</code>
+<code>[Phu20463-TPJ_PM-SSI-158].jpg</code></div>
+      <div class="guide-note">
+        Kết quả: 3 quảng cáo. Hai ảnh của <code>ngt20522</code> (CZR và TPJ) chạy chung nhóm Kid pajama, ảnh của <code>Phu20463</code> chạy riêng. Chữ quảng cáo viết từ ảnh swatch của từng print trên Shopify.
       </div>
 
-      <div class="guide-sec">Lưu ý nhỏ</div>
+      <div class="guide-sec">Lưu ý</div>
 
       <div class="guide-note">
-        Ảnh đặt tên không đúng mẫu sẽ không được nhận. Trước khi dán link, xem lại tên của tất cả ảnh trong thư mục.
-      </div>
-
-      <div class="guide-note">
-        <strong>Link dán kiểu nào cũng được:</strong> dạng <code>.../folders/...</code>, <code>...?id=...</code>, <code>.../drive/u/0/folders/...</code>, hoặc dán thẳng mã folder ID.
+        File sai tên hoặc TypeID không có trong danh sách thì ảnh đó không lên quảng cáo, các ảnh khác vẫn chạy. Telegram ghi rõ ảnh nào và lý do.
       </div>
 
       <div class="guide-note">
-        Thư mục cần ở nơi hệ thống đọc được ảnh (Drive của team hoặc đã chia sẻ). Nếu báo lỗi không đọc được ảnh, kiểm tra lại quyền chia sẻ của thư mục.
-      </div>
-
-      <div class="guide-note">
-        Lần đầu dùng form trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải rồi nhập mật khẩu. Trình duyệt nhớ mật khẩu cho các lần sau. Nếu báo <strong>Wrong password</strong>, bấm <strong>Change</strong> và nhập lại.
+        Lần đầu dùng trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải, nhập mật khẩu. Báo <strong>Wrong password</strong> thì bấm <strong>Change</strong> và nhập lại.
       </div>
     </div>
   </aside>

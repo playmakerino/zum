@@ -395,8 +395,9 @@
       document.querySelectorAll('#rowsContainer .row').forEach(r => {
         const print_id = r.querySelector('.row-print').value.trim();
         const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
-        if (print_id && product_url) {
-          rows.push({ Print_ID: print_id, Product_url: product_url, Image_positions: r.querySelector('.row-pos').value.trim() });
+        const positions = r.querySelector('.row-pos').value.trim();
+        if (print_id || product_url || positions) {
+          rows.push({ Print_ID: print_id, Product_url: product_url, Image_positions: positions });
         }
       });
       return rows;
@@ -410,6 +411,7 @@
       if (!ad_set_name) return showStatus('error', '⚠️ Please enter Print theme.');
       if (!product_type) return showStatus('error', '⚠️ Please choose a Product type.');
       if (rows.length === 0) return showStatus('error', '⚠️ Please add at least one variant row.');
+      if (rows.some(r => !r.Print_ID || !r.Product_url)) return showStatus('error', '⚠️ Every row needs a Print ID and a Product URL.');
 
       // Shared value; a row's own Image_positions overrides it (workflow Split Images)
       const image_positions = document.getElementById('image_positions').value.trim();

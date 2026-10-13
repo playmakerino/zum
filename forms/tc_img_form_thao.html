@@ -101,6 +101,16 @@
       font-size: 12px !important;
     }
 
+    .guide-tree code, .guide-sb code, .guide-note p code {
+      background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
+      color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
+    }
+
+    .guide-sec { color: var(--text); }
+
+    .guide-link { color: var(--text); text-decoration: underline; }
+    .guide-link:hover { color: var(--accent); }
+
     /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
     @media (max-width: 640px) {
       .field input[type="text"] { font-size: 16px; }
@@ -186,5 +196,75 @@
     }
 
   </script>
+
+  <!-- ============ Guide (help panel) ============ -->
+
+  <button class="guide-fab" id="guideFab" title="Form guide" aria-label="Form guide" onclick="openGuide()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Tạo quảng cáo từ thư mục ảnh trên Google Drive. Mỗi ảnh thành 1 quảng cáo, mỗi lần gửi một thư mục.</p>
+
+      <div class="guide-sec">Các bước</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4>Đặt tên file ảnh</h4>
+          <p>Dạng <code>[PrintID-TypeID] ...</code>, phần sau dấu <code>]</code> ghi tự do. TypeID xem ở <a class="guide-link" href="type_ids.html" target="_blank" rel="noopener">trang Type ID</a>.</p>
+          <p style="margin-top:7px">Ví dụ: <code>[ngt20736-TPJ] 1.jpg</code></p>
+          <p style="margin-top:7px">Tên chỉ có PrintID, chưa có TypeID (ví dụ <code>ngt20736</code>) là thiếu, phải thêm TypeID.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4>Dán link vào <span class="g-field">Google Drive folder url</span></h4>
+          <p>Thư mục chỉ chứa ảnh và phải chia sẻ <strong>Anyone with the link</strong>.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4>Bấm <strong>Create Ads</strong></h4>
+          <p>Thấy "Sent successfully" là xong. Kết quả báo qua Telegram.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Ví dụ</div>
+
+      <div class="guide-tree"><code>ngt20736 turkey</code>  tên thư mục tùy ý
+  <code>[ngt20736-TPJ] 1.jpg</code>
+  <code>[ngt20736-TPJ] 2.jpg</code>
+  <code>[ngt20736-CZR] 3.jpg</code></div>
+      <div class="guide-note">
+        Kết quả: 3 quảng cáo.
+      </div>
+
+      <div class="guide-sec">Lưu ý</div>
+
+      <div class="guide-note">
+        Một file trong thư mục sai tên, sai TypeID hoặc PrintID chưa có trong hệ thống thì cả thư mục đó không lên quảng cáo. Telegram báo tên file cần sửa, sửa xong gửi lại thư mục.
+      </div>
+
+      <div class="guide-note">
+        Lần đầu dùng trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải, nhập mật khẩu. Báo <strong>Wrong password</strong> thì bấm <strong>Change</strong> và nhập lại.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ /Guide ============ -->
 </body>
 </html>

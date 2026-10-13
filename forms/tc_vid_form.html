@@ -290,7 +290,7 @@
           sent.push(payloads[i]);
         }
 
-        showStatus('success', `✅ Sent ${sent.length} folder(s)! The n8n workflow is running.`);
+        showStatus('success', `✅ Sent successfully: ${sent.length} folder(s). The n8n workflow is running.`);
         const preview = document.getElementById('payloadPreview');
         preview.style.display = 'block';
         preview.textContent = '📦 Payload sent:\n' + sent.map(p => JSON.stringify(p)).join('\n');

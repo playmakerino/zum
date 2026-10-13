@@ -256,7 +256,8 @@
         <div class="guide-num">1</div>
         <div class="guide-sb">
           <h4>Điền ô <span class="g-field">Print ID</span></h4>
-          <p>Nhập mã bản in. Hệ thống tìm ad TPJ của bản in này (tên dạng <code>[Mã-TPJ...]</code>) đang chạy (ACTIVE) hoặc đang tạm dừng (PAUSED), rồi lấy text của ad đó. Không có ad TPJ thì tìm ad CZR.</p>
+          <p>Nhập mã bản in. Hệ thống tìm ad TPJ của bản in này (tên dạng <code>[Mã-TPJ...]</code>) đang chạy (ACTIVE) hoặc đang tạm dừng (PAUSED), rồi lấy text của ad đó. Không có ad TPJ thì tìm ad CZR. Đây là bộ text mặc định của bản in.</p>
+          <p>Hệ thống cũng lưu thêm một bộ text cho mỗi type group (kid pajama, kid play, adult pajama). Type group của một ad được xác định theo mã type trong tên ad. Ví dụ ad <code>[Mã-CSS]</code> thuộc kid play. Mỗi group lấy text của một ad ACTIVE hoặc PAUSED của bản in thuộc group đó.</p>
           <span class="guide-eg">Ví dụ: <code>Abc1234</code></span>
         </div>
       </div>
@@ -294,6 +295,10 @@
 
       <div class="guide-note">
         Mỗi Print ID chỉ giữ một dòng trong bảng Print settings. Chạy lại với cùng một Print ID sẽ ghi đè (cập nhật) dòng cũ bằng text mới nhất, không tạo dòng trùng.
+      </div>
+
+      <div class="guide-note">
+        Text theo type group nằm ở bảng Print copy, mỗi bản in có một dòng cho mỗi group. Khi tạo ad video, nếu tên file có mã type thuộc một group đã lưu text (ví dụ <code>[Mã-CSS] video 1.mp4</code>) thì ad dùng text của group đó. Các trường hợp còn lại dùng text mặc định. Ad của group mới chạy sau lần lưu trước thì gửi lại form để lưu thêm.
       </div>
 
       <div class="guide-note">

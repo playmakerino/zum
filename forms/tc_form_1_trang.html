@@ -307,55 +307,55 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Form này tải ảnh quảng cáo từ máy lên. Print ID và product type lấy từ tên file, không phải điền tay. Mỗi ảnh bạn chọn sẽ thành một quảng cáo riêng, tên quảng cáo chính là tên file.</p>
+      <p class="guide-intro">Tải ảnh quảng cáo của 1 print từ máy lên. Mỗi ảnh thành 1 quảng cáo, tên quảng cáo là tên file.</p>
 
-      <div class="guide-note">
-        Mỗi lần gửi chỉ chứa ảnh của 1 print. Muốn chạy print khác thì gửi form xong, chọn lại ảnh rồi gửi lượt mới.
-      </div>
-
-      <div class="guide-sec">Các bước điền</div>
+      <div class="guide-sec">Các bước</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
         <div class="guide-sb">
-          <h4>Đặt tên file ảnh quảng cáo</h4>
-          <p>Tên file phải theo dạng <code>[PrintID-TypeID_MockupID].jpg</code>, ví dụ <code>[xua1234-BDS_PM-SSI-177].jpg</code>. Phần <code>_MockupID</code> có thể bỏ. File sai dạng sẽ bị form báo lỗi và không gửi được.</p>
+          <h4>Đặt tên file</h4>
+          <p>Dạng <code>[PrintID-TypeID_MockupID].jpg</code>, phần <code>_MockupID</code> có thể bỏ.</p>
+          <p style="margin-top:7px">Ví dụ: <code>[xua1234-TPJ_PM-SSI-177].jpg</code>, <code>[xua1234-WPS].jpg</code></p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
-          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Các ảnh phải cùng 1 Print ID, product type có thể khác nhau.</p>
-          <p style="margin-top:7px">Không cần chọn product type hay ảnh print. Product type của từng ảnh lấy từ TypeID trong tên file. Chữ quảng cáo được viết từ ảnh swatch của print đã có sẵn trên Shopify.</p>
+          <h4>Chọn ảnh vào <span class="g-field">Ad images</span></h4>
+          <p>Bấm ô dấu cộng hoặc kéo thả ảnh vào. Mọi ảnh phải cùng 1 Print ID, product type được trộn.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4>Gửi form</h4>
-          <p>Xem lại rồi bấm <strong>Create Ads</strong>. Ảnh cần chút thời gian để tải lên, chờ tới khi thấy dòng chữ xanh báo thành công, đừng đóng tab khi đang tải. Xong lượt này thì chọn ảnh khác rồi gửi lượt tiếp theo.</p>
+          <h4>Bấm <strong>Create Ads</strong></h4>
+          <p>Chờ dòng chữ xanh báo thành công rồi mới đóng tab.</p>
         </div>
       </div>
 
-      <div class="guide-sec">Lưu ý nhỏ</div>
+      <div class="guide-sec">Ví dụ</div>
 
       <div class="guide-note">
-        Ảnh cùng nhóm sản phẩm (ví dụ Kid pajama, Adult pajama) vào chung một nhóm quảng cáo. Product type chưa thuộc nhóm nào thì có nhóm quảng cáo riêng.
+        Gửi 4 ảnh của print <code>xua1234</code>:<br>
+        <code>[xua1234-TPJ].jpg</code>, <code>[xua1234-CZR].jpg</code>, <code>[xua1234-WPS].jpg</code>, <code>[xua1234-MPS].jpg</code><br>
+        Kết quả: 4 quảng cáo. Ảnh TPJ và CZR chạy chung nhóm Kid pajama, ảnh WPS và MPS chạy chung nhóm Adult pajama. Chữ quảng cáo viết từ ảnh swatch của <code>xua1234</code> trên Shopify, không cần tải ảnh print.
+      </div>
+
+      <div class="guide-sec">Lưu ý</div>
+
+      <div class="guide-note">
+        Không tìm thấy sản phẩm đúng product type trong collection của print thì ảnh đó không lên quảng cáo. Báo cáo Telegram ghi rõ ảnh nào.
       </div>
 
       <div class="guide-note">
-        Link của quảng cáo lấy theo Print ID: hệ thống tìm trong collection của Print ID đó ra sản phẩm đúng product type. Không tìm thấy sản phẩm thì ảnh đó không lên quảng cáo, báo cáo Telegram ghi rõ.
+        Báo lỗi "too large": bớt ảnh hoặc dùng ảnh nhẹ hơn rồi gửi lại.
       </div>
 
       <div class="guide-note">
-        Nếu báo lỗi "too large", giảm bớt ảnh hoặc dùng ảnh nhẹ hơn rồi gửi lại.
-      </div>
-
-      <div class="guide-note">
-        Lần đầu dùng form trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải rồi nhập mật khẩu. Trình duyệt nhớ mật khẩu cho các lần sau. Nếu báo <strong>Wrong password</strong>, bấm <strong>Change</strong> và nhập lại.
+        Lần đầu dùng trên một trình duyệt: bấm <strong>Enter</strong> ở ô <strong>Password required</strong> góc trên bên phải, nhập mật khẩu. Báo <strong>Wrong password</strong> thì bấm <strong>Change</strong> và nhập lại.
       </div>
     </div>
   </aside>

@@ -260,35 +260,43 @@
         return showStatus('error', '⚠️ Please enter a valid email.');
       }
 
-      const payload = { folder_ids, submitted_by_email };
+      // One webhook call per folder, so each folder runs as a single n8n execution
+      const payloads = folder_ids.map(id => ({ folder_ids: [id], submitted_by_email }));
 
-      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
+      const sent = [];
 
       try {
-        const res = await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
-          body: JSON.stringify(payload)
-        });
+        for (let i = 0; i < payloads.length; i++) {
+          showStatus('loading', `<span class="spinner"></span> Sending folder ${i + 1}/${payloads.length} to n8n...`);
+          const res = await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
+            body: JSON.stringify(payloads[i])
+          });
 
-        if (res.status === 401 || res.status === 403) {
-          showStatus('error', '❌ Wrong password.');
-          TC_AUTH_FAIL();
-          return;
+          if (res.status === 401 || res.status === 403) {
+            showStatus('error', '❌ Wrong password.');
+            TC_AUTH_FAIL();
+            return;
+          }
+
+          if (!res.ok) {
+            const errText = await res.text();
+            const done = sent.length ? ` ${sent.length} folder(s) before it were sent.` : '';
+            showStatus('error', `❌ Error from n8n on folder ${i + 1} (${res.status}): ${errText.slice(0,120)}.${done}`);
+            return;
+          }
+          sent.push(payloads[i]);
         }
 
-        if (res.ok) {
-          showStatus('success', '✅ Sent successfully! The n8n workflow is running.');
-          const preview = document.getElementById('payloadPreview');
-          preview.style.display = 'block';
-          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
-        } else {
-          const errText = await res.text();
-          showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);
-        }
+        showStatus('success', `✅ Sent ${sent.length} folder(s)! The n8n workflow is running.`);
+        const preview = document.getElementById('payloadPreview');
+        preview.style.display = 'block';
+        preview.textContent = '📦 Payload sent:\n' + sent.map(p => JSON.stringify(p)).join('\n');
       } catch (err) {
-        showStatus('error', `❌ Cannot connect to n8n: ${err.message}`);
+        const done = sent.length ? ` ${sent.length} folder(s) were sent before the error.` : '';
+        showStatus('error', `❌ Cannot connect to n8n: ${err.message}.${done}`);
       } finally {
         document.getElementById('submitBtn').disabled = false;
       }

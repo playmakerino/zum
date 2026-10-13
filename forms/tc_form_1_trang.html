@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="forms.css">
   <style>
     :root {
-      --tile: 96px;   /* one image slot: print tile and ad thumbnails share this size */
+      --tile: 96px;   /* one ad thumbnail */
     }
 
     .container {
@@ -43,84 +43,6 @@
     .field input[type="text"]::placeholder { color: var(--text-muted); }
     .field input[type="text"]:hover { background: #2a2a2a; }
     .field input[type="text"]:focus { background: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
-
-    /* Searchable product-type dropdown (custom combobox) */
-    .combo { position: relative; max-width: 260px; }
-    .combo-input {
-      width: 100%; height: 42px;
-      background: var(--surface-elevated);
-      border: none; border-radius: 4px;
-      padding: 0 40px 0 16px;
-      font-family: var(--font);
-      font-size: 14px; font-weight: 400;
-      color: var(--text);
-      outline: none;
-      cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-    }
-    .combo-input::placeholder { color: var(--text-muted); }
-    .combo-input:hover { background-color: #2a2a2a; }
-    .combo.open .combo-input,
-    .combo-input:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
-
-    .combo-menu {
-      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-      background: var(--surface-elevated);
-      border-radius: 8px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-      padding: 6px;
-      max-height: 260px; overflow-y: auto;
-      z-index: 40;
-      display: none;
-    }
-    .combo.open .combo-menu { display: block; }
-    .combo-opt {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 10px 12px; border-radius: 4px;
-      font-size: 14px; color: var(--text);
-      cursor: pointer;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .combo-opt:hover, .combo-opt.active { background: var(--surface-hover); }
-    .combo-opt .opt-code { flex-shrink: 0; color: var(--text-muted); font-size: 12px; font-weight: 500; }
-    .combo-empty { padding: 10px 12px; font-size: 14px; color: var(--text-muted); }
-
-    /* Target mode toggle (Product type vs Type group) */
-    .seg { display: inline-flex; gap: 6px; margin-bottom: 8px; }
-    .seg-btn {
-      height: 30px; padding: 0 14px;
-      background: var(--surface-hover); color: var(--text);
-      border: none; border-radius: 500px;
-      font-family: var(--font); font-size: 13px; font-weight: 700;
-      cursor: pointer; white-space: nowrap;
-      transition: background 0.15s, color 0.15s, transform 0.12s;
-    }
-    .seg-btn:hover { background: #3a3a3a; transform: scale(1.03); }
-    .seg-btn.active { background: var(--text); color: #000; }
-    .seg-btn.active:hover { background: #fff; transform: none; }
-
-    .grp-select {
-      width: 100%; max-width: 260px; height: 42px;
-      background-color: var(--surface-elevated);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236A6A6A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      border: none; border-radius: 4px; padding: 0 40px 0 16px;
-      font-family: var(--font); font-size: 14px; font-weight: 400;
-      color: var(--text); outline: none; cursor: pointer;
-      appearance: none; -webkit-appearance: none;
-      transition: background-color 0.15s, box-shadow 0.15s;
-    }
-    .grp-select:hover { background-color: #2a2a2a; }
-    .grp-select:focus { background-color: #2a2a2a; box-shadow: 0 0 0 2px var(--text); }
-    .grp-select option { background: var(--surface-elevated); color: var(--text); }
-
-    /* Both target dropdowns share one slot (same position + width) */
-    .target-control { max-width: 260px; }
-    .target-control .combo { max-width: none; }
-    .target-control .grp-select { max-width: none; }
 
     /* Add-image tile (lives inside the thumbnail grid) */
     .add-tile {
@@ -192,15 +114,6 @@
       margin-top: 8px; text-align: right;
     }
 
-    /* Print image slot holds a single tile, same size as an ad thumbnail */
-    .print-slot {
-      display: grid;
-      grid-template-columns: var(--tile);
-      gap: 10px;
-    }
-    /* Print not needed for types without an AI prompt: dimmed, not clickable */
-    #printField.no-need .print-slot { opacity: 0.35; pointer-events: none; }
-    .req-tag { font-weight: 400; color: var(--text-muted); margin-left: 6px; }
     .opt { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0.01em; }
 
     .submit-wrap { margin-top: 24px; }
@@ -220,7 +133,7 @@
 
     /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
     @media (max-width: 640px) {
-      .field input[type="text"], .combo-input, .grp-select { font-size: 16px; }
+      .field input[type="text"] { font-size: 16px; }
     }
   </style>
   <script src="auth.js"></script>
@@ -228,39 +141,10 @@
 <body>
   <div class="container">
     <script src="forms.js" data-switcher="img"></script>
-    <script src="product-type-combo.js"></script>
 
     <div class="card">
       <div class="header">
-        <p>Filenames: [PrintID-TypeID_MockupID]. One print per upload.</p>
-      </div>
-
-      <div class="field">
-        <div class="seg" id="modeSeg" role="tablist">
-          <button type="button" class="seg-btn active" data-mode="group">Type group</button>
-          <button type="button" class="seg-btn" data-mode="type">Product type</button>
-        </div>
-        <input type="hidden" id="ad_mode" value="group" />
-        <div class="target-control">
-          <div class="combo" id="productTypeCombo" style="display:none">
-            <input type="text" class="combo-input" id="productTypeSearch"
-                   placeholder="Search product type..." autocomplete="off" role="combobox"
-                   aria-expanded="false" aria-controls="productTypeMenu" />
-            <input type="hidden" id="product_type" value="QBS" />
-            <div class="combo-menu" id="productTypeMenu" role="listbox"></div>
-          </div>
-          <select id="product_type_group" class="grp-select">
-            <option value="adult pajama">Adult pajama</option>
-            <option value="kid play">Kid play</option>
-            <option value="kid pajama">Kid pajama</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field" id="printField">
-        <label>Print <span class="req-tag" id="printReqTag">Required</span></label>
-        <input type="file" id="printFileInput" accept="image/*" style="display:none" />
-        <div class="print-slot" id="printSlot"></div>
+        <p>Filenames: [PrintID-TypeID_MockupID]. One print per upload, product types can be mixed.</p>
       </div>
 
       <div class="field">
@@ -290,20 +174,6 @@
     // ============================================================
 
     let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
-    let printFile = null;  // single print image (design file) | null
-
-    // Types whose "prompt" is empty in datatable "Product type settings" (BfplDltqK4KKl0Q7):
-    // ad copy comes from fallback_asset_feed_spec, so no print image is needed. Keep in sync with the datatable.
-    const NO_PROMPT_TYPES = new Set(['PLC', 'SBP', 'ACS', 'WCS', 'MCS', 'BGS', 'STB', 'BNB', 'Hoop', 'LPL', 'PNT']);
-    function printNeeded() {
-      return document.getElementById('ad_mode').value === 'group'
-        || !NO_PROMPT_TYPES.has(document.getElementById('product_type').value);
-    }
-    function updatePrintField() {
-      const need = printNeeded();
-      document.getElementById('printField').classList.toggle('no-need', !need);
-      document.getElementById('printReqTag').textContent = need ? 'Required' : 'No need';
-    }
 
     // ---------- Ad images ----------
     function addImages(fileListObj) {
@@ -357,83 +227,15 @@
       countEl.textContent = adFiles.length ? `${adFiles.length} ${adFiles.length === 1 ? 'image' : 'images'}` : '';
     }
 
-    // ---------- Print image reference ----------
-    function setPrintImage(fileListObj) {
-      const f = fileListObj && fileListObj[0];
-      if (!f || !f.type.startsWith('image/')) return;
-      printFile = f;
-      renderPrint();
-    }
-
-    function removePrintImage() {
-      printFile = null;
-      renderPrint();
-    }
-
-    function renderPrint() {
-      const slot = document.getElementById('printSlot');
-      slot.innerHTML = '';
-
-      if (printFile) {
-        const t = document.createElement('div');
-        t.className = 'thumb';
-        t.title = printFile.name;
-
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(printFile);
-
-        const name = document.createElement('div');
-        name.className = 'thumb-name';
-        name.textContent = printFile.name;
-
-        const rm = document.createElement('button');
-        rm.className = 'thumb-remove';
-        rm.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-        rm.onclick = () => removePrintImage();
-
-        t.appendChild(img);
-        t.appendChild(name);
-        t.appendChild(rm);
-        slot.appendChild(t);
-      } else {
-        const add = document.createElement('div');
-        add.className = 'add-tile';
-        add.title = 'Add print image';
-        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-        add.onclick = () => document.getElementById('printFileInput').click();
-        slot.appendChild(add);
-      }
-    }
-
     async function submitForm() {
       const submitBtn = document.getElementById('submitBtn');
 
       if (adFiles.length === 0) {
         return showStatus('error', '&#9888; Add at least one ad image.');
       }
-      const needPrint = printNeeded();
-      if (needPrint && !printFile) {
-        return showStatus('error', '&#9888; Add a print image.');
-      }
-
       const badNames = adFiles.filter(f => !FILE_RE.test(f.name)).map(f => f.name);
       if (badNames.length) {
         return showStatus('error', '&#10007; Wrong filename: ' + badNames.join(', ') + '. Use [PrintID-TypeID_MockupID].jpg');
-      }
-
-      const mode = document.getElementById('ad_mode').value;
-      const product_type = document.getElementById('product_type').value;
-      const product_type_group = document.getElementById('product_type_group').value;
-
-      // Type mode: every image must be the chosen product type.
-      // Group mode: types may be mixed (each taken from its filename), all within the chosen group.
-      if (mode === 'type') {
-        const wrongType = adFiles
-          .filter(f => String((f.name.match(FILE_RE) || [])[2] || '').toLowerCase() !== product_type.toLowerCase())
-          .map(f => f.name);
-        if (wrongType.length) {
-          return showStatus('error', '&#10007; One product type per upload. These files are not ' + product_type + ': ' + wrongType.join(', '));
-        }
       }
 
       // NFC: macOS/Drive can deliver "ỳ" as y + U+0300 (NFD) in some filenames only
@@ -444,13 +246,9 @@
 
       const fd = new FormData();
       adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name.normalize('NFC')));
-      if (needPrint && printFile) fd.append('print_0', printFile, printFile.name.normalize('NFC'));
-      fd.append('mode', mode);
-      if (mode === 'group') fd.append('product_type_group', product_type_group);
-      else fd.append('product_type', product_type);
 
       const total = adFiles.length;
-      const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (needPrint && printFile ? printFile.size : 0)) / (1024 * 1024);
+      const totalMB = adFiles.reduce((a, f) => a + f.size, 0) / (1024 * 1024);
 
       showStatus('loading', '<span class="spinner"></span> Uploading ' + total + ' images...');
       submitBtn.disabled = true;
@@ -477,28 +275,6 @@
       }
     }
 
-    // ---- Searchable product-type dropdown ----
-    initProductTypeCombo();
-
-    // ---- Target mode toggle (Product type vs Type group) ----
-    (function () {
-      const seg = document.getElementById('modeSeg');
-      const modeInput = document.getElementById('ad_mode');
-      const combo = document.getElementById('productTypeCombo');
-      const grp = document.getElementById('product_type_group');
-      seg.addEventListener('click', function (e) {
-        const btn = e.target.closest('.seg-btn');
-        if (!btn) return;
-        const mode = btn.getAttribute('data-mode');
-        modeInput.value = mode;
-        seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
-        combo.style.display = (mode === 'type') ? 'block' : 'none';
-        grp.style.display = (mode === 'group') ? 'block' : 'none';
-        updatePrintField();
-      });
-      document.getElementById('product_type').addEventListener('change', updatePrintField);
-    })();
-
     // ---------- Wire up the single product block ----------
     (function init() {
       const thumbs = document.getElementById('thumbs');
@@ -512,12 +288,7 @@
       });
       adInput.addEventListener('change', () => { addImages(adInput.files); adInput.value = ''; });
 
-      const printInput = document.getElementById('printFileInput');
-      printInput.addEventListener('change', () => { setPrintImage(printInput.files); printInput.value = ''; });
-
       renderThumbs();
-      renderPrint();
-      updatePrintField();
     })();
   </script>
   <!-- ============ Guide (help panel) ============ -->
@@ -555,32 +326,14 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Chọn <span class="g-field">Type group</span> hoặc <span class="g-field">Product type</span></h4>
-          <p>Hai nút ở đầu form, mặc định là <span class="g-field">Type group</span>:</p>
-          <p style="margin-top:7px">a) <span class="g-field">Type group</span>: chọn nhóm trong danh sách (<strong>Adult pajama</strong>, <strong>Kid play</strong>, <strong>Kid pajama</strong>). Ảnh trong một lượt có thể thuộc nhiều product type khác nhau trong nhóm đó, product type của từng ảnh lấy từ TypeID trong tên file.<br>
-          b) <span class="g-field">Product type</span>: bấm vào ô rồi gõ để tìm, hoặc chọn trong danh sách. Mọi ảnh trong lượt phải cùng product type này. TypeID trong tên file khác lựa chọn thì form báo lỗi và liệt kê file sai.</p>
+          <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
+          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Các ảnh phải cùng 1 Print ID, product type có thể khác nhau.</p>
+          <p style="margin-top:7px">Không cần chọn product type hay ảnh print. Product type của từng ảnh lấy từ TypeID trong tên file. Chữ quảng cáo được viết từ ảnh swatch của print đã có sẵn trên Shopify.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
-        <div class="guide-sb">
-          <h4><span class="g-field">Print</span>: ảnh tham chiếu</h4>
-          <p>Bấm ô vuông có dấu cộng để chọn 1 ảnh từ máy: ảnh bản in gốc (file thiết kế), dùng làm tham chiếu cho nội dung quảng cáo. Chỉ chọn 1 ảnh, cần rõ hình vẽ, chữ, chi tiết personalized, chi tiết thêu...</p>
-          <p style="margin-top:7px">Ô này luôn bắt buộc khi chọn <span class="g-field">Type group</span>. Khi chọn <span class="g-field">Product type</span>, một số loại không cần ảnh này: ô mờ đi và hiện <strong>No need</strong>, bỏ qua bước này.</p>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">4</div>
-        <div class="guide-sb">
-          <h4><span class="g-field">Ad images</span>: ảnh quảng cáo</h4>
-          <p>Bấm ô vuông dấu cộng để chọn ảnh từ máy, hoặc kéo thả nhiều ảnh vào khung. Mỗi ảnh sẽ thành một quảng cáo riêng, nên chỉ chọn những ảnh cần dùng. Có thể chọn nhiều ảnh cùng lúc, miễn là tất cả cùng 1 Print ID (và cùng 1 product type nếu đang ở chế độ <span class="g-field">Product type</span>).</p>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <div class="guide-num">5</div>
         <div class="guide-sb">
           <h4>Gửi form</h4>
           <p>Xem lại rồi bấm <strong>Create Ads</strong>. Ảnh cần chút thời gian để tải lên, chờ tới khi thấy dòng chữ xanh báo thành công, đừng đóng tab khi đang tải. Xong lượt này thì chọn ảnh khác rồi gửi lượt tiếp theo.</p>
@@ -590,11 +343,11 @@
       <div class="guide-sec">Lưu ý nhỏ</div>
 
       <div class="guide-note">
-        Cần ít nhất 1 ảnh trong <span class="g-field">Ad images</span>, và ảnh <span class="g-field">Print</span> khi ô đó hiện Required, thì mới gửi được.
+        Ảnh cùng nhóm sản phẩm (ví dụ Kid pajama, Adult pajama) vào chung một nhóm quảng cáo. Product type chưa thuộc nhóm nào thì có nhóm quảng cáo riêng.
       </div>
 
       <div class="guide-note">
-        Link của quảng cáo lấy theo Print ID: hệ thống tìm trong collection của Print ID đó ra sản phẩm đúng product type. Print ID chưa có trong bảng Print settings thì link sẽ trỏ về trang chủ, báo cáo Telegram sẽ ghi rõ.
+        Link của quảng cáo lấy theo Print ID: hệ thống tìm trong collection của Print ID đó ra sản phẩm đúng product type. Không tìm thấy sản phẩm thì ảnh đó không lên quảng cáo, báo cáo Telegram ghi rõ.
       </div>
 
       <div class="guide-note">

@@ -32,9 +32,9 @@
     },
     img: {
       rows: [
-        { dim: 'source', label: 'Product type', chips: [
-          ['kidpajama', 'Kid pajama', 'Take mockup images from a Google Drive folder for kid pajama'],
-          ['others', 'Others', 'Upload ad images from your device for one other product']
+        { dim: 'source', label: 'Image source', chips: [
+          ['kidpajama', 'Google Drive', 'Take ad images from a Google Drive folder'],
+          ['others', 'Device', 'Upload ad images from your device']
         ] }
       ],
       forms: { 'kidpajama|single': 'tc_img_form_drive.html', 'others|single': 'tc_form_1_trang.html' }

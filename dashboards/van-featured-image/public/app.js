@@ -26,7 +26,7 @@ const state = {
 const TABLES = {
   ads: {
     idKey: 'ad_name',
-    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td>${fmtMoneyInt(r.spend)}</td><td>${fmtF(r.roas)}x</td></tr>`
+    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td class="td-metric">${fmtMoneyInt(r.spend)}</td><td class="td-metric">${fmtF(r.roas)}x</td></tr>`
   },
 };
 

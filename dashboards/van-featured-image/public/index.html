@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meta Ads Dashboard</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="responsive.css">
 </head>
 <body>
 <div class="layout">
@@ -12,8 +14,8 @@
     <span class="logo">Most Spent Image Ad by Design</span>
     <div class="topbar-actions">
       <span class="cache-time" id="headerCachedAt"></span>
-      <button class="btn btn-primary" onclick="fetchAll('active')">Load Active Ads</button>
-      <button class="btn btn-secondary" style="opacity:0.45" title="Takes a few minutes. Click once and wait — clicking again will hit the rate limit." onclick="fetchAll('all')">Load All</button>
+      <button class="btn btn-primary" onclick="fetchAll('active')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Active Ads</button>
+      <button class="btn btn-secondary" style="opacity:0.45" title="Takes a few minutes. Click once and wait — clicking again will hit the rate limit." onclick="fetchAll('all')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load All</button>
     </div>
   </header>
 
@@ -41,7 +43,7 @@
 <div id="filterPopup" class="filter-popup">
   <div class="filter-popup-title" id="filterPopupTitle"></div>
   <div class="filter-popup-body">
-    <select id="filterOp" onchange="onFilterOpChange()">
+    <select id="filterOp" data-dd="field" onchange="onFilterOpChange()">
       <option value="gt">is greater than</option>
       <option value="lt">is less than</option>
       <option value="between">is between</option>
@@ -60,6 +62,7 @@
   </div>
 </div>
 
+<script src="dropdown.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

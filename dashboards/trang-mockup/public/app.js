@@ -570,8 +570,8 @@ function buildTotalRow(type, filtered) {
   const labelCols = type === 'mockups' ? 3 : 2;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
-  const emptyTds = '<td></td>'.repeat(labelCols - 1);
-  tr.innerHTML = `<td><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered))}`;
+  const emptyTds = '<td></td>'.repeat(labelCols - 2);
+  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered))}`;
   $(type + 'Body').appendChild(tr);
 }
 

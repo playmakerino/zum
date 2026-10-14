@@ -5,22 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meta Ads Dashboard</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="responsive.css">
 </head>
 <body>
 <div class="layout">
   <header class="topbar">
-    <select class="period-select submitter-select" id="submitterSelect" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
+    <select class="period-select submitter-select" id="submitterSelect" data-icon="person" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
       <option value="">All submitters</option>
     </select>
     <div class="topbar-actions">
       <span class="cache-time" id="cachedAt"></span>
-      <select class="period-select" id="periodSelect" onchange="onPeriodChange()">
+      <select class="period-select" id="periodSelect" data-icon="calendar" onchange="onPeriodChange()">
         <option value="7">Last 7 days</option>
         <option value="14">Last 14 days</option>
         <option value="30">Last 30 days</option>
       </select>
       <div class="tooltip-wrap">
-        <button class="btn btn-primary" onclick="fetchAll()">Load Data</button>
+        <button class="btn btn-primary" onclick="fetchAll()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
         <div class="tooltip-box">Fetches fresh data from Meta API. Frequent use may trigger rate limits — wait a few minutes between loads.</div>
       </div>
     </div>
@@ -57,7 +59,7 @@
 <div id="filterPopup" class="filter-popup">
   <div class="filter-popup-title" id="filterPopupTitle"></div>
   <div class="filter-popup-body">
-    <select id="filterOp" onchange="onFilterOpChange()">
+    <select id="filterOp" data-dd="field" onchange="onFilterOpChange()">
       <option value="gt">is greater than</option>
       <option value="lt">is less than</option>
       <option value="between">is between</option>
@@ -76,6 +78,7 @@
   </div>
 </div>
 
+<script src="dropdown.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

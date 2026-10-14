@@ -1,0 +1,83 @@
+// Shopify-style dropdown over native <select>.
+// The native select stays in the DOM (hidden) as the source of truth: app code
+// keeps reading/writing .value and listening to onchange. A pill button + menu
+// mirror it; option changes (innerHTML/text) and programmatic .value writes re-render.
+(() => {
+  const ICONS = {
+    calendar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="4.5" width="13" height="12" rx="2.5"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/></svg>',
+    person:   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="7" r="3"/><path d="M4.5 16c.8-2.6 3-4 5.5-4s4.7 1.4 5.5 4"/></svg>',
+  };
+  const CHEVRON = '<svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 8 4 4 4-4"/></svg>';
+  const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  let openDd = null;
+
+  function close(dd) {
+    if (!dd) return;
+    dd.classList.remove('open');
+    dd.querySelector('.dd-menu').hidden = true;
+    if (openDd === dd) openDd = null;
+  }
+
+  function enhance(sel) {
+    if (sel.closest('.dd')) return;
+    const dd = document.createElement('div');
+    dd.className = `dd dd-${sel.id || 'select'}${sel.dataset.dd === 'field' ? ' dd-field' : ''}`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dd-btn';
+    if (sel.title) btn.title = sel.title;
+    const menu = document.createElement('div');
+    menu.className = 'dd-menu';
+    menu.hidden = true;
+    sel.parentNode.insertBefore(dd, sel);
+    dd.append(btn, menu, sel);
+    sel.hidden = true;
+
+    const render = () => {
+      const cur = sel.options[sel.selectedIndex];
+      const icon = ICONS[sel.dataset.icon] || '';
+      btn.innerHTML = `${icon}<span class="dd-label"></span>${CHEVRON}`;
+      btn.querySelector('.dd-label').textContent = cur ? cur.textContent : '';
+      menu.innerHTML = '';
+      for (const opt of sel.options) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'dd-item' + (opt.selected ? ' selected' : '');
+        item.textContent = opt.textContent;
+        item.addEventListener('click', () => {
+          close(dd);
+          if (sel.value === opt.value) return;
+          sel.value = opt.value;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      }
+    };
+
+    Object.defineProperty(sel, 'value', {
+      configurable: true,
+      get() { return valueDesc.get.call(this); },
+      set(v) { valueDesc.set.call(this, v); render(); },
+    });
+    new MutationObserver(render).observe(sel, { childList: true, subtree: true, characterData: true });
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (dd.classList.contains('open')) return close(dd);
+      close(openDd);
+      dd.classList.add('open');
+      menu.hidden = false;
+      menu.style.left = ''; menu.style.right = '';
+      if (menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+        menu.style.left = 'auto'; menu.style.right = '0';
+      }
+      openDd = dd;
+    });
+    menu.addEventListener('click', e => e.stopPropagation());
+    render();
+  }
+
+  document.addEventListener('click', () => close(openDd));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(openDd); });
+  document.querySelectorAll('select').forEach(enhance);
+})();

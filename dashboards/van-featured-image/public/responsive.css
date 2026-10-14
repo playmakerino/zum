@@ -1,0 +1,16 @@
+/* van-featured-image breakpoints — loaded after shared.css so these win on small screens */
+@media(max-width:768px){
+  .layout{grid-template-rows:auto 1fr}
+  .topbar{padding:10px 12px;gap:6px 12px;flex-wrap:wrap}
+  .logo{width:100%;font-size:13px}
+  .topbar-actions{margin-left:0;gap:6px;flex-wrap:wrap}
+  .btn{padding:5px 10px;font-size:11px}
+  .main{padding:8px}
+
+  table{min-width:600px}
+  thead th{padding:8px 6px;font-size:10px;letter-spacing:.3px}
+  tbody td{padding:5px 6px;font-size:12px}
+  .th-filter-input{width:100px}
+  .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:4px}
+  .load-log{font-size:11px;max-height:80px;line-height:1.6}
+}

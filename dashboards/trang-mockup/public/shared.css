@@ -1,0 +1,108 @@
+/* Shared Shopify-admin (Polaris) look for vid-thao, trang-mockup, van-featured-image.
+   SOURCE OF TRUTH: dashboards/shared/. Edit here, then run sync-shared.ps1, which
+   copies this file + dropdown.js into each dashboard's public/ (each is its own
+   Render service and only deploys its own folder).
+   Load order in index.html: style.css → shared.css → responsive.css.
+   Values read from admin.shopify.com Analytics → Reports (2026-10-14):
+   text #101010, borders #ddd / #ebebeb, hover #f7f7f7, selected #ebebeb,
+   cells 13px with 8px 12px padding, numbers right-aligned, sortable header label is
+   a 6px-radius button (transparent, hover rgba(0,0,0,.05)) with an up/down chevron.
+   Table card is square (user choice); everything else keeps Polaris radii. */
+
+body{background:#fff;color:#101010;font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:0;font-feature-settings:normal}
+::selection{background:rgba(0,0,0,.1)}
+::-webkit-scrollbar-thumb{background:#d0d0d0}
+::-webkit-scrollbar-thumb:hover{background:#b5b5b5}
+.topbar{background:#fff;border-bottom:1px solid #ebebeb}
+.cache-time{color:#616161;font-size:12px}
+.logo{font-size:14px;font-weight:600;letter-spacing:0;color:#101010}
+
+/* ── Buttons: white, light border, 12px radius (Export / Print in Shopify header) */
+.btn{display:inline-flex;align-items:center;height:32px;padding:0 12px 0 8px;gap:6px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;letter-spacing:0;cursor:pointer}
+.btn svg{width:20px;height:20px;flex-shrink:0}
+.btn-primary,.btn-secondary{background:#fff;color:#303030;border:1px solid #e3e3e3;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn-primary:hover,.btn-secondary:hover{background:#f7f7f7;border-color:#d4d4d4;color:#303030;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn-primary:active,.btn-secondary:active{background:#f2f2f2}
+.btn-show-more,.filter-popup-actions button{background:#fff;color:#303030;border:1px solid #e3e3e3;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);font-family:inherit;font-size:13px;font-weight:450;line-height:20px;padding:5px 12px}
+.btn-show-more:hover,.filter-popup-actions button:hover{background:#f7f7f7;color:#303030;border-color:#d4d4d4}
+.filter-popup-actions .btn-primary{border:1px solid #303030;color:#fff;background:#303030;box-shadow:none;height:auto}
+.filter-popup-actions .btn-primary:hover{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
+
+/* ── Dropdown (dropdown.js): grey pill + popover menu (Shopify "Last 30 days") */
+.dd{position:relative;display:inline-flex;min-width:0}
+.dd-btn{display:inline-flex;align-items:center;gap:4px;height:32px;max-width:100%;padding:0 8px 0 10px;border:none;border-radius:12px;background:#ebebeb;color:#303030;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer;white-space:nowrap;transition:background .1s}
+.dd-btn:hover{background:#e3e3e3}
+.dd.open .dd-btn{background:#d4d4d4}
+.dd-btn svg{width:20px;height:20px;flex-shrink:0}
+.dd-btn svg:first-child:not(.dd-chevron){margin-left:-2px}
+.dd-label{overflow:hidden;text-overflow:ellipsis}
+.dd-btn .dd-chevron{width:16px;height:16px;transition:transform .12s}
+.dd.open .dd-chevron{transform:rotate(180deg)}
+.dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;max-height:320px;overflow:auto;background:#fff;border-radius:16px;padding:6px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);z-index:200}
+.dd-item{display:block;width:100%;text-align:left;border:none;background:none;padding:6px 10px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
+.dd-item:hover{background:#f2f2f2}
+.dd-item.selected{background:#ebebeb;font-weight:650;color:#101010}
+/* field variant (inside the filter popup): white input-like box */
+.dd-field,.dd-field .dd-btn{width:100%}
+.dd-field .dd-btn{justify-content:space-between;background:#fff;border:1px solid #8a8a8a;border-radius:8px;padding:0 8px 0 12px}
+.dd-field .dd-btn:hover{background:#fafafa}
+.dd-field.open .dd-btn{background:#fff;border-color:#303030;box-shadow:0 0 0 1px #303030}
+
+/* ── Tabs (trang-mockup) */
+.tab-btn,.sub-tab{border-radius:8px;color:#4a4a4a;font-family:inherit;font-weight:500;letter-spacing:0}
+.tab-btn:hover,.sub-tab:hover{background:#f7f7f7;color:#101010}
+.tab-btn.active,.sub-tab.active{background:#ebebeb;color:#101010;font-weight:600}
+
+/* ── Table */
+.table-wrap{border:none;border-radius:0;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
+table{width:100%;font-size:13px}
+thead th{background:#fff;color:#101010;font-weight:400;font-size:13px;line-height:20px;text-transform:none;letter-spacing:0;padding:7px 8px;border-bottom:1px solid #ddd}
+thead th:hover{color:#101010}
+thead th.sorted{color:#101010;font-weight:600}
+thead th .th-content{gap:2px}
+/* sortable header label = transparent button, grey on hover (Shopify _Button_2g6xk) */
+thead th[data-sort] .th-content{padding:1px 4px;border-radius:6px;transition:background .08s}
+thead th[data-sort]:hover .th-content{background:rgba(0,0,0,.05)}
+thead th[data-sort]:active .th-content{background:rgba(0,0,0,.08)}
+/* up/down chevron instead of ▴▾ text; visible on hover and on the sorted column */
+thead th .sort-icon{display:inline-block;width:16px;height:16px;margin-left:0;font-size:0;flex-shrink:0;background:currentColor;opacity:0;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat}
+thead th:hover .sort-icon{opacity:1;color:#303030}
+thead th.sorted .sort-icon{opacity:1;color:#101010}
+/* metric columns (those with a filter button): right-aligned like Shopify numbers */
+thead th:has(.col-filter-btn) .th-content{justify-content:flex-end}
+thead th:has(.col-filter-btn) .col-filter-btn{margin-left:0}
+tbody td.td-metric,tbody td.td-prints{text-align:right;padding:8px 12px}
+
+tbody tr{border-bottom:1px solid #ebebeb}
+tbody tr:hover,tbody tr:hover td:first-child{background:#f7f7f7}
+tbody td{padding:8px 12px;color:#101010;font-variant-numeric:tabular-nums}
+.td-name{font-weight:400;color:#101010}
+tbody tr.total-row td,tbody tr.total-row:hover td{background:#f2f2f2;font-weight:600;color:#101010;border-top:1px solid #ddd}
+.thumb,.thumb-placeholder{border-radius:6px;background:#f2f2f2}
+.thumb-placeholder{color:#8a8a8a}
+
+/* ── Inputs + column filter */
+.th-filter-input{background:#fff;border:1px solid #8a8a8a;border-radius:8px;font-family:inherit;font-size:13px;font-weight:400;line-height:16px;color:#101010;padding:3px 8px}
+.th-filter-input::placeholder,.filter-inputs input::placeholder{color:#616161}
+.th-filter-input:hover{border-color:#616161}
+.th-filter-input:focus,.filter-inputs input:focus{border-color:#303030;box-shadow:0 0 0 1px #303030}
+.filter-inputs input{border:1px solid #8a8a8a;border-radius:8px;font-family:inherit;font-size:13px;font-weight:400;line-height:16px;color:#101010;height:32px}
+.filter-inputs input:hover{border-color:#616161}
+.col-filter-btn{color:#8a8a8a;border-radius:6px;padding:2px}
+.col-filter-btn svg{width:12px;height:12px}
+.col-filter-btn:hover{color:#303030;background:rgba(0,0,0,.08)}
+.col-filter-btn.active{color:#101010}
+
+/* ── Popovers, overlay, toast, tooltip */
+.filter-popup,.load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}
+.filter-popup-title{font-weight:600;font-size:13px;letter-spacing:0;border-bottom:1px solid #ebebeb}
+.filter-popup-actions{border-top:1px solid #ebebeb}
+.load-overlay{background:rgba(255,255,255,.8)}
+.loader{border-color:#ebebeb;border-top-color:#303030}
+#toast{background:#303030;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:500;line-height:20px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#toast.error{background:#8e0b21;border:none}
+#toast.success{border:none}
+.tooltip-box{background:#1a1a1a;border-radius:8px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;padding:4px 8px}
+.tooltip-box::before{border-bottom-color:#1a1a1a}

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mockup Dashboard</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="responsive.css">
 </head>
 <body>
 <div class="layout">
@@ -20,7 +22,7 @@
       <span class="cache-time" id="headerCachedAt"></span>
       <span class="period-label" id="periodLabel"></span>
       <div class="tooltip-wrap">
-        <button class="btn btn-primary" onclick="fetchAll()">Load Data</button>
+        <button class="btn btn-primary" onclick="fetchAll()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
         <div class="tooltip-box">Fetches fresh data from Meta API. Frequent use may trigger rate limits — wait a few minutes between loads.</div>
       </div>
     </div>
@@ -65,7 +67,7 @@
 <div id="filterPopup" class="filter-popup">
   <div class="filter-popup-title" id="filterPopupTitle"></div>
   <div class="filter-popup-body">
-    <select id="filterOp" onchange="onFilterOpChange()">
+    <select id="filterOp" data-dd="field" onchange="onFilterOpChange()">
       <option value="gt">is greater than</option>
       <option value="lt">is less than</option>
       <option value="between">is between</option>
@@ -83,6 +85,7 @@
     <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
   </div>
 </div>
+<script src="dropdown.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

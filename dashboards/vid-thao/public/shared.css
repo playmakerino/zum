@@ -23,6 +23,8 @@ body{background:#fff;color:#101010;font-family:'Inter',-apple-system,system-ui,s
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background-color:transparent;border:2px solid transparent;border-radius:12px;background-clip:content-box}
 html:hover::-webkit-scrollbar-thumb,:hover::-webkit-scrollbar-thumb{background-color:#8c8c8c}
+/* pointer on the scrollbar itself is not a :hover on any element, so keep the thumb visible there too */
+::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{background-color:#8c8c8c}
 /* keyboard focus = --p-color-border-focus */
 :focus-visible{outline:2px solid #5083f0;outline-offset:1px}
 /* links = --p-color-text-link / -hover */
@@ -88,6 +90,7 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 /* fixed 36px row even before the log/debug text exists (box-sizing is border-box, so min-height includes padding) */
 .card-foot{min-height:37px;display:flex;flex-direction:column;justify-content:center;padding:8px;border-top:1px solid #f2f2f2;text-align:center}
 .card-foot .debug-line,.card-foot .load-log{margin:0;max-height:none;font-family:inherit;font-size:13px;line-height:20px;letter-spacing:-.01em;color:#101010;word-break:normal}
+.card-foot .log-line{color:inherit}
 .card-foot .log-line.error{color:#8e0b21}
 /* before any load the footer shows the start hint (data-empty) in place of the debug/log line */
 .card-foot:has(> .debug-line:empty,> .load-log:empty)::after{content:attr(data-empty);color:#101010;font-size:13px;line-height:20px}
@@ -126,6 +129,9 @@ tbody td{height:36px;box-shadow:inset 0 -1px 0 #f2f2f2;padding:8px 12px;color:#1
 tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){padding-top:6px;padding-bottom:6px}
 /* name column = Shopify dimension column: 1px #f2f2f2 divider on its right */
 tbody td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2,inset 0 -1px 0 #f2f2f2}
+/* last row: no bottom line, the footer's top line is the single separator (Shopify) */
+tbody tr:last-child td{box-shadow:none}
+tbody tr:last-child td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2}
 thead tr:first-child th:not(:has(.col-filter-btn)){box-shadow:inset 0 -1px 0 #f2f2f2,inset -1px 0 0 #f2f2f2}
 .td-name{font-weight:400;color:#101010}
 /* Total row: in <thead> under the column names (Shopify Summary row) */

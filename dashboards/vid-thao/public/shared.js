@@ -1,4 +1,13 @@
-// Shopify-style dropdown over native <select>.
+// Shared UI behaviour for the 3 dashboards (source: dashboards/shared/, copied by sync-shared.ps1).
+
+// 1) Topbar: transparent at the top of the page, white + 1px line once scrolled (Shopify page-header).
+(() => {
+  const update = () => document.body.classList.toggle('scrolled', window.scrollY > 0);
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+
+// 2) Shopify-style dropdown over native <select>.
 // The native select stays in the DOM (hidden) as the source of truth: app code
 // keeps reading/writing .value and listening to onchange. A pill button + menu
 // mirror it; option changes (innerHTML/text) and programmatic .value writes re-render.

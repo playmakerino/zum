@@ -4,7 +4,7 @@
 #   .\shared\sync-shared.ps1 -Check   only diff; exit 1 if any copy is out of date
 param([switch]$Check)
 $root = Split-Path $PSScriptRoot -Parent
-$files = 'shared.css', 'dropdown.js'
+$files = 'shared.css', 'shared.js'
 $targets = 'vid-thao', 'trang-mockup', 'van-featured-image'
 $stale = 0
 foreach ($t in $targets) {

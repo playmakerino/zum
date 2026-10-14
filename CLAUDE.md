@@ -40,7 +40,7 @@ Số hiện tại (desktop, nội dung card 704px = 760 − 2×28): Print ID = I
 
 ## Dashboards: CSS + dropdown dùng chung (từ 2026-10-14)
 3 dashboard `dashboards/vid-thao`, `trang-mockup`, `van-featured-image` (mỗi cái 1 service Render free, chỉ deploy folder của nó) dùng chung giao diện kiểu Shopify Analytics:
-- **Bản gốc ở [`dashboards/shared/`](dashboards/shared/)**: `shared.css` (token Polaris đo từ admin.shopify.com Reports) + `dropdown.js` (vẽ lại mọi `<select>` thành nút xám + menu; select gốc vẫn giữ `.value`/`onchange`). Sửa ở đây → `.dashboardssharedsync-shared.ps1` copy vào `public/` cả 3 → commit cả bản gốc lẫn 3 bản copy. `-Check` báo bản copy lệch.
+- **Bản gốc ở [`dashboards/shared/`](dashboards/shared/)**: `shared.css` (token Polaris đo từ admin.shopify.com Reports) + `shared.js` (thanh đầu trong suốt, hiện nền trắng + kẻ khi cuộn; vẽ lại mọi `<select>` thành nút xám + menu; select gốc vẫn giữ `.value`/`onchange`). Sửa ở đây → `.dashboardssharedsync-shared.ps1` copy vào `public/` cả 3 → commit cả bản gốc lẫn 3 bản copy. `-Check` báo bản copy lệch.
 - Thứ tự nạp trong index.html: `style.css` (riêng) → `shared.css` → `responsive.css` (breakpoint riêng, phải nạp sau để thắng shared).
 - User chốt: trang cuộn (không cuộn riêng bảng), top bar dính: trái = tiêu đề + Updated, phải = action. Bảng nằm trong `.card` bo 20px; hàng đầu `.card-head` chứa filter/tab, hàng cuối `.card-foot` chứa debug/load log để header và dòng Total không chạm góc bo. Dòng Total nằm trong <thead> ngay dưới tên cột (giống Summary của Shopify), dính cùng header, nền #f2f2f2; log ở hàng cuối căn giữa; không dùng màu tím, nút trắng viền mảnh.
 - van-featured-image: tab Active ads / All ads trong card chỉ chọn chế độ, nút Load Data mới tải.

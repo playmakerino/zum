@@ -82,11 +82,12 @@
 
     .header { margin-bottom: 16px; }
 
+    /* page title = Shopify product title: 26px/32px 500 */
     .header h1 {
-      font-size: 20px;
-      font-weight: 650;
+      font-size: 26px;
+      font-weight: 500;
       letter-spacing: -0.02em;
-      line-height: 28px;
+      line-height: 32px;
       margin-bottom: 4px;
     }
 
@@ -175,7 +176,7 @@
     }
 
     .drop-zone p { font-size: 13px; font-weight: 500; color: var(--text); line-height: 20px; }
-    .drop-zone .hint { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-sub); margin-top: 2px; }
+    .drop-zone .hint { font-size: 12px; font-weight: 400; line-height: 18px; color: #4a4a4a; margin-top: 2px; }
 
     .dz-img {
       display: none;
@@ -279,7 +280,8 @@
     .field .err { margin-top: 4px; font-size: 13px; color: var(--error); display: none; }
     .field.invalid .err { display: block; }
 
-    .auto-hint { margin-top: 4px; font-size: 13px; color: var(--text-sub); display: none; }
+    /* help text = Polaris help text: 12px/18px #4a4a4a */
+    .auto-hint { margin-top: 4px; font-size: 12px; line-height: 18px; color: #4a4a4a; display: none; white-space: nowrap; }
     .field.invalid .auto-hint { display: none; }
 
     /* the hint sits on the label line, to its right: it explains where the value came
@@ -357,7 +359,7 @@
       gap: 12px;
       margin-bottom: 12px;
     }
-    .scale-row .scale-lbl { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .scale-row .scale-lbl { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text); white-space: nowrap; }
     .scale-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--text-2); }
     .scale-row .val {
       width: 44px;
@@ -421,7 +423,7 @@
     .flat-msg button {
       background: none; border: none; padding: 0;
       color: #1650d0;
-      font-family: inherit; font-size: inherit; letter-spacing: inherit;
+      font-family: inherit; font-size: inherit; line-height: inherit; letter-spacing: inherit;
       cursor: pointer;
     }
     .flat-msg button:hover { color: #1347b9; text-decoration: underline; }
@@ -443,6 +445,7 @@
       color: #fff;
       font-family: var(--font);
       font-size: 13px;
+      line-height: 20px;
       font-weight: 600;
       letter-spacing: inherit;
       padding: 6px 12px;
@@ -510,7 +513,8 @@
       border-bottom: 1px solid var(--line);
     }
 
-    .tasks-head h2 { font-size: 13px; line-height: 20px; font-weight: 650; }
+    /* card title = Shopify main card title (Variants): 15px/22px 500 */
+    .tasks-head h2 { font-size: 15px; line-height: 22px; font-weight: 500; }
 
     .tasks-head .note { font-size: 13px; color: var(--text-sub); }
 
@@ -563,7 +567,7 @@
     }
 
     .tasks-empty { padding: 40px 16px; text-align: center; }
-    .tasks-empty h3 { font-size: 13px; font-weight: 650; margin-bottom: 2px; }
+    .tasks-empty h3 { font-size: 13px; line-height: 20px; font-weight: 500; margin-bottom: 2px; }
     .tasks-empty p { font-size: 13px; color: var(--text-sub); line-height: 20px; }
 
     /* tooltip = Shopify admin hover card (replaces the native title tooltip) */

@@ -622,7 +622,7 @@ function openVideo(i) {
   // Thumbnail = only the ad's real thumbnail from Meta (current creative), never a Drive frame.
   // "Fetch from Meta" reads it again on demand (2 Meta calls).
   viewer.dataset.row = String(i);
-  $('viThumbSec').hidden = !(r.ad_ids && r.ad_ids.length);
+  $('viThumbSec').hidden = !r.thumb_ad_id;
   showViewerThumb(r.thumbnail_url);
   $('viThumbFetch').disabled = false;
   $('viThumbFetch').textContent = 'Fetch from Meta';
@@ -663,12 +663,12 @@ async function fetchAdThumb() {
   const viewer = $('videoViewer');
   const r = state.rendered?.[+viewer.dataset.row];
   const btn = $('viThumbFetch');
-  if (!r?.ad_ids?.length) return;
+  if (!r?.thumb_ad_id) return;
   const token = viewer.dataset.token;
   btn.disabled = true;
   btn.textContent = 'Fetching…';
   try {
-    const res = await fetch('/api/ad-thumb?ad_ids=' + r.ad_ids.join(','));
+    const res = await fetch('/api/ad-thumb?ad_id=' + encodeURIComponent(r.thumb_ad_id));
     const j = await res.json();
     if (!res.ok) throw new Error(j.error + (j.detail ? ': ' + formatErrorDetail(j.detail) : ''));
     if (viewer.dataset.token !== token) return;

@@ -141,7 +141,10 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
     }
     const g = map[key];
     if (c?.id) g._creatives.add(c.id);
-    if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) g.thumbnail_url = hdThumbMap[c.id];
+    // thumb_ad_id = the ad whose current creative gives the row's thumbnail (rows come spend-descending,
+    // so the top ad with a thumbnail); "Fetch from Meta" in the viewer reads that same ad again
+    if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) { g.thumbnail_url = hdThumbMap[c.id]; g.thumb_ad_id = row.ad_id; }
+    if (!g.thumb_ad_id) g.thumb_ad_id = row.ad_id || null;
     if (!g.drive_file_id && bq?.drive_file_id) {
       g.drive_file_id  = bq.drive_file_id;
       g.drive_thumb_id = bq.thumb_drive_id || bq.drive_file_id;
@@ -151,8 +154,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
     g._rows.push(row);
   }
   return Object.values(map).map(({ _rows, _creatives, ...entry }) =>
-    aggregateMetrics({ ...entry, creative_count: _creatives.size, ad_count: new Set(_rows.map(r => r.ad_id)).size,
-      ad_ids: [...new Set(_rows.map(r => r.ad_id).filter(Boolean))].slice(0, 50) }, _rows));
+    aggregateMetrics({ ...entry, creative_count: _creatives.size, ad_count: new Set(_rows.map(r => r.ad_id)).size }, _rows));
 }
 
 // BigQuery video table rows → byAd (ads TC Vid created) and byVideo (uploaded video_id; an ad row
@@ -430,28 +432,20 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// GET /api/ad-thumb?ad_ids=a,b — the ads' real thumbnail now: reads each ad's current creative
-// (editing the ad in Ads Manager attaches a new one), then its 480px thumbnail. 2 Meta calls.
+// GET /api/ad-thumb?ad_id= — the ad's real thumbnail now: reads its current creative (editing the ad
+// in Ads Manager attaches a new one), then that creative's 480px thumbnail. 2 Meta calls.
 app.get('/api/ad-thumb', async (req, res) => {
   const { token } = getCredentials();
-  const adIds = String(req.query.ad_ids || '').split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s)).slice(0, 50);
-  if (!token || !adIds.length) return res.status(400).json({ error: 'Missing token or ad ids' });
+  const adId = String(req.query.ad_id || '');
+  if (!token || !/^\d+$/.test(adId)) return res.status(400).json({ error: 'Missing token or ad id' });
   try {
-    const ads = await axios.get(`${META_BASE_URL}/`, { params: { ids: adIds.join(','), fields: 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}', access_token: token } });
-    const now = Date.now();
-    const creativeIds = [];
-    for (const ad of Object.values(ads.data || {})) {
-      if (!ad?.id || ad.error) continue;
-      creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
-      if (ad.creative?.id && !creativeIds.includes(ad.creative.id)) creativeIds.push(ad.creative.id);
-    }
-    if (!creativeIds.length) return res.json({ url: null });
-    const th = await axios.get(`${META_BASE_URL}/`, { params: { ids: creativeIds.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token } });
-    let url = null;
-    for (const cid of creativeIds) {
-      const u = th.data?.[cid]?.thumbnail_url;
-      if (u) { hdThumbCache[cid] = { url: u, _cachedAt: Date.now() }; url = url || u; }
-    }
+    const ad = (await axios.get(`${META_BASE_URL}/${adId}`, { params: { fields: 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}', access_token: token } })).data;
+    creativeCache[adId] = slimCreative({ ...ad, _cachedAt: Date.now() });
+    const cid = ad?.creative?.id;
+    if (!cid) return res.json({ url: null });
+    const th = (await axios.get(`${META_BASE_URL}/${cid}`, { params: { fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token } })).data;
+    const url = th?.thumbnail_url || null;
+    if (url) hdThumbCache[cid] = { url, _cachedAt: Date.now() };
     res.json({ url });
   } catch (err) {
     const { error, detail } = metaErrorMessage(err);

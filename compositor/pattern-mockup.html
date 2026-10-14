@@ -48,11 +48,11 @@
   .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; background:var(--panel); }
   .side-scroll{ flex:1; overflow:auto; padding:12px 16px 16px; display:flex; flex-direction:column; gap:16px; }
   /* Generate / Download sit under the cards with no box of their own */
-  .side-foot{ padding:4px 16px 16px; display:flex; flex-direction:column; gap:8px; background:var(--panel); }
+  /* Generate / Download follow the last card in the scrolling column */
+  .actions{ display:flex; flex-direction:column; gap:8px; }
   @media (max-width:860px){
     .app{ grid-template-columns:1fr; }
     .side{ position:static; height:auto; box-shadow:none; }
-    .side-foot{ position:sticky; bottom:0; z-index:5; box-shadow:0 -1px 0 var(--line2),0 -6px 16px rgba(0,0,0,.04); }
   }
 
   /* step = Shopify "Collection items": title above, content in a card */
@@ -351,16 +351,15 @@
         </div>
         </div>
       </section>
-    </div>
-
-    <div class="side-foot">
-      <button class="primary" id="go"><span id="goLabel">Generate</span><kbd>Ctrl ↵</kbd></button>
-      <div class="progress" id="progress" hidden><div id="bar"></div></div>
-      <div class="msg" id="msg" role="status" aria-live="polite"></div>
-      <button class="secondary" id="dl" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
-        <span id="dlLabel">Download PNGs</span>
-      </button>
+      <div class="actions">
+        <button class="primary" id="go"><span id="goLabel">Generate</span><kbd>Ctrl ↵</kbd></button>
+        <div class="progress" id="progress" hidden><div id="bar"></div></div>
+        <div class="msg" id="msg" role="status" aria-live="polite"></div>
+        <button class="secondary" id="dl" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+          <span id="dlLabel">Download PNGs</span>
+        </button>
+      </div>
     </div>
   </aside>
 

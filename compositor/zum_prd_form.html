@@ -115,13 +115,11 @@
       .upload-row { grid-template-columns: minmax(0, 1fr); }
     }
 
-    /* the tile is a fixed 160px square, and the two fields beside it are shorter than that.
-       space-between pushes Pattern name to the bottom of the stretched column, so its
-       bottom edge sits exactly on the bottom edge of the tile */
+    /* Pattern name sits right under Pattern ID (16px field gap), not pushed to the bottom of the tile */
     .upload-side {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
     }
     .upload-side .field:first-child { margin-top: 0; }
 

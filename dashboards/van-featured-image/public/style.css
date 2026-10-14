@@ -19,9 +19,6 @@
   --shadow-lg:0 12px 24px rgba(15,17,21,.1),0 4px 8px rgba(15,17,21,.06);
 }
 body{font:13px/1.5 'Inter',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{border-radius:6px}
 
 .layout{grid-template-columns:1fr;grid-template-rows:56px 1fr}
 .topbar{display:flex;align-items:center;padding:0 var(--gap);gap:16px}

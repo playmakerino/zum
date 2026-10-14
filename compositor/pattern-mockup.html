@@ -42,10 +42,6 @@
   ::-webkit-scrollbar-thumb{ background-color:transparent; border:2px solid transparent; border-radius:12px; background-clip:content-box; }
   :hover::-webkit-scrollbar-thumb,::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{ background-color:#8c8c8c; }
 
-  /* top bar */
-  .brand{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:4px 4px 0; }
-  .brand h1{ margin:0; font-size:13px; line-height:28px; font-weight:500; letter-spacing:-.02em; }
-  .brand .sub{ display:block; color:var(--mut); font-size:13px; line-height:20px; font-weight:400; letter-spacing:-.01em; }
 
   /* layout: settings column of cards on the left, results on the right */
   .app{ display:grid; grid-template-columns:360px minmax(0,1fr); min-height:100vh; }
@@ -176,7 +172,7 @@
 
   /* main */
   .main{ padding:12px 16px 40px; min-width:0; }
-  .main-head{ display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; min-height:40px; margin-bottom:12px; }
+  .main-head{ display:flex; justify-content:flex-end; align-items:center; gap:16px; flex-wrap:wrap; min-height:40px; margin-bottom:12px; }
   /* page title = Shopify product title: 26px/32px 500 */
   .main-head h2{ margin:0; font-size:26px; line-height:32px; font-weight:500; letter-spacing:-.02em; }
   .main-head p{ margin:0; color:var(--mut); font-size:13px; line-height:20px; }
@@ -252,9 +248,6 @@
 <div class="app">
   <aside class="side">
     <div class="side-scroll">
-      <div class="brand">
-        <h1>Pattern Mockup<span class="sub">Put one pattern on every product photo</span></h1>
-      </div>
       <section class="step" id="stepPattern">
         <h2><span class="n">1</span>Pattern</h2>
         <div class="step-body">
@@ -375,7 +368,6 @@
 
   <main class="main">
     <div class="main-head">
-      <div><h2 id="mainTitle">Mockups</h2><p id="pickCount"></p></div>
       <div class="head-actions">
         <button type="button" class="ghost" id="pickAll">Select all</button>
         <button type="button" class="ghost" id="pickNone">Clear</button>
@@ -1334,7 +1326,6 @@ function renderCards(){
     sec.append(head,grid); groups.push({sec,cnt,tog,mine});
   }
   $('groups').replaceChildren(...groups.map(x=>x.sec));
-  $('mainTitle').textContent=GARMENT_LABEL[garment]||garment;
   refresh();
 }
 function makeCard(v, title, isFlat, on){
@@ -1383,7 +1374,6 @@ function refresh(){
     sec.hidden=!v.length; cnt.textContent=n+' of '+v.length; tog.textContent=n===v.length?'Clear':'Select all';
   }
   const all=shown(), sel=picked(), ready=sel.filter(c=>results.has(c.id)), hidden=cards.size-all.length;
-  $('pickCount').textContent=sel.length+' of '+all.length+' photos selected'+(hidden>0?' · '+hidden+' hidden by the gender filter':'');
   $('goLabel').textContent=busy?(stopReq?'Stopping…':'Stop'):sel.length?'Generate '+sel.length+' image'+(sel.length>1?'s':''):'Generate';
   $('go').classList.toggle('stop', busy);
   $('go').disabled=busy?stopReq:(!sel.length||!patImg||needPat2());

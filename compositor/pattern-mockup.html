@@ -423,7 +423,7 @@
         <p id="lbName"></p>
         <h4>Details</h4>
         <p id="lbDetails"></p>
-        <div id="lbTierRow"><h4>Mockup</h4><p id="lbTier"></p></div>
+        <div id="lbTierRow"><h4>Tier</h4><p id="lbTier"></p></div>
       </aside>
     </div>
   </div>
@@ -1530,7 +1530,7 @@ function showLightbox(){
   $('lbIdx').textContent=(lbAt+1)+' of '+lbList.length;
   $('lbName').textContent=fname(c.view);
   $('lbDetails').textContent='PNG • '+size;
-  $('lbTierRow').hidden=!t; $('lbTier').textContent=t?'Tier '+t:'';
+  $('lbTierRow').hidden=!t; $('lbTier').textContent=t?String(t):'';
   $('lbDl').href=r.url; $('lbDl').download=fname(c.view);
   $('lbPrev').hidden=$('lbNext').hidden=lbList.length<2;
 }

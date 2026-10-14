@@ -98,6 +98,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     logApiError('GET /api/config', err, { url: '/api/config' });
   }
   updatePeriodSelectLabels();
+  // Opening the page never calls Meta: show the result saved in this browser, else an empty
+  // table with the "Load Data" hint (user choice 2026-10-14)
   if (state.ready) {
     const days = $('periodSelect').value;
     const cached = loadCache('creatives', days);
@@ -110,8 +112,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       showCacheTime(cached.cached_at);
       updatePeriodSelectLabels(cached.period);
       renderDebug(loadCache('debug', days));
-    } else {
-      fetchAll(false); // auto-load from server cache
     }
   }
 });

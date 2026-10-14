@@ -57,6 +57,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%, Avg Time; chữ trên giao diện không dùng em dash
+- **Mở trang không tự tải** (user chốt 2026-10-14, tránh tự gọi Meta): có kết quả lưu localStorage của kỳ đang chọn thì hiện, không có thì bảng trống + câu nhắc, chỉ nút Load Data mới gọi `/api/dashboard`.
 - **Debug line:** hàng cuối card (trước khi có thì hiện câu nhắc Load Data), hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics

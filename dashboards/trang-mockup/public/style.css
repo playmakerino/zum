@@ -40,13 +40,13 @@ body{font:13px/1.5 'Inter','Inter Display',-apple-system,system-ui,sans-serif;-w
 .sub-page{display:none;flex:1;min-height:0;flex-direction:column}
 table{border-collapse:collapse}
 /* Column widths — Thumb */
-th:nth-child(1),td:nth-child(1){width:40px;min-width:40px}
+th:nth-child(1),tbody td:nth-child(1){width:40px;min-width:40px}
 /* Column widths — Mockups */
-#mockupsTable th:nth-child(2),#mockupsTable td:nth-child(2){min-width:110px}
-#mockupsTable th:nth-child(3),#mockupsTable td:nth-child(3){width:55px}
+#mockupsTable th:nth-child(2),#mockupsTable tbody td:nth-child(2){min-width:110px}
+#mockupsTable th:nth-child(3),#mockupsTable tbody td:nth-child(3){width:55px}
 /* Column widths — Creatives: Ad Name */
-#creativesValidTable th:nth-child(2),#creativesValidTable td:nth-child(2),
-#creativesSpendTable th:nth-child(2),#creativesSpendTable td:nth-child(2){min-width:160px}
+#creativesValidTable th:nth-child(2),#creativesValidTable tbody td:nth-child(2),
+#creativesSpendTable th:nth-child(2),#creativesSpendTable tbody td:nth-child(2){min-width:160px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 thead th:first-child{position:sticky;left:0;z-index:3;background:var(--s)}
 tbody tr{transition:background .08s}

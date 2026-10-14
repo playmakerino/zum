@@ -211,19 +211,34 @@ function collectFetchableCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-// Video table from BigQuery zum-media-log: media.ad_videos (one row per ad TC Vid created: Drive
-// file, reel link, submitter), one
-// row per uploaded video_id, served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key).
-// Missing key/URL or any error → empty table: rows then have no submitter and no Drive video.
-const VIDEOS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';
+// Video table read straight from BigQuery zum-media-log.media.ad_videos (one row per ad TC Vid
+// created: Drive file, reel link, submitter). Service account n8n-bigquery: env BQ_SA_KEY = the key
+// JSON (Render), or BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty
+// table: rows then have no submitter and no Drive video.
+const VIDEOS_SQL = `SELECT video_id, LOWER(TRIM(SPLIT(IFNULL(submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by,
+  ad_id, ad_name, drive_file_id, thumb_drive_id, reel_url,
+  FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at
+FROM \`zum-media-log.media.ad_videos\`
+WHERE video_id IS NOT NULL`;
+let _bq = null;
+function bigQuery() {
+  if (_bq) return _bq;
+  let key = null;
+  if (process.env.BQ_SA_KEY) key = JSON.parse(process.env.BQ_SA_KEY);
+  else if (process.env.BQ_SA_KEY_FILE) key = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, process.env.BQ_SA_KEY_FILE), 'utf8'));
+  if (!key) return null;
+  const { BigQuery } = require('@google-cloud/bigquery');
+  _bq = new BigQuery({ projectId: key.project_id, credentials: { client_email: key.client_email, private_key: key.private_key } });
+  return _bq;
+}
 async function loadVideoTable() {
-  const key = process.env.VID_SUBMITTERS_KEY;
-  if (!key) return { ...indexVideoTable([]), status: 'no key' };
   try {
-    const res = await axios.get(VIDEOS_URL, { headers: { 'x-auth-key': key }, timeout: 20000 });
-    return { ...indexVideoTable(Array.isArray(res.data) ? res.data : []), status: 'ok' };
+    const bq = bigQuery();
+    if (!bq) return { ...indexVideoTable([]), status: 'no key' };
+    const [rows] = await bq.query({ query: VIDEOS_SQL, location: 'US', jobTimeoutMs: 20000 });
+    return { ...indexVideoTable(rows), status: 'ok' };
   } catch (err) {
-    console.error('Video table fetch failed:', err.response?.status || err.message);
+    console.error('BigQuery video table failed:', err.message);
     return { ...indexVideoTable([]), status: 'error' };
   }
 }

@@ -623,7 +623,8 @@ function openVideo(i) {
   t.dataset.fallback = r.thumbnail_url && driveThumb ? driveThumb : '';
   t.src = r.thumbnail_url || driveThumb;
   $('viThumbSec').hidden = !(r.thumbnail_url || driveThumb);
-  $('viUsedIn').textContent = `Ads (${r.ad_count || 1})`;
+  const ads = r.ad_count || 1;
+  $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'Ad' : 'Ads'}`;
 
   const v = $('viewerVideo');
   // the poster gives the player its shape before the video loads; the Drive thumbnail keeps the video's ratio

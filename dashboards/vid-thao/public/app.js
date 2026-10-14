@@ -171,9 +171,10 @@ function renderDebug(d) {
       + (d.insights.withVideoPlays != null ? ` → ${d.insights.withVideoPlays} with video plays` : ''),
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
+    d.submitters && `Submitter table: ${d.submitters.status === "ok" ? d.submitters.rows + " videos" : d.submitters.status}`,
     `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
   ];
-  el.textContent = parts.join(' · ');
+  el.textContent = parts.filter(Boolean).join(' · ');
 }
 
 function showDebug(d) {

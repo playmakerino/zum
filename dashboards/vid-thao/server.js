@@ -115,12 +115,13 @@ function parseSubmittedBy(campaignName) {
 // (+ submitter), so every ad/creative that uses the same video is summed together.
 // Creatives without a video_id fall back to their creative id. The thumbnail is the first
 // HD thumbnail found among the group's creatives (hdThumbMap is keyed by creative id).
-function groupByVideo(rows, creativeCache, hdThumbMap) {
+function groupByVideo(rows, creativeCache, hdThumbMap, submitterMap = {}) {
   const map = {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
     const id = c?.video_id || c?.id || 'unknown';
-    const submittedBy = parseSubmittedBy(row.campaign_name);
+    // submitter: n8n table "Vid · submitters" by video_id first, else the email in the campaign name
+    const submittedBy = (c?.video_id && submitterMap[c.video_id]) || parseSubmittedBy(row.campaign_name);
     const key = `${id}|${submittedBy}`;
     if (!map[key]) {
       map[key] = {
@@ -163,6 +164,27 @@ function collectFetchableCreativeIds(allAds) {
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
+
+// video_id → submitter map from the n8n data table "Vid · submitters" (dhVo58edLqGd3iO1),
+// served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key). Written by the TC Vid
+// workflow when it uploads a video; older videos were backfilled. Missing key/URL or any
+// error → empty map, and rows fall back to the email in the campaign name.
+const SUBMITTERS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';
+async function loadSubmitterMap() {
+  const key = process.env.VID_SUBMITTERS_KEY;
+  if (!key) return { map: {}, status: 'no key' };
+  try {
+    const res = await axios.get(SUBMITTERS_URL, { headers: { 'x-auth-key': key }, timeout: 15000 });
+    const map = {};
+    for (const r of Array.isArray(res.data) ? res.data : []) {
+      if (r?.video_id && r.submitted_by) map[String(r.video_id)] = String(r.submitted_by).trim().toLowerCase();
+    }
+    return { map, status: 'ok' };
+  } catch (err) {
+    console.error('Submitter table fetch failed:', err.response?.status || err.message);
+    return { map: {}, status: 'error' };
+  }
+}
 
 function getCredentials() {
   return {
@@ -403,7 +425,8 @@ app.get('/api/dashboard', async (req, res) => {
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
 
     progress(`Processing data... [${elapsed()}]`);
-    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap);
+    const submitters = await loadSubmitterMap();
+    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, submitters.map);
     const videoCount    = grouped.filter(c => c.format === 'Video').length;
     const imageCount    = grouped.filter(c => c.format === 'Image').length;
     const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -420,6 +443,7 @@ app.get('/api/dashboard', async (req, res) => {
       refresh: forceRefresh,
       insights:  { source: insightsSource, raw: rawRows.length, afterSpendFilter: spendRows.length, withVideoPlays: currRows.length },
       ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
+      submitters: { status: submitters.status, rows: Object.keys(submitters.map).length },
       hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
       creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
       elapsedMs: Date.now() - startTime,

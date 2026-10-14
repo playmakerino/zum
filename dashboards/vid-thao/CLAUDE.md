@@ -19,6 +19,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
 - **Credentials:** chỉ đọc từ `.env` (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`).
+- **Người gửi (Submitted by):** mỗi lần load đọc bảng n8n `Vid · submitters` (`dhVo58edLqGd3iO1`, cột video_id, submitted_by) qua webhook `GET /webhook/vid-submitters` (workflow `ZoSYMQV5RQYGx8jO`, header `x-auth-key` = env `VID_SUBMITTERS_KEY`, credential n8n `hnAp9ZuwqmAdUXOG`). Không có trong bảng thì lấy email trong tên campaign. Bảng được workflow TC Vid (`aBFwAG7hzokMiwge`, node `Save video submitter` sau Upload videos) ghi mỗi video mới; 755 video cũ đã backfill 2026-10-14 (không có email trong tên camp → thaodp).
 - **GET /api/config** - trả về `{hasMetaToken, hasAdAccountId}` để frontend biết backend đã configured chưa
 - **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
   - Params: `days` (default 7), `refresh` (force reload)

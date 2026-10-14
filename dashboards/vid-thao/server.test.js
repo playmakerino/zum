@@ -238,6 +238,14 @@ describe('groupByVideo', () => {
     expect(v1.thumbnail_url).toBe('https://hd/c2.jpg');
   });
 
+  test('submitter comes from the video table first, then the campaign name', () => {
+    const rows = [row('a1', { campaign_name: 'TC | Vid | F | minhn | 261014' }), row('a2', { campaign_name: 'Other camp' })];
+    const cache = { a1: cacheEntry('c1', { video_id: 'v1' }), a2: cacheEntry('c2', { video_id: 'v2' }) };
+    const res = groupByVideo(rows, cache, {}, { v2: 'thaodp' });
+    expect(res.find(r => r.video_id === 'v1').submitted_by).toBe('minhn');
+    expect(res.find(r => r.video_id === 'v2').submitted_by).toBe('thaodp');
+  });
+
   test('maps object_type to format label', () => {
     const grp = (oType) => groupByVideo([row('a1')], { a1: cacheEntry('c1', { object_type: oType }) }, {});
     expect(grp('VIDEO')[0].format).toBe('Video');

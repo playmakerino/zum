@@ -9,5 +9,7 @@ services:
         sync: false
       - key: META_AD_ACCOUNT_ID
         sync: false
+      - key: VID_SUBMITTERS_KEY
+        sync: false
       - key: PORT
         value: 3000

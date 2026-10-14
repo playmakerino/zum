@@ -61,6 +61,7 @@
 
   /* step = Shopify "Collection items": title above, content in a card */
   .step-body{ background:#fff; border-radius:20px; box-shadow:var(--card-shadow); padding:16px; }
+  .step-body + .step-body{ margin-top:12px; }
   /* side-card heading = Shopify side card title (Status, Publishing): 13px/20px 500 */
   .step h2{ margin:0 0 8px; padding:0 4px; font-size:15px; line-height:22px; font-weight:500; display:flex; align-items:center; gap:8px; }
   .step h2 .n{ width:20px; height:20px; border-radius:8px; background:var(--t4-bg); color:var(--t4); font-size:12px; line-height:18px; font-weight:500; display:inline-grid; place-items:center; }
@@ -93,16 +94,18 @@
   /* Print step = Shopify report Controls panel (Metrics / Visualization), measured 2026-10-14:
      sub-cards 8px radius + 1px #ddd ring, 16px apart, 12px from the card edge; header 32px #f7f7f7 13px/20px 500;
      rows separated by a 1px #ddd line, 6px 8px padding */
-  /* All-over / Body + rest = the Freeform / Cohorts tabs on top of the card: 36px, active white with 12px top
-     corners, the other one #ddd and rounded towards the active tab */
+  /* All-over / Body + rest = the Freeform / Cohorts tabs of the report Controls card (measured 2026-10-14):
+     strip #ddd, tabs 36px, 8px 12px, 12px/18px 500 (#4a4a4a, active #101010); the active tab is white with 12px top
+     corners and two 16px pseudo corners (#ddd, 12px radius, white spread shadow) that curve it into the content */
   .step-body.tabbed{ padding:0; overflow:hidden; }
-  .tabs{ display:grid; grid-template-columns:1fr 1fr; background:#fff; }
-  .tabs button{ height:36px; padding:8px 12px; border:0; background:#ddd; color:var(--mut); font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .tabs button[aria-checked="true"]{ background:#fff; color:var(--ink); border-radius:12px 12px 0 0; }
-  .tabs button[aria-checked="true"] + button{ border-radius:12px 0 0 12px; }
-  .tabs button:has(+ button[aria-checked="true"]){ border-radius:0 12px 12px 0; }
-  .tabs button:hover:not(:disabled):not([aria-checked="true"]){ color:var(--ink); background:#d4d4d4; }
+  .tabs{ display:grid; grid-template-columns:1fr 1fr; background:#ddd; }
+  .tabs button{ position:relative; height:36px; padding:8px 12px; border:0; border-radius:0; background:#ddd; color:var(--ph); font-size:12px; line-height:18px; font-weight:500; white-space:nowrap; }
+  .tabs button:hover:not(:disabled):not([aria-checked="true"]){ color:var(--ink); }
   .tabs button:disabled{ opacity:1; color:#b5b5b5; }
+  .tabs button[aria-checked="true"]{ z-index:1; background:#fff; color:var(--ink); border-radius:12px 12px 0 0; }
+  .tabs button[aria-checked="true"]::before,.tabs button[aria-checked="true"]::after{ content:""; position:absolute; bottom:0; width:16px; height:16px; background:#ddd; }
+  .tabs button[aria-checked="true"]::before{ left:-16px; border-radius:0 0 12px 0; box-shadow:2px 2px 0 2px #fff; }
+  .tabs button[aria-checked="true"]::after{ right:-16px; border-radius:0 0 0 12px; box-shadow:-2px 2px 0 2px #fff; }
   .ctl-panel{ padding:12px; display:flex; flex-direction:column; gap:16px; }
   .ctl-panel > .hint{ padding:0 4px; margin-bottom:-8px; }
   #restOpts{ display:flex; flex-direction:column; gap:16px; }
@@ -336,23 +339,21 @@
             </div>
           </div>
         </div>
-        <div class="ctl">
-          <div class="ctl-head"><label for="scale" id="scaleLabel">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
-          <div class="ctl-row col">
-            <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
-            <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
-          </div>
         </div>
-        <div class="ctl">
-          <div class="ctl-head"><label for="trimHex">Trim color</label><span class="hint" id="trimHint">Picked from the pattern</span></div>
-          <div class="ctl-row">
-            <div class="trim">
-              <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
-              <input type="text" id="trimHex" value="" placeholder="White" spellcheck="false" aria-label="Trim color hex">
-              <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
-            </div>
-          </div>
         </div>
+        <div class="step-body">
+        <div class="field">
+          <div class="flabel"><label for="scale" id="scaleLabel">Motif size</label><span><span class="val" id="scaleVal">1.00×</span> <button type="button" class="linkbtn" id="scaleReset" hidden>Reset</button></span></div>
+          <input type="range" id="scale" min="0.5" max="2" step="0.05" value="1">
+          <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="trimHex">Trim color</label><span class="hint" id="trimHint">Picked from the pattern</span></div>
+          <div class="trim">
+            <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
+            <input type="text" id="trimHex" value="" placeholder="White" spellcheck="false" aria-label="Trim color hex">
+            <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
+          </div>
         </div>
         </div>
       </section>

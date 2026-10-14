@@ -54,9 +54,10 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 .dd-btn .dd-chevron{width:16px;height:16px;transition:transform .12s}
 .dd.open .dd-chevron{transform:rotate(180deg)}
 .dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;max-height:320px;overflow:auto;background:#fff;border-radius:16px;padding:6px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);z-index:200}
-.dd-item{display:block;width:100%;text-align:left;border:none;background:none;padding:6px 10px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
+.dd-item{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;border:none;background:none;padding:8px 12px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
 .dd-item:hover{background:#f2f2f2}
 .dd-item.selected{background:#ebebeb;font-weight:650;color:#101010}
+.dd-check{width:16px;height:16px;flex-shrink:0}
 /* field variant (inside the filter popup): white input-like box */
 .dd-field,.dd-field .dd-btn{width:100%}
 .dd-field .dd-btn{height:32px;justify-content:space-between;background:#fff;border:1px solid #8a8a8a;border-radius:8px;padding:0 8px 0 12px}
@@ -136,6 +137,28 @@ thead tr.total-row td.td-metric,thead tr.total-row td.td-prints{text-align:right
 .col-filter-btn svg{width:12px;height:12px}
 .col-filter-btn:hover{color:#303030;background:rgba(0,0,0,.08)}
 .col-filter-btn.active{color:#101010}
+
+/* ── Column filter popup = Shopify report "Filters" card: grey header, then pills
+   [operator ▸ menu with ✓] [Add value], footer Clear (blue link) + Apply (dark) */
+.filter-popup{min-width:240px;overflow:visible}
+.filter-popup-title{background:#f7f7f7;padding:10px 12px;border-radius:16px 16px 0 0;font-weight:600;font-size:13px;line-height:20px;color:#101010;border-bottom:1px solid #ebebeb}
+.filter-popup-body{padding:10px 12px;display:block}
+.filter-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.dd-chip .dd-btn{height:28px;padding:0 10px;border-radius:8px;background:#e3e3e3;color:#303030}
+.dd-chip .dd-btn:hover{background:#d4d4d4}
+.dd-chip.open .dd-btn{background:#cccccc}
+.filter-chip-input{width:96px;height:28px;padding:0 10px;border:none;border-radius:8px;background:#e3e3e3;color:#303030;font-family:inherit;font-size:13px;line-height:20px;outline:none;-moz-appearance:textfield;transition:background .1s}
+.filter-chip-input::placeholder{color:#303030}
+.filter-chip-input:hover{background:#d4d4d4}
+.filter-chip-input:focus{background:#fff;box-shadow:0 0 0 2px #005bd3}
+.filter-chip-input:focus::placeholder{color:#8a8a8a}
+.filter-chip-input::-webkit-outer-spin-button,.filter-chip-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.filter-and{font-size:13px;color:#616161}
+.filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:8px 12px;border-top:1px solid #ebebeb}
+.filter-popup .filter-popup-actions .filter-clear{background:none;border:none;box-shadow:none;padding:4px;color:#005bd3;font-family:inherit;font-size:13px;font-weight:450;cursor:pointer}
+.filter-popup .filter-popup-actions .filter-clear:hover{background:none;text-decoration:underline;color:#004299}
+.filter-popup .filter-popup-actions .btn-primary{height:28px;padding:0 14px;border:none;border-radius:10px;font-weight:600;color:#fff;background:linear-gradient(#3a3a3a,#1a1a1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.3)}
+.filter-popup .filter-popup-actions .btn-primary:hover{background:linear-gradient(#2a2a2a,#101010);color:#fff}
 
 /* ── Popovers, overlay, toast, tooltip */
 .filter-popup,.load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}

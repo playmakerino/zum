@@ -468,7 +468,7 @@ function openFilterPopup(type, col, btn) {
   $('filterOp').value = existing?.op || 'gt';
   $('filterVal1').value = existing?.val1 ?? '';
   $('filterVal2').value = existing?.val2 ?? '';
-  $('filterPopupTitle').textContent = (COL_LABELS[col] || col) + ' Filter';
+  $('filterPopupTitle').textContent = (btn.closest('th')?.textContent || col).replace(/[▴▾]/g, '').trim(); // column label as shown in the header
   onFilterOpChange();
 
   // Position popup near button, ensure it stays in viewport

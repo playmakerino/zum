@@ -64,21 +64,20 @@
 <div id="filterPopup" class="filter-popup">
   <div class="filter-popup-title" id="filterPopupTitle"></div>
   <div class="filter-popup-body">
-    <select id="filterOp" data-dd="field" onchange="onFilterOpChange()">
-      <option value="gt">is greater than</option>
-      <option value="lt">is less than</option>
-      <option value="between">is between</option>
-      <option value="notBetween">isn't between</option>
-    </select>
-    <div class="filter-inputs">
-      <input type="number" id="filterVal1" step="any" placeholder="Value">
-      <span id="filterAnd" style="display:none;font-size:11px;color:var(--t3)">and</span>
-      <input type="number" id="filterVal2" step="any" placeholder="Value" style="display:none">
+    <div class="filter-chips">
+      <select id="filterOp" data-dd="chip" onchange="onFilterOpChange()">
+        <option value="gt">greater than</option>
+        <option value="lt">less than</option>
+        <option value="between">between</option>
+        <option value="notBetween">not between</option>
+      </select>
+      <input type="number" id="filterVal1" class="filter-chip-input" step="any" placeholder="Add value" onkeydown="if(event.key==='Enter')applyFilter()">
+      <span id="filterAnd" class="filter-and" style="display:none">and</span>
+      <input type="number" id="filterVal2" class="filter-chip-input" step="any" placeholder="Add value" style="display:none" onkeydown="if(event.key==='Enter')applyFilter()">
     </div>
   </div>
   <div class="filter-popup-actions">
-    <button onclick="clearCurrentFilter()">Clear</button>
-    <button onclick="cancelFilter()">Cancel</button>
+    <button class="filter-clear" onclick="clearCurrentFilter()">Clear</button>
     <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
   </div>
 </div>

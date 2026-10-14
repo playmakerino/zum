@@ -439,7 +439,7 @@ function openFilterPopup(type, col, btn) {
   $('filterOp').value = existing?.op || 'gt';
   $('filterVal1').value = existing?.val1 ?? '';
   $('filterVal2').value = existing?.val2 ?? '';
-  $('filterPopupTitle').textContent = col.toUpperCase().replace(/_/g, ' ') + ' Filter';
+  $('filterPopupTitle').textContent = (btn.closest('th')?.textContent || col).replace(/[▴▾]/g, '').trim(); // column label as shown in the header
   onFilterOpChange();
   const rect = btn.getBoundingClientRect();
   popup.style.display = 'block';

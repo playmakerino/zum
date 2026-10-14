@@ -16,6 +16,7 @@
     calendar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="4.5" width="13" height="12" rx="2.5"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/></svg>',
     person:   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="7" r="3"/><path d="M4.5 16c.8-2.6 3-4 5.5-4s4.7 1.4 5.5 4"/></svg>',
   };
+  const CHECK = '<svg class="dd-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
   const CHEVRON = '<svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 8 4 4 4-4"/></svg>';
   const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
   let openDd = null;
@@ -30,7 +31,7 @@
   function enhance(sel) {
     if (sel.closest('.dd')) return;
     const dd = document.createElement('div');
-    dd.className = `dd dd-${sel.id || 'select'}${sel.dataset.dd === 'field' ? ' dd-field' : ''}`;
+    dd.className = `dd dd-${sel.id || 'select'}${sel.dataset.dd ? ' dd-' + sel.dataset.dd : ''}`;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'dd-btn';
@@ -45,7 +46,7 @@
     const render = () => {
       const cur = sel.options[sel.selectedIndex];
       const icon = ICONS[sel.dataset.icon] || '';
-      btn.innerHTML = `${icon}<span class="dd-label"></span>${CHEVRON}`;
+      btn.innerHTML = `${icon}<span class="dd-label"></span>${sel.dataset.dd === 'chip' ? '' : CHEVRON}`;
       btn.querySelector('.dd-label').textContent = cur ? cur.textContent : '';
       menu.innerHTML = '';
       for (const opt of sel.options) {
@@ -53,6 +54,7 @@
         item.type = 'button';
         item.className = 'dd-item' + (opt.selected ? ' selected' : '');
         item.textContent = opt.textContent;
+        if (opt.selected) item.insertAdjacentHTML('beforeend', CHECK);
         item.addEventListener('click', () => {
           close(dd);
           if (sel.value === opt.value) return;

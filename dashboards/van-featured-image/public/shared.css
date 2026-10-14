@@ -143,11 +143,12 @@ thead tr.total-row td.td-metric,thead tr.total-row td.td-prints{text-align:right
 .thumb-placeholder{color:#8a8a8a}
 
 /* ── Inputs + column filter */
-/* header search field = Shopify "Search dimensions" field (measured): 30px, 12px radius, white,
+/* header search field = Shopify "Search dimensions" field (measured): 12px radius, white,
    1px rgba(0,0,0,.13) ring + soft drop shadow, 16px magnifier on the left, 13px/20px text;
-   focus = #5083f0 ring + light blue glow. Its header cell gets less padding to keep the row 37px. */
-.th-filter-input{width:180px;height:30px;padding:0 12px 0 32px;border:none;border-radius:12px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%234a4a4a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8.5' cy='8.5' r='5'/%3E%3Cpath d='m12.3 12.3 3.7 3.7'/%3E%3C/svg%3E") 10px center/16px 16px no-repeat;font-family:inherit;font-size:13px;font-weight:400;line-height:20px;letter-spacing:-.01em;color:#101010;outline:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);transition:box-shadow .12s}
-thead th:has(.th-filter-input){padding-top:3px;padding-bottom:4px}
+   focus = #5083f0 ring + light blue glow. 28px tall (user 2026-10-14: 30px nearly touched the
+   row line), centred in the 37px header row: 4px above, 4px + the 1px line below. */
+.th-filter-input{width:180px;height:28px;padding:0 12px 0 32px;border:none;border-radius:12px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%234a4a4a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8.5' cy='8.5' r='5'/%3E%3Cpath d='m12.3 12.3 3.7 3.7'/%3E%3C/svg%3E") 10px center/16px 16px no-repeat;font-family:inherit;font-size:13px;font-weight:400;line-height:20px;letter-spacing:-.01em;color:#101010;outline:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);transition:box-shadow .12s}
+thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
 .th-filter-input::placeholder{color:#4a4a4a}
 .filter-inputs input::placeholder{color:#616161}
 .th-filter-input:hover{box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.2)}

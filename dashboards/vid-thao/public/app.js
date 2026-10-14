@@ -619,10 +619,12 @@ function openVideo(i) {
   $('viAdded').hidden = !r.created_at;
   $('viSubmitter').textContent = r.submitted_by || '';
   $('viSubmitterSec').hidden = !r.submitted_by;
+  // Thumbnail = only the ad's real thumbnail from Meta (current creative). No Drive fallback here:
+  // that is a frame of the file, not necessarily the ad's thumbnail. Missing or expired → section hidden.
   const t = $('viThumb');
-  t.dataset.fallback = r.thumbnail_url && driveThumb ? driveThumb : '';
-  t.src = r.thumbnail_url || driveThumb;
-  $('viThumbSec').hidden = !(r.thumbnail_url || driveThumb);
+  t.dataset.fallback = '';
+  $('viThumbSec').hidden = !r.thumbnail_url;
+  if (r.thumbnail_url) t.src = r.thumbnail_url; else t.removeAttribute('src');
   const ads = r.ad_count || 1;
   $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'Ad' : 'Ads'}`;
 

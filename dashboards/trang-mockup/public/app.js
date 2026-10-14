@@ -71,7 +71,7 @@ function buildHeaders() {
     tr.innerHTML = cfg.columns.map(col => {
       if (!col) return '<th>Thumb</th>';
       if (col.type === 'text')
-        return `<th><div class="th-content"><input data-table="${type}" data-col="${col.key}" data-type="text" class="th-filter-input" placeholder="${col.label}" oninput="filterTable('${type}')" onclick="event.stopPropagation()"></div></th>`;
+        return `<th><div class="th-content"><input data-table="${type}" data-col="${col.key}" data-type="text" class="th-filter-input" placeholder="Search ${col.label.toLowerCase().replace(/\bid\b/, 'ID')}" oninput="filterTable('${type}')" onclick="event.stopPropagation()"></div></th>`;
       return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content">${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}" onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
     }).join('');
   }

@@ -52,7 +52,6 @@ tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-wi
 
 thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 .th-filter-input{font:450 11.5px/1.2 'Inter',-apple-system,system-ui,sans-serif;outline:none;width:140px;transition:.1s}
-.th-filter-input:focus{background:var(--s)}
 .col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;transition:.1s;margin-left:auto;flex-shrink:0;gap:3px;font:500 11px/1 'Inter',-apple-system,system-ui,sans-serif}
 
 .filter-popup{position:fixed;background:var(--s);z-index:100;min-width:260px;display:none}

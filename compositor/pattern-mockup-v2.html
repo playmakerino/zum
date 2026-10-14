@@ -28,7 +28,9 @@
   ::-webkit-scrollbar-thumb{ background-color:transparent; border:2px solid transparent; border-radius:12px; background-clip:content-box; }
   :hover::-webkit-scrollbar-thumb,::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{ background-color:#8c8c8c; }
   .wrap{ display:flex; gap:16px; align-items:flex-start; padding:16px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
-  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:16px; padding:16px; background:#fff; border-radius:20px; box-shadow:var(--card-shadow); }
+  /* left column: settings card, then Generate / Download below it, outside the card */
+  .side{ flex:0 0 300px; display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .controls{ display:flex; flex-direction:column; gap:16px; padding:16px; background:#fff; border-radius:20px; box-shadow:var(--card-shadow); }
   .field{ display:flex; flex-direction:column; gap:4px; }
   label{ font-size:13px; line-height:20px; color:var(--ink); font-weight:500; }
   .file{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; }
@@ -45,7 +47,7 @@
   .trim input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
   .trim input[type=color]::-webkit-color-swatch{ border:0; border-radius:12px; }
   .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
-  .actions{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .actions{ display:flex; flex-direction:column; gap:8px; }
   button{ font-family:inherit; font-size:13px; line-height:20px; letter-spacing:inherit; font-weight:500; height:28px; padding:4px 12px; border:0; border-radius:9999px; cursor:pointer; background:#fff; color:var(--ink); box-shadow:var(--btn-shadow); }
   .actions button{ height:32px; }
   .primary{ background:#101010; color:#fff; font-weight:600; box-shadow:var(--pri-shadow); }
@@ -84,6 +86,7 @@
 <body>
 
 <div class="wrap">
+  <div class="side">
   <div class="controls">
     <div class="field">
       <label for="patternBtn">Pattern file</label>
@@ -128,6 +131,7 @@
         <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
       </div>
     </div>
+  </div>
 
     <div class="actions">
       <button class="primary" id="go">Generate</button>

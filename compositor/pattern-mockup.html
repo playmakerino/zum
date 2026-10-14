@@ -50,17 +50,19 @@
   /* layout: settings column of cards on the left, results on the right */
   .app{ display:grid; grid-template-columns:360px minmax(0,1fr); min-height:100vh; }
   .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; background:var(--panel); box-shadow:inset -1px 0 0 var(--line2); }
-  .side-scroll{ flex:1; overflow:auto; padding:12px 16px 16px; display:flex; flex-direction:column; gap:12px; }
-  .side-foot{ padding:12px 16px 16px; box-shadow:inset -1px 0 0 var(--line2), 0 -1px 0 var(--line2); display:flex; flex-direction:column; gap:8px; background:var(--panel); }
+  .side-scroll{ flex:1; overflow:auto; padding:12px 16px 16px; display:flex; flex-direction:column; gap:16px; }
+  /* Generate / Download sit under the cards with no box of their own */
+  .side-foot{ padding:4px 16px 16px; box-shadow:inset -1px 0 0 var(--line2); display:flex; flex-direction:column; gap:8px; background:var(--panel); }
   @media (max-width:860px){
     .app{ grid-template-columns:1fr; }
     .side{ position:static; height:auto; box-shadow:none; }
     .side-foot{ position:sticky; bottom:0; z-index:5; box-shadow:0 -1px 0 var(--line2),0 -6px 16px rgba(0,0,0,.04); }
   }
 
-  .step{ background:#fff; border-radius:20px; box-shadow:var(--card-shadow); padding:16px; }
+  /* step = Shopify "Collection items": title above, content in a card */
+  .step-body{ background:#fff; border-radius:20px; box-shadow:var(--card-shadow); padding:16px; }
   /* side-card heading = Shopify side card title (Status, Publishing): 13px/20px 500 */
-  .step h2{ margin:0 0 12px; font-size:13px; line-height:20px; font-weight:500; display:flex; align-items:center; gap:8px; }
+  .step h2{ margin:0 0 8px; padding:0 4px; font-size:15px; line-height:22px; font-weight:500; display:flex; align-items:center; gap:8px; }
   .step h2 .n{ width:20px; height:20px; border-radius:8px; background:var(--t4-bg); color:var(--t4); font-size:12px; line-height:18px; font-weight:500; display:inline-grid; place-items:center; }
   .step.ok h2 .n{ background:var(--t1-bg); color:var(--t1); }
   .field{ display:flex; flex-direction:column; gap:4px; margin-top:16px; }
@@ -226,6 +228,7 @@
       </div>
       <section class="step" id="stepPattern">
         <h2><span class="n">1</span>Pattern</h2>
+        <div class="step-body">
         <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a pattern file">
           <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
           <div class="drop-empty" id="dropEmpty">
@@ -243,10 +246,12 @@
           <label class="flabel" for="patternId">Pattern ID <em>optional · file names only</em></label>
           <input type="text" id="patternId" spellcheck="false">
         </div>
+        </div>
       </section>
 
       <section class="step ok">
         <h2><span class="n">2</span>Product</h2>
+        <div class="step-body">
         <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
         <div class="field">
           <div class="flabel"><span>Model gender</span><span class="hint" id="genderHint"></span></div>
@@ -256,10 +261,12 @@
             <button type="button" role="radio" data-v="neutral">All</button>
           </div>
         </div>
+        </div>
       </section>
 
       <section class="step ok">
         <h2><span class="n">3</span>Print</h2>
+        <div class="step-body">
         <div class="field">
           <div class="flabel"><span>Layout</span><span class="hint" id="layoutHint"></span></div>
           <div class="seg two" id="layout" role="radiogroup" aria-label="Print layout">
@@ -315,6 +322,7 @@
             <input type="text" id="trimHex" value="" placeholder="White" spellcheck="false" aria-label="Trim color hex">
             <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
           </div>
+        </div>
         </div>
       </section>
     </div>

@@ -13,7 +13,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 ## Form TC: code dùng chung (từ 2026-10-12)
 13 form (`forms/tc_form_*`, `tc_img_form_*`, `tc_vid_form`) load chung 3 file. Sửa phần chung ở đây, **không chép lại vào từng form**:
 - [`forms/forms.css`](forms/forms.css): biến màu `:root`, nền trang, `.card`, `.status`, trạng thái `.submit-btn`, thanh chuyển form, panel hướng dẫn. Link trước `<style>` của form, nên rule riêng của form vẫn đè được.
-- [`forms/forms.js`](forms/forms.js): đặt **đầu `.container`**. `data-switcher="tc"` (9 form TC) / `"img"` (Kid pajama, Others) vẽ thanh chuyển form tại chỗ; thêm form vào thanh = sửa `SWITCHERS`. Còn có `openGuide/closeGuide`, `escapeHtml`, `cleanProductUrl`, `showStatus`, `extractFolderId`.
+- [`forms/forms.js`](forms/forms.js): đặt **đầu `.container`**. `data-switcher="tc"` (9 form TC) / `"img"` (3 form của Trang: Test/scale By mockup·By pattern × Google Drive·Device) vẽ thanh chuyển form tại chỗ; thêm form vào thanh = sửa `SWITCHERS`. Còn có `openGuide/closeGuide`, `escapeHtml`, `cleanProductUrl`, `showStatus`, `extractFolderId`.
 - [`forms/product-type-combo.js`](forms/product-type-combo.js): dropdown Product type + mảng `PRODUCT_TYPES` của form 1_trang, 2, 7, 8 (form gọi `initProductTypeCombo()`).
 
 ## Form TC: luật layout (user chốt 2026-10-12, phải giữ đồng thời cả 4)

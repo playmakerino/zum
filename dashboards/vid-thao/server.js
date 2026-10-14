@@ -103,38 +103,87 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-// One row per video: insights rows (one per ad) are grouped by the creative's video_id
-// (+ submitter), so every ad/creative that uses the same video is summed together.
-// Creatives without a video_id fall back to their creative id. The thumbnail is the first
-// HD thumbnail found among the group's creatives (hdThumbMap is keyed by creative id).
-function groupByVideo(rows, creativeCache, hdThumbMap, submitterMap = {}) {
+// One row per video: insights rows (one per ad) are grouped by video (+ submitter), so every
+// ad/creative that uses the same video is summed together. The video is the BigQuery one for ads
+// TC Vid created (videoTable.byAd), else the creative's uploaded video; creatives without a video
+// fall back to their creative id. The thumbnail is the first HD thumbnail found among the group's
+// current creatives (hdThumbMap is keyed by creative id), so a thumbnail changed in Ads Manager
+// shows once the ad's creative is read again.
+function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
+  const byAd = videoTable.byAd || {};
+  const byVideo = videoTable.byVideo || {};
   const map = {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
-    const id = c?.video_id || c?.id || 'unknown';
-    // submitter: BigQuery video_id → submitter map; a video that is not there has no submitter
-    const submittedBy = (c?.video_id && submitterMap[c.video_id]) || '';
+    const bq = byAd[row.ad_id] || (c?.video_id && byVideo[c.video_id]) || null;
+    const videoId = bq?.video_id || c?.video_id || null;
+    const id = videoId || c?.id || 'unknown';
+    // submitter: BigQuery only; a video that is not there has no submitter
+    const submittedBy = bq?.submitted_by || '';
     const key = `${id}|${submittedBy}`;
     if (!map[key]) {
       map[key] = {
-        video_id:      c?.video_id || null,
-        creative_id:   c?.id || 'unknown',
-        submitted_by:  submittedBy,
-        format:        c ? (FORMAT_MAP[c.object_type] || 'Image') : null,
-        thumbnail_url: null,
-        is_catalog:    !!c?.is_catalog,
-        ad_name:       row.ad_name || '',
-        _creatives:    new Set(),
-        _rows:         [],
+        video_id:       videoId,
+        creative_id:    c?.id || 'unknown',
+        submitted_by:   submittedBy,
+        // a video in BigQuery stays a video even when Meta no longer returns its creative
+        format:         c ? (FORMAT_MAP[c.object_type] || 'Image') : (bq ? 'Video' : null),
+        thumbnail_url:  null,
+        is_catalog:     !!c?.is_catalog,
+        ad_name:        row.ad_name || bq?.ad_name || '',
+        drive_file_id:  null,
+        drive_thumb_id: null,
+        reel_url:       null,
+        _creatives:     new Set(),
+        _rows:          [],
       };
     }
     const g = map[key];
     if (c?.id) g._creatives.add(c.id);
     if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) g.thumbnail_url = hdThumbMap[c.id];
+    if (!g.drive_file_id && bq?.drive_file_id) {
+      g.drive_file_id  = bq.drive_file_id;
+      g.drive_thumb_id = bq.thumb_drive_id || bq.drive_file_id;
+    }
+    if (!g.reel_url && bq?.reel_url) g.reel_url = bq.reel_url;
     g._rows.push(row);
   }
   return Object.values(map).map(({ _rows, _creatives, ...entry }) =>
     aggregateMetrics({ ...entry, creative_count: _creatives.size }, _rows));
+}
+
+// BigQuery video table rows → byAd (ads TC Vid created) and byVideo (uploaded video_id; an ad row
+// wins over a legacy row that only has the submitter).
+function indexVideoTable(rows) {
+  const byAd = {}, byVideo = {};
+  for (const r of rows || []) {
+    if (!r?.video_id) continue;
+    const row = {
+      video_id:       String(r.video_id),
+      ad_id:          r.ad_id ? String(r.ad_id) : null,
+      ad_name:        r.ad_name || '',
+      submitted_by:   String(r.submitted_by || '').trim().toLowerCase(),
+      drive_file_id:  r.drive_file_id || null,
+      thumb_drive_id: r.thumb_drive_id || null,
+      reel_url:       r.reel_url || null,
+      created_at:     r.created_at || null,
+    };
+    if (row.ad_id) byAd[row.ad_id] = row;
+    if (!byVideo[row.video_id] || (row.ad_id && !byVideo[row.video_id].ad_id)) byVideo[row.video_id] = row;
+  }
+  return { byAd, byVideo };
+}
+
+// Ads TC Vid created inside the period that have no insights row (no delivery yet): listed with
+// zero metrics so a video shows up as soon as it is submitted.
+function newAdRows(byAd, period, seenAdIds) {
+  const out = [];
+  for (const r of Object.values(byAd || {})) {
+    const day = String(r.created_at || '').slice(0, 10);
+    if (!day || day < period.since || day > period.until || seenAdIds.has(r.ad_id)) continue;
+    out.push({ ad_id: r.ad_id, ad_name: r.ad_name || '', impressions: '0', clicks: '0', spend: '0' });
+  }
+  return out;
 }
 
 // Only ads with video plays can be video ads; skipping the rest avoids fetching
@@ -157,24 +206,20 @@ function collectFetchableCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-// video_id → submitter (email before @) map from BigQuery zum-media-log.media.ad_videos
-// (TC Vid writes one row per ad) + media.video_submitters_legacy (copy of the old n8n table),
-// served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key). Missing key/URL or any
-// error → empty map, and rows show no submitter.
-const SUBMITTERS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';
-async function loadSubmitterMap() {
+// Video table from BigQuery zum-media-log: media.ad_videos (one row per ad TC Vid created: Drive
+// file, reel link, submitter) + media.video_submitters_legacy (older videos, submitter only), one
+// row per uploaded video_id, served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key).
+// Missing key/URL or any error → empty table: rows then have no submitter and no Drive video.
+const VIDEOS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';
+async function loadVideoTable() {
   const key = process.env.VID_SUBMITTERS_KEY;
-  if (!key) return { map: {}, status: 'no key' };
+  if (!key) return { ...indexVideoTable([]), status: 'no key' };
   try {
-    const res = await axios.get(SUBMITTERS_URL, { headers: { 'x-auth-key': key }, timeout: 15000 });
-    const map = {};
-    for (const r of Array.isArray(res.data) ? res.data : []) {
-      if (r?.video_id && r.submitted_by) map[String(r.video_id)] = String(r.submitted_by).trim().toLowerCase();
-    }
-    return { map, status: 'ok' };
+    const res = await axios.get(VIDEOS_URL, { headers: { 'x-auth-key': key }, timeout: 20000 });
+    return { ...indexVideoTable(Array.isArray(res.data) ? res.data : []), status: 'ok' };
   } catch (err) {
-    console.error('Submitter table fetch failed:', err.response?.status || err.message);
-    return { map: {}, status: 'error' };
+    console.error('Video table fetch failed:', err.response?.status || err.message);
+    return { ...indexVideoTable([]), status: 'error' };
   }
 }
 
@@ -291,9 +336,11 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
   return { rows: currRows, source: 'api' };
 }
 
-async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
+// force (Load Data) reads every ad again: editing an ad in Ads Manager (e.g. its thumbnail)
+// attaches a new creative, which a cached entry would hide.
+async function ensureCreativeInfo({ adIds, force = false, token, progress, elapsed }) {
   const now0 = Date.now();
-  const missingIds = adIds.filter(id => {
+  const missingIds = force ? [...adIds] : adIds.filter(id => {
     const e = creativeCache[id];
     if (!e) return true;                                                   // never cached
     if (!e.creative && (now0 - (e._cachedAt || 0)) > NULL_CREATIVE_RETRY_MS) return true; // stale null → retry
@@ -303,7 +350,7 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
     progress(`All ${adIds.length} ads already cached [${elapsed()}]`);
     return;
   }
-  progress(`Fetching creative info for ${missingIds.length} ads (new or retried) [${elapsed()}]`);
+  progress(`Fetching creative info for ${missingIds.length} ads (${force ? 'all, Load Data' : 'new or retried'}) [${elapsed()}]`);
   const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}');
   const now = Date.now();
   for (const ad of fetched) {
@@ -401,12 +448,18 @@ app.get('/api/dashboard', async (req, res) => {
 
   try {
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    const spendRows = rawRows.filter(r => parseFloat(r.spend || 0) > 1);
-    const currRows  = spendRows.filter(hasVideoPlays);
+    progress(`Loading videos from BigQuery... [${elapsed()}]`);
+    const videoTable = await loadVideoTable();
+    // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
+    // delivery yet. Other video ads: spend > 1 with video plays, as before.
+    const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);
+    const otherRows = rawRows.filter(r => !videoTable.byAd[r.ad_id] && parseFloat(r.spend || 0) > 1 && hasVideoPlays(r));
+    const newRows   = newAdRows(videoTable.byAd, current, new Set(rawRows.map(r => r.ad_id)));
+    const currRows  = [...formRows, ...otherRows, ...newRows];
 
     const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
-    const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
-    await ensureCreativeInfo({ adIds: allAdIds, token, progress, elapsed });
+    const cachedAdsBefore  = forceRefresh ? 0 : allAdIds.filter(id => creativeCache[id]).length;
+    await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, token, progress, elapsed });
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
     const fetchableHdIds = collectFetchableCreativeIds(allAds);
@@ -417,8 +470,7 @@ app.get('/api/dashboard', async (req, res) => {
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
 
     progress(`Processing data... [${elapsed()}]`);
-    const submitters = await loadSubmitterMap();
-    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, submitters.map);
+    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, videoTable);
     const videoCount    = grouped.filter(c => c.format === 'Video').length;
     const imageCount    = grouped.filter(c => c.format === 'Image').length;
     const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -433,9 +485,9 @@ app.get('/api/dashboard', async (req, res) => {
       account: accountId,
       days,
       refresh: forceRefresh,
-      insights:  { source: insightsSource, raw: rawRows.length, afterSpendFilter: spendRows.length, withVideoPlays: currRows.length },
+      insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length, newAds: newRows.length },
       ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
-      submitters: { status: submitters.status, rows: Object.keys(submitters.map).length },
+      bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
       hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
       creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
       elapsedMs: Date.now() - startTime,
@@ -466,6 +518,8 @@ if (typeof module !== 'undefined' && module.exports) {
     sumActionByType,
     aggregateMetrics,
     groupByVideo,
+    indexVideoTable,
+    newAdRows,
     collectFetchableCreativeIds,
     hasVideoPlays,
   };

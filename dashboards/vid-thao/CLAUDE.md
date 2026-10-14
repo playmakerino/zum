@@ -19,11 +19,13 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
 - **Credentials:** chỉ đọc từ `.env` (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`).
-- **Người gửi (Submitted by):** mỗi lần load gọi webhook `GET /webhook/vid-submitters` (workflow `ZoSYMQV5RQYGx8jO`, header `x-auth-key` = env `VID_SUBMITTERS_KEY`, credential n8n `hnAp9ZuwqmAdUXOG`), trả `[{video_id, submitted_by}]` (email trước @). Từ 2026-10-14 workflow đọc **BigQuery** `zum-media-log.media.ad_videos` (TC Vid `aBFwAG7hzokMiwge` ghi 1 dòng/ad qua nhánh `Video rows → Save to BigQuery`; backfill 30 ngày, email trống → thaodp) rồi mới tới `media.video_submitters_legacy` (bản chép 773 dòng của bảng n8n cũ `Vid · submitters` dhVo58edLqGd3iO1). Video không có trong 2 bảng thì không có người gửi; **không** đọc tên campaign nữa.
+- **Bảng video BigQuery:** mỗi lần load gọi webhook `GET /webhook/vid-submitters` (workflow `ZoSYMQV5RQYGx8jO` "Vid dashboard · videos API", header `x-auth-key` = env `VID_SUBMITTERS_KEY`, credential n8n `hnAp9ZuwqmAdUXOG`), trả 1 dòng / video upload: `video_id, submitted_by (email trước @), ad_id, ad_name, drive_file_id, thumb_drive_id, reel_url, created_at`. Nguồn: `zum-media-log.media.ad_videos` (TC Vid `aBFwAG7hzokMiwge` ghi 1 dòng/ad; backfill 30 ngày, email trống → thaodp) + `media.video_submitters_legacy` (video cũ, chỉ có người gửi). `indexVideoTable` → `byAd` / `byVideo`. Người gửi chỉ lấy từ đây, **không** đọc tên campaign.
+- **Dòng nào hiện:** ad từ form (có trong `byAd`) có delivery trong kỳ (spend > 0, mọi mức) + ad từ form tạo trong kỳ chưa có delivery (`newAdRows`, chỉ số 0); video ad khác: spend > 1 và có video play như trước. Ad từ form lấy video_id/Drive/reel/người gửi theo `byAd` (BigQuery thắng video_id trong creative); ad khác tra `byVideo` theo video của creative.
+- **Load Data (`refresh=1`)** đọc lại creative của mọi ad trong kỳ (`ensureCreativeInfo` force): sửa thumbnail trong Ads Manager = creative mới, cache cũ sẽ che mất.
 - **GET /api/config** - trả về `{hasMetaToken, hasAdAccountId}` để frontend biết backend đã configured chưa
 - **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
   - Params: `days` (default 7), `refresh` (force reload)
-  - Pipeline: fetch insights → filter spend>1 ở server (lọc ở API thử 2026-10-14: không nhanh hơn) → filter có video play (`hasVideoPlays`, bỏ ad ảnh trước khi gọi creative) → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByVideo`: mỗi dòng = 1 video_id (`object_story_spec.video_data.video_id`, creative không có video_id thì theo creative id) + người gửi, cộng dồn metrics của mọi ad/creative dùng video đó
+  - Pipeline: fetch insights → bảng video BigQuery → chọn dòng (xem "Dòng nào hiện"; lọc spend/video play ở server, lọc ở API thử 2026-10-14: không nhanh hơn) → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByVideo`: mỗi dòng = 1 video (BigQuery hoặc `object_story_spec.video_data.video_id`, creative không có video_id thì theo creative id) + người gửi, cộng dồn metrics của mọi ad/creative dùng video đó, kèm `drive_file_id`, `drive_thumb_id`, `reel_url`
   - Meta không lọc được `video_play_actions` ở tầng insights API (thử 2026-10-14: lỗi), nên lọc ở server. Thumbnail lồng trong `creative{thumbnail_url}` chỉ ra 64px dù truyền `thumbnail_width`, nên HD thumb vẫn phải gọi riêng theo creative_id.
   - SSE events: `progress` (text per stage), `debug` (telemetry), `result` (final), `error`
   - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
@@ -48,8 +50,10 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
 - **Thumbnail preview:** hover hiện ảnh HD 240×240 (position:fixed)
-  - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480`
+  - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480` (thumb hiện tại của ad trên Meta)
+  - Link Meta hết hạn sau vài ngày (kết quả lưu localStorage): `onerror` đổi sang thumb Drive `lh3.googleusercontent.com/d/<drive_thumb_id>=w480` (vĩnh viễn, không tốn call); không có Drive thì hiện ô xám
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)
+- **Bấm thumbnail = popup phát video** (`openVideo`): có `drive_file_id` → iframe `drive.google.com/file/d/<id>/preview` (không tốn call); không có → `<video src="…/webhook/mp4?id=<video_id>">` (workflow n8n WsyDx1JIhZj5mVrf, 1 execution + 1 call Meta mỗi lần mở). Hàng dưới có link Open in Drive / View on Facebook (reel). Esc / bấm nền để đóng; đóng là xoá player để dừng phát.
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%, Avg Time; chữ trên giao diện không dùng em dash

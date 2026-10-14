@@ -58,6 +58,16 @@
   </main>
 </div>
 <div id="toast"></div>
+<div id="videoModal" class="video-modal" onclick="if(event.target===this)closeVideo()">
+  <div class="video-dialog" role="dialog" aria-modal="true" aria-labelledby="videoTitle">
+    <div class="video-head">
+      <span class="video-title" id="videoTitle"></span>
+      <button class="video-close" type="button" onclick="closeVideo()" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+    </div>
+    <div class="video-body" id="videoBody"></div>
+    <div class="video-links" id="videoLinks" hidden></div>
+  </div>
+</div>
 <div id="filterPopup" class="filter-popup">
   <div class="filter-popup-title" id="filterPopupTitle"></div>
   <div class="filter-popup-body">

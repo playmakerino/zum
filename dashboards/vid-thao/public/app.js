@@ -72,7 +72,7 @@ const COL_LABELS = {
 const TABLES = {
   creatives: {
     cols: 12, idKey: 'creative_id',
-    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
+    row: r => `<tr><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
 };
 
@@ -165,13 +165,17 @@ function renderDebug(d) {
     `${d.hdThumbs.fetched} fetched`,
     d.hdThumbs.failed && `${d.hdThumbs.failed} failed`,
   ].filter(Boolean).join(', ');
+  const ins = d.insights;
   const parts = [
     `Loaded in ${sec}s`,
-    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend > 1`
-      + (d.insights.withVideoPlays != null ? ` → ${d.insights.withVideoPlays} with video plays` : ''),
+    ins.formAds != null
+      ? `Insights: ${ins.raw} rows${insightsSrc} → ${ins.formAds} form ads + ${ins.otherVideoAds} other video ads (spend > 1)`
+        + (ins.newAds ? ` + ${ins.newAds} new without delivery` : '')
+      : `Insights: ${ins.raw} rows${insightsSrc} → ${ins.afterSpendFilter} with spend > 1`
+        + (ins.withVideoPlays != null ? ` → ${ins.withVideoPlays} with video plays` : ''),
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
-    d.submitters && `Submitter table: ${d.submitters.status === "ok" ? d.submitters.rows + " videos" : d.submitters.status}`,
+    d.bigquery && `BigQuery: ${d.bigquery.status === 'ok' ? d.bigquery.videos + ' videos' : d.bigquery.status}`,
     `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
   ];
   el.textContent = parts.filter(Boolean).join(' · ');
@@ -354,7 +358,7 @@ function sortTable(type, key) {
   renderTable(type);
 }
 
-// Submitter filter (topbar): values parsed server-side from campaign name
+// Submitter filter (card head): values from BigQuery (who sent the video through the form)
 const NO_SUBMITTER = '__none__';
 const escapeHtml = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function storedSubmitter() { try { return localStorage.getItem('vidthao_submitter') || ''; } catch { return ''; } }
@@ -552,17 +556,64 @@ const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimum
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
 const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 
-function thumb(url, isCatalog) {
-  const placeholder = `<div class="thumb-placeholder"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
-  if (!url) return placeholder;
-  return `<img class="thumb" src="${esc(url)}"${isCatalog ? '' : ` onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()" onclick="event.stopPropagation()"`} alt="" loading="lazy" onerror="thumbError(this)">`;
+// Thumbnail = the ad's current Meta thumbnail (read again on Load Data, so a thumbnail changed in
+// Ads Manager shows). Meta links expire after a few days; a saved result then falls back to the
+// Drive thumbnail of the original file (permanent). Click plays the video.
+const DRIVE_THUMB = id => `https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w480`;
+const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
+const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+const PLAY_ATTRS = ['video', 'drive', 'reel', 'name'];
+
+function thumb(r) {
+  const drive = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
+  const src = r.thumbnail_url || drive;
+  const playable = !!(r.drive_file_id || r.video_id);
+  const play = playable
+    ? ` data-video="${esc(r.video_id || '')}" data-drive="${esc(r.drive_file_id || '')}" data-reel="${esc(r.reel_url || '')}" data-name="${esc(r.ad_name || '')}" onclick="openVideo(this, event)"`
+    : '';
+  const cls = playable ? ' thumb-play' : '';
+  if (!src) return `<div class="thumb-placeholder${cls}"${play}>${PLACEHOLDER_SVG}</div>`;
+  const hover = r.is_catalog ? '' : ' onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()"';
+  return `<img class="thumb${cls}" src="${esc(src)}" data-fallback="${esc(src === drive ? '' : drive)}"${hover}${play} alt="" loading="lazy" onerror="thumbError(this)">`;
 }
 function thumbError(img) {
+  const fallback = img.dataset.fallback;
+  if (fallback) { img.dataset.fallback = ''; img.src = fallback; return; } // expired Meta link → Drive thumbnail
   const div = document.createElement('div');
   div.className = 'thumb-placeholder';
-  div.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+  div.innerHTML = PLACEHOLDER_SVG;
+  if (img.classList.contains('thumb-play')) {
+    div.classList.add('thumb-play');
+    for (const k of PLAY_ATTRS) div.dataset[k] = img.dataset[k] || '';
+    div.onclick = e => openVideo(div, e);
+  }
   img.replaceWith(div);
 }
+
+// Video popup: the original file from Drive (free, no Meta call); a video that is not in
+// BigQuery plays its current mp4 through the n8n webhook (1 execution + 1 Meta call per open).
+function openVideo(el, e) {
+  if (e) e.stopPropagation();
+  hideThumbPreview();
+  const { video, drive, reel, name } = el.dataset;
+  $('videoTitle').textContent = name || '';
+  $('videoBody').innerHTML = drive
+    ? `<iframe src="https://drive.google.com/file/d/${encodeURIComponent(drive)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`
+    : `<video src="${MP4_URL}${encodeURIComponent(video)}" controls autoplay playsinline></video>`;
+  const links = [];
+  if (drive) links.push(`<a href="https://drive.google.com/file/d/${encodeURIComponent(drive)}/view" target="_blank" rel="noopener">Open in Drive</a>`);
+  if (reel) links.push(`<a href="${esc(reel)}" target="_blank" rel="noopener">View on Facebook</a>`);
+  $('videoLinks').innerHTML = links.join('');
+  $('videoLinks').hidden = !links.length;
+  $('videoModal').classList.add('open');
+}
+function closeVideo() {
+  $('videoModal').classList.remove('open');
+  $('videoBody').innerHTML = ''; // removing the player stops playback
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('videoModal')?.classList.contains('open')) closeVideo();
+});
 
 const _thumbPreview = (() => {
   const el = document.createElement('img');

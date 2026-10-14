@@ -5,6 +5,8 @@ const {
   sumActionByType,
   aggregateMetrics,
   groupByVideo,
+  indexVideoTable,
+  newAdRows,
   collectFetchableCreativeIds,
   hasVideoPlays,
 } = require('./server');
@@ -240,9 +242,33 @@ describe('groupByVideo', () => {
   test('submitter comes only from the video table', () => {
     const rows = [row('a1'), row('a2')];
     const cache = { a1: cacheEntry('c1', { video_id: 'v1' }), a2: cacheEntry('c2', { video_id: 'v2' }) };
-    const res = groupByVideo(rows, cache, {}, { v2: 'thaodp' });
+    const res = groupByVideo(rows, cache, {}, indexVideoTable([{ video_id: 'v2', submitted_by: 'thaodp' }]));
     expect(res.find(r => r.video_id === 'v1').submitted_by).toBe('');
     expect(res.find(r => r.video_id === 'v2').submitted_by).toBe('thaodp');
+  });
+
+  test('BigQuery ad row gives the video, Drive file, reel and submitter', () => {
+    const table = indexVideoTable([{ video_id: 'v9', ad_id: 'a1', submitted_by: 'ngocvp', drive_file_id: 'd1', reel_url: 'https://www.facebook.com/reel/r1' }]);
+    // the creative read from Meta may carry another video id; the BigQuery one wins
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'other' }) }, {}, table);
+    expect(res[0]).toMatchObject({ video_id: 'v9', submitted_by: 'ngocvp', drive_file_id: 'd1', drive_thumb_id: 'd1', reel_url: 'https://www.facebook.com/reel/r1' });
+  });
+
+  test('thumbnail image in the folder is used as the Drive thumbnail', () => {
+    const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', drive_file_id: 'd1', thumb_drive_id: 't1' }]);
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1') }, {}, table);
+    expect(res[0].drive_thumb_id).toBe('t1');
+  });
+
+  test('a BigQuery ad whose creative Meta no longer returns is still a video', () => {
+    const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', drive_file_id: 'd1' }]);
+    const res = groupByVideo([row('a1')], { a1: cacheEntry(null) }, {}, table);
+    expect(res[0]).toMatchObject({ video_id: 'v1', format: 'Video', drive_file_id: 'd1' });
+  });
+
+  test('rows without BigQuery data have no Drive video', () => {
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'v1' }) }, {}, indexVideoTable([]));
+    expect(res[0]).toMatchObject({ video_id: 'v1', drive_file_id: null, drive_thumb_id: null, reel_url: null });
   });
 
   test('maps object_type to format label', () => {
@@ -266,6 +292,34 @@ describe('groupByVideo', () => {
   test('thumbnail_url is null when no HD entry', () => {
     const result = groupByVideo([row('a1')], { a1: cacheEntry('c1') }, {});
     expect(result[0].thumbnail_url).toBeNull();
+  });
+});
+
+// ── BigQuery video table ─────────────────────────────────────────────────────
+
+describe('indexVideoTable', () => {
+  test('indexes ad rows by ad and video; an ad row wins over a legacy row', () => {
+    const t = indexVideoTable([
+      { video_id: 'v1', submitted_by: 'thaodp' },                       // legacy
+      { video_id: 'v1', ad_id: 'a1', submitted_by: 'MinhN ', drive_file_id: 'd1' },
+      { video_id: 'v2', submitted_by: 'thaodp' },
+      { submitted_by: 'x' },                                             // no video_id: skipped
+    ]);
+    expect(Object.keys(t.byAd)).toEqual(['a1']);
+    expect(t.byVideo.v1).toMatchObject({ ad_id: 'a1', submitted_by: 'minhn', drive_file_id: 'd1' });
+    expect(t.byVideo.v2).toMatchObject({ ad_id: null, submitted_by: 'thaodp' });
+  });
+});
+
+describe('newAdRows', () => {
+  const byAd = indexVideoTable([
+    { video_id: 'v1', ad_id: 'a1', ad_name: 'New', created_at: '2026-10-14T11:03:10Z' },
+    { video_id: 'v2', ad_id: 'a2', ad_name: 'Old', created_at: '2026-09-01T10:00:00Z' },
+    { video_id: 'v3', ad_id: 'a3', ad_name: 'Delivered', created_at: '2026-10-13T10:00:00Z' },
+  ]).byAd;
+  test('ads created in the period without an insights row, with zero metrics', () => {
+    const rows = newAdRows(byAd, { since: '2026-10-07', until: '2026-10-14' }, new Set(['a3']));
+    expect(rows).toEqual([{ ad_id: 'a1', ad_name: 'New', impressions: '0', clicks: '0', spend: '0' }]);
   });
 });
 

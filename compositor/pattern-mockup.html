@@ -83,6 +83,8 @@
   /* empty zone = Shopify file drop zone: white, grey "+ Add files" pill, "Drag and drop images" under it. The pill is
      not its own button: the whole zone opens the picker, hovering the zone darkens the pill */
   .drop:has(> .drop-empty:not([hidden])){ background:#fff; }
+  /* filled: no dashed line (an invisible 1px border keeps the size, so nothing shifts) */
+  .drop:has(> .drop-full:not([hidden])){ border-color:transparent; }
   .drop-empty{ padding:24px 16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; color:var(--mut); font-size:13px; line-height:20px; }
   .add-pill{ display:inline-flex; align-items:center; gap:4px; height:28px; padding:4px 12px 4px 8px; border-radius:9999px; background:#ebebeb; color:var(--ink); font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; transition:background-color .12s; }
   .add-pill svg{ width:16px; height:16px; flex:none; }

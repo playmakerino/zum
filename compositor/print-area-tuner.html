@@ -127,8 +127,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
 .xy label{ display:flex; gap:6px; align-items:center; }
 .xy span{ color:var(--mute); font-size:13px; width:8px; flex:none; }
 .num{ width:76px !important; flex:none; }
-/* Copy / Undo sit below the Print area card, not inside it */
-.acts{ display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:none; padding:4px 4px 0; }
+.acts{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .acts button{ padding:4px 8px; overflow:hidden; text-overflow:ellipsis; }
 
 /* stage = a card with the sunken #f7f7f7 surface the photos sit on */
@@ -199,10 +198,12 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
       <input type="number" id="br" step="0.01">
       <div class="sub" id="brWhy"></div>
     </section>
-    </div>
-    <div class="acts">
-      <button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button>
-      <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
+    <section class="sec">
+      <div class="acts">
+        <button class="pri" id="copy">Copy</button><button id="reset" title="Put r, bc and br of this photo back">Undo</button>
+        <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
+      </div>
+    </section>
     </div>
     <div class="cap">Preview patterns</div>
     <div class="box">

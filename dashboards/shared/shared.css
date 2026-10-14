@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap'); /* full weight range: 450/600/650 used below; a missing weight is faux-bolded and looks smeared */
 /* Shared Shopify-admin (Polaris) look for vid-thao, trang-mockup, van-featured-image.
    SOURCE OF TRUTH: dashboards/shared/. Edit here, then run sync-shared.ps1, which
    copies this file + shared.js into each dashboard's public/ (each is its own

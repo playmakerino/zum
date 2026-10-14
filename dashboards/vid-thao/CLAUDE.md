@@ -45,7 +45,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - 1 page: Creative Performance (chỉ format Video, lọc client-side qua `isVideo`)
 - State management bằng plain object
 - SSE streaming cho dashboard load
-- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn (không cuộn riêng bảng); top bar: tiêu đề + Updated bên trái, ô ngày + Load Data bên phải. Bảng trong card: hàng đầu = filter người gửi (từ BigQuery, xem mục Người gửi), hàng cuối = debug line.
+- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown + helper bảng (sort/lọc/popup lọc/toast/SSE) dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn (không cuộn riêng bảng); top bar: tiêu đề + Updated bên trái, ô ngày + Load Data bên phải. Bảng trong card: hàng đầu = filter người gửi (từ BigQuery, xem mục Người gửi), hàng cuối = debug line.
 - **Tables:** sortable, text/metric range filters, search
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows

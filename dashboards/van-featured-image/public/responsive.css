@@ -3,15 +3,13 @@
   :root{--topbar-h:0px}
   .topbar{position:static;height:auto;padding:10px 12px;gap:6px 12px;flex-wrap:wrap}
   .topbar-title{width:100%}
-  .logo{font-size:13px}
   .topbar-actions{margin-left:0;gap:6px;flex-wrap:wrap}
   .btn{padding:5px 10px;font-size:11px}
   .main{padding:8px}
 
   table{min-width:600px}
   thead th{padding:8px 6px;font-size:10px;letter-spacing:.3px}
-  tbody td{padding:5px 6px;font-size:12px}
+  tbody td{padding:5px 6px}
   .th-filter-input{width:100px}
-  .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:4px}
-  .load-log{font-size:11px;max-height:80px;line-height:1.6}
+  .thumb,.thumb-placeholder{border-radius:4px}
 }

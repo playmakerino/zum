@@ -4,11 +4,11 @@
 Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single page, không có chat hay multi-tab.
 
 ## Tech Stack
-- **Backend:** Node.js + Express (server.js ~389 lines)
+- **Backend:** Node.js + Express (server.js)
 - **Frontend:** Vanilla HTML/CSS/JS, tách file:
-  - `public/index.html` — HTML structure (~67 lines)
-  - `public/style.css` — CSS styles (~127 lines)
-  - `public/app.js` — JavaScript logic (~374 lines)
+  - `public/index.html` — HTML structure
+  - `public/style.css` — CSS styles
+  - `public/app.js` — JavaScript logic
 - **API:** Meta Graph API v22.0
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
@@ -18,6 +18,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
+- **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
 - **GET /api/config** — trả về status config (có token chưa)
 - **GET /api/dashboard** — SSE stream pipeline
 - **Error handling:** detect token expiry (code 190), rate limit (code 4/17)
@@ -26,7 +27,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 ### Frontend (app.js)
 - 1 page duy nhất: bảng ads (Image, Print ID, Ad Name, Link, Spend, ROAS)
-- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn; top bar: tiêu đề + Updated trái, 2 nút Load Active Ads / Load All phải. Bảng trong card: hàng đầu = tiêu đề "Active ads"/"All ads" theo dữ liệu đang hiện, hàng cuối = load log (trước khi có thì hiện câu nhắc).
+- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown + helper bảng (sort/lọc/popup lọc/toast/SSE) dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn; top bar: tiêu đề + Updated trái, 2 nút Load Active Ads / Load All phải. Bảng trong card: hàng đầu = tiêu đề "Active ads"/"All ads" theo dữ liệu đang hiện, hàng cuối = load log (trước khi có thì hiện câu nhắc).
 - State management bằng plain object
 - SSE streaming cho dashboard load
 - **Table:** sortable (spend, roas, print_id), text filter (ad_name), metric range filters (spend, roas)

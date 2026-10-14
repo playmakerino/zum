@@ -1,34 +1,16 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#ffffff;
   --s:#ffffff;
-  --s2:#f7f7f7;
-  --s3:#f2f2f2;
-  --b:#e3e3e3;
-  --b2:#d0d0d0;
-  --a:#303030;
-  --a-shadow:rgba(0,0,0,.1);
-  --g:#047b5d;
-  --r:#c70a24;
   --t:#101010;
-  --t2:#4a4a4a;
   --t3:#616161;
-  --rad:12px;
-  --gap:24px;
-  --shadow-sm:0 1px 2px rgba(15,17,21,.04),0 0 0 1px rgba(15,17,21,.04);
-  --shadow-lg:0 12px 24px rgba(15,17,21,.1),0 4px 8px rgba(15,17,21,.06);
 }
-body{font:13px/1.5 'Inter',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{-webkit-font-smoothing:antialiased}
 
-.layout{grid-template-columns:1fr;grid-template-rows:56px 1fr}
-.topbar{display:flex;align-items:center;padding:0 var(--gap);gap:16px}
-.main{padding:var(--gap);flex-direction:column}
+.topbar{display:flex;align-items:center;gap:16px}
 .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
 
-.btn{border:none;transition:all .12s}
+.btn{transition:all .12s}
 
-.page{display:none}
-.page.active{flex-direction:column;flex:1;min-height:0}
 table{border-collapse:collapse;table-layout:fixed}
 /* fixed widths for the short columns; Ad Name + Link have no width so they share the rest
    (with % widths the leftover space was spread into Image/Print ID/Spend/ROAS) */
@@ -37,9 +19,6 @@ col.col-pid{width:110px}
 col.col-spend{width:120px}
 col.col-roas{width:110px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
-tbody tr{transition:background .08s}
-tbody tr:last-child{border-bottom:none}
-tbody td{vertical-align:middle}
 .td-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
@@ -49,18 +28,10 @@ tbody td{vertical-align:middle}
 .btn-show-more{cursor:pointer;transition:.12s}
 
 thead th .th-content{display:flex;align-items:center;white-space:nowrap}
-.th-filter-input{outline:none;width:160px;transition:.12s}
-.col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;transition:.12s;margin-left:auto;flex-shrink:0}
-.filter-popup{position:fixed;background:var(--s);z-index:100;min-width:260px;display:none}
-.filter-popup-title{padding:12px 14px 10px;color:var(--t)}
-.filter-popup-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.filter-popup-body select{width:100%;background:var(--s);border:1px solid var(--b);border-radius:5px;padding:6px 10px;font-family:inherit;font-size:13px;line-height:1.3;color:var(--t);outline:none;cursor:pointer;transition:.12s}
-.filter-popup-body select:hover{border-color:var(--b2)}
-.filter-popup-body select:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--a-shadow)}
-.filter-inputs{display:flex;align-items:center;gap:6px}
-.filter-inputs input{flex:1;background:var(--s);padding:6px 10px;outline:none;transition:.12s}
-.filter-popup-actions{padding:8px 14px 12px;display:flex;justify-content:flex-end;gap:6px}
-.filter-popup-actions button{cursor:pointer;transition:.12s}
+.col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;transition:.12s;flex-shrink:0}
+.filter-popup{position:fixed;background:var(--s);z-index:100;display:none}
+.filter-inputs input{transition:.12s}
+.filter-popup-actions button{transition:.12s}
 
 .load-overlay{position:absolute;inset:0;display:flex;justify-content:center;z-index:5;backdrop-filter:blur(4px)}
 .load-popup{background:var(--s);padding:20px 24px;min-width:260px}
@@ -68,14 +39,11 @@ thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 .load-status{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .load-timer{margin-left:auto;color:var(--t3);font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0}
 
-.load-log{flex-shrink:0;max-height:120px;overflow-y:auto;margin-top:12px;font:12px/1.8 'SF Mono',ui-monospace,monospace;color:var(--t3)}
+.load-log{flex-shrink:0;overflow-y:auto}
 .load-log:empty{display:none}
-.log-line.success{color:var(--t3)}
-.log-line.error{color:var(--r)}
 
 #toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;z-index:9999;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
 
-
-.link-cell{color:var(--blue,#2563eb);text-decoration:none;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-cell{text-decoration:none;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .link-cell:hover{text-decoration:underline}

@@ -45,10 +45,12 @@ function dateStr(daysAgo) {
   return d.toISOString().split('T')[0];
 }
 
-function getCredentials(req) {
-  const token = req.headers['x-meta-token'] || process.env.META_ACCESS_TOKEN || '';
-  const accountId = (req.headers['x-meta-account-id'] || process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
-  return { token, accountId };
+// Credentials come from the server environment only.
+function getCredentials() {
+  return {
+    token:     process.env.META_ACCESS_TOKEN || '',
+    accountId: (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, ''),
+  };
 }
 
 async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
@@ -227,7 +229,7 @@ app.get('/api/config', (req, res) => {
 // GET /api/thumbs?ids=cid1,cid2 — HD thumbnails (480px) for creatives, max 50 per call.
 // Called by the frontend for rows scrolled into view; served from memory when cached.
 app.get('/api/thumbs', async (req, res) => {
-  const { token } = getCredentials(req);
+  const { token } = getCredentials();
   if (!token) return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN' });
   const ids = [...new Set(String(req.query.ids || '').split(',').map(s => s.trim()).filter(id => /^\d+$/.test(id)))].slice(0, 50);
   const now = Date.now();
@@ -250,7 +252,7 @@ app.get('/api/thumbs', async (req, res) => {
 });
 
 app.get('/api/dashboard', async (req, res) => {
-  const { token, accountId } = getCredentials(req);
+  const { token, accountId } = getCredentials();
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
@@ -267,7 +269,7 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
-    // 1. Fetch insights (current + previous 30 days)
+    // 1. Fetch insights (last 30 days)
     const cacheKey = String(DAYS);
     const ic = insightsCache[cacheKey];
     let currRows;
@@ -292,12 +294,12 @@ app.get('/api/dashboard', async (req, res) => {
       adSpendMap[r.ad_id] = parseFloat(r.spend) || 0;
       adNameMap[r.ad_id] = r.ad_name || '';
     }
-    const uniqueAdIds = [...new Set(Object.keys(adSpendMap))];
+    const uniqueAdIds = Object.keys(adSpendMap);
     const isQualified = id => {
       const spend = adSpendMap[id] || 0;
       return (hasValidFormat(adNameMap[id]) && spend > MIN_SPEND_VALID_FORMAT) || spend > MIN_SPEND_ANY_NAME;
     };
-    const allAdIds = uniqueAdIds.filter(id => isQualified(id));
+    const allAdIds = uniqueAdIds.filter(isQualified);
     const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
     const highSpendCount = allAdIds.length - validFmtCount;
     progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format spend>$${MIN_SPEND_VALID_FORMAT} + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}) [${elapsed()}]`);

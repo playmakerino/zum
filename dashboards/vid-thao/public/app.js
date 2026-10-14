@@ -1,19 +1,3 @@
-window.onerror = function(msg, src, line, col, err) {
-  const el = document.getElementById('toast');
-  if (el) { el.textContent = 'Error: ' + msg; el.className = 'show error'; setTimeout(() => el.className = '', 5000); }
-  console.error('Unhandled error:', msg, src, line, col, err);
-  return true;
-};
-window.onunhandledrejection = function(e) {
-  const msg = e.reason?.message || String(e.reason);
-  const el = document.getElementById('toast');
-  if (el) { el.textContent = 'Error: ' + msg; el.className = 'show error'; setTimeout(() => el.className = '', 5000); }
-  console.error('Unhandled rejection:', e.reason);
-};
-
-const $ = id => document.getElementById(id);
-const $$ = sel => document.querySelectorAll(sel);
-
 // Strip server-sent "[1.2s]" suffix; the popup runs its own timer.
 const STRIP_TIMER_RE = /\s*\[[\d.]+s\]\s*$/;
 
@@ -54,7 +38,6 @@ function formatErrorDetail(detail) {
   return String(detail);
 }
 
-const PAGE_SIZE = 100;
 const state = {
   ready: false,
   creatives: { current: [], period: null },
@@ -64,14 +47,9 @@ const state = {
 };
 
 // Table config
-const COL_LABELS = {
-  spend: 'Spend', roas: 'ROAS', cpr: 'CPR', aov: 'AOV',
-  cpm: 'CPM', ctr: 'CTR', cpc: 'CPC',
-  video_3sec_rate: '3s/Impr', thruplay_rate: 'ThruPlay%', video_avg_time: 'Avg Time',
-};
 const TABLES = {
   creatives: {
-    cols: 12, idKey: 'creative_id',
+    cols: 12,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
     row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
@@ -83,6 +61,18 @@ const isVideo = r => (r.format || '').toLowerCase() === 'video';
 const cacheKey = (t, d) => `meta_cache_${t}_${d}`;
 const saveCache = (t, d, v) => { try { localStorage.setItem(cacheKey(t, d), JSON.stringify(v)); } catch {} };
 const loadCache = (t, d) => { try { return JSON.parse(localStorage.getItem(cacheKey(t, d))); } catch { return null; } };
+
+// Show the result saved in this browser for the period; false when there is none.
+function showSaved(days) {
+  const cached = loadCache('creatives', days);
+  if (!cached) return false;
+  state.creatives = { ...cached, current: (cached.current || []).filter(isVideo) };
+  renderTable('creatives');
+  showCacheTime(cached.cached_at);
+  updatePeriodSelectLabels(cached.period);
+  renderDebug(loadCache('debug', days));
+  return true;
+}
 
 // Init
 window.addEventListener('DOMContentLoaded', async () => {
@@ -101,43 +91,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   updatePeriodSelectLabels();
   // Opening the page never calls Meta: show the result saved in this browser, else an empty
   // table with the "Load Data" hint (user choice 2026-10-14)
-  if (state.ready) {
-    const days = $('periodSelect').value;
-    const cached = loadCache('creatives', days);
-    if (cached) {
-      state.creatives = {
-        ...cached,
-        current: (cached.current || []).filter(isVideo),
-      };
-      renderTable('creatives');
-      showCacheTime(cached.cached_at);
-      updatePeriodSelectLabels(cached.period);
-      renderDebug(loadCache('debug', days));
-    }
-  }
+  if (state.ready) showSaved($('periodSelect').value);
 });
 
-// Swap to cached data for the chosen period (or clear table if no cache).
+// Swap to the saved result of the chosen period, or clear the table when there is none.
 function onPeriodChange() {
-  const days = $('periodSelect').value;
-  const cached = loadCache('creatives', days);
-  if (cached) {
-    state.creatives = {
-      ...cached,
-      current: (cached.current || []).filter(isVideo),
-    };
-    renderTable('creatives');
-    showCacheTime(cached.cached_at);
-    updatePeriodSelectLabels(cached.period);
-    renderDebug(loadCache('debug', days));
-  } else {
-    state.creatives = { current: [], period: null };
-    state.pageLimit.creatives = PAGE_SIZE;
-    $('creativesBody').innerHTML = ''; // hint shows in the card footer (data-empty)
-    showCacheTime(null);
-    updatePeriodSelectLabels();
-    renderDebug(null);
-  }
+  if (showSaved($('periodSelect').value)) return;
+  state.creatives = { current: [], period: null };
+  state.pageLimit.creatives = PAGE_SIZE;
+  $('creativesBody').innerHTML = ''; // hint shows in the card footer (data-empty)
+  showCacheTime(null);
+  updatePeriodSelectLabels();
+  renderDebug(null);
 }
 
 function showCacheTime(iso) {
@@ -218,7 +183,7 @@ function updatePeriodSelectLabels(period) {
 }
 
 // Fetch
-async function fetchAll(refresh = true) {
+async function fetchAll() {
   if (!state.ready)
     return toast('Backend not configured (META_ACCESS_TOKEN / META_AD_ACCOUNT_ID missing)', 'error');
 
@@ -233,7 +198,7 @@ async function fetchAll(refresh = true) {
   startLoadTimer();
 
   const startTime = performance.now();
-  const url = `/api/dashboard?days=${days}${refresh ? '&refresh=1' : ''}`;
+  const url = `/api/dashboard?days=${days}&refresh=1`;
   try {
     const res = await fetch(url);
     if (!res.ok) {
@@ -247,49 +212,26 @@ async function fetchAll(refresh = true) {
       throw err;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '', data = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        let j;
-        try {
-          j = JSON.parse(line.slice(6));
-        } catch (e) {
-          console.warn('[SSE parse error]', e.message, 'on line:', line);
-          continue;
-        }
-        if (j.progress) {
-          const msg = j.progress.replace(STRIP_TIMER_RE, '');
-          $$('.load-status').forEach(el => el.textContent = msg);
-        }
-        if (j.debug) showDebug(j.debug);
-        if (j.result) data = j.result;
-        if (j.error) {
-          const err = new Error(j.error);
-          err.detail = j.detail;
-          err.elapsedMs = j.elapsedMs;
-          err.fromSSE = true;
-          throw err;
-        }
+    let data = null;
+    await readSSE(res, j => {
+      if (j.progress) {
+        const msg = j.progress.replace(STRIP_TIMER_RE, '');
+        $$('.load-status').forEach(el => el.textContent = msg);
       }
-    }
-
+      if (j.debug) showDebug(j.debug);
+      if (j.result) data = j.result;
+      if (j.error) {
+        const err = new Error(j.error);
+        err.detail = j.detail;
+        err.elapsedMs = j.elapsedMs;
+        throw err;
+      }
+    });
     if (!data) throw new Error('No data received');
 
     const fullCreatives = { current: data.creatives.current, period: data.period, cached_at: data.cached_at };
     saveCache('creatives', days, fullCreatives);
-    state.creatives = {
-      ...fullCreatives,
-      current: fullCreatives.current.filter(isVideo),
-    };
+    state.creatives = { ...fullCreatives, current: fullCreatives.current.filter(isVideo) };
 
     renderTable('creatives');
     showCacheTime(data.cached_at);
@@ -326,11 +268,10 @@ function enrichRow(row) {
 function renderTable(type) {
   if (type === 'creatives') refreshSubmitterOptions();
   const cfg = TABLES[type];
-  const data = state[type];
   const { key, dir } = state.sort[type];
-  const sorted = data.current.map(enrichRow).sort((a, b) => (parseFloat(b[key] || 0) - parseFloat(a[key] || 0)) * dir);
+  const sorted = state[type].current.map(enrichRow).sort((a, b) => (parseFloat(b[key] || 0) - parseFloat(a[key] || 0)) * dir);
 
-  const filtered = applyFilters(type, sorted);
+  const filtered = applyFilters(type, bySubmitter(sorted));
   const limit = state.pageLimit[type];
   const page = filtered.slice(0, limit);
 
@@ -347,22 +288,8 @@ function renderTable(type) {
   buildTotalRow(type, filtered);
 }
 
-function showMore(type) {
-  state.pageLimit[type] += PAGE_SIZE;
-  renderTable(type);
-}
-
-function sortTable(type, key) {
-  const s = state.sort[type];
-  s.dir = s.key === key ? s.dir * -1 : 1;
-  s.key = key;
-  state.pageLimit[type] = PAGE_SIZE;
-  renderTable(type);
-}
-
 // Submitter filter (card head): values from BigQuery (who sent the video through the form)
 const NO_SUBMITTER = '__none__';
-const escapeHtml = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function storedSubmitter() { try { return localStorage.getItem('vidthao_submitter') || ''; } catch { return ''; } }
 
 function refreshSubmitterOptions() {
@@ -373,7 +300,7 @@ function refreshSubmitterOptions() {
   const hasNone = rows.some(r => !r.submitted_by);
   const want = sel.value || storedSubmitter();
   sel.innerHTML = '<option value="">All submitters</option>'
-    + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')
+    + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')
     + (hasNone ? `<option value="${NO_SUBMITTER}">(no email)</option>` : '');
   sel.value = [...sel.options].some(o => o.value === want) ? want : '';
 }
@@ -383,47 +310,9 @@ function onSubmitterChange() {
   filterTable('creatives');
 }
 
-// Pure filter: returns filtered subset of rows
-function applyFilters(type, rows) {
-  const metricFilters = state.filters[type];
+function bySubmitter(rows) {
   const submitter = $('submitterSelect')?.value || '';
-  if (submitter) rows = rows.filter(r => submitter === NO_SUBMITTER ? !r.submitted_by : r.submitted_by === submitter);
-
-  // Collect text/select filters from header row
-  const colFilters = {};
-  $$(`#${type}Table thead [data-col]`).forEach(el => {
-    const col = el.dataset.col;
-    const t = el.dataset.type;
-    const v = el.value.trim();
-    if (v && !(t === 'select' && v === '')) colFilters[col] = { type: t, value: v };
-  });
-
-  const hasFilters = Object.keys(colFilters).length > 0 || Object.keys(metricFilters).length > 0;
-  if (!hasFilters) return rows;
-
-  return rows.filter(row => {
-    for (const [col, f] of Object.entries(colFilters)) {
-      if (f.type === 'text') {
-        if (!String(row[col] || '').toLowerCase().includes(f.value.toLowerCase())) return false;
-      } else if (f.type === 'select') {
-        if (f.value && String(row[col] || '') !== f.value) return false;
-      }
-    }
-    for (const [col, f] of Object.entries(metricFilters)) {
-      const v = parseFloat(row[col] || 0);
-      if (f.op === 'gt' && !(v > f.val1)) return false;
-      if (f.op === 'lt' && !(v < f.val1)) return false;
-      if (f.op === 'between' && !(v >= f.val1 && v <= f.val2)) return false;
-      if (f.op === 'notBetween' && !(v < f.val1 || v > f.val2)) return false;
-    }
-    return true;
-  });
-}
-
-// Re-filter + re-render (called from filter inputs)
-function filterTable(type) {
-  state.pageLimit[type] = PAGE_SIZE;
-  renderTable(type);
+  return submitter ? rows.filter(r => submitter === NO_SUBMITTER ? !r.submitted_by : r.submitted_by === submitter) : rows;
 }
 
 function totals(rows) {
@@ -455,104 +344,13 @@ function buildTotalRow(type, filtered) {
   const thead = document.querySelector(`#${type}Table thead`);
   thead.querySelector('.total-row')?.remove();
   if (filtered.length === 0) return;
-  const labelCols = 2;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
-  const emptyTds = '<td></td>'.repeat(labelCols - 2);
-  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered))}`;
+  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${metrics(totals(filtered))}`;
   thead.appendChild(tr);
 }
 
-// ── Filter Popup ──────────────────────────────────────────────────────────────
-let _fpState = { type: null, col: null, btn: null };
-
-function openFilterPopup(type, col, btn) {
-  const popup = $('filterPopup');
-  _fpState = { type, col, btn };
-
-  // Load existing filter
-  const existing = state.filters[type][col];
-  $('filterOp').value = existing?.op || 'gt';
-  $('filterVal1').value = existing?.val1 ?? '';
-  $('filterVal2').value = existing?.val2 ?? '';
-  $('filterPopupTitle').textContent = (btn.closest('th')?.textContent || col).replace(/[▴▾]/g, '').trim(); // column label as shown in the header
-  onFilterOpChange();
-
-  // Position popup near button, ensure it stays in viewport
-  const rect = btn.getBoundingClientRect();
-  popup.style.display = 'block';
-  const popH = popup.offsetHeight;
-  const popW = popup.offsetWidth;
-  const top = rect.bottom + 4 + popH > window.innerHeight ? rect.top - popH - 4 : rect.bottom + 4;
-  popup.style.top = Math.max(4, top) + 'px';
-  popup.style.left = Math.min(rect.left, window.innerWidth - popW - 8) + 'px';
-
-  // Close on outside click
-  setTimeout(() => document.addEventListener('mousedown', _fpOutsideClick), 0);
-}
-
-function _fpOutsideClick(e) {
-  const popup = $('filterPopup');
-  if (!popup.contains(e.target) && e.target !== _fpState.btn) {
-    cancelFilter();
-  }
-}
-
-function onFilterOpChange() {
-  const op = $('filterOp').value;
-  const isBetween = op === 'between' || op === 'notBetween';
-  $('filterAnd').style.display = isBetween ? '' : 'none';
-  $('filterVal2').style.display = isBetween ? '' : 'none';
-}
-
-function applyFilter() {
-  const { type, col } = _fpState;
-  const op = $('filterOp').value;
-  const val1 = parseFloat($('filterVal1').value);
-  if (isNaN(val1)) { cancelFilter(); return; }
-  const filter = { op, val1 };
-  if (op === 'between' || op === 'notBetween') {
-    const val2 = parseFloat($('filterVal2').value);
-    if (isNaN(val2)) { cancelFilter(); return; }
-    filter.val2 = val2;
-  }
-  state.filters[type][col] = filter;
-  cancelFilter();
-  filterTable(type);
-  updateFilterBtns(type);
-}
-
-function clearCurrentFilter() {
-  const { type, col } = _fpState;
-  delete state.filters[type][col];
-  cancelFilter();
-  filterTable(type);
-  updateFilterBtns(type);
-}
-
-function cancelFilter() {
-  $('filterPopup').style.display = 'none';
-  document.removeEventListener('mousedown', _fpOutsideClick);
-}
-
-function updateFilterBtns(type) {
-  $$(`#${type}Table .col-filter-btn`).forEach(btn => {
-    const col = btn.dataset.col;
-    const f = state.filters[type][col];
-    btn.classList.toggle('active', !!f);
-    if (f) {
-      const opLabels = { gt: '>', lt: '<', between: '', notBetween: '!' };
-      const valStr = f.op === 'between' || f.op === 'notBetween' ? `${f.val1}–${f.val2}` : `${opLabels[f.op]}${f.val1}`;
-      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg> ${valStr}`;
-    } else {
-      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg>`;
-    }
-  });
-}
-
 // Helpers
-const empty = cols => `<tr><td colspan="${cols}"><div class="state-box">No data</div></td></tr>`;
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtF = n => parseFloat(parseFloat(n || 0).toFixed(2)).toString();
 const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
@@ -567,7 +365,6 @@ const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComp
 const DRIVE_MP4 = id => `/api/drive-video/${encodeURIComponent(id)}`;
 const DRIVE_DOWNLOAD = id => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
 const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
-const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
 const canPlay = r => !!(r.drive_file_id || r.video_id);
 
 function thumb(r) {
@@ -750,14 +547,4 @@ function metrics(row) {
     [row.thruplay_rate,   fmtPctInt],
     [row.video_avg_time,  fmtTime],
   ].map(([c, f]) => `<td class="td-metric">${f(c)}</td>`).join('');
-}
-
-// Toast
-let toastTimer;
-function toast(msg, type = '') {
-  const el = $('toast');
-  el.textContent = msg;
-  el.className = 'show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 3500);
 }

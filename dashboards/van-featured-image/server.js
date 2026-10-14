@@ -37,10 +37,12 @@ function addDays(dateString, days) {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().split('T')[0];
 }
 
-function getCredentials(req) {
-  const token = req.headers['x-meta-token'] || process.env.META_ACCESS_TOKEN || '';
-  const accountId = (req.headers['x-meta-account-id'] || process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, '');
-  return { token, accountId };
+// Credentials come from the server environment only.
+function getCredentials() {
+  return {
+    token:     process.env.META_ACCESS_TOKEN || '',
+    accountId: (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, ''),
+  };
 }
 
 // One create+poll+fetch attempt. Throws a retryable Error (err.retryable=true)
@@ -208,7 +210,7 @@ app.get('/api/config', (req, res) => {
 });
 
 app.get('/api/dashboard', async (req, res) => {
-  const { token, accountId } = getCredentials(req);
+  const { token, accountId } = getCredentials();
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
 
@@ -223,14 +225,13 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   const mode = req.query.mode || 'all';
-  const defaultFilter = [
-    { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
+  const statusFilter = statuses => [
+    { field: 'ad.effective_status', operator: 'IN', value: statuses },
     { field: 'spend', operator: 'GREATER_THAN', value: 0 },
   ];
-  const activeFilter = [
-    { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE'] },
-    { field: 'spend', operator: 'GREATER_THAN', value: 0 },
-  ];
+  const defaultFilter = statusFilter(['ACTIVE', 'PAUSED']);
+  const activeFilter = statusFilter(['ACTIVE']);
+  const onPoll = (s, p) => progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
 
   try {
     // ── Step 1: Fetch insights (spend + action_values) ──────────────────────
@@ -241,9 +242,7 @@ app.get('/api/dashboard', async (req, res) => {
     if (mode === 'active') {
       const since = allTimeStart();
       progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
-      allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
-        progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-      }, activeFilter, 'spend_descending');
+      allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, onPoll, activeFilter, 'spend_descending');
       progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
     } else {
       // All mode: incremental cache
@@ -256,18 +255,14 @@ app.get('/api/dashboard', async (req, res) => {
           isIncremental = true;
           const since = addDays(cache.lastUntil, 1);
           progress(`Step 1: Incremental fetch (${since} → ${today})... [${elapsed()}]`);
-          const newRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
-            progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-          }, defaultFilter, 'spend_descending');
+          const newRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, onPoll, defaultFilter, 'spend_descending');
           allRows = [...cache.rows, ...newRows];
           progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
         }
       } else {
         const since = allTimeStart();
         progress(`Step 1: Fetching all-time data (${since} → ${today})... [${elapsed()}]`);
-        allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
-          progress(`Step 1: Polling report ${p}% [${elapsed()}]`);
-        }, defaultFilter, 'spend_descending');
+        allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, onPoll, defaultFilter, 'spend_descending');
         progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
       }
 
@@ -450,6 +445,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Meta Ads Dashboard running on http://localhost:${PORT}`));
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey };
-}
+module.exports = { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey };

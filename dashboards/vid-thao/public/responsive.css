@@ -5,7 +5,6 @@
   .topbar{padding:0 12px;gap:8px}
   .topbar-actions{gap:6px}
   #cachedAt{display:none}
-  .logo{font-size:13px}
   .dd-submitterSelect{max-width:140px}
   .col-filter-btn{padding:5px 4px}
   .load-popup{min-width:0;width:calc(100% - 32px)}

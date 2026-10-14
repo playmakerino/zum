@@ -531,8 +531,12 @@ app.get('/api/dashboard', async (req, res) => {
     const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL).length;
     const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
 
+    // only the creatives of this load (the cache keeps every creative read since the process started)
     const hdThumbMap = {};
-    for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
+    for (const ad of allAds) {
+      const cid = ad.creative?.id;
+      if (cid && hdThumbCache[cid]) hdThumbMap[cid] = hdThumbCache[cid].url;
+    }
 
     progress(`Processing data... [${elapsed()}]`);
     const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, videoTable);
@@ -575,17 +579,15 @@ if (require.main === module) {
 }
 
 // Export for testing
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    dateStr,
-    findPurchaseAction,
-    sumActionValue,
-    sumActionByType,
-    aggregateMetrics,
-    groupByVideo,
-    indexVideoTable,
-    newAdRows,
-    collectFetchableCreativeIds,
-    hasVideoPlays,
-  };
-}
+module.exports = {
+  dateStr,
+  findPurchaseAction,
+  sumActionValue,
+  sumActionByType,
+  aggregateMetrics,
+  groupByVideo,
+  indexVideoTable,
+  newAdRows,
+  collectFetchableCreativeIds,
+  hasVideoPlays,
+};

@@ -317,8 +317,6 @@ app.get('/api/dashboard', async (req, res) => {
       const e = hdThumbCache[cid];
       return e && (Date.now() - e._cachedAt) <= HD_THUMB_TTL ? e.url : null;
     };
-    const thumbableIds = new Set(allAds.filter(a => thumbable(a.creative)).map(a => a.creative.id));
-    const cachedThumbCount = [...thumbableIds].filter(cachedThumb).length;
 
     // 4. Build creative map
     const creativeMap = {};
@@ -354,11 +352,9 @@ app.get('/api/dashboard', async (req, res) => {
       },
       period:    { current },
       cached_at: new Date().toISOString(),
-      stats: {
-        insights:   { rows: currRows.length, qualified: allAdIds.length, cached: !forceRefresh && !!ic },
-        creatives:  { total: allAdIds.length, cached: allAdIds.length - missingIds.length, fetched: missingIds.length },
-        thumbnails: { total: thumbableIds.size, cached: cachedThumbCount, fetched: 0, lazy: true },
-        _v: 2, qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
+      stats: { // read by the load log in public/app.js
+        insights: { rows: currRows.length },
+        qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
       },
     };
     progress(`Done [${elapsed()}]`);

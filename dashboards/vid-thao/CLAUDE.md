@@ -42,17 +42,17 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - 1 page: Creative Performance (chỉ format Video, lọc client-side qua `isVideo`)
 - State management bằng plain object
 - SSE streaming cho dashboard load
+- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn (không cuộn riêng bảng); top bar: tiêu đề + Updated bên trái, ô ngày + Load Data bên phải. Bảng trong card: hàng đầu = filter người gửi (lấy từ tên campaign `TC | Vid | folder | email | yyMMdd`), hàng cuối = debug line.
 - **Tables:** sortable, text/metric range filters, search
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
-  - Total row tính trên ALL filtered rows (không chỉ page hiện tại)
-  - Sticky first column (thumb) với white background
+  - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
 - **Thumbnail preview:** hover hiện ảnh HD 240×240 (position:fixed)
   - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480`
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)
-- Mobile responsive (sidebar collapse ở 768px)
+- Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Custom CSS tooltip cho nút Load Data
-- **Debug line:** dưới table, hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
+- **Debug line:** hàng cuối card (trước khi có thì hiện câu nhắc Load Data), hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics
 - Raw (fetched): impressions, clicks, spend

@@ -22,16 +22,17 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - **GET /api/dashboard** — SSE stream pipeline
 - **Error handling:** detect token expiry (code 190), rate limit (code 4/17)
 - **Render free:** không có persistent disk → mọi cache server chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle). Sau restart, "Load All" chạy lại full 12 tháng.
-- Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds }`
+- Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
 
 ### Frontend (app.js)
-- 1 page duy nhất: bảng ads (Image, Print ID, Ad Name, Spend, ROAS)
+- 1 page duy nhất: bảng ads (Image, Print ID, Ad Name, Link, Spend, ROAS)
+- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn; top bar: tiêu đề + Updated trái, 2 nút Load Active Ads / Load All phải. Bảng trong card: hàng đầu = tiêu đề "Active ads"/"All ads" theo dữ liệu đang hiện, hàng cuối = load log (trước khi có thì hiện câu nhắc).
 - State management bằng plain object
 - SSE streaming cho dashboard load
 - **Table:** sortable (spend, roas, print_id), text filter (ad_name), metric range filters (spend, roas)
   - Filter trước → paginate sau (100 rows/page, "Show more")
 - **Image preview:** hover hiện ảnh 240×240 (position:fixed)
-- Mobile responsive (768px breakpoint)
+- Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Load log hiển thị dưới table, persist qua localStorage
 
@@ -54,7 +55,7 @@ Meta API: POST /act_{id}/insights (async report)
 ### Step 1.5: pickTopSpendAds()
 - Aggregate rows theo `ad_id` → tính tổng spend + purchase_value
 - **Filter:** `spend <= 100` → bỏ ads có tổng spend <= $100
-- Gom theo `ad_name` → chỉ giữ ad có spend cao nhất per name
+- Gom theo `extractGroupKey(ad_name)` (print-type) → chỉ giữ ad có spend cao nhất mỗi nhóm
 - Tính `roas = purchase_value / spend`
 
 ### Step 2: Fetch Creative Info (chỉ missing)

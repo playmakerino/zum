@@ -619,12 +619,13 @@ function openVideo(i) {
   $('viAdded').hidden = !r.created_at;
   $('viSubmitter').textContent = r.submitted_by || '';
   $('viSubmitterSec').hidden = !r.submitted_by;
-  // Thumbnail = only the ad's real thumbnail from Meta (current creative). No Drive fallback here:
-  // that is a frame of the file, not necessarily the ad's thumbnail. Missing or expired → section hidden.
-  const t = $('viThumb');
-  t.dataset.fallback = '';
-  $('viThumbSec').hidden = !r.thumbnail_url;
-  if (r.thumbnail_url) t.src = r.thumbnail_url; else t.removeAttribute('src');
+  // Thumbnail = only the ad's real thumbnail from Meta (current creative), never a Drive frame.
+  // "Fetch from Meta" reads it again on demand (2 Meta calls).
+  viewer.dataset.row = String(i);
+  $('viThumbSec').hidden = !(r.ad_ids && r.ad_ids.length);
+  showViewerThumb(r.thumbnail_url);
+  $('viThumbFetch').disabled = false;
+  $('viThumbFetch').textContent = 'Fetch from Meta';
   const ads = r.ad_count || 1;
   $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'Ad' : 'Ads'}`;
 
@@ -642,7 +643,6 @@ function openVideo(i) {
   viewer.classList.add('open');
   document.body.style.overflow = 'hidden';
   v.play().catch(() => {});
-  $('viewerExit').focus();
 }
 function closeVideo() {
   const v = $('viewerVideo');
@@ -652,9 +652,36 @@ function closeVideo() {
   $('videoViewer').classList.remove('open');
   document.body.style.overflow = '';
 }
-function viewerThumbError(img) {
-  const fallback = img.dataset.fallback;
-  if (fallback) { img.dataset.fallback = ''; img.src = fallback; } else $('viThumbSec').hidden = true;
+function showViewerThumb(url) {
+  const t = $('viThumb');
+  if (url) { t.src = url; t.hidden = false; } else { t.removeAttribute('src'); t.hidden = true; }
+}
+// expired Meta link (saved result): hide the image, the button can fetch a fresh one
+function viewerThumbError(img) { img.hidden = true; }
+
+async function fetchAdThumb() {
+  const viewer = $('videoViewer');
+  const r = state.rendered?.[+viewer.dataset.row];
+  const btn = $('viThumbFetch');
+  if (!r?.ad_ids?.length) return;
+  const token = viewer.dataset.token;
+  btn.disabled = true;
+  btn.textContent = 'Fetching…';
+  try {
+    const res = await fetch('/api/ad-thumb?ad_ids=' + r.ad_ids.join(','));
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error + (j.detail ? ': ' + formatErrorDetail(j.detail) : ''));
+    if (viewer.dataset.token !== token) return;
+    if (!j.url) { toast('Meta returned no thumbnail for this ad', 'error'); return; }
+    r.thumbnail_url = j.url;
+    showViewerThumb(j.url);
+    renderTable('creatives'); // the row's small thumbnail follows
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Fetch from Meta';
+  }
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('videoViewer')?.classList.contains('open')) closeVideo();

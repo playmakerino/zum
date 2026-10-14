@@ -9,7 +9,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
   - `public/index.html` — HTML structure
   - `public/style.css` — CSS styles
   - `public/app.js` — JavaScript logic
-- **API:** Meta Graph API v22.0
+- **API:** Meta Marketing API v26.0 (version + phần gọi Meta dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`)
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process**
@@ -21,7 +21,8 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
 - **GET /api/config** — trả về status config (có token chưa)
 - **GET /api/dashboard** — SSE stream pipeline
-- **Error handling:** detect token expiry (code 190), rate limit (code 4/17)
+- **Error handling:** detect token expiry (code 190), rate limit (code 4/17); báo cáo async lỗi tự chạy lại sau 5s, 15s, 30s rồi gọi thử đồng bộ để lấy lý do thật (`fetchInsights` trong meta.js)
+- **Một lượt tải mỗi mode:** request thứ hai cùng mode nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). 2 nút Load bị khoá trong lúc tải
 - **Render free:** không có persistent disk → mọi cache server chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle). Sau restart, "Load All" chạy lại full 12 tháng.
 - Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
 

@@ -9,7 +9,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
   - `public/index.html` - HTML structure
   - `public/style.css` - CSS styles
   - `public/app.js` - JavaScript logic
-- **APIs:** Meta Graph API v22.0
+- **APIs:** Meta Marketing API v26.0 (version + phần gọi Meta dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`)
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process** - không dùng bundler
@@ -29,7 +29,8 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
   - Meta không lọc được `video_play_actions` ở tầng insights API (thử 2026-10-14: lỗi), nên lọc ở server. Thumbnail lồng trong `creative{thumbnail_url}` chỉ ra 64px dù truyền `thumbnail_width`, nên HD thumb vẫn phải gọi riêng theo creative_id.
   - SSE events: `progress` (text per stage), `debug` (telemetry), `result` (final), `error`
   - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
-- **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng
+- **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng; báo cáo async lỗi (Job Failed/Skipped/quá 2 phút) tự chạy lại sau 5s, 15s, 30s rồi gọi thử đồng bộ để lấy lý do thật (`fetchInsights` trong meta.js)
+- **Một lượt tải mỗi kỳ:** request thứ hai cùng `days` + `refresh` (tab khác, bấm 2 lần) nhập vào lượt đang chạy thay vì gọi Meta lại; không còn trình duyệt nào chờ thì lượt tải dừng ở lần gọi Meta kế tiếp (`sseLoad`). Nút Load Data bị khoá trong lúc tải
 - Exports utility functions cho testing (`require.main === module` guard)
 
 ### Caching

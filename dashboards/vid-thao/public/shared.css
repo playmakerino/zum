@@ -46,6 +46,7 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 .btn-primary,.btn-secondary{background:#fff;color:#101010;border:none;font-weight:500;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03)}
 .btn-primary:hover,.btn-secondary:hover{background:#f7f7f7}
 .btn-primary:active,.btn-secondary:active{background:#f2f2f2}
+.btn:disabled,.btn:disabled:hover{background:#fff;cursor:default;opacity:.5}
 .btn-show-more{height:28px;padding:0 12px;background:#fff;color:#303030;border:1px solid #e3e3e3;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);font-family:inherit;font-size:13px;font-weight:450;line-height:20px}
 .btn-show-more:hover{background:#f7f7f7;border-color:#d4d4d4}
 

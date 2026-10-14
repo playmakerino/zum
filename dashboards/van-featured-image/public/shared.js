@@ -33,6 +33,33 @@ function toast(msg, type = '') {
   toastTimer = setTimeout(() => el.className = '', 3500);
 }
 
+// Error detail from the server: text, or an object with a message (Meta async report details)
+function formatErrorDetail(detail) {
+  if (detail == null || detail === '') return '';
+  if (typeof detail === 'string') return detail;
+  if (typeof detail === 'object') {
+    if (detail.message) return detail.message;
+    try { return JSON.stringify(detail); } catch { return String(detail); }
+  }
+  return String(detail);
+}
+
+// Error for a non-2xx answer: the server's { error, detail } when it sent JSON, else the HTTP status
+async function httpError(res) {
+  const text = await res.text().catch(() => '');
+  let body;
+  try { body = JSON.parse(text); } catch { body = text || null; }
+  const err = new Error(body?.error || `HTTP ${res.status} ${res.statusText}`);
+  Object.assign(err, { status: res.status, statusText: res.statusText, body, detail: body?.detail });
+  return err;
+}
+
+// Load buttons are locked while a load runs: one load at a time per page (a second browser
+// asking for the same data joins the running load on the server)
+function lockLoadButtons(locked) {
+  $$('.topbar-actions .btn').forEach(b => { b.disabled = locked; });
+}
+
 // /api/dashboard is an event stream: onMessage(obj) runs for every "data: {json}" line.
 async function readSSE(res, onMessage) {
   const reader = res.body.getReader();

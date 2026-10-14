@@ -208,14 +208,16 @@ async function fetchAll() {
     const s = Math.floor((performance.now() - startTime) / 1000);
     $$('.load-timer').forEach(el => el.textContent = s + 's');
   }, 1000);
+  lockLoadButtons(true);
 
   try {
     const res = await fetch('/api/dashboard?refresh=1');
+    if (!res.ok) throw await httpError(res);
     let data = null;
     await readSSE(res, j => {
       if (j.progress) $$('.load-status').forEach(el => el.textContent = j.progress.replace(/\s*\[[\d.]+s\]\s*$/, ''));
       if (j.result) data = j.result;
-      if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
+      if (j.error) throw Object.assign(new Error(j.error), { detail: j.detail });
     });
     if (!data) throw new Error('No data received');
     clearInterval(timerInterval);
@@ -249,10 +251,13 @@ async function fetchAll() {
   } catch (err) {
     clearInterval(timerInterval);
     $$('.load-overlay').forEach(el => el.style.display = 'none');
+    const msg = err.message + (err.detail ? ': ' + formatErrorDetail(err.detail) : '');
     clearLog();
-    addLog(err.message, 'error');
-    toast('Error: ' + err.message, 'error');
+    addLog(msg, 'error');
+    toast('Error: ' + msg, 'error');
     for (const t of ['mockups', 'creativesValid', 'creativesSpend']) $(t + 'Body').innerHTML = empty(TABLES[t].cols);
+  } finally {
+    lockLoadButtons(false);
   }
 }
 

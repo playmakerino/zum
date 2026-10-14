@@ -2,11 +2,10 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
+const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchInsights, metaErrorMessage, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
-
-const META_BASE_URL = `https://graph.facebook.com/v22.0`;
 
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
@@ -43,10 +42,6 @@ const AD_METRICS = [
   'video_play_actions',
 ].join(',');
 
-const POLL_MAX_ATTEMPTS = 60;
-const POLL_INTERVAL_MS  = 2000;
-const BATCH_SIZE        = 50;
-
 const FORMAT_MAP = { VIDEO: 'Video', SHARE: 'Image', PHOTO: 'Carousel' };
 
 // ── Pure helpers (testable) ──────────────────────────────────────────────────
@@ -62,15 +57,11 @@ function sumActionValue(arr) {
   return arr.reduce((s, a) => s + parseFloat(a.value || 0), 0);
 }
 
-// Sum action values matching a specific action_type. 3-second video views in v22
+// Sum action values matching a specific action_type. 3-second video views
 // are exposed as `actions[].action_type === 'video_view'`.
 function sumActionByType(arr, type) {
   if (!Array.isArray(arr)) return 0;
   return arr.filter(a => a.action_type === type).reduce((s, a) => s + parseFloat(a.value || 0), 0);
-}
-
-function findPurchaseAction(arr = []) {
-  return arr.find(x => x.action_type === 'purchase' || x.action_type === 'omni_purchase');
 }
 
 function aggregateMetrics(entry, rows) {
@@ -242,104 +233,9 @@ async function loadVideoTable() {
   }
 }
 
-function getCredentials() {
-  return {
-    token:     process.env.META_ACCESS_TOKEN || '',
-    accountId: (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, ''),
-  };
-}
-
-// Async report: create → poll → fetch all results
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
-  const createRes = await axios.post(`${base}/insights`, null, {
-    params: {
-      access_token: token, level: 'ad', fields,
-      time_range: JSON.stringify(timeRange),
-      filtering: JSON.stringify([
-        { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
-        { field: 'spend', operator: 'GREATER_THAN', value: 0 },
-      ]),
-      sort: 'spend_descending',
-    },
-  });
-  let lastThrottle = createRes.headers['x-fb-ads-insights-throttle'] || null;
-
-  // Meta may return data directly for small datasets
-  if (createRes.data.data) return createRes.data.data;
-
-  const reportId = createRes.data.report_run_id;
-  if (!reportId) throw new Error('No report_run_id returned from Meta');
-
-  let completed = false;
-  let lastPct = 0;
-  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-    const poll = await axios.get(`${META_BASE_URL}/${reportId}`, { params: { access_token: token } });
-    if (poll.headers['x-fb-ads-insights-throttle']) lastThrottle = poll.headers['x-fb-ads-insights-throttle'];
-    const status = poll.data.async_status;
-    const pct = poll.data.async_percent_completion || 0;
-    lastPct = pct;
-    if (onProgress) onProgress(status, pct);
-    if (status === 'Job Completed') { completed = true; break; }
-    if (status === 'Job Failed' || status === 'Job Skipped') {
-      const err = new Error(`Async report ${status}`);
-      err.asyncReport = {
-        status, report_run_id: reportId, percent_complete: pct, poll_attempt: i + 1,
-        error_code:       poll.data.error_code,
-        error_subcode:    poll.data.error_subcode,
-        error_message:    poll.data.error_message,
-        error_user_title: poll.data.error_user_title,
-        error_user_msg:   poll.data.error_user_msg,
-        throttle: lastThrottle,
-      };
-      throw err;
-    }
-    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-  }
-  if (!completed) {
-    const err = new Error(`Async report timed out after ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
-    err.asyncReport = {
-      status: 'Timed out', report_run_id: reportId, percent_complete: lastPct,
-      poll_attempt: POLL_MAX_ATTEMPTS, throttle: lastThrottle,
-    };
-    throw err;
-  }
-
-  // Fetch all results with pagination
-  const results = [];
-  let url = `${META_BASE_URL}/${reportId}/insights`;
-  let params = { access_token: token, limit: 500 };
-  while (url) {
-    const res = await axios.get(url, { params });
-    results.push(...(res.data.data || []));
-    const next = res.data.paging?.next || null;
-    url = next;
-    params = next ? {} : null;
-  }
-  return results;
-}
-
-async function fetchAdsByIds(token, adIds, fields) {
-  if (!adIds.length) return [];
-  const results = [];
-  for (let i = 0; i < adIds.length; i += BATCH_SIZE) {
-    const batch = adIds.slice(i, i + BATCH_SIZE);
-    try {
-      const res = await axios.get(`${META_BASE_URL}/`, {
-        params: { ids: batch.join(','), fields, access_token: token }
-      });
-      for (const [id, data] of Object.entries(res.data)) {
-        if (data && !data.error) results.push(data);
-      }
-    } catch (err) {
-      console.error(`Batch fetch failed (${batch.length} ads):`, err.response?.data?.error?.message || err.message);
-    }
-  }
-  return results;
-}
-
 // ── Pipeline stages ──────────────────────────────────────────────────────────
 
-async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed }) {
+async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed, stopped }) {
   const cacheKey = String(days);
   const ic = insightsCache[cacheKey];
   if (!forceRefresh && ic) {
@@ -347,8 +243,10 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
     return { rows: ic.current, source: 'cache' };
   }
   progress(`Creating async report... [${elapsed()}]`);
-  const currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
-    progress(`Polling report: ${p}% [${elapsed()}]`);
+  const currRows = await fetchInsights({
+    base, token, fields, timeRange: current, stopped,
+    onProgress: p => progress(`Polling report: ${p}% [${elapsed()}]`),
+    onRetry: msg => progress(`${msg} [${elapsed()}]`),
   });
   insightsCache[cacheKey] = { current: currRows };
   progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
@@ -357,7 +255,7 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
 
 // force (Load Data) reads every ad again: editing an ad in Ads Manager (e.g. its thumbnail)
 // attaches a new creative, which a cached entry would hide.
-async function ensureCreativeInfo({ adIds, force = false, token, progress, elapsed }) {
+async function ensureCreativeInfo({ adIds, force = false, token, progress, elapsed, stopped }) {
   const now0 = Date.now();
   const missingIds = force ? [...adIds] : adIds.filter(id => {
     const e = creativeCache[id];
@@ -370,7 +268,7 @@ async function ensureCreativeInfo({ adIds, force = false, token, progress, elaps
     return;
   }
   progress(`Fetching creative info for ${missingIds.length} ads (${force ? 'all, Load Data' : 'new or retried'}) [${elapsed()}]`);
-  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}');
+  const fetched = await fetchByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}', {}, stopped);
   const now = Date.now();
   for (const ad of fetched) {
     creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -381,7 +279,7 @@ async function ensureCreativeInfo({ adIds, force = false, token, progress, elaps
   progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
 }
 
-async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
+async function ensureHdThumbnails({ creativeIds, token, progress, elapsed, stopped }) {
   const now = Date.now();
   const missing = creativeIds.filter(cid => !hdThumbCache[cid] || (now - hdThumbCache[cid]._cachedAt) > HD_THUMB_TTL);
   if (missing.length === 0) {
@@ -390,51 +288,14 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
   }
   progress(`Fetching HD thumbnails for ${missing.length} new creatives... [${elapsed()}]`);
   let succeeded = 0;
-  for (let i = 0; i < missing.length; i += BATCH_SIZE) {
-    const batch = missing.slice(i, i + BATCH_SIZE);
-    try {
-      const res = await axios.get(`${META_BASE_URL}/`, {
-        params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
-      });
-      for (const [id, data] of Object.entries(res.data)) {
-        if (data?.thumbnail_url) {
-          hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
-          succeeded++;
-        }
-      }
-    } catch (err) {
-      console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
-    }
+  const thumbs = await fetchByIds(token, missing, 'thumbnail_url', { thumbnail_width: 480, thumbnail_height: 480 }, stopped);
+  for (const t of thumbs) {
+    if (!t.thumbnail_url) continue;
+    hdThumbCache[t.id] = { url: t.thumbnail_url, _cachedAt: Date.now() };
+    succeeded++;
   }
   progress(`Fetched HD thumbnails for ${succeeded}/${missing.length} creatives [${elapsed()}]`);
   return { attempted: missing.length, succeeded };
-}
-
-function metaErrorMessage(err) {
-  if (err.asyncReport) {
-    const ar = err.asyncReport;
-    const codeBits = [];
-    if (ar.error_code != null)    codeBits.push(`code ${ar.error_code}`);
-    if (ar.error_subcode != null) codeBits.push(`subcode ${ar.error_subcode}`);
-    const reason = ar.error_message || ar.error_user_msg || `${ar.status} at ${ar.percent_complete}% (poll #${ar.poll_attempt})`;
-    const summary = codeBits.length ? `${codeBits.join(' / ')}: ${reason}` : reason;
-    return { error: `Meta async report ${ar.status}`, detail: { message: summary, ...ar } };
-  }
-  const metaError = err.response?.data?.error;
-  if (!metaError) return { error: 'Meta API error', detail: err.response?.data || err.message };
-  const { code, error_subcode: subcode, message } = metaError;
-  if (code === 190) {
-    const detail = subcode === 463
-      ? 'Token has expired. Please generate a new access token from Meta Business Suite and update META_ACCESS_TOKEN in .env.'
-      : subcode === 467
-        ? 'Token is no longer valid. The user may have changed their password or revoked access.'
-        : `Token error (subcode ${subcode}): ${message}`;
-    return { error: 'Meta API token expired or invalid', detail };
-  }
-  if (code === 4 || code === 17) {
-    return { error: 'Meta API rate limit reached', detail: 'Too many requests. Please wait a few minutes before trying again.' };
-  }
-  return { error: 'Meta API error', detail: err.response?.data || err.message };
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -492,87 +353,76 @@ app.get('/api/drive-video/:id', async (req, res) => {
   }
 });
 
-// GET /api/dashboard?days=7 — SSE with progress updates
-app.get('/api/dashboard', async (req, res) => {
+// GET /api/dashboard?days=7 — SSE with progress updates; a second request for the same period
+// joins the running load (see sseLoad in meta.js)
+app.get('/api/dashboard', (req, res) => {
   const { token, accountId } = getCredentials();
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
-
   const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
+  sseLoad(res, `days=${days} refresh=${forceRefresh}`, ctx => loadDashboard({ token, accountId, days, forceRefresh, ...ctx }));
+});
+
+async function loadDashboard({ token, accountId, days, forceRefresh, progress, send, elapsed, startTime, stopped }) {
   const current = { since: dateStr(days), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
+  // The BigQuery video table loads while Meta builds the insights report (neither needs the
+  // other). loadVideoTable never rejects: errors come back as status 'error'.
+  const videoTablePending = loadVideoTable();
+  const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed, stopped });
+  progress(`Loading videos from BigQuery... [${elapsed()}]`);
+  const videoTable = await videoTablePending;
+  // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
+  // delivery yet. Other video ads: spend > 1 with video plays, as before.
+  const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);
+  const otherRows = rawRows.filter(r => !videoTable.byAd[r.ad_id] && parseFloat(r.spend || 0) > 1 && hasVideoPlays(r));
+  const newRows   = newAdRows(videoTable.byAd, current, new Set(rawRows.map(r => r.ad_id)));
+  const currRows  = [...formRows, ...otherRows, ...newRows];
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  const progress = msg => res.write(`data: ${JSON.stringify({ progress: msg })}\n\n`);
-  const startTime = Date.now();
-  const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
+  const cachedAdsBefore  = forceRefresh ? 0 : allAdIds.filter(id => creativeCache[id]).length;
+  await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, token, progress, elapsed, stopped });
+  const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-  try {
-    // The BigQuery video table loads while Meta builds the insights report (neither needs the
-    // other). loadVideoTable never rejects: errors come back as status 'error'.
-    const videoTablePending = loadVideoTable();
-    const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    progress(`Loading videos from BigQuery... [${elapsed()}]`);
-    const videoTable = await videoTablePending;
-    // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
-    // delivery yet. Other video ads: spend > 1 with video plays, as before.
-    const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);
-    const otherRows = rawRows.filter(r => !videoTable.byAd[r.ad_id] && parseFloat(r.spend || 0) > 1 && hasVideoPlays(r));
-    const newRows   = newAdRows(videoTable.byAd, current, new Set(rawRows.map(r => r.ad_id)));
-    const currRows  = [...formRows, ...otherRows, ...newRows];
+  const fetchableHdIds = collectFetchableCreativeIds(allAds);
+  const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL).length;
+  const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed, stopped });
 
-    const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
-    const cachedAdsBefore  = forceRefresh ? 0 : allAdIds.filter(id => creativeCache[id]).length;
-    await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, token, progress, elapsed });
-    const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
-
-    const fetchableHdIds = collectFetchableCreativeIds(allAds);
-    const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL).length;
-    const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
-
-    // only the creatives of this load (the cache keeps every creative read since the process started)
-    const hdThumbMap = {};
-    for (const ad of allAds) {
-      const cid = ad.creative?.id;
-      if (cid && hdThumbCache[cid]) hdThumbMap[cid] = hdThumbCache[cid].url;
-    }
-
-    progress(`Processing data... [${elapsed()}]`);
-    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, videoTable);
-    const videoCount    = grouped.filter(c => c.format === 'Video').length;
-    const imageCount    = grouped.filter(c => c.format === 'Image').length;
-    const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
-    const missingCount  = grouped.filter(c => !c.format).length;
-    const result = {
-      creatives: { current: grouped },
-      period:    { current },
-      cached_at: new Date().toISOString(),
-    };
-    progress(`Done [${elapsed()}]`);
-    const debug = {
-      account: accountId,
-      days,
-      refresh: forceRefresh,
-      insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length, newAds: newRows.length },
-      ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
-      bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
-      hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
-      creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
-      elapsedMs: Date.now() - startTime,
-    };
-    res.write(`data: ${JSON.stringify({ debug })}\n\n`);
-    res.write(`data: ${JSON.stringify({ result })}\n\n`);
-    res.end();
-  } catch (err) {
-    const { error, detail } = metaErrorMessage(err);
-    res.write(`data: ${JSON.stringify({ error, detail, elapsedMs: Date.now() - startTime })}\n\n`);
-    res.end();
+  // only the creatives of this load (the cache keeps every creative read since the process started)
+  const hdThumbMap = {};
+  for (const ad of allAds) {
+    const cid = ad.creative?.id;
+    if (cid && hdThumbCache[cid]) hdThumbMap[cid] = hdThumbCache[cid].url;
   }
-});
+
+  progress(`Processing data... [${elapsed()}]`);
+  const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, videoTable);
+  const videoCount    = grouped.filter(c => c.format === 'Video').length;
+  const imageCount    = grouped.filter(c => c.format === 'Image').length;
+  const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
+  const missingCount  = grouped.filter(c => !c.format).length;
+  const result = {
+    creatives: { current: grouped },
+    period:    { current },
+    cached_at: new Date().toISOString(),
+  };
+  progress(`Done [${elapsed()}]`);
+  const debug = {
+    account: accountId,
+    days,
+    refresh: forceRefresh,
+    insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length, newAds: newRows.length },
+    ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
+    bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
+    hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
+    creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
+    elapsedMs: Date.now() - startTime,
+  };
+  send({ debug });
+  send({ result });
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

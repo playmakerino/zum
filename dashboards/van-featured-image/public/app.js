@@ -104,8 +104,10 @@ async function fetchAll(mode = 'all') {
   }, 1000);
 
   clearLog();
+  lockLoadButtons(true);
   try {
     const res = await fetch(`/api/dashboard?mode=${mode}`);
+    if (!res.ok) throw await httpError(res);
     let data = null;
     await readSSE(res, j => {
       if (j.progress) {
@@ -113,7 +115,7 @@ async function fetchAll(mode = 'all') {
         if (el) el.textContent = j.progress.replace(/\s*\[[\d.]+s\]\s*$/, '');
       }
       if (j.result) data = j.result;
-      if (j.error) throw new Error(j.error + ': ' + JSON.stringify(j.detail));
+      if (j.error) throw Object.assign(new Error(j.error), { detail: j.detail });
     });
     if (!data) throw new Error('No data received');
     clearInterval(timerInterval);
@@ -131,9 +133,12 @@ async function fetchAll(mode = 'all') {
   } catch (err) {
     clearInterval(timerInterval);
     ov.style.display = 'none';
-    addLog(err.message, 'error');
-    toast('Error: ' + err.message, 'error');
+    const msg = err.message + (err.detail ? ': ' + formatErrorDetail(err.detail) : '');
+    addLog(msg, 'error');
+    toast('Error: ' + msg, 'error');
     $('adsBody').innerHTML = empty(COLS);
+  } finally {
+    lockLoadButtons(false);
   }
 }
 

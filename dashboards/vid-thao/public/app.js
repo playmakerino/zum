@@ -28,16 +28,6 @@ function logApiError(context, err, extra = {}) {
   console.groupEnd();
 }
 
-function formatErrorDetail(detail) {
-  if (detail == null || detail === '') return '';
-  if (typeof detail === 'string') return detail;
-  if (typeof detail === 'object') {
-    if (detail.message) return detail.message;
-    try { return JSON.stringify(detail); } catch { return String(detail); }
-  }
-  return String(detail);
-}
-
 const state = {
   ready: false,
   creatives: { current: [], period: null },
@@ -196,21 +186,13 @@ async function fetchAll() {
   ov.innerHTML = `<div class="load-popup"><div class="load-status">Connecting...</div><div class="load-timer">0s</div></div>`;
   ov.style.display = 'flex';
   startLoadTimer();
+  lockLoadButtons(true);
 
   const startTime = performance.now();
   const url = `/api/dashboard?days=${days}&refresh=1`;
   try {
     const res = await fetch(url);
-    if (!res.ok) {
-      let body;
-      try { body = await res.json(); } catch { body = await res.text().catch(() => null); }
-      const err = new Error(body?.error || `HTTP ${res.status} ${res.statusText}`);
-      err.status = res.status;
-      err.statusText = res.statusText;
-      err.body = body;
-      err.detail = body?.detail;
-      throw err;
-    }
+    if (!res.ok) throw await httpError(res);
 
     let data = null;
     await readSSE(res, j => {
@@ -256,6 +238,8 @@ async function fetchAll() {
     const statusStr = err.status ? ` (HTTP ${err.status})` : '';
     toast(`Error${statusStr}: ${err.message}${detailStr ? ': ' + detailStr : ''}`, 'error');
     $('creativesBody').innerHTML = empty(TABLES.creatives.cols);
+  } finally {
+    lockLoadButtons(false);
   }
 }
 

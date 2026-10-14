@@ -1,12 +1,11 @@
 require('dotenv').config({ path: ['meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
 const express   = require('express');
-const axios     = require('axios');
 const path      = require('path');
+const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchInsights, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
-const META_BASE_URL = 'https://graph.facebook.com/v22.0';
 const DAYS = 30;
 const MIN_SPEND_VALID_FORMAT = 1;   // ads with [Print-Type_Mockup] name need more than this spend
 const MIN_SPEND_ANY_NAME     = 100; // other ads qualify only above this spend
@@ -45,71 +44,6 @@ function dateStr(daysAgo) {
   return d.toISOString().split('T')[0];
 }
 
-// Credentials come from the server environment only.
-function getCredentials() {
-  return {
-    token:     process.env.META_ACCESS_TOKEN || '',
-    accountId: (process.env.META_AD_ACCOUNT_ID || '').replace(/^act_/, ''),
-  };
-}
-
-async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
-  const MAX_RETRIES = 3;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const createRes = await axios.post(`${base}/insights`, null, {
-      params: {
-        access_token: token, level: 'ad', fields,
-        time_range: JSON.stringify(timeRange),
-        filtering: JSON.stringify([
-          { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
-          { field: 'spend', operator: 'GREATER_THAN', value: 0 },
-        ]),
-        sort: 'spend_descending',
-      },
-    });
-    if (createRes.data.data) return createRes.data.data;
-
-    const reportId = createRes.data.report_run_id;
-    if (!reportId) throw new Error('No report_run_id returned from Meta');
-
-    let jobFailed = false, completed = false;
-    for (let i = 0; i < 60; i++) {
-      const poll = await axios.get(`${META_BASE_URL}/${reportId}`, { params: { access_token: token } });
-      const status = poll.data.async_status;
-      const pct = poll.data.async_percent_completion || 0;
-      if (onProgress) onProgress(status, pct);
-      if (status === 'Job Completed') { completed = true; break; }
-      if (status === 'Job Failed' || status === 'Job Skipped') {
-        if (attempt < MAX_RETRIES) {
-          if (onProgress) onProgress(`${status}, retrying (${attempt}/${MAX_RETRIES})...`, 0);
-          jobFailed = true;
-          break;
-        }
-        throw new Error(`Async report ${status} after ${MAX_RETRIES} attempts`);
-      }
-      await new Promise(r => setTimeout(r, 2000));
-    }
-    if (jobFailed) { await new Promise(r => setTimeout(r, 3000 * attempt)); continue; }
-    if (!completed) throw new Error('Async report timed out after 120s');
-
-    const results = [];
-    let url = `${META_BASE_URL}/${reportId}/insights`;
-    let params = { access_token: token, limit: 500 };
-    while (url) {
-      const res = await axios.get(url, { params });
-      results.push(...(res.data.data || []));
-      const next = res.data.paging?.next || null;
-      url = next;
-      params = next ? {} : null;
-    }
-    return results;
-  }
-}
-
-function findPurchaseAction(arr = []) {
-  return arr.find(x => x.action_type === 'purchase' || x.action_type === 'omni_purchase');
-}
-
 // Ad name format: [PrintID-TypeID_MockupID]
 function extractPrintId(adName) {
   const m = (adName || '').match(/^\[([^-]+)/);
@@ -123,26 +57,6 @@ function extractMockupId(adName) {
 
 function hasValidFormat(adName) {
   return /^\[[^-]+-[^_]+_.+\]/.test(adName || '');
-}
-
-async function fetchAdsByIds(token, adIds, fields) {
-  if (!adIds.length) return [];
-  const results = [];
-  const BATCH = 50;
-  for (let i = 0; i < adIds.length; i += BATCH) {
-    const batch = adIds.slice(i, i + BATCH);
-    try {
-      const res = await axios.get(`${META_BASE_URL}/`, {
-        params: { ids: batch.join(','), fields, access_token: token }
-      });
-      for (const [id, data] of Object.entries(res.data)) {
-        if (data && !data.error) results.push(data);
-      }
-    } catch (err) {
-      console.error(`Batch fetch failed (${batch.length} ads):`, err.response?.data?.error?.message || err.message);
-    }
-  }
-  return results;
 }
 
 function computeMetrics(entry, rows) {
@@ -234,176 +148,133 @@ app.get('/api/thumbs', async (req, res) => {
   const ids = [...new Set(String(req.query.ids || '').split(',').map(s => s.trim()).filter(id => /^\d+$/.test(id)))].slice(0, 50);
   const now = Date.now();
   const missing = ids.filter(id => !hdThumbCache[id] || (now - hdThumbCache[id]._cachedAt) > HD_THUMB_TTL);
-  if (missing.length) {
-    try {
-      const r = await axios.get(`${META_BASE_URL}/`, {
-        params: { ids: missing.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
-      });
-      for (const [id, data] of Object.entries(r.data)) {
-        if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
-      }
-    } catch (err) {
-      console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
-    }
-  }
+  const thumbs = await fetchByIds(token, missing, 'thumbnail_url', { thumbnail_width: 480, thumbnail_height: 480 });
+  for (const t of thumbs) if (t.thumbnail_url) hdThumbCache[t.id] = { url: t.thumbnail_url, _cachedAt: Date.now() };
   const out = {};
   for (const id of ids) out[id] = hdThumbCache[id]?.url || null;
   res.json(out);
 });
 
-app.get('/api/dashboard', async (req, res) => {
+// GET /api/dashboard — SSE with progress updates; a second request joins the running load
+// (see sseLoad in meta.js)
+app.get('/api/dashboard', (req, res) => {
   const { token, accountId } = getCredentials();
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
-
   const forceRefresh = req.query.refresh === '1';
+  sseLoad(res, `refresh=${forceRefresh}`, ctx => loadDashboard({ token, accountId, forceRefresh, ...ctx }));
+});
+
+async function loadDashboard({ token, accountId, forceRefresh, progress, send, elapsed, stopped }) {
   const current = { since: dateStr(DAYS), until: dateStr(0) };
   const fields  = `ad_id,ad_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
-
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  const progress = msg => res.write(`data: ${JSON.stringify({ progress: msg })}\n\n`);
-  const startTime = Date.now();
-  const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-
-  try {
-    // 1. Fetch insights (last 30 days)
-    const cacheKey = String(DAYS);
-    const ic = insightsCache[cacheKey];
-    let currRows;
-    if (!forceRefresh && ic) {
-      currRows = ic.current;
-      progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
-    } else {
-      progress(`Creating async report... [${elapsed()}]`);
-      currRows = await fetchInsightsAsync(base, token, fields, current, (s, p) => {
-        progress(`Polling report: ${p}% [${elapsed()}]`);
-      });
-      insightsCache[cacheKey] = { current: currRows };
-      progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
-    }
-
-    // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.
-    // (Filtering spend at the insights API was tried 2026-10-14: no faster, Meta still computes every ad.)
-    const adSpendMap = {};
-    const adNameMap = {};
-    for (const r of currRows) {
-      if (!r.ad_id) continue;
-      adSpendMap[r.ad_id] = parseFloat(r.spend) || 0;
-      adNameMap[r.ad_id] = r.ad_name || '';
-    }
-    const uniqueAdIds = Object.keys(adSpendMap);
-    const isQualified = id => {
-      const spend = adSpendMap[id] || 0;
-      return (hasValidFormat(adNameMap[id]) && spend > MIN_SPEND_VALID_FORMAT) || spend > MIN_SPEND_ANY_NAME;
-    };
-    const allAdIds = uniqueAdIds.filter(isQualified);
-    const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
-    const highSpendCount = allAdIds.length - validFmtCount;
-    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format spend>$${MIN_SPEND_VALID_FORMAT} + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}) [${elapsed()}]`);
-
-    const missingIds = allAdIds.filter(id => !creativeCache[id]);
-    if (missingIds.length > 0) {
-      progress(`Fetching creative info for ${missingIds.length}/${allAdIds.length} ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,link_data{image_hash}}}');
-      const now = Date.now();
-      for (const ad of fetched) {
-        creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
-      }
-      for (const id of missingIds) {
-        if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
-      }
-      progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
-    } else {
-      progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
-    }
-    const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
-
-    // 3. HD thumbnails are loaded lazily by the frontend (/api/thumbs) for rows
-    // scrolled into view; here we only mark which creatives can have one and
-    // attach URLs already in the in-memory cache.
-    const thumbable = c => c?.id && ['SHARE', 'VIDEO'].includes(c.object_type) && !c.is_catalog;
-    const cachedThumb = cid => {
-      const e = hdThumbCache[cid];
-      return e && (Date.now() - e._cachedAt) <= HD_THUMB_TTL ? e.url : null;
-    };
-
-    // 4. Build creative map
-    const creativeMap = {};
-    for (const ad of allAds) {
-      const c = ad.creative;
-      if (!c) continue;
-      creativeMap[ad.id] = {
-        id:            c.id,
-        object_type:   c.object_type || '',
-        is_catalog:    !!c.is_catalog,
-        image_hash:    c.image_hash || null,
-        thumbnail_url: thumbable(c) ? cachedThumb(c.id) : null,
-        thumb_cid:     thumbable(c) ? c.id : null,
-      };
-    }
-
-    const attachThumb = rows => rows.map(r => {
-      const cm = creativeMap[r.ad_id];
-      return { ...r, thumbnail_url: cm?.thumbnail_url || null, thumb_cid: cm?.thumb_cid || null, is_catalog: !!cm?.is_catalog };
+  // 1. Fetch insights (last 30 days)
+  const cacheKey = String(DAYS);
+  const ic = insightsCache[cacheKey];
+  let currRows;
+  if (!forceRefresh && ic) {
+    currRows = ic.current;
+    progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
+  } else {
+    progress(`Creating async report... [${elapsed()}]`);
+    currRows = await fetchInsights({
+      base, token, fields, timeRange: current, stopped,
+      onProgress: p => progress(`Polling report: ${p}% [${elapsed()}]`),
+      onRetry: msg => progress(`${msg} [${elapsed()}]`),
     });
-    const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
-
-    // 5. Group and build response
-    progress(`Processing data... [${elapsed()}]`);
-    const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
-    const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
-    const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
-    const result = {
-      mockups: {
-        current:  groupByMockup(attachThumb(spendRows)),
-      },
-      creatives: {
-        current:  creativesGrouped,
-      },
-      period:    { current },
-      cached_at: new Date().toISOString(),
-      stats: { // read by the load log in public/app.js
-        insights: { rows: currRows.length },
-        qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
-      },
-    };
-    progress(`Done [${elapsed()}]`);
-    res.write(`data: ${JSON.stringify({ result })}\n\n`);
-    res.end();
-  } catch (err) {
-    const respData = err.response?.data;
-    const metaError = respData?.error;
-    let error = 'Meta API error';
-    let detail = err.message;
-
-    if (typeof respData === 'string' && respData.includes('<!DOCTYPE html')) {
-      error = 'Meta API temporarily unavailable';
-      detail = 'Meta returned an error page. Please try again shortly.';
-    } else if (metaError) {
-      const code = metaError.code;
-      const subcode = metaError.error_subcode;
-      if (code === 190) {
-        error = 'Meta API token expired or invalid';
-        detail = subcode === 463
-          ? 'Token has expired. Generate a new token and update META_ACCESS_TOKEN in .env.'
-          : subcode === 467
-            ? 'Token revoked. The user may have changed their password.'
-            : `Token error (subcode ${subcode}): ${metaError.message}`;
-      } else if (code === 4 || code === 17) {
-        error = 'Meta API rate limit reached';
-        detail = 'Too many requests. Please wait a few minutes.';
-      } else {
-        detail = metaError.message || JSON.stringify(respData);
-      }
-    }
-
-    res.write(`data: ${JSON.stringify({ error, detail })}\n\n`);
-    res.end();
+    insightsCache[cacheKey] = { current: currRows };
+    progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
   }
-});
+
+  // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.
+  // (Filtering spend at the insights API was tried 2026-10-14: no faster, Meta still computes every ad.)
+  const adSpendMap = {};
+  const adNameMap = {};
+  for (const r of currRows) {
+    if (!r.ad_id) continue;
+    adSpendMap[r.ad_id] = parseFloat(r.spend) || 0;
+    adNameMap[r.ad_id] = r.ad_name || '';
+  }
+  const uniqueAdIds = Object.keys(adSpendMap);
+  const isQualified = id => {
+    const spend = adSpendMap[id] || 0;
+    return (hasValidFormat(adNameMap[id]) && spend > MIN_SPEND_VALID_FORMAT) || spend > MIN_SPEND_ANY_NAME;
+  };
+  const allAdIds = uniqueAdIds.filter(isQualified);
+  const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
+  const highSpendCount = allAdIds.length - validFmtCount;
+  progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format spend>$${MIN_SPEND_VALID_FORMAT} + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}) [${elapsed()}]`);
+
+  const missingIds = allAdIds.filter(id => !creativeCache[id]);
+  if (missingIds.length > 0) {
+    progress(`Fetching creative info for ${missingIds.length}/${allAdIds.length} ads... [${elapsed()}]`);
+    const fetched = await fetchByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,link_data{image_hash}}}', {}, stopped);
+    const now = Date.now();
+    for (const ad of fetched) {
+      creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
+    }
+    for (const id of missingIds) {
+      if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
+    }
+    progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
+  } else {
+    progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
+  }
+  const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
+
+  // 3. HD thumbnails are loaded lazily by the frontend (/api/thumbs) for rows
+  // scrolled into view; here we only mark which creatives can have one and
+  // attach URLs already in the in-memory cache.
+  const thumbable = c => c?.id && ['SHARE', 'VIDEO'].includes(c.object_type) && !c.is_catalog;
+  const cachedThumb = cid => {
+    const e = hdThumbCache[cid];
+    return e && (Date.now() - e._cachedAt) <= HD_THUMB_TTL ? e.url : null;
+  };
+
+  // 4. Build creative map
+  const creativeMap = {};
+  for (const ad of allAds) {
+    const c = ad.creative;
+    if (!c) continue;
+    creativeMap[ad.id] = {
+      id:            c.id,
+      object_type:   c.object_type || '',
+      is_catalog:    !!c.is_catalog,
+      image_hash:    c.image_hash || null,
+      thumbnail_url: thumbable(c) ? cachedThumb(c.id) : null,
+      thumb_cid:     thumbable(c) ? c.id : null,
+    };
+  }
+
+  const attachThumb = rows => rows.map(r => {
+    const cm = creativeMap[r.ad_id];
+    return { ...r, thumbnail_url: cm?.thumbnail_url || null, thumb_cid: cm?.thumb_cid || null, is_catalog: !!cm?.is_catalog };
+  });
+  const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
+
+  // 5. Group and build response
+  progress(`Processing data... [${elapsed()}]`);
+  const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
+  const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
+  const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
+  const result = {
+    mockups: {
+      current:  groupByMockup(attachThumb(spendRows)),
+    },
+    creatives: {
+      current:  creativesGrouped,
+    },
+    period:    { current },
+    cached_at: new Date().toISOString(),
+    stats: { // read by the load log in public/app.js
+      insights: { rows: currRows.length },
+      qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
+    },
+  };
+  progress(`Done [${elapsed()}]`);
+  send({ result });
+}
 
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;

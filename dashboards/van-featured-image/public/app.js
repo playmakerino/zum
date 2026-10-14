@@ -342,7 +342,7 @@ function thumbError(img) {
 
 const _thumbPreview = (() => {
   const el = document.createElement('img');
-  el.style.cssText = 'display:none;position:fixed;width:240px;height:240px;object-fit:cover;border-radius:0;border:1px solid #e6e8ec;box-shadow:0 12px 24px rgba(15,17,21,.1),0 4px 8px rgba(15,17,21,.06);z-index:9998;background:#fff;pointer-events:none';
+  el.style.cssText = 'display:none;position:fixed;width:240px;height:240px;object-fit:cover;border-radius:8px;border:1px solid #e6e8ec;box-shadow:0 12px 24px rgba(15,17,21,.1),0 4px 8px rgba(15,17,21,.06);z-index:9998;background:#fff;pointer-events:none';
   el.onerror = () => { el.style.display = 'none'; };
   document.body.appendChild(el);
   return el;

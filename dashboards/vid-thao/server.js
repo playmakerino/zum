@@ -103,14 +103,6 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-// Campaign name from tc_vid_form workflow: "TC | Vid | {folder} | {email before @} | yyMMdd";
-// the email part is omitted when the form had no email. Returns '' otherwise.
-function parseSubmittedBy(campaignName) {
-  const p = String(campaignName || '').split('|').map(s => s.trim());
-  if (p[0] !== 'TC' || p[1] !== 'Vid' || p.length < 5 || !/^\d{6}$/.test(p[p.length - 1])) return '';
-  return p[p.length - 2].toLowerCase();
-}
-
 // One row per video: insights rows (one per ad) are grouped by the creative's video_id
 // (+ submitter), so every ad/creative that uses the same video is summed together.
 // Creatives without a video_id fall back to their creative id. The thumbnail is the first
@@ -120,8 +112,8 @@ function groupByVideo(rows, creativeCache, hdThumbMap, submitterMap = {}) {
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
     const id = c?.video_id || c?.id || 'unknown';
-    // submitter: n8n table "Vid · submitters" by video_id first, else the email in the campaign name
-    const submittedBy = (c?.video_id && submitterMap[c.video_id]) || parseSubmittedBy(row.campaign_name);
+    // submitter: BigQuery video_id → submitter map; a video that is not there has no submitter
+    const submittedBy = (c?.video_id && submitterMap[c.video_id]) || '';
     const key = `${id}|${submittedBy}`;
     if (!map[key]) {
       map[key] = {
@@ -165,10 +157,10 @@ function collectFetchableCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-// video_id → submitter map from the n8n data table "Vid · submitters" (dhVo58edLqGd3iO1),
-// served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key). Written by the TC Vid
-// workflow when it uploads a video; older videos were backfilled. Missing key/URL or any
-// error → empty map, and rows fall back to the email in the campaign name.
+// video_id → submitter (email before @) map from BigQuery zum-media-log.media.ad_videos
+// (TC Vid writes one row per ad) + media.video_submitters_legacy (copy of the old n8n table),
+// served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key). Missing key/URL or any
+// error → empty map, and rows show no submitter.
 const SUBMITTERS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';
 async function loadSubmitterMap() {
   const key = process.env.VID_SUBMITTERS_KEY;
@@ -397,7 +389,7 @@ app.get('/api/dashboard', async (req, res) => {
   const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
   const current = { since: dateStr(days), until: dateStr(0) };
-  const fields  = `ad_id,ad_name,campaign_name,${AD_METRICS}`;
+  const fields  = `ad_id,ad_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -476,6 +468,5 @@ if (typeof module !== 'undefined' && module.exports) {
     groupByVideo,
     collectFetchableCreativeIds,
     hasVideoPlays,
-    parseSubmittedBy,
   };
 }

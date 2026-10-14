@@ -7,7 +7,6 @@ const {
   groupByVideo,
   collectFetchableCreativeIds,
   hasVideoPlays,
-  parseSubmittedBy,
 } = require('./server');
 
 // ── dateStr ──────────────────────────────────────────────────────────────────
@@ -238,11 +237,11 @@ describe('groupByVideo', () => {
     expect(v1.thumbnail_url).toBe('https://hd/c2.jpg');
   });
 
-  test('submitter comes from the video table first, then the campaign name', () => {
-    const rows = [row('a1', { campaign_name: 'TC | Vid | F | minhn | 261014' }), row('a2', { campaign_name: 'Other camp' })];
+  test('submitter comes only from the video table', () => {
+    const rows = [row('a1'), row('a2')];
     const cache = { a1: cacheEntry('c1', { video_id: 'v1' }), a2: cacheEntry('c2', { video_id: 'v2' }) };
     const res = groupByVideo(rows, cache, {}, { v2: 'thaodp' });
-    expect(res.find(r => r.video_id === 'v1').submitted_by).toBe('minhn');
+    expect(res.find(r => r.video_id === 'v1').submitted_by).toBe('');
     expect(res.find(r => r.video_id === 'v2').submitted_by).toBe('thaodp');
   });
 
@@ -296,14 +295,3 @@ describe('hasVideoPlays', () => {
   });
 });
 
-describe('parseSubmittedBy', () => {
-  test('email part from TC | Vid campaign', () => {
-    expect(parseSubmittedBy('TC | Vid | Folder A | thaodp | 261014')).toBe('thaodp');
-  });
-  test('empty when no email part or other campaign', () => {
-    expect(parseSubmittedBy('TC | Vid | Folder A | 261014')).toBe('');
-    expect(parseSubmittedBy('TC | Vid')).toBe('');
-    expect(parseSubmittedBy('TC | Img | x | thaodp | 261014')).toBe('');
-    expect(parseSubmittedBy(undefined)).toBe('');
-  });
-});

@@ -85,10 +85,12 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 /* loading popup sits at the vertical middle of the screen while the (possibly long) table is covered */
 .load-overlay{align-items:flex-start}
 .load-overlay .load-popup{position:sticky;top:50vh;margin-top:80px;transform:translateY(-50%)}
-/* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page) */
-@media(max-width:1100px){.table-scroll{overflow-x:auto}thead{top:0}}
 table{width:100%;font-size:12px;line-height:18px;letter-spacing:-.005em}
 thead{position:sticky;top:var(--topbar-h);z-index:3}
+/* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page).
+   Must come after the thead rule: with top:52px inside the sideways scroller the header and Total
+   row sat 52px down, over the first rows. */
+@media(max-width:1100px){.table-scroll{overflow-x:auto}thead{top:0}}
 thead th{height:37px;background:#fff;color:#101010;font-weight:400;font-size:12px;line-height:18px;letter-spacing:-.005em;padding:7px 8px 8px;box-shadow:inset 0 -1px 0 #f2f2f2}
 thead th.sorted{font-weight:600}
 thead th .th-content{gap:2px}
@@ -168,7 +170,7 @@ thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
 .filter-popup .filter-popup-actions .btn-primary:hover{background:linear-gradient(#2a2a2a,#101010)}
 
 /* ── Popovers, overlay, toast, tooltip */
-.filter-popup,.load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}
+.load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}
 .load-overlay{background:rgba(255,255,255,.8)}
 #toast{background:#1b1b1b;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:500;line-height:20px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 #toast.error{background:#8e0b21}

@@ -118,6 +118,9 @@
   .ctl-row .flabel{ font-weight:400; }
   /* tabs inside a box (Rest of the garment): same tabs, clipped by the 8px box corners; the active tab flows into the row below, so no row line */
   .ctl.tabbed{ overflow:hidden; }
+  /* the box corner (8px) is tighter than the tab corner (12px): an active tab on the edge takes the box radius there, or the #ddd strip shows in the gap */
+  .ctl.tabbed .tabs button[aria-checked="true"]:first-child{ border-top-left-radius:8px; }
+  .ctl.tabbed .tabs button[aria-checked="true"]:last-child{ border-top-right-radius:8px; }
   .ctl.tabbed .ctl-row{ box-shadow:none; padding:8px; }
   #restPatField:not([hidden]) + .rest-note{ display:none; }
   .drop.sm{ background:#fff; }

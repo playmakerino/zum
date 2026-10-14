@@ -118,7 +118,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
 
 /* right pane */
 .whorow{ display:flex; align-items:baseline; gap:8px; min-width:0; }
-.who{ white-space:nowrap; flex:none; }
+.who{ font-weight:500; white-space:nowrap; flex:none; }
 .whorow .sub{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .pad{ display:grid; grid-template-columns:repeat(3,28px); grid-template-rows:repeat(3,28px); gap:2px; flex:none; }
 .pad button{ height:28px; padding:0; font-size:13px; border-radius:8px; }
@@ -172,8 +172,11 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
   </main>
 
   <aside class="pane right">
-    <div class="cap whorow"><span class="who" id="who"></span><span class="sub" id="whoSub"></span></div>
+    <div class="cap">Print area</div>
     <div class="box">
+    <section class="sec">
+      <div class="whorow"><span class="who" id="who"></span><span class="sub" id="whoSub"></span></div>
+    </section>
     <section class="sec" id="rGrp">
       <div class="h">Ratio (r) <span class="sub" id="r0"></span></div>
       <div class="row"><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01" class="num"></div>

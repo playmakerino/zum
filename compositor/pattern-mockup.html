@@ -67,7 +67,7 @@
   /* label left, hint/value right; when both do not fit on one line the right part drops to its own line instead of each wrapping inside half the width */
   .flabel{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; column-gap:8px; font-size:13px; line-height:20px; font-weight:500; color:var(--ink); }
   .flabel > *{ white-space:nowrap; }
-  .flabel em{ font-style:normal; font-weight:400; color:var(--mut); }
+  .flabel em, .ctl-head em{ font-style:normal; font-weight:400; color:var(--mut); }
   /* help text = Polaris help text: 12px/18px #4a4a4a */
   .hint{ font-size:12px; line-height:18px; color:var(--ph); font-weight:400; }
   .linkbtn{ border:0; background:none; padding:0; color:var(--link); font-size:13px; font-weight:450; }
@@ -154,7 +154,7 @@
   .seg.disabled{ opacity:.45; pointer-events:none; }
 
   /* slider */
-  .val{ font-variant-numeric:tabular-nums; font-weight:500; }
+  .val{ font-variant-numeric:tabular-nums; font-weight:400; }
   input[type=range]{ width:100%; accent-color:var(--ink2); margin:4px 0 0; }
   input[type=range]:disabled{ opacity:.4; cursor:default; }
   .range-ends{ display:flex; justify-content:space-between; font-size:12px; line-height:18px; color:var(--mut); }

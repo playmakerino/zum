@@ -1,10 +1,10 @@
 # pattern-mockup.html
 
-Dev tool: tile a pattern image onto garment mockups (flatlay + on-model) in the browser. Single-file HTML, no build, no server. Sister file [`zum_prd_form.html`](zum_prd_form.html) is the production form; both share one byte-identical compositor engine (see [Shared block](#shared-block)).
+Dev tool: tile a pattern image onto garment mockups (flatlay + on-model) in the browser. Single-file HTML, no build, no server. Sister files [`zum_prd_form.html`](zum_prd_form.html) (production form) and [`pattern-mockup-v2.html`](pattern-mockup-v2.html) (testing page) carry the same byte-identical compositor engine (see [Shared block](#shared-block)).
 
 ## What it does
 
-Pick a garment, load a pattern PNG/JPG/WebP, pick a trim colour, set motif size → **Generate** composites the pattern into every fabric panel of each view and renders the shots. **Download PNGs** saves them.
+Pick a garment, load a pattern PNG/JPG/WebP, pick a print layout (all-over, or body + rest), trim colour and motif size → **Generate** composites the print into the fabric panels of each selected photo and renders the shots. **Download PNGs** saves them.
 
 Nothing hits the network except loading the mock photos + panel maps from the Shopify CDN.
 
@@ -12,25 +12,31 @@ Nothing hits the network except loading the mock photos + panel maps from the Sh
 
 | Control | Effect |
 |---|---|
-| **Garment** | `romper` / `pajama` / `menPajama` / `womenPajama`. Selects the `GARMENTS` entry. |
 | **Pattern file** | The tile image. Decoded once; feeds swatch scan + every compose. |
+| **Pattern ID** | Optional, file names only: downloads are named `[patternid-TYPE_mockupid].png`; empty → derived from the pattern file name. Editing it renames finished images. |
+| **Product** | One button per `GARMENTS` key (romper, pajama, menPajama, womenPajama, blanket, sleepbag, blanketHoodie, sweatshirt, zipHoodie), labelled from `GARMENT_LABEL` (missing → the key). |
+| **Gender** | Boy / Girl / All. Filters which model photos show. Auto-derived from trim hue until the user picks manually. Disabled+greyed ("All models are unisex") when no model photo of the garment is boy/girl, i.e. every garment but the kids pajama. |
+| **Print layout** | **All-over**: the pattern repeats over every panel (panel 1 centred on its centroid). **Body + rest**: the pattern centred on the body panel (map R = 20), every other fabric panel takes the background colour or a second pattern. Greyed out for products with no separate body panel (`NO_PLACEMENT`), which print all-over. Layout + rest kind are remembered in the browser; the second pattern is not. |
+| **Body print size** | Body + rest only: 30–100 % of the body width (default 75 %). |
+| **Background color / Second pattern** | Body + rest only: what the rest of the garment takes. Background color has an Auto button (the pattern's background colour). |
+| **Motif size** | 0.5×–2× slider, multiplies each view's `r`. In Body + rest it only scales the second pattern (nothing on a solid rest). |
 | **Trim color** | Colour picker + hex box. Empty → keep the mock's own trim. Auto-filled from the pattern's dominant hue on load. |
-| **Gender** | boy / girl / neutral. Filters which model photos show. Auto-derived from trim hue until the user picks manually. Disabled+greyed for men/women pajama (all models unisex). |
-| **Motif size** | 0.5×–2× slider, multiplies each view's `r`. |
 | **Generate / Download PNGs** | Compose + render, then export. |
+| **Select all / Clear** | Which photos Generate renders (at least one). |
 
 ## Garment data (page-local)
 
-`GARMENTS`, the `V()` helper, `FLAT_KEYS`, `CDN`, and the model-pick helpers live in the `// ===== GARMENT DATA =====` block, **not** the shared block. This dev tool lists more garments (second pajama flatlay + men/women pajama) than the production form, which keeps romper + kids pajama only.
+`GARMENTS`, the `V()` helper, `FLAT_KEYS`, `CDN`, and the model-pick helpers live in the `// ===== GARMENT DATA =====` block, **not** the shared block. This dev tool lists every garment and view (9 garments, several with more than one flatlay); the production form keeps romper + kids pajama only, one flatlay each (`flat:` singular).
 
 Structure:
 
 ```js
-garment: { flats:[ V(mock, map, r), ... ], models:[ V(mock, map, r), ... ] }
+garment: { bodyRef?, flats:[ V(mock, map, r, bc?, br?), ... ], models:[ V(mock, map, r, bc?, br?), ... ] }
 ```
 
 - `flats` = flatlay view(s); `models` = on-model photos.
-- `V(mock, map, r)` → `{ mock: CDN+mock, map: CDN+map, r }`.
+- `V(mock, map, r, bc, br)` → `{ mock: CDN+mock, map: CDN+map, r, bc, br }`.
+- **`bc`** (optional, Body + rest) = `[nx, ny]`, the real centre of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for a view whose frame crops the body (a cropped body without `bc` gets only the background colour). **`br`** (optional) = this view's own body ratio (body width / pattern width) for a twisted pose; empty = the garment's `br`, measured on its **`bodyRef`** flat (index into `flats`, default `flats[0]`). Pass `null` for `bc` to set `br` alone.
 - **`mock`** = original photo. **`map`** = panel map (traced on the photo pixels via SAM + colour threshold, so it aligns exactly). Both on the Shopify CDN with `?v=` cache-bust.
 - **`r`** = pattern raster width as a fraction of the mock width (`pattern px = r × mock W`), multiplied by the slider. Within a garment, `r` keeps checks-per-chest equal across views (scales with the top's torso width on the map). Derive new ones with `python motif-r.py --ref <map with known r> --ref-r <its r> <new maps...>`.
 - Filename gender: `-boy-` / `-girl-` in the model name → that gender; else unisex (`null`). `modelsFor(g, sel)`: neutral → all; boy/girl → that gender + unisex.
@@ -38,7 +44,7 @@ garment: { flats:[ V(mock, map, r), ... ], models:[ V(mock, map, r), ... ] }
 ## Compose pipeline (per view)
 
 1. `analyzeGarment(spec, model)` — one pass over the map, cached (LRU 6). Yields: panel id per pixel, garment + per-panel bbox, per-panel centroid + grain angle (PCA or drawn axis), curved limb axes (drawn strokes), fan frames (blue corner dots), perspective quads (cyan corner dots), fabric white `Fref` (p95 per channel), and the edge coverage `cov` / edge panel `eid` for every panel incl. the trim.
-2. `compose(G, pat, ratio, trim, opt)` — raster the pattern to `ratio × mockW`; build the fold-displacement field (box blur of the mock luminance, `DISP_BLUR` 8 px) over the garment box; for each fabric pixel, shift the sample point along the luminance gradient (up to `DISP_AMP` 12 px, print compressed on fold flanks), map it through the panel's local frame (fan / curved axis / rotation), bilinear-sample the tile, multiply by `mock/Fref`, keep the mock for the non-fabric share of an edge pixel (coverage `cov` measured in `analyzeGarment` from a smoothed raster of the map: R / (id×20) where the 3×3 neighbourhood touches id 0; inside the fabric coverage is exactly 1, so no halo next to a white cord or a hand); the trim (id 9) goes through the same path with the flat trim colour as its "print"; downscale by `SS`. `opt` is optional: `{quads:false}` ignores the map's cyan dots, `{showQuad:true}` draws them (v2 page). Returns a canvas.
+2. `compose(G, pat, ratio, trim, opt)` — raster the pattern to `ratio × mockW`; build the fold-displacement field (box blur of the mock luminance, `DISP_BLUR` 8 px) over the garment box; for each fabric pixel, shift the sample point along the luminance gradient (up to `DISP_AMP` 12 px, print compressed on fold flanks), map it through the panel's local frame (fan / curved axis / rotation), bilinear-sample the tile, multiply by `mock/Fref`, keep the mock for the non-fabric share of an edge pixel (coverage `cov` measured in `analyzeGarment` from a smoothed raster of the map: R / (id×20) where the 3×3 neighbourhood touches id 0; inside the fabric coverage is exactly 1, so no halo next to a white cord or a hand); the trim (id 9) goes through the same path with the flat trim colour as its "print"; downscale by `SS`. `opt` is optional: `{quads:false}` ignores the map's cyan dots, `{showQuad:true}` draws them (demo aid). Returns a canvas.
 
 ### Map encoding
 
@@ -49,7 +55,7 @@ Red channel `/ 20` → panel id:
 - `6` = collar inside (wrong side of a one-sided print): mirrored + faint bleed-through. Model maps never use id 6.
 - **Green channel `≥ AXIS_MIN` (250), blue off** = a hand-drawn grain axis for the panel under it (R still carries the id). A straight stroke sets the panel's grain angle; a stroke that bends (`curve ≥ AX_CURVE`) becomes a curved limb axis: the frame's normal is interpolated continuously along the stroke (swept frame, no sawtooth at the joints), its rotation capped so the bend radius stays ≥ `AX_RMIN` (2) × the local half-width (no fan on a tight hip), held fixed past the stroke's ends. Model views add the tube-wrap (`v` compressed toward a silhouette edge). Draw the stroke the full length of the limb. Strokes baked offline in `zum-prd/prompt-test/model-map`.
 - **Blue channel `≥ 250`, green off** = a fan corner dot. Four such dots on one panel (TL/TR on the top edge, BL/BR on the bottom) turn it into a fan: centre = where the side edges meet, tile x = arc length at the top radius, tile y = radius (a skirt). A fan replaces the panel's axis / rotation.
-- **Green + blue `≥ 250`** = a perspective corner dot. Four on one panel → a homography maps the panel onto a flat rectangle (the wide end keeps the flat motif size). No production map has them yet; the v2 page's twirl-dress test map does.
+- **Green + blue `≥ 250`** = a perspective corner dot. Four on one panel → a homography maps the panel onto a flat rectangle (the wide end keeps the flat motif size). No production map has them yet.
 
 The map must be fetched as **PNG** (`loadPng`), never let the CDN serve WebP — 4:2:0 chroma subsampling bleeds sharp id edges and corrupts panel ids.
 
@@ -86,10 +92,10 @@ Measured and dropped on 2026-09-16: a Photoshop-style shadow layer (Linear Burn 
 
 ## Shared block
 
-Between `// ===== SHARED BLOCK` and `// ===== END SHARED BLOCK =====` is the compositor engine, **byte-identical** in this file and `zum_prd_form.html`.
+Between `// ===== SHARED BLOCK` and `// ===== END SHARED BLOCK =====` is the compositor engine, **byte-identical** in this file, `zum_prd_form.html` and `pattern-mockup-v2.html`.
 
-- Edit the engine **only here** → `.\sync-shared.ps1 -Push` copies it into the form → commit **both files**.
-- `.\sync-shared.ps1` (no flag) diffs the two copies, exit 1 if they differ. Run before committing either file.
+- Edit the engine **only here** → `.\sync-shared.ps1 -Push` copies it into the form and v2 → commit **all three files**.
+- `.\sync-shared.ps1` (no flag) diffs the form's and v2's copy against this file, exit 1 if either differs. Run before committing any of the three.
 - The block never touches the DOM or page state: it reads images and returns pixels.
 - Page-local UI (controls, generate loop, download) lives after `// ===== END SHARED BLOCK =====`.
 
@@ -103,5 +109,5 @@ Do not screenshot / self-test in the preview — the preview auto-refreshes on t
 ## Related files
 
 - [`zum_prd_form.html`](zum_prd_form.html) — production form, same engine.
-- [`pattern-mockup-v2.html`](pattern-mockup-v2.html) — testing page: this engine + perspective homography from cyan corner dots; renders production and testing side by side. **Not** synced, copy engine edits by hand.
+- [`pattern-mockup-v2.html`](pattern-mockup-v2.html) — testing page: same engine (kept equal by `sync-shared.ps1`), renders each view as production does; its `GARMENTS` holds only the views under test.
 - [`sync-shared.ps1`](sync-shared.ps1) · [`regress-engine.js`](regress-engine.js) · [`motif-r.py`](motif-r.py)

@@ -1,4 +1,4 @@
-/* Searchable product-type dropdown of forms 1_trang, 2, 7, 8 (markup: #productTypeCombo,
+/* Searchable product-type dropdown of forms 2, 7, 8 (markup: #productTypeCombo,
    #productTypeSearch, #product_type, #productTypeMenu). Each form calls initProductTypeCombo() once.
    New product type: add it to PRODUCT_TYPES here and to the n8n datatable "Product type settings". */
 function initProductTypeCombo() {

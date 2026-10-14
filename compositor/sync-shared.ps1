@@ -1,9 +1,9 @@
-# sync-shared.ps1 - the compositor engine lives byte-identical in pattern-mockup.html (dev tool) and
-# zum_prd_form.html (production form), between the "// ===== SHARED BLOCK" and "// ===== END SHARED BLOCK"
-# marker lines. Both pages stay single-file, so the block is duplicated, and this script keeps the two
-# copies equal.
-#   .\sync-shared.ps1          diff the two copies (exit 1 when they differ)
-#   .\sync-shared.ps1 -Push    copy the block from pattern-mockup.html into zum_prd_form.html
+# sync-shared.ps1 - the compositor engine lives byte-identical in pattern-mockup.html (dev tool),
+# zum_prd_form.html (production form) and pattern-mockup-v2.html (testing page), between the
+# "// ===== SHARED BLOCK" and "// ===== END SHARED BLOCK" marker lines. All three pages stay single-file,
+# so the block is copied into each, and this script keeps the form's and v2's copy equal to the dev tool's.
+#   .\sync-shared.ps1          diff both copies against the dev tool (exit 1 when either differs)
+#   .\sync-shared.ps1 -Push    copy the block from pattern-mockup.html into zum_prd_form.html and pattern-mockup-v2.html
 param([switch]$Push)
 $ErrorActionPreference = 'Stop'
 

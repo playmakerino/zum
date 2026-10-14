@@ -627,7 +627,7 @@ function openVideo(i) {
   $('viThumbFetch').disabled = false;
   $('viThumbFetch').textContent = 'Fetch from Meta';
   const ads = r.ad_count || 1;
-  $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'Ad' : 'Ads'}`;
+  $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'ad' : 'ads'}`;
 
   const v = $('viewerVideo');
   // the poster gives the player its shape before the video loads; the Drive thumbnail keeps the video's ratio

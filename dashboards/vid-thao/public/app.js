@@ -604,11 +604,15 @@ function openVideo(i) {
   $('viewerTitle').textContent = r.ad_name || '';
   $('viewerDownload').href = r.drive_file_id ? DRIVE_DOWNLOAD(r.drive_file_id) : src;
   $('viName').textContent = r.ad_name || '';
-  $('viFormat').textContent = 'MP4';
+  // Details like Shopify ("JPG • 1600 × 2000 • 521.8 kB"): MP4 • size × size • duration • file size,
+  // each part filled in as it becomes known
+  const fmt = { size: '', dims: '', dur: '' };
+  const showFormat = () => { $('viFormat').textContent = ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • '); };
+  showFormat();
   if (r.drive_file_id) {
     fetch(src, { method: 'HEAD' }).then(res => {
       const n = +res.headers.get('content-length');
-      if (n && viewer.dataset.token === token) $('viFormat').textContent = 'MP4 • ' + fmtSize(n);
+      if (n && viewer.dataset.token === token) { fmt.size = fmtSize(n); showFormat(); }
     }).catch(() => {});
   }
   $('viAdded').textContent = r.created_at ? 'Added ' + fmtDateLabel(new Date(r.created_at)) : '';
@@ -624,6 +628,13 @@ function openVideo(i) {
   const v = $('viewerVideo');
   // the poster gives the player its shape before the video loads; the Drive thumbnail keeps the video's ratio
   v.poster = driveThumb || r.thumbnail_url || '';
+  v.onloadedmetadata = () => {
+    if (viewer.dataset.token !== token) return;
+    fmt.dims = v.videoWidth ? `${v.videoWidth} × ${v.videoHeight}` : '';
+    const s = Math.round(v.duration || 0);
+    fmt.dur = s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '';
+    showFormat();
+  };
   v.src = src;
   viewer.classList.add('open');
   document.body.style.overflow = 'hidden';

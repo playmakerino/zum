@@ -117,6 +117,10 @@
   .ctl-row > *{ flex:1; min-width:0; }
   .ctl-row.col{ flex-direction:column; align-items:stretch; gap:4px; padding:8px; }
   .ctl-row .flabel{ font-weight:400; }
+  /* tabs inside a box (Rest of the garment): same tabs, clipped by the 8px box corners; the active tab flows into the row below, so no row line */
+  .ctl.tabbed{ overflow:hidden; }
+  .ctl.tabbed .ctl-row{ box-shadow:none; padding:8px; }
+  #restPatField:not([hidden]) + .rest-note{ display:none; }
   .drop.sm{ background:#fff; }
   .drop.sm .drop-empty{ padding:12px; flex-direction:row; justify-content:center; gap:8px; }
   .drop.sm .drop-empty svg{ width:16px; height:16px; margin:0; }
@@ -316,13 +320,10 @@
               <div class="hint">Fills the body around the print, and the whole body on a photo that crops it</div>
             </div>
           </div>
-          <div class="ctl">
-            <div class="ctl-head"><span>Rest of the garment</span><span class="hint">sleeves, pants, hood…</span></div>
-            <div class="ctl-row">
-              <div class="seg two" id="restKind" role="radiogroup" aria-label="Rest of the garment">
-                <button type="button" role="radio" data-v="solid">Background color</button>
-                <button type="button" role="radio" data-v="pattern">Second pattern</button>
-              </div>
+          <div class="ctl tabbed">
+            <div class="tabs" id="restKind" role="radiogroup" aria-label="Rest of the garment">
+              <button type="button" role="radio" data-v="solid">Background color</button>
+              <button type="button" role="radio" data-v="pattern">Second pattern</button>
             </div>
             <div class="ctl-row" id="restPatField" hidden>
               <div class="drop sm" id="drop2" tabindex="0" role="button" aria-label="Choose the second pattern">
@@ -337,6 +338,7 @@
                 </div>
               </div>
             </div>
+            <div class="ctl-row rest-note"><span class="hint">Rest of the garment (sleeves, pants, hood…) takes the background color</span></div>
           </div>
         </div>
         </div>

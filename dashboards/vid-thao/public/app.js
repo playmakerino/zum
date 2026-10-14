@@ -170,7 +170,7 @@ function renderDebug(d) {
     `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend > 1`
       + (d.insights.withVideoPlays != null ? ` → ${d.insights.withVideoPlays} with video plays` : ''),
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
-    `Creatives: ${d.creatives.total} (${formatBreakdown})`,
+    `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
     `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
   ];
   el.textContent = parts.join(' · ');

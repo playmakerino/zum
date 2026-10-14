@@ -29,6 +29,7 @@ function slimCreative(ad) {
       id:          c.id,
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
+      video_id:    c.object_story_spec?.video_data?.video_id || null,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
@@ -110,29 +111,37 @@ function parseSubmittedBy(campaignName) {
   return p[p.length - 2].toLowerCase();
 }
 
-// Group insights rows by creative_id + submitter (creative looked up via
-// creativeCache by ad_id) and aggregate metrics. Thumbnail comes from hdThumbMap[creative_id].
-function groupByCreative(rows, creativeCache, hdThumbMap) {
+// One row per video: insights rows (one per ad) are grouped by the creative's video_id
+// (+ submitter), so every ad/creative that uses the same video is summed together.
+// Creatives without a video_id fall back to their creative id. The thumbnail is the first
+// HD thumbnail found among the group's creatives (hdThumbMap is keyed by creative id).
+function groupByVideo(rows, creativeCache, hdThumbMap) {
   const map = {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
-    const id = c?.id || 'unknown';
+    const id = c?.video_id || c?.id || 'unknown';
     const submittedBy = parseSubmittedBy(row.campaign_name);
     const key = `${id}|${submittedBy}`;
     if (!map[key]) {
       map[key] = {
-        creative_id:   id,
+        video_id:      c?.video_id || null,
+        creative_id:   c?.id || 'unknown',
         submitted_by:  submittedBy,
         format:        c ? (FORMAT_MAP[c.object_type] || 'Image') : null,
-        thumbnail_url: c ? (hdThumbMap[c.id] || null) : null,
+        thumbnail_url: null,
         is_catalog:    !!c?.is_catalog,
         ad_name:       row.ad_name || '',
+        _creatives:    new Set(),
         _rows:         [],
       };
     }
-    map[key]._rows.push(row);
+    const g = map[key];
+    if (c?.id) g._creatives.add(c.id);
+    if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) g.thumbnail_url = hdThumbMap[c.id];
+    g._rows.push(row);
   }
-  return Object.values(map).map(({ _rows, ...entry }) => aggregateMetrics(entry, _rows));
+  return Object.values(map).map(({ _rows, _creatives, ...entry }) =>
+    aggregateMetrics({ ...entry, creative_count: _creatives.size }, _rows));
 }
 
 // Only ads with video plays can be video ads; skipping the rest avoids fetching
@@ -281,7 +290,7 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
     return;
   }
   progress(`Fetching creative info for ${missingIds.length} ads (new or retried) [${elapsed()}]`);
-  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data}}');
+  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}');
   const now = Date.now();
   for (const ad of fetched) {
     creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -394,7 +403,7 @@ app.get('/api/dashboard', async (req, res) => {
     for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
 
     progress(`Processing data... [${elapsed()}]`);
-    const grouped = groupByCreative(currRows, creativeCache, hdThumbMap);
+    const grouped = groupByVideo(currRows, creativeCache, hdThumbMap);
     const videoCount    = grouped.filter(c => c.format === 'Video').length;
     const imageCount    = grouped.filter(c => c.format === 'Image').length;
     const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -440,7 +449,7 @@ if (typeof module !== 'undefined' && module.exports) {
     sumActionValue,
     sumActionByType,
     aggregateMetrics,
-    groupByCreative,
+    groupByVideo,
     collectFetchableCreativeIds,
     hasVideoPlays,
     parseSubmittedBy,

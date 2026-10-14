@@ -29,6 +29,7 @@ function slimCreative(ad) {
       id:          c.id,
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
+      image_hash:  c.object_story_spec?.link_data?.image_hash || null,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
@@ -183,23 +184,32 @@ function groupByMockup(rows) {
   });
 }
 
-function groupByCreative(rows) {
+// "By Image" tab: one row per image (link_data.image_hash), summing every ad/creative that
+// uses the same image. Creatives without a hash (video, catalog) fall back to creative id.
+function groupByImage(rows) {
   const map = {};
   for (const row of rows) {
-    const id = row.creative?.id || row.ad_id;
+    const c = row.creative;
+    const id = c?.image_hash || c?.id || row.ad_id;
     if (!map[id]) {
       map[id] = {
-        creative_id:   id,
-        thumbnail_url: row.creative?.thumbnail_url || null,
-        thumb_cid:     row.creative?.thumb_cid || null,
-        is_catalog:    !!row.creative?.is_catalog,
+        image_hash:    c?.image_hash || null,
+        creative_id:   c?.id || null,
+        thumbnail_url: c?.thumbnail_url || null,
+        thumb_cid:     c?.thumb_cid || null,
+        is_catalog:    !!c?.is_catalog,
         ad_name:       row.ad_name || '',
+        _creatives:    new Set(),
         _rows:         [],
       };
     }
-    map[id]._rows.push(row);
+    const g = map[id];
+    if (c?.id) g._creatives.add(c.id);
+    if (!g.thumbnail_url && c?.thumbnail_url) g.thumbnail_url = c.thumbnail_url;
+    g._rows.push(row);
   }
-  return Object.values(map).map(({ _rows, ...entry }) => {
+  return Object.values(map).map(({ _rows, _creatives, ...entry }) => {
+    entry.creative_count = _creatives.size;
     computeMetrics(entry, _rows);
     return entry;
   });
@@ -295,7 +305,7 @@ app.get('/api/dashboard', async (req, res) => {
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
       progress(`Fetching creative info for ${missingIds.length}/${allAdIds.length} ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data}}');
+      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,link_data{image_hash}}}');
       const now = Date.now();
       for (const ad of fetched) {
         creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -327,6 +337,7 @@ app.get('/api/dashboard', async (req, res) => {
         id:            c.id,
         object_type:   c.object_type || '',
         is_catalog:    !!c.is_catalog,
+        image_hash:    c.image_hash || null,
         thumbnail_url: thumbable(c) ? cachedThumb(c.id) : null,
         thumb_cid:     thumbable(c) ? c.id : null,
       };
@@ -342,7 +353,7 @@ app.get('/api/dashboard', async (req, res) => {
     progress(`Processing data... [${elapsed()}]`);
     const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
     const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
-    const creativesGrouped = groupByCreative(attachCreative(qualifiedRows));
+    const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
     const result = {
       mockups: {
         current:  groupByMockup(attachThumb(spendRows)),
@@ -397,4 +408,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Mockup Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { dateStr, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, groupByMockup };
+module.exports = { dateStr, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, groupByMockup, groupByImage };

@@ -80,9 +80,13 @@
   /* pattern drop zone = Shopify media drop zone: 1px dashed #c0c0c0, #f7f7f7 */
   .drop{ border:1px dashed #c0c0c0; border-radius:12px; background:var(--hover); cursor:pointer; transition:border-color .12s, background .12s; }
   .drop:hover,.drop.over{ border-color:#8a8a8a; background:var(--line2); }
-  .drop-empty{ padding:20px 16px; display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center; color:var(--mut); font-size:13px; }
-  .drop-empty svg{ width:20px; height:20px; color:var(--ink2); margin-bottom:6px; }
-  .drop-empty b{ color:var(--ink); font-size:13px; font-weight:500; }
+  /* empty zone = Shopify file drop zone: white, grey "+ Add files" pill, "Drag and drop images" under it. The pill is
+     not its own button: the whole zone opens the picker, hovering the zone darkens the pill */
+  .drop:has(> .drop-empty:not([hidden])){ background:#fff; }
+  .drop-empty{ padding:24px 16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; color:var(--mut); font-size:13px; line-height:20px; }
+  .add-pill{ display:inline-flex; align-items:center; gap:4px; height:28px; padding:4px 12px 4px 8px; border-radius:9999px; background:#ebebeb; color:var(--ink); font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; transition:background-color .12s; }
+  .add-pill svg{ width:16px; height:16px; flex:none; }
+  .drop:hover .add-pill, .drop.over .add-pill{ background:#e3e3e3; }
   .drop-full{ display:flex; gap:12px; align-items:center; padding:8px; }
   .drop-full img{ width:64px; height:64px; object-fit:cover; border-radius:8px; box-shadow:0 0 0 1px rgba(0,0,0,.06); background:#fff; flex:none; }
   .drop-full .meta{ min-width:0; display:flex; flex-direction:column; gap:0; font-size:13px; color:var(--mut); }
@@ -91,7 +95,7 @@
      shows on hover / keyboard focus and clears the pattern */
   .drop{ position:relative; }
   .drop-full{ padding-right:44px; }
-  .drop-x{ position:absolute; top:50%; right:8px; width:28px; height:28px; margin-top:-14px; display:none; place-items:center; border:0; border-radius:9999px; background:transparent; color:#4a4a4a; transition:background-color .4s cubic-bezier(.2,.8,0,1); }
+  .drop-x{ position:absolute; top:50%; right:8px; width:28px; height:28px; margin-top:-14px; display:none; place-items:center; padding:0; border:0; border-radius:9999px; background:transparent; color:#4a4a4a; transition:background-color .4s cubic-bezier(.2,.8,0,1); }
   .drop-x svg{ width:20px; height:20px; }
   .drop-x:hover{ background:rgba(0,0,0,.08); color:var(--ink); }
   .drop:hover .drop-x, .drop:focus-within .drop-x{ display:grid; }
@@ -135,8 +139,7 @@
   .ctl.tabbed .ctl-row{ box-shadow:none; padding:8px; }
   #restPatField:not([hidden]) + .rest-note{ display:none; }
   .drop.sm{ background:#fff; }
-  .drop.sm .drop-empty{ padding:12px; flex-direction:row; justify-content:center; gap:8px; }
-  .drop.sm .drop-empty svg{ width:16px; height:16px; margin:0; }
+  .drop.sm .drop-empty{ padding:16px; }
   .drop.sm .drop-full{ padding:8px; }
   .drop.sm .drop-full img{ width:44px; height:44px; }
 
@@ -256,13 +259,13 @@
   .lb-head{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .lb-head .t{ font-size:13px; line-height:20px; font-weight:600; color:#eee; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .lb-head .i{ font-size:13px; line-height:20px; color:#aaa; }
-  .lb-icon{ flex:none; width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:12px; background:none; color:#dcdcdc; text-decoration:none; }
+  .lb-icon{ flex:none; width:32px; height:32px; display:grid; place-items:center; padding:0; border:0; border-radius:12px; background:none; color:#dcdcdc; text-decoration:none; }
   .lb-icon:hover{ background:rgba(255,255,255,.08); color:#fff; }
   .lb-icon svg{ width:20px; height:20px; }
   .lb-main{ flex:1; min-height:0; display:flex; gap:20px; padding:20px; background:radial-gradient(rgba(255,255,255,.05) 2px, transparent 2px) 0 0/40px 40px, #030303; }
   .lb-body{ flex:1; min-width:0; display:flex; align-items:center; gap:16px; }
   .lb-body img{ flex:1; min-width:0; height:100%; object-fit:contain; }
-  .lb-nav{ flex:none; width:56px; height:56px; display:grid; place-items:center; border:0; border-radius:16px; background:#1a1a1a; color:#eee; }
+  .lb-nav{ flex:none; width:56px; height:56px; display:grid; place-items:center; padding:0; border:0; border-radius:16px; background:#1a1a1a; color:#eee; }
   .lb-nav:hover{ background:#262626; }
   .lb-nav svg{ width:20px; height:20px; }
   .lb-info{ flex:none; width:310px; align-self:flex-start; padding:16px; border-radius:12px; background:#1a1a1a; font-size:13px; line-height:20px; color:#eee; }
@@ -288,10 +291,8 @@
         <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a pattern file">
           <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
           <div class="drop-empty" id="dropEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-            <b>Drop a pattern here</b>
-            <span>or click to choose · Ctrl+V to paste</span>
-            <span>PNG, JPG or WebP</span>
+            <span class="add-pill"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11"/></svg>Add pattern</span>
+            <span>Drag and drop or paste an image</span>
           </div>
           <div class="drop-full" id="dropFull" hidden>
             <img id="patThumb" alt="Pattern preview">
@@ -358,8 +359,8 @@
               <div class="drop sm" id="drop2" tabindex="0" role="button" aria-label="Choose the second pattern">
                 <input type="file" id="pattern2" accept="image/png,image/jpeg,image/webp" hidden>
                 <div class="drop-empty" id="drop2Empty">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-                  <span><b>Drop the second pattern</b> or click</span>
+                  <span class="add-pill"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11"/></svg>Add second pattern</span>
+                  <span>or drag and drop</span>
                 </div>
                 <div class="drop-full" id="drop2Full" hidden>
                   <img id="pat2Thumb" alt="Second pattern preview">

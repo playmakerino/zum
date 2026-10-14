@@ -8,8 +8,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const META_BASE_URL = 'https://graph.facebook.com/v22.0';
 const DAYS = 30;
-const MIN_SPEND          = 1;   // insights API filter: ads at or below this spend are never returned
-const MIN_SPEND_ANY_NAME = 100; // ads without [Print-Type_Mockup] name qualify only above this spend
+const MIN_SPEND_VALID_FORMAT = 1;   // ads with [Print-Type_Mockup] name need more than this spend
+const MIN_SPEND_ANY_NAME     = 100; // other ads qualify only above this spend
 
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
@@ -59,7 +59,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
         time_range: JSON.stringify(timeRange),
         filtering: JSON.stringify([
           { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
-          { field: 'spend', operator: 'GREATER_THAN', value: MIN_SPEND },
+          { field: 'spend', operator: 'GREATER_THAN', value: 0 },
         ]),
         sort: 'spend_descending',
       },
@@ -273,7 +273,8 @@ app.get('/api/dashboard', async (req, res) => {
       progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
     }
 
-    // 2. Collect qualified ads (API already dropped spend <= MIN_SPEND): valid format OR spend > $100
+    // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.
+    // (Filtering spend at the insights API was tried 2026-10-14: no faster, Meta still computes every ad.)
     const adSpendMap = {};
     const adNameMap = {};
     for (const r of currRows) {
@@ -284,12 +285,12 @@ app.get('/api/dashboard', async (req, res) => {
     const uniqueAdIds = [...new Set(Object.keys(adSpendMap))];
     const isQualified = id => {
       const spend = adSpendMap[id] || 0;
-      return hasValidFormat(adNameMap[id]) || spend > MIN_SPEND_ANY_NAME;
+      return (hasValidFormat(adNameMap[id]) && spend > MIN_SPEND_VALID_FORMAT) || spend > MIN_SPEND_ANY_NAME;
     };
     const allAdIds = uniqueAdIds.filter(id => isQualified(id));
     const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
     const highSpendCount = allAdIds.length - validFmtCount;
-    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}, all spend>$${MIN_SPEND}) [${elapsed()}]`);
+    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format spend>$${MIN_SPEND_VALID_FORMAT} + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}) [${elapsed()}]`);
 
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {

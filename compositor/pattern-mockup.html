@@ -87,9 +87,14 @@
   .drop-full img{ width:64px; height:64px; object-fit:cover; border-radius:8px; box-shadow:0 0 0 1px rgba(0,0,0,.06); background:#fff; flex:none; }
   .drop-full .meta{ min-width:0; display:flex; flex-direction:column; gap:0; font-size:13px; color:var(--mut); }
   .drop-full b{ color:var(--ink); font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  /* "Replace" inside the filled drop zone reads as the same tertiary button; the whole zone is the click target */
-  .drop-full .link{ align-self:flex-start; display:inline-flex; align-items:center; height:28px; padding:6px 12px; border:0; border-radius:9999px; background:transparent; color:#101010; font-size:12px; line-height:16px; font-weight:500; text-decoration:none; transition:background-color .4s cubic-bezier(.2,.8,0,1); margin:2px 0 0 -12px; }
-  .drop:hover .drop-full .link{ background:rgba(0,0,0,.08); }
+  /* filled drop zone: click anywhere = replace; an x (Shopify remove icon button, 28px, #4a4a4a, hover rgba(0,0,0,.08))
+     shows on hover / keyboard focus and clears the pattern */
+  .drop{ position:relative; }
+  .drop-full{ padding-right:44px; }
+  .drop-x{ position:absolute; top:50%; right:8px; width:28px; height:28px; margin-top:-14px; display:none; place-items:center; border:0; border-radius:9999px; background:transparent; color:#4a4a4a; transition:background-color .4s cubic-bezier(.2,.8,0,1); }
+  .drop-x svg{ width:20px; height:20px; }
+  .drop-x:hover{ background:rgba(0,0,0,.08); color:var(--ink); }
+  .drop:hover .drop-x, .drop:focus-within .drop-x{ display:grid; }
 
   /* placement print: options under the Print switch, compact second-pattern drop */
   .seg.two{ grid-template-columns:repeat(2,1fr); }
@@ -290,7 +295,8 @@
           </div>
           <div class="drop-full" id="dropFull" hidden>
             <img id="patThumb" alt="Pattern preview">
-            <div class="meta"><b id="patternName"></b><span id="patternDims"></span><span class="link">Replace</span></div>
+            <div class="meta"><b id="patternName"></b><span id="patternDims"></span></div>
+            <button type="button" class="drop-x" id="patClear" aria-label="Remove pattern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m6 6 8 8M14 6l-8 8"/></svg></button>
           </div>
         </div>
         <div class="field">
@@ -357,7 +363,8 @@
                 </div>
                 <div class="drop-full" id="drop2Full" hidden>
                   <img id="pat2Thumb" alt="Second pattern preview">
-                  <div class="meta"><b id="pattern2Name"></b><span id="pattern2Dims"></span><span class="link">Replace</span></div>
+                  <div class="meta"><b id="pattern2Name"></b><span id="pattern2Dims"></span></div>
+                  <button type="button" class="drop-x" id="pat2Clear" aria-label="Remove second pattern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m6 6 8 8M14 6l-8 8"/></svg></button>
                 </div>
               </div>
             </div>
@@ -1568,6 +1575,10 @@ async function loadPattern(f){
   refresh();
 }
 $('drop').addEventListener('click', ()=>$('pattern').click());
+$('patClear').addEventListener('click', e=>{ e.stopPropagation(); if(busy) return;
+  if(patImg&&patImg.close) patImg.close(); patImg=null; patName=''; autoTrim=null; autoRest=null;
+  const old=$('patThumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old); $('patThumb').removeAttribute('src');
+  $('dropFull').hidden=true; $('dropEmpty').hidden=false; msg(''); refresh(); });
 $('drop').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern').click(); } });
 $('pattern').addEventListener('change', e=>{ loadPattern(e.target.files[0]); e.target.value=''; });
 let dragDepth=0;
@@ -1616,6 +1627,11 @@ $('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.
 $('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); refresh(); });
 $('restAuto').addEventListener('click', ()=>{ if(autoRest){ setRest(autoRest); refresh(); } });
 $('drop2').addEventListener('click', ()=>$('pattern2').click());
+$('pat2Clear').addEventListener('click', e=>{ e.stopPropagation(); if(busy) return;
+  if(pat2Img&&pat2Img.close) pat2Img.close(); pat2Img=null; pat2Name='';
+  const old=$('pat2Thumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old); $('pat2Thumb').removeAttribute('src');
+  $('drop2Full').hidden=true; $('drop2Empty').hidden=false; msg(''); refresh(); });
+for(const id of ['patClear','pat2Clear']) $(id).addEventListener('keydown', e=>e.stopPropagation());   // Enter/Space on the x must not reach the zone's open-picker key handler
 $('drop2').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern2').click(); } });
 $('pattern2').addEventListener('change', e=>{ loadPattern2(e.target.files[0]); e.target.value=''; });
 for(const ev of ['dragenter','dragover']) $('drop2').addEventListener(ev, ()=>$('drop2').classList.add('over'));

@@ -236,19 +236,31 @@
   .dropveil span{ padding:24px 32px; border-radius:20px; background:var(--hover); border:1px dashed #8a8a8a; }
 
   /* lightbox */
-  dialog.lb{ border:0; padding:0; background:transparent; max-width:none; max-height:none; width:100vw; height:100vh; }
-  dialog.lb::backdrop{ background:rgba(16,16,16,.88); }
-  .lb-wrap{ width:100%; height:100%; display:flex; flex-direction:column; color:#fff; }
-  .lb-top{ display:flex; align-items:center; gap:8px; padding:12px 16px; }
-  .lb-top .t{ flex:1; min-width:0; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lb-top .i{ font-size:13px; color:#b5b5b5; margin-right:4px; }
-  .lb-btn{ height:28px; border:0; background:rgba(255,255,255,.12); color:#fff; border-radius:9999px; padding:4px 12px; font-size:13px; font-weight:500; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
-  .lb-btn:hover{ background:rgba(255,255,255,.2); }
-  .lb-btn svg{ width:16px; height:16px; }
-  .lb-body{ flex:1; min-height:0; display:flex; align-items:center; gap:8px; padding:0 8px 16px; }
+  /* lightbox = Shopify Files image viewer (measured 2026-10-14): 56px #1a1a1a top bar (title 13/20 600 #eee, count #aaa),
+     near-black stage with a 40px grid of faint 2px dots, 56px square prev/next, #1a1a1a Information card on the right */
+  dialog.lb{ border:0; padding:0; background:#0a0a0a; max-width:none; max-height:none; width:100vw; height:100vh; color:#eee; }
+  dialog.lb::backdrop{ background:#0a0a0a; }
+  .lb-wrap{ width:100%; height:100%; display:flex; flex-direction:column; }
+  .lb-top{ flex:none; height:56px; display:flex; align-items:center; gap:8px; padding:0 12px 0 8px; background:#1a1a1a; }
+  .lb-head{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .lb-head .t{ font-size:13px; line-height:20px; font-weight:600; color:#eee; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-head .i{ font-size:13px; line-height:20px; color:#aaa; }
+  .lb-icon{ flex:none; width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:12px; background:none; color:#dcdcdc; text-decoration:none; }
+  .lb-icon:hover{ background:rgba(255,255,255,.08); color:#fff; }
+  .lb-icon svg{ width:20px; height:20px; }
+  .lb-main{ flex:1; min-height:0; display:flex; gap:20px; padding:20px; background:radial-gradient(rgba(255,255,255,.05) 2px, transparent 2px) 0 0/40px 40px, #030303; }
+  .lb-body{ flex:1; min-width:0; display:flex; align-items:center; gap:16px; }
   .lb-body img{ flex:1; min-width:0; height:100%; object-fit:contain; }
-  .lb-nav{ flex:none; width:40px; height:40px; border-radius:50%; border:0; background:rgba(255,255,255,.12); color:#fff; font-size:22px; }
-  .lb-nav:hover{ background:rgba(255,255,255,.2); }
+  .lb-nav{ flex:none; width:56px; height:56px; display:grid; place-items:center; border:0; border-radius:16px; background:#1a1a1a; color:#eee; }
+  .lb-nav:hover{ background:#262626; }
+  .lb-nav svg{ width:20px; height:20px; }
+  .lb-info{ flex:none; width:310px; align-self:flex-start; padding:16px; border-radius:12px; background:#1a1a1a; font-size:13px; line-height:20px; color:#eee; }
+  .lb-info h3{ margin:0 0 16px; display:flex; align-items:center; gap:8px; font-size:15px; line-height:22px; font-weight:600; }
+  .lb-info h3 svg{ width:20px; height:20px; }
+  .lb-info h4{ margin:8px 0 6px; font-size:13px; line-height:20px; font-weight:500; color:#eee; }
+  .lb-info > h4:first-of-type{ margin-top:0; }
+  .lb-info p{ margin:0; color:#aaa; overflow-wrap:anywhere; }
+  @media (max-width:900px){ .lb-info{ display:none; } .lb-main{ padding:12px; } .lb-nav{ width:44px; height:44px; } }
 
   /* tooltip = Shopify admin hover card (replaces the native title tooltip, see the script at the end) */
   .tip{ position:fixed; z-index:1000; max-width:280px; padding:12px; border-radius:12px; background:#1b1b1b; color:#e3e3e3; box-shadow:0 8px 24px rgba(0,0,0,.25); pointer-events:none; font-size:13px; line-height:20px; font-weight:450; letter-spacing:-.01em; }
@@ -395,14 +407,24 @@
 <dialog class="lb" id="lb" aria-label="Image preview">
   <div class="lb-wrap">
     <div class="lb-top">
-      <div class="t" id="lbTitle"></div><span class="i" id="lbIdx"></span>
-      <a class="lb-btn" id="lbDl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Download</a>
-      <button type="button" class="lb-btn" id="lbClose">Close</button>
+      <button type="button" class="lb-icon" id="lbClose" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 4 10l4 4M4 10h9"/><path d="M11 4h3.5A1.5 1.5 0 0 1 16 5.5v9a1.5 1.5 0 0 1-1.5 1.5H11"/></svg></button>
+      <div class="lb-head"><div class="t" id="lbTitle"></div><div class="i" id="lbIdx"></div></div>
+      <a class="lb-icon" id="lbDl" download aria-label="Download"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v8M6.5 8.5 10 12l3.5-3.5"/><path d="M4 13v1.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V13"/></svg></a>
     </div>
-    <div class="lb-body">
-      <button type="button" class="lb-nav" id="lbPrev" aria-label="Previous">‹</button>
-      <img id="lbImg" alt="">
-      <button type="button" class="lb-nav" id="lbNext" aria-label="Next">›</button>
+    <div class="lb-main">
+      <div class="lb-body">
+        <button type="button" class="lb-nav" id="lbPrev" aria-label="Previous"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-5 5 5 5"/></svg></button>
+        <img id="lbImg" alt="">
+        <button type="button" class="lb-nav" id="lbNext" aria-label="Next"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 5 5-5 5"/></svg></button>
+      </div>
+      <aside class="lb-info">
+        <h3><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 9v4.5M10 6.5v.01"/></svg>Information</h3>
+        <h4>Name</h4>
+        <p id="lbName"></p>
+        <h4>Details</h4>
+        <p id="lbDetails"></p>
+        <div id="lbTierRow"><h4>Mockup</h4><p id="lbTier"></p></div>
+      </aside>
     </div>
   </div>
 </dialog>
@@ -1501,9 +1523,14 @@ function openLightbox(id){
 function showLightbox(){
   const c=lbList[lbAt]; if(!c) return;
   const r=results.get(c.id), t=c.isFlat?null:tierOf(c.view);
+  const kb=r.blob.size/1024, size=kb<1024?kb.toFixed(1)+' kB':(kb/1024).toFixed(2)+' MB';
+  $('lbImg').onload=()=>{ $('lbDetails').textContent='PNG • '+$('lbImg').naturalWidth+' × '+$('lbImg').naturalHeight+' • '+size; };
   $('lbImg').src=r.url; $('lbImg').alt=c.title;
-  $('lbTitle').textContent=fname(c.view)+(t?'  ·  Tier '+t:'');
-  $('lbIdx').textContent=(lbAt+1)+' / '+lbList.length;
+  $('lbTitle').textContent=fname(c.view);
+  $('lbIdx').textContent=(lbAt+1)+' of '+lbList.length;
+  $('lbName').textContent=fname(c.view);
+  $('lbDetails').textContent='PNG • '+size;
+  $('lbTierRow').hidden=!t; $('lbTier').textContent=t?'Tier '+t:'';
   $('lbDl').href=r.url; $('lbDl').download=fname(c.view);
   $('lbPrev').hidden=$('lbNext').hidden=lbList.length<2;
 }

@@ -4,45 +4,81 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pattern Mockup v2 · Body + rest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#1a1a1a; --mut:#6b6b6b; --line:#d8d8d8; --ground:#fff; --accent:#2f6f4e; }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
+  /* Shopify admin (Polaris) look, measured on admin.shopify.com collection + product pages (2026-10-14);
+     see D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md. Light only, like the admin. */
+  :root{
+    --ink:#101010; --ink2:#303030; --mut:#616161; --line:#f2f2f2; --ground:#fff; --focus:#5083f0;
+    --card-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02);
+    --tile-shadow:0 8px 10px -5px rgba(0,0,0,.08),0 5px 5px -2.5px rgba(0,0,0,.03),0 3px 3px -1.5px rgba(0,0,0,.02),0 2px 2px -1px rgba(0,0,0,.02),0 1px 1px -.5px rgba(0,0,0,.03),0 .5px .5px 0 rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.06);
+    --btn-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03);
+    --pri-shadow:0 1px .5px -.5px rgba(0,0,0,.13),0 1px 2px -.5px rgba(0,0,0,.13),0 4px 6px -2px rgba(0,0,0,.13),0 2px 3px -1.5px rgba(0,0,0,.13),inset 0 0 4px 1px #101010,inset 0 0 4px 2px rgba(255,255,255,.1),inset 0 0 12px -6px rgba(255,255,255,.75);
+    --field-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);
+    --field-hover:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.2);
+    --field-focus:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 4px 5px -2px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06),inset 0 0 8px 1px rgba(53,115,246,.05);
   }
-  :root[data-theme="dark"]{ --ink:#ededed; --mut:#9a9a9a; --line:#3a3a3a; --ground:#141414; --accent:#6fcaa0; }
 
-  body{ margin:0; background:var(--ground); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  body{ margin:0; background:var(--ground); color:var(--ink); font-family:'Inter',-apple-system,system-ui,sans-serif; font-size:13px; line-height:20px; letter-spacing:-.01em; }
   [hidden]{ display:none!important; }
-  .wrap{ display:flex; gap:40px; align-items:flex-start; padding:32px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
-  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:20px; }
-  .field{ display:flex; flex-direction:column; gap:7px; }
-  label,figcaption{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--mut); font-weight:600; }
-  .file{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; width:100%; box-sizing:border-box;
-    display:flex; align-items:center; gap:10px; padding:4px 10px 4px 4px; min-height:41px; }
-  .file button{ flex:none; padding:5px 10px; font-size:12px; border-radius:5px; }
+  ::-webkit-scrollbar{ width:11px; height:11px; background-color:#fff; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background-color:transparent; border:2px solid transparent; border-radius:12px; background-clip:content-box; }
+  :hover::-webkit-scrollbar-thumb,::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{ background-color:#8c8c8c; }
+  .wrap{ display:flex; gap:16px; align-items:flex-start; padding:16px; flex-wrap:wrap; max-width:1180px; margin:0 auto; }
+  .controls{ flex:0 0 300px; display:flex; flex-direction:column; gap:16px; padding:16px; background:#fff; border-radius:20px; box-shadow:var(--card-shadow); }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  label{ font-size:13px; line-height:20px; color:var(--ink); font-weight:500; }
+  .file{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; }
+  .file button{ flex:none; }
   .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-  select,input[type=text]{ font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:7px; padding:9px 10px; width:100%; box-sizing:border-box; }
-  .trim{ display:flex; gap:10px; align-items:center; }
-  .trim input[type=color]{ width:44px; height:40px; padding:0; border:1px solid var(--line); border-radius:7px; background:transparent; cursor:pointer; }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  input[type=text]{ font-family:inherit; font-size:13px; letter-spacing:inherit; color:var(--ink); background:#fff; border:0; border-radius:12px; height:30px; padding:0 12px; width:100%; box-sizing:border-box; outline:none; box-shadow:var(--field-shadow); transition:box-shadow .12s; }
+  input[type=text]:hover{ box-shadow:var(--field-hover); }
+  input[type=text]:focus{ box-shadow:var(--field-focus); }
+  input::placeholder{ color:#4a4a4a; }
+  input[type=range]{ width:100%; margin:4px 0 0; accent-color:var(--ink2); }
+  .trim{ display:flex; gap:8px; align-items:center; }
+  .trim input[type=color]{ flex:none; width:30px; height:30px; padding:0; border:0; border-radius:12px; overflow:hidden; background:transparent; cursor:pointer; box-shadow:var(--field-shadow); }
+  .trim input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
+  .trim input[type=color]::-webkit-color-swatch{ border:0; border-radius:12px; }
   .trim input[type=text]{ flex:1; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-transform:uppercase; }
-  .actions{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
-  button{ font:inherit; font-weight:600; padding:11px 14px; border-radius:8px; cursor:pointer; background:transparent; }
-  .primary{ border:1px solid var(--accent); color:var(--accent); }
-  .primary:hover{ background:var(--accent); color:var(--ground); }
-  .secondary{ border:1px solid var(--line); color:var(--mut); }
-  .secondary:hover{ color:var(--ink); border-color:var(--ink); }
-  button:disabled{ opacity:.4; cursor:default; }
-  button:disabled:hover{ background:transparent; color:var(--mut); border-color:var(--line); }
-  .msg{ font-size:12px; color:var(--mut); min-height:16px; }
-  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:flex-start; }
-  .shot{ margin:0; flex:0 0 calc((100% - 20px)/2); max-width:calc((100% - 20px)/2); display:flex; flex-direction:column; gap:8px; }
+  .actions{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  button{ font-family:inherit; font-size:13px; letter-spacing:inherit; font-weight:500; height:28px; padding:4px 12px; border:0; border-radius:9999px; cursor:pointer; background:#fff; color:var(--ink); box-shadow:var(--btn-shadow); }
+  .actions button{ height:32px; }
+  .primary{ background:#101010; color:#fff; font-weight:600; box-shadow:var(--pri-shadow); }
+  .primary:hover:not(:disabled){ background:#2a2a2a; }
+  .secondary:hover:not(:disabled){ background:#f7f7f7; }
+  .secondary:active:not(:disabled){ background:#f2f2f2; }
+  button:disabled{ opacity:.45; cursor:default; }
+  .msg{ font-size:13px; color:var(--mut); min-height:20px; }
+  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; justify-content:flex-start; }
+  .shot{ margin:0; flex:0 0 calc((100% - 16px)/2); max-width:calc((100% - 16px)/2); display:flex; flex-direction:column; border-radius:20px; overflow:hidden; background:#fff; box-shadow:var(--tile-shadow); }
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img,.shot canvas{ width:100%; max-height:74vh; object-fit:contain; display:block; }
-  figcaption{ text-align:center; }
-  .nudge{ display:flex; gap:6px; align-items:center; }
-  .nudge button{ padding:6px 10px; min-width:36px; }
-  .nudge span{ font-size:12px; color:var(--mut); font-family:ui-monospace,"SF Mono",Menlo,monospace; margin-left:4px; }
+  figcaption{ padding:8px 12px; box-shadow:inset 0 1px 0 var(--line); font-size:13px; font-weight:500; color:var(--ink); text-align:center; }
+  .nudge{ display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  .nudge button{ padding:4px 8px; min-width:32px; }
+  .nudge span{ font-size:13px; color:var(--mut); font-variant-numeric:tabular-nums; margin-left:4px; }
+
+  /* dropdown over the native <select> (script at the end): white field button (same box as the text field) + Shopify popover menu */
+  .dd{ position:relative; display:flex; min-width:0; }
+  .dd-btn{ display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; height:30px; padding:0 8px 0 12px; border-radius:12px; background:#fff; color:var(--ink); font-weight:400; box-shadow:var(--field-shadow); transition:box-shadow .12s; }
+  .dd-btn:hover:not(:disabled){ background:#fff; box-shadow:var(--field-hover); }
+  .dd.open .dd-btn{ box-shadow:var(--field-focus); }
+  .dd-label{ overflow:hidden; text-overflow:ellipsis; }
+  .dd-chevron{ width:16px; height:16px; flex:none; transition:transform .12s; }
+  .dd.open .dd-chevron{ transform:rotate(180deg); }
+  .dd-menu{ position:absolute; top:calc(100% + 6px); left:0; min-width:100%; max-height:min(420px,70vh); overflow:auto; background:#fff; border-radius:16px; padding:6px; box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1); z-index:200; }
+  .dd-item{ display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; height:32px; text-align:left; border:0; box-shadow:none; background:none; padding:6px 8px; border-radius:12px; font-weight:450; color:var(--ink2); }
+  .dd-item:hover:not(:disabled){ background:#f2f2f2; }
+  .dd-item.selected{ background:#ebebeb; font-weight:600; color:var(--ink); }
+  .dd-check{ width:16px; height:16px; flex:none; }
+
+  /* tooltip = Shopify admin hover card (replaces the native title tooltip) */
+  .tip{ position:fixed; z-index:1000; max-width:280px; padding:12px; border-radius:12px; background:#1b1b1b; color:#e3e3e3; box-shadow:0 8px 24px rgba(0,0,0,.25); pointer-events:none; font-size:13px; line-height:20px; font-weight:450; letter-spacing:-.01em; }
 </style>
 </head>
 <body>
@@ -963,5 +999,109 @@ $('dl').addEventListener('click', async ()=>{
 });
 </script>
 
+<script>
+// Shopify-style dropdown over native <select> (from dashboards/shared/shared.js).
+// The native select stays in the DOM (hidden) as the source of truth: page code keeps
+// reading/writing .value and onchange; option changes and .value writes re-render the pill.
+(() => {
+  const CHECK = '<svg class="dd-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
+  const CHEVRON = '<svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 8 4 4 4-4"/></svg>';
+  const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  let openDd = null;
+  function close(dd) {
+    if (!dd) return;
+    dd.classList.remove('open');
+    dd.querySelector('.dd-menu').hidden = true;
+    if (openDd === dd) openDd = null;
+  }
+  function enhance(sel) {
+    if (sel.closest('.dd')) return;
+    const dd = document.createElement('div');
+    dd.className = 'dd dd-' + (sel.id || 'select');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dd-btn';
+    const menu = document.createElement('div');
+    menu.className = 'dd-menu';
+    menu.hidden = true;
+    sel.parentNode.insertBefore(dd, sel);
+    dd.append(btn, menu, sel);
+    sel.hidden = true;
+    const render = () => {
+      const cur = sel.options[sel.selectedIndex];
+      btn.innerHTML = `<span class="dd-label"></span>${CHEVRON}`;
+      btn.querySelector('.dd-label').textContent = cur ? cur.textContent : '';
+      btn.disabled = sel.disabled;
+      menu.innerHTML = '';
+      for (const opt of sel.options) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'dd-item' + (opt.selected ? ' selected' : '');
+        item.textContent = opt.textContent;
+        item.disabled = opt.disabled;
+        if (opt.selected) item.insertAdjacentHTML('beforeend', CHECK);
+        item.addEventListener('click', () => {
+          close(dd);
+          if (sel.value === opt.value) return;
+          sel.value = opt.value;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      }
+    };
+    Object.defineProperty(sel, 'value', {
+      configurable: true,
+      get() { return valueDesc.get.call(this); },
+      set(v) { valueDesc.set.call(this, v); render(); },
+    });
+    new MutationObserver(render).observe(sel, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['disabled'] });
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (dd.classList.contains('open')) return close(dd);
+      close(openDd);
+      dd.classList.add('open');
+      menu.hidden = false;
+      menu.style.left = ''; menu.style.right = '';
+      if (menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { menu.style.left = 'auto'; menu.style.right = '0'; }
+      const s = menu.querySelector('.selected'); if (s) s.scrollIntoView({ block: 'nearest' });
+      openDd = dd;
+    });
+    menu.addEventListener('click', e => e.stopPropagation());
+    render();
+  }
+  document.addEventListener('click', () => close(openDd));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(openDd); });
+  document.querySelectorAll('select').forEach(enhance);
+})();
+</script>
+<script>
+// Tooltips like Shopify admin: dark card under the element (above when there is no room).
+// Reads the native title (moved into data-tip on hover so the browser tooltip never shows);
+// page code keeps setting .title as before.
+(() => {
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  let cur = null;
+  const hide = () => { tip.hidden = true; cur = null; };
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest && e.target.closest('[title],[data-tip]');
+    if (el && el.hasAttribute('title')) { el.dataset.tip = el.getAttribute('title'); el.removeAttribute('title'); }
+    if (!el || !el.dataset.tip) { if (cur) hide(); return; }
+    if (el === cur) return;
+    cur = el;
+    tip.textContent = el.dataset.tip;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+    let top = r.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+    tip.style.top = top + 'px';
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + 'px';
+  });
+  document.addEventListener('scroll', hide, true);
+  document.addEventListener('mousedown', hide);
+})();
+</script>
 </body>
 </html>

@@ -7,35 +7,30 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
 
   <style>
-    /* registering --scrim as a real colour lets the tint cross-fade instead of snapping */
-    @property --scrim {
-      syntax: '<color>';
-      inherits: true;
-      initial-value: transparent;
-    }
-
-    :root { transition: --scrim 0.4s ease; }
-
+    /* Shopify admin (Polaris) look, measured on admin.shopify.com collection + product pages
+       (2026-10-14); see D:\Bamboo\claude\guide\SHOPIFY-UI-GUIDE.md. Light only, like the admin. */
     :root {
-      /* page is pure black; every panel is its own #121212 surface on top of it */
-      --page: #000000;
-      --bg: #121212;
-      --surface-elevated: #242424;
-      /* green is reserved for the single primary action. Nothing else may use it. */
-      --accent: #1ED760;
-      --accent-hover: #3BE477;
-      --text: #FFFFFF;
-      --text-sub: #b3b3b3;
-      --text-muted: #6A6A6A;
-      --row-hover: rgba(255,255,255,0.1);
-      --error: #E22134;
-      --divider: rgba(255,255,255,0.06);
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      /* set from the uploaded swatch only, no artwork, no tint */
-      --scrim: transparent;
+      --page: #ffffff;
+      --bg: #ffffff;
+      --surface-sunk: #f7f7f7;
+      --text: #101010;
+      --text-2: #303030;
+      --text-sub: #616161;
+      --text-muted: #8a8a8a;
+      --line: #f2f2f2;
+      --error: #8e0b21;
+      --focus: #5083f0;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --card-shadow: 0 0 2px rgba(0,0,0,.24), 0 2px 12px rgba(0,0,0,.02), 0 4px 16px rgba(0,0,0,.02), 0 4px 48px rgba(0,0,0,.02);
+      --btn-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03);
+      --pri-shadow: 0 1px .5px -.5px rgba(0,0,0,.13), 0 1px 2px -.5px rgba(0,0,0,.13), 0 4px 6px -2px rgba(0,0,0,.13), 0 2px 3px -1.5px rgba(0,0,0,.13), inset 0 0 4px 1px #101010, inset 0 0 4px 2px rgba(255,255,255,.1), inset 0 0 12px -6px rgba(255,255,255,.75);
+      --field-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.13);
+      --field-hover: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2);
+      --field-focus: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 4px 5px -2px rgba(0,0,0,.04), 0 0 0 1px #5083f0, 0 0 0 3px rgba(53,115,246,.06), 0 4px 20px 2px rgba(53,115,246,.06), inset 0 0 8px 1px rgba(53,115,246,.05);
+      --field-error: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px #8e0b21;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,60 +39,61 @@
       background: var(--page);
       color: var(--text);
       font-family: var(--font);
+      font-size: 13px;
+      line-height: 20px;
+      letter-spacing: -.01em;
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      padding: 8px;
+      padding: 16px;
     }
 
-    /* app shell: two panels side by side, 8px gutter; the page scrolls as one */
+    /* Polaris scrollbar: 11px, thumb hidden until the area is hovered */
+    ::-webkit-scrollbar { width: 11px; height: 11px; background-color: #fff; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background-color: transparent; border: 2px solid transparent; border-radius: 12px; background-clip: content-box; }
+    :hover::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: #8c8c8c; }
+
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+    /* app shell: two columns of cards, 12px gutter; the page scrolls as one */
     .container {
       width: 100%;
       max-width: 1180px;
       display: grid;
       /* two balanced columns: the form and the image previews get equal room */
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 8px;
+      gap: 12px;
       /* columns keep their own height instead of stretching to the taller one */
       align-items: start;
     }
 
+    /* Shopify card: white, 20px radius, hairline shadow */
     .panel {
       background: var(--bg);
-      border-radius: 8px;
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
       position: relative;
     }
 
     .col-form {
-      padding: 24px;
+      padding: 16px;
     }
 
-    /* the scrim takes its colour from the uploaded swatch, not from a fixed brand green */
-    .col-form::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 280px;
-      background: linear-gradient(180deg, var(--scrim) 0%, transparent 100%);
-      pointer-events: none;
-    }
-
-    .col-form > * { position: relative; }
-
-    .header { margin-bottom: 20px; }
+    .header { margin-bottom: 16px; }
 
     .header h1 {
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: 8px;
+      font-size: 20px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      line-height: 28px;
+      margin-bottom: 4px;
     }
 
     .header p {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-sub);
-      line-height: 1.5;
+      line-height: 20px;
     }
 
     /* the swatch tile and the two fields that name it share one row: Pattern ID + Pattern
@@ -135,14 +131,16 @@
       gap: 12px;
     }
 
+    /* Shopify media drop zone: 1px dashed #c0c0c0 on #f7f7f7 */
     .drop-zone {
       position: relative;
       flex: none;
       width: 160px;
       max-width: 100%;
       aspect-ratio: 1 / 1;
-      border: 2px dashed #727272;
-      border-radius: 8px;
+      border: 1px dashed #c0c0c0;
+      border-radius: 12px;
+      background: var(--surface-sunk);
       padding: 10px;
       overflow: hidden;
       text-align: center;
@@ -150,41 +148,34 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.2s, background-color 0.2s;
+      transition: border-color 0.12s, background-color 0.12s;
     }
 
     .drop-zone:hover {
-      border-color: #fff;
-      background-color: rgba(255,255,255,0.04);
+      border-color: #8a8a8a;
+      background-color: #f2f2f2;
     }
 
-    /* an armed drop target is an active state, so it earns the accent */
     .drop-zone.drag-over {
-      border-color: var(--accent);
-      background-color: rgba(30,215,96,0.08);
+      border-color: var(--focus);
+      background-color: #f5f9ff;
     }
-
-    .drop-zone:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
     /* once the swatch is in, the tile IS the swatch, and the dashed invitation is gone.
        The state lives on .upload-cell because the caption is a sibling of the tile now */
-    .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(255,255,255,0.14); }
+    .upload-cell.filled .drop-zone { border-style: solid; border-color: rgba(0,0,0,0.08); background: #fff; }
     .upload-cell.filled .dz-prompt { display: none; }
 
     /* scoped to the prompt: an unscoped .drop-zone svg also hits the remove button's
        glyph and shoves it off centre with the margin below */
     .dz-prompt svg {
-      width: 24px; height: 24px;
-      color: var(--text-muted);
+      width: 20px; height: 20px;
+      color: var(--text-2);
       margin-bottom: 6px;
-      transition: color 0.2s;
     }
 
-    .drop-zone:hover .dz-prompt svg { color: #fff; }
-    .drop-zone.drag-over .dz-prompt svg { color: var(--accent); }
-
-    .drop-zone p { font-size: 13px; color: var(--text-sub); line-height: 1.4; }
-    .drop-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .drop-zone p { font-size: 13px; font-weight: 500; color: var(--text); line-height: 20px; }
+    .drop-zone .hint { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-sub); margin-top: 2px; }
 
     .dz-img {
       display: none;
@@ -198,36 +189,35 @@
       display: none;
       min-width: 0;
       flex: 1;
-      padding-top: 2px;
     }
 
     .upload-cell.filled .preview { display: block; }
 
-    /* white, not accent: green belongs to the submit button alone. A playing track earns
-       green because it marks one row among many, and a single staged file marks nothing */
     .preview .pv-name {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 500;
       color: var(--text);
-      line-height: 1.35;
+      line-height: 20px;
       /* the column is narrow, and there is vertical room to spare, so wrap instead of
          cutting the name off with an ellipsis */
       overflow-wrap: anywhere;
     }
-    .preview .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
+    .preview .pv-meta { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
 
+    /* white round icon button over the swatch */
     #pvRemove {
       display: none;
       position: absolute; top: 6px; right: 6px;
-      width: 26px; height: 26px;
+      width: 28px; height: 28px;
       border: none; border-radius: 50%;
-      background: rgba(0,0,0,0.6);
-      color: #fff; cursor: pointer;
+      background: #fff;
+      box-shadow: var(--btn-shadow);
+      color: var(--text-2); cursor: pointer;
       align-items: center; justify-content: center;
     }
     .upload-cell.filled #pvRemove { display: flex; }
     #pvRemove svg { width: 12px; height: 12px; display: block; }
-    #pvRemove:hover { background: rgba(0,0,0,0.9); }
+    #pvRemove:hover { background: #f7f7f7; }
 
     /* two fields per row; the error text sits inside the cell so a wrong value in one
        column never shifts the other */
@@ -246,76 +236,104 @@
     .field { margin-top: 16px; }
     .fields .field { margin-top: 0; }
 
-    /* sentence-case bold, the way Encore labels form fields, no uppercase tracking */
+    /* Polaris field label: 13px/20px 500, 4px above the input */
     .field label {
       display: block;
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 13px;
+      line-height: 20px;
+      font-weight: 500;
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .field label .opt {
       font-weight: 400;
-      color: var(--text-muted);
+      color: var(--text-sub);
     }
 
-    .field input[type=text],
-    .field select {
+    /* Polaris text field: 30px, 12px radius, no border, ring drawn as a shadow */
+    .field input[type=text] {
       width: 100%;
-      height: 44px;
-      padding: 0 14px;
-      border-radius: 4px;
-      border: 1px solid #727272;
-      background: var(--bg);
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: none;
+      background: #fff;
       color: var(--text);
-      font-size: 15px;
+      font-size: 13px;
+      line-height: 20px;
+      letter-spacing: inherit;
       font-family: inherit;
-      transition: border-color .1s ease;
+      outline: none;
+      box-shadow: var(--field-shadow);
+      transition: box-shadow .12s;
     }
 
-    .field select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a7a7a7' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
-      padding-right: 36px;
-    }
-
-    .field input[type=text]:hover,
-    .field select:hover { border-color: #fff; }
-
-    .field input[type=text]:focus,
-    .field select:focus { outline: none; border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+    .field input[type=text]::placeholder { color: #4a4a4a; }
+    .field input[type=text]:hover { box-shadow: var(--field-hover); }
+    .field input[type=text]:focus { box-shadow: var(--field-focus); }
 
     .field.invalid input[type=text],
-    .field.invalid input[type=text]:hover { border-color: var(--error); }
+    .field.invalid input[type=text]:hover { box-shadow: var(--field-error); background: #fff4f4; }
 
-    .field .err { margin-top: 6px; font-size: 13px; color: var(--error); display: none; }
+    .field .err { margin-top: 4px; font-size: 13px; color: var(--error); display: none; }
     .field.invalid .err { display: block; }
 
-    .auto-hint { margin-top: 6px; font-size: 12px; color: var(--text-muted); display: none; }
+    .auto-hint { margin-top: 4px; font-size: 13px; color: var(--text-sub); display: none; }
     .field.invalid .auto-hint { display: none; }
 
     /* the hint sits on the label line, to its right: it explains where the value came
        from, so it belongs with the name of the field and not under the input */
-    .lbl-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .lbl-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
     .lbl-row label { margin-bottom: 0; }
     .lbl-row .auto-hint { margin-top: 0; }
 
-    .trim-row { display: flex; gap: 10px; }
+    .trim-row { display: flex; gap: 8px; }
     .trim-row input[type=text] { flex: 1; }
 
     .trim-row input[type=color] {
       flex: none;
-      width: 44px; height: 44px;
-      padding: 2px;
-      border: 1px solid #727272;
-      border-radius: 4px;
-      background: var(--bg);
+      width: 30px; height: 30px;
+      padding: 0;
+      border: none;
+      border-radius: 12px;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: var(--field-shadow);
       cursor: pointer;
     }
+    .trim-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+    .trim-row input[type=color]::-webkit-color-swatch { border: none; border-radius: 12px; }
+
+    /* select = native <select> kept hidden, drawn by the dropdown script at the end:
+       white field button (same box as the text field) + Shopify popover menu */
+    .dd { position: relative; display: flex; min-width: 0; }
+    .dd-btn {
+      display: flex; align-items: center; justify-content: space-between; gap: 4px;
+      width: 100%; height: 30px; padding: 0 8px 0 12px;
+      border: none; border-radius: 12px; background: #fff; color: var(--text);
+      font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; font-weight: 400;
+      box-shadow: var(--field-shadow); cursor: pointer; white-space: nowrap; transition: box-shadow .12s;
+    }
+    .dd-btn:hover { box-shadow: var(--field-hover); }
+    .dd.open .dd-btn { box-shadow: var(--field-focus); }
+    .dd-label { overflow: hidden; text-overflow: ellipsis; }
+    .dd-chevron { width: 16px; height: 16px; flex: none; color: var(--text-sub); transition: transform .12s; }
+    .dd.open .dd-chevron { transform: rotate(180deg); }
+    .dd-menu {
+      position: absolute; top: calc(100% + 6px); left: 0; min-width: 100%; max-height: min(320px, 60vh); overflow: auto;
+      background: #fff; border-radius: 16px; padding: 6px; z-index: 200;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
+    }
+    .dd-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      width: 100%; height: 32px; text-align: left; border: none; background: none; padding: 6px 8px; border-radius: 12px;
+      font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; font-weight: 450; color: var(--text-2);
+      white-space: nowrap; cursor: pointer;
+    }
+    .dd-item:hover { background: #f2f2f2; }
+    .dd-item.selected { background: #ebebeb; font-weight: 600; color: var(--text); }
+    .dd-check { width: 16px; height: 16px; flex: none; }
 
     /* ---- right column: flatlays on top, Sent list below ----
        The column is a flex stack. The flatlay panel takes the height its two previews
@@ -323,7 +341,7 @@
     .col-right {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
       min-height: 0;
     }
     .col-right > .panel { flex: none; }
@@ -331,7 +349,7 @@
     /* ---- flatlays, composited in the browser (ported from pattern-mockup.html) ----
        Two previews side by side. They are what n8n receives as the flatlay photo:
        what you see is what gets sent. */
-    .flat-body { padding: 16px 24px 20px; }
+    .flat-body { padding: 12px 16px 16px; }
 
     .scale-row {
       display: flex;
@@ -339,8 +357,8 @@
       gap: 12px;
       margin-bottom: 12px;
     }
-    .scale-row .scale-lbl { font-size: 13px; color: var(--text-sub); white-space: nowrap; }
-    .scale-row input[type=range] { flex: 1; min-width: 0; accent-color: #fff; }
+    .scale-row .scale-lbl { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .scale-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--text-2); }
     .scale-row .val {
       width: 44px;
       text-align: right;
@@ -352,19 +370,21 @@
     .flat-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 12px;
     }
 
     @media (max-width: 560px) {
       .flat-grid { grid-template-columns: minmax(0, 1fr); }
     }
 
+    /* image tile like the Shopify product media grid: 8px radius, hairline ring */
     .flat-shot {
       position: relative;
       aspect-ratio: 4 / 5;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
-      background: var(--surface-elevated);
+      background: var(--surface-sunk);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
     }
     .flat-shot img {
       display: none;
@@ -384,60 +404,57 @@
       padding: 16px;
       text-align: center;
       font-size: 13px;
-      line-height: 1.4;
-      color: var(--text-muted);
+      line-height: 20px;
+      color: var(--text-sub);
     }
     .flat-item.ready .flat-shot .ph { display: none; }
 
     .flat-cap {
-      margin-top: 6px;
-      font-size: 12px;
+      margin-top: 4px;
+      font-size: 13px;
       color: var(--text-sub);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
-    .flat-msg { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 16px; }
+    .flat-msg { margin-top: 8px; font-size: 13px; color: var(--text-sub); min-height: 20px; }
     .flat-msg.error { color: var(--error); }
     .flat-msg button {
       background: none; border: none; padding: 0;
-      color: var(--text);
-      font: inherit;
-      text-decoration: underline;
+      color: #1650d0;
+      font-family: inherit; font-size: inherit; letter-spacing: inherit;
       cursor: pointer;
     }
+    .flat-msg button:hover { color: #1347b9; text-decoration: underline; }
 
     .submit-wrap { margin-top: 20px; }
 
+    /* Shopify primary (dark Save) button */
     .submit-btn {
       width: 100%;
       max-width: 300px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       margin: 0 auto;
-      background: var(--accent);
+      background: #101010;
       border: none;
-      color: #000;
+      color: #fff;
       font-family: var(--font);
-      font-size: 16px;
-      font-weight: 700;
-      padding: 12px 24px;
-      border-radius: 500px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: inherit;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      box-shadow: var(--pri-shadow);
       cursor: pointer;
-      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+      transition: background 0.12s;
     }
 
-    .submit-btn:hover:not(:disabled) {
-      background: var(--accent-hover);
-      transform: scale(1.04);
-    }
+    .submit-btn:hover:not(:disabled) { background: #2a2a2a; }
 
-    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
-
-    .submit-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-
-    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* result lands in a floating toast so the form never reflows under the button */
     .toast {
@@ -445,14 +462,14 @@
       left: 50%; bottom: 24px;
       transform: translateX(-50%) translateY(10px);
       max-width: 560px;
-      background: #fff;
-      color: #000;
-      padding: 12px 20px;
-      border-radius: 4px;
-      font-size: 14px;
+      background: #1b1b1b;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
       font-weight: 500;
-      line-height: 1.4;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+      line-height: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
@@ -482,47 +499,49 @@
       flex-direction: column;
     }
 
+    /* card header row, like "Collection items 210" */
     .tasks-head {
       flex: none;
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      padding: 20px 24px 12px;
-      border-bottom: 1px solid var(--divider);
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
     }
 
-    .tasks-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .tasks-head h2 { font-size: 13px; line-height: 20px; font-weight: 650; }
 
-    .tasks-head .note { font-size: 12px; color: var(--text-muted); }
+    .tasks-head .note { font-size: 13px; color: var(--text-sub); }
 
     #taskList {
       flex: 1;
-      padding: 8px 16px 16px;
+      padding: 8px;
     }
 
-    /* track-list row: transparent, background only on hover, not a card */
     .task {
       display: grid;
       grid-template-columns: 40px minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
       padding: 8px;
-      border-radius: 4px;
+      border-radius: 12px;
     }
 
-    .task:hover { background: var(--row-hover); }
+    .task:hover { background: #f7f7f7; }
 
     .task .thumb {
       width: 40px; height: 40px;
-      border-radius: 4px;
+      border-radius: 8px;
       object-fit: cover;
-      background: var(--surface-elevated);
+      background: var(--surface-sunk);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
     }
 
     .task .body { min-width: 0; }
 
     .task .t-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -530,29 +549,35 @@
     }
 
     .task .t-sub {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-sub);
-      margin-top: 2px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .task .t-time {
-      font-size: 12px;
-      color: var(--text-muted);
+      font-size: 13px;
+      color: var(--text-sub);
       font-variant-numeric: tabular-nums;
     }
 
-    .tasks-empty { padding: 48px 24px; text-align: center; }
-    .tasks-empty h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .tasks-empty p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+    .tasks-empty { padding: 40px 16px; text-align: center; }
+    .tasks-empty h3 { font-size: 13px; font-weight: 650; margin-bottom: 2px; }
+    .tasks-empty p { font-size: 13px; color: var(--text-sub); line-height: 20px; }
+
+    /* tooltip = Shopify admin hover card (replaces the native title tooltip) */
+    .tip { position: fixed; z-index: 1000; max-width: 280px; padding: 12px; border-radius: 12px; background: #1b1b1b; color: #e3e3e3; box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: none; font-size: 13px; line-height: 20px; font-weight: 450; letter-spacing: -.01em; }
 
     /* Narrow screens: the two panels stack instead of sitting side by side. The 1fr
        track for Sent shrinks to ~0 once the form column alone fills the viewport, so
        the panel is there but has no width to draw in. */
     @media (max-width: 900px) {
       .container { grid-template-columns: minmax(0, 1fr); }
+    }
+    /* iPhone zooms into fields under 16px */
+    @media (max-width: 640px) {
+      .field input[type=text], .dd-btn { font-size: 16px; }
     }
   </style>
 </head>
@@ -1902,5 +1927,109 @@ function compose(G, pat, ratio, trim, opt){
 
     renderTasks();
   </script>
+<script>
+// Shopify-style dropdown over native <select> (from dashboards/shared/shared.js).
+// The native select stays in the DOM (hidden) as the source of truth: page code keeps
+// reading/writing .value and onchange; option changes and .value writes re-render the pill.
+(() => {
+  const CHECK = '<svg class="dd-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
+  const CHEVRON = '<svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 8 4 4 4-4"/></svg>';
+  const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  let openDd = null;
+  function close(dd) {
+    if (!dd) return;
+    dd.classList.remove('open');
+    dd.querySelector('.dd-menu').hidden = true;
+    if (openDd === dd) openDd = null;
+  }
+  function enhance(sel) {
+    if (sel.closest('.dd')) return;
+    const dd = document.createElement('div');
+    dd.className = 'dd dd-' + (sel.id || 'select');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dd-btn';
+    const menu = document.createElement('div');
+    menu.className = 'dd-menu';
+    menu.hidden = true;
+    sel.parentNode.insertBefore(dd, sel);
+    dd.append(btn, menu, sel);
+    sel.hidden = true;
+    const render = () => {
+      const cur = sel.options[sel.selectedIndex];
+      btn.innerHTML = `<span class="dd-label"></span>${CHEVRON}`;
+      btn.querySelector('.dd-label').textContent = cur ? cur.textContent : '';
+      btn.disabled = sel.disabled;
+      menu.innerHTML = '';
+      for (const opt of sel.options) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'dd-item' + (opt.selected ? ' selected' : '');
+        item.textContent = opt.textContent;
+        item.disabled = opt.disabled;
+        if (opt.selected) item.insertAdjacentHTML('beforeend', CHECK);
+        item.addEventListener('click', () => {
+          close(dd);
+          if (sel.value === opt.value) return;
+          sel.value = opt.value;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      }
+    };
+    Object.defineProperty(sel, 'value', {
+      configurable: true,
+      get() { return valueDesc.get.call(this); },
+      set(v) { valueDesc.set.call(this, v); render(); },
+    });
+    new MutationObserver(render).observe(sel, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['disabled'] });
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (dd.classList.contains('open')) return close(dd);
+      close(openDd);
+      dd.classList.add('open');
+      menu.hidden = false;
+      menu.style.left = ''; menu.style.right = '';
+      if (menu.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { menu.style.left = 'auto'; menu.style.right = '0'; }
+      const s = menu.querySelector('.selected'); if (s) s.scrollIntoView({ block: 'nearest' });
+      openDd = dd;
+    });
+    menu.addEventListener('click', e => e.stopPropagation());
+    render();
+  }
+  document.addEventListener('click', () => close(openDd));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(openDd); });
+  document.querySelectorAll('select').forEach(enhance);
+})();
+</script>
+<script>
+// Tooltips like Shopify admin: dark card under the element (above when there is no room).
+// Reads the native title (moved into data-tip on hover so the browser tooltip never shows);
+// page code keeps setting .title as before.
+(() => {
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  let cur = null;
+  const hide = () => { tip.hidden = true; cur = null; };
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest && e.target.closest('[title],[data-tip]');
+    if (el && el.hasAttribute('title')) { el.dataset.tip = el.getAttribute('title'); el.removeAttribute('title'); }
+    if (!el || !el.dataset.tip) { if (cur) hide(); return; }
+    if (el === cur) return;
+    cur = el;
+    tip.textContent = el.dataset.tip;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+    let top = r.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+    tip.style.top = top + 'px';
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + 'px';
+  });
+  document.addEventListener('scroll', hide, true);
+  document.addEventListener('mousedown', hide);
+})();
+</script>
 </body>
 </html>

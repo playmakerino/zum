@@ -11,11 +11,11 @@
 <body>
 <div class="layout">
   <header class="topbar">
-    <select class="period-select submitter-select" id="submitterSelect" data-icon="person" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
-      <option value="">All submitters</option>
-    </select>
-    <div class="topbar-actions">
+    <div class="topbar-title">
+      <span class="logo">Video Creative Performance</span>
       <span class="cache-time" id="cachedAt"></span>
+    </div>
+    <div class="topbar-actions">
       <select class="period-select" id="periodSelect" data-icon="calendar" onchange="onPeriodChange()">
         <option value="7">Last 7 days</option>
         <option value="14">Last 14 days</option>
@@ -29,6 +29,12 @@
   </header>
 
   <main class="main">
+    <div class="card">
+    <div class="card-head">
+      <select class="period-select submitter-select" id="submitterSelect" data-icon="person" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
+        <option value="">All submitters</option>
+      </select>
+    </div>
     <div id="page-creatives" class="page active">
       <div class="table-wrap">
         <div class="table-scroll">
@@ -50,7 +56,8 @@
           </tbody></table>
         </div>
       </div>
-      <div id="debugLine" class="debug-line"></div>
+      <div class="card-foot"><div id="debugLine" class="debug-line"></div></div>
+    </div>
     </div>
 
   </main>

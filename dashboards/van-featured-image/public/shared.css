@@ -7,15 +7,26 @@
    text #101010, borders #ddd / #ebebeb, hover #f7f7f7, selected #ebebeb,
    cells 13px with 8px 12px padding, numbers right-aligned, sortable header label is
    a 6px-radius button (transparent, hover rgba(0,0,0,.05)) with an up/down chevron.
-   Table card is square (user choice); everything else keeps Polaris radii. */
+   Layout (user choice 2026-10-14): the page scrolls, not the table. Topbar is sticky
+   (title + updated time left, actions right), table header sticks under it. The table
+   sits in a 20px-radius .card whose first row (.card-head) holds filters/tabs and last
+   row (.card-foot) holds the debug/load log, so header/total rows never touch the
+   rounded corners. */
+
+:root{--topbar-h:56px}
 
 body{background:#fff;color:#101010;font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:0;font-feature-settings:normal}
 ::selection{background:rgba(0,0,0,.1)}
 ::-webkit-scrollbar-thumb{background:#d0d0d0}
 ::-webkit-scrollbar-thumb:hover{background:#b5b5b5}
-.topbar{background:#fff;border-bottom:1px solid #ebebeb}
+html,body{height:auto}
+.layout{display:block;height:auto;overflow:visible}
+.topbar{position:sticky;top:0;z-index:30;height:var(--topbar-h);background:#fff;border-bottom:1px solid #ebebeb}
+.topbar-title{display:flex;align-items:baseline;gap:8px;min-width:0}
+.main{display:block;overflow:visible}
+.page.active,.sub-page.active{display:block}
 .cache-time{color:#616161;font-size:12px}
-.logo{font-size:14px;font-weight:600;letter-spacing:0;color:#101010}
+.logo{font-size:14px;font-weight:600;letter-spacing:0;color:#101010;white-space:nowrap}
 
 /* ── Buttons: white, light border, 12px radius (Export / Print in Shopify header) */
 .btn{display:inline-flex;align-items:center;height:32px;padding:0 12px 0 8px;gap:6px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;letter-spacing:0;cursor:pointer}
@@ -49,14 +60,26 @@ body{background:#fff;color:#101010;font-family:'Inter',-apple-system,system-ui,s
 .dd-field.open .dd-btn{background:#fff;border-color:#303030;box-shadow:0 0 0 1px #303030}
 
 /* ── Tabs (trang-mockup) */
-.tab-btn,.sub-tab{border-radius:8px;color:#4a4a4a;font-family:inherit;font-weight:500;letter-spacing:0}
+.topbar-tabs{display:flex;align-items:center;gap:2px}
+.tab-btn,.sub-tab{padding:6px 12px;border:none;background:none;cursor:pointer;font-size:13px;line-height:16px;border-radius:8px;color:#4a4a4a;font-family:inherit;font-weight:500;letter-spacing:0;transition:background .1s}
 .tab-btn:hover,.sub-tab:hover{background:#f7f7f7;color:#101010}
 .tab-btn.active,.sub-tab.active{background:#ebebeb;color:#101010;font-weight:600}
 
 /* ── Table */
-.table-wrap{border:none;border-radius:0;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
+.card{position:relative;background:#fff;border-radius:20px;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
+.card-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1px solid #ebebeb}
+.card-head .topbar-tabs{margin:0}
+.card-foot{min-height:16px;padding:8px 16px;border-top:1px solid #ebebeb}
+.card-foot .debug-line,.card-foot .load-log{margin:0;max-height:none}
+.table-wrap{flex:none;min-height:0;background:none;border:none;border-radius:0;box-shadow:none;overflow:visible;position:relative}
+.table-scroll{overflow:visible;height:auto;max-height:none}
+/* loading popup stays in view while the (possibly long) table is covered */
+.load-overlay{align-items:flex-start}
+.load-overlay .load-popup{position:sticky;top:calc(var(--topbar-h) + 80px);margin-top:80px}
+/* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page) */
+@media(max-width:1100px){.table-scroll{overflow-x:auto}thead th{top:0}}
 table{width:100%;font-size:13px}
-thead th{background:#fff;color:#101010;font-weight:400;font-size:13px;line-height:20px;text-transform:none;letter-spacing:0;padding:7px 8px;border-bottom:1px solid #ddd}
+thead th{top:var(--topbar-h);background:#fff;color:#101010;font-weight:400;font-size:13px;line-height:20px;text-transform:none;letter-spacing:0;padding:7px 8px;border-bottom:1px solid #ddd}
 thead th:hover{color:#101010}
 thead th.sorted{color:#101010;font-weight:600}
 thead th .th-content{gap:2px}
@@ -79,7 +102,7 @@ tbody tr{border-bottom:1px solid #ebebeb}
 tbody tr:hover,tbody tr:hover td:first-child{background:#f7f7f7}
 tbody td{padding:8px 12px;color:#101010;font-variant-numeric:tabular-nums}
 .td-name{font-weight:400;color:#101010}
-tbody tr.total-row td,tbody tr.total-row:hover td{background:#f2f2f2;font-weight:600;color:#101010;border-top:1px solid #ddd}
+tbody tr.total-row td,tbody tr.total-row:hover td{box-shadow:0 -1px 0 #ddd;background:#f2f2f2;font-weight:600;color:#101010;border-top:1px solid #ddd}
 .thumb,.thumb-placeholder{border-radius:6px;background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
 

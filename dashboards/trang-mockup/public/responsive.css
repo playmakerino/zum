@@ -1,7 +1,7 @@
 /* trang-mockup breakpoints — loaded after shared.css so these win on small screens */
 @media(max-width:768px){
   .topbar{padding:0 12px;gap:8px}
-  .topbar-tabs{margin-left:8px;gap:1px}
+  .topbar-tabs{gap:1px}
   .tab-btn{padding:5px 8px;font-size:12px}
   .topbar-actions{gap:6px}
   .period-label{display:none}

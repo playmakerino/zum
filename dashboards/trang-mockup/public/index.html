@@ -11,15 +11,11 @@
 <body>
 <div class="layout">
   <header class="topbar">
-    <nav class="topbar-tabs">
-      <button class="tab-btn active" data-page="mockups" onclick="showPage('mockups')">By Mockup</button>
-      <button class="tab-btn" data-page="creatives" onclick="showPage('creatives')">By Creative ID</button>
-      <span class="tab-sep" id="subTabSep" style="display:none"></span>
-      <button class="sub-tab active" data-sub="creativesValid" onclick="showCreativeSub('creativesValid')" style="display:none">Full Format</button>
-      <button class="sub-tab" data-sub="creativesSpend" onclick="showCreativeSub('creativesSpend')" style="display:none">High Spend</button>
-    </nav>
-    <div class="topbar-actions">
+    <div class="topbar-title">
+      <span class="logo">Mockup Performance</span>
       <span class="cache-time" id="headerCachedAt"></span>
+    </div>
+    <div class="topbar-actions">
       <span class="period-label" id="periodLabel"></span>
       <div class="tooltip-wrap">
         <button class="btn btn-primary" onclick="fetchAll()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
@@ -29,6 +25,16 @@
   </header>
 
   <main class="main">
+    <div class="card">
+    <div class="card-head">
+      <nav class="topbar-tabs">
+        <button class="tab-btn active" data-page="mockups" onclick="showPage('mockups')">By Mockup</button>
+        <button class="tab-btn" data-page="creatives" onclick="showPage('creatives')">By Creative ID</button>
+        <span class="tab-sep" id="subTabSep" style="display:none"></span>
+        <button class="sub-tab active" data-sub="creativesValid" onclick="showCreativeSub('creativesValid')" style="display:none">Full Format</button>
+        <button class="sub-tab" data-sub="creativesSpend" onclick="showCreativeSub('creativesSpend')" style="display:none">High Spend</button>
+      </nav>
+    </div>
     <div id="page-mockups" class="page active">
       <div class="table-wrap">
         <div class="table-scroll">
@@ -37,7 +43,7 @@
           </tbody></table>
         </div>
       </div>
-      <div class="load-log" id="mockupsLoadLog"></div>
+      <div class="card-foot"><div class="load-log" id="mockupsLoadLog"></div></div>
     </div>
 
     <div id="page-creatives" class="page">
@@ -59,7 +65,8 @@
           </div>
         </div>
       </div>
-      <div class="load-log" id="creativesLoadLog"></div>
+      <div class="card-foot"><div class="load-log" id="creativesLoadLog"></div></div>
+    </div>
     </div>
   </main>
 </div>

@@ -1,8 +1,9 @@
 /* van-featured-image breakpoints — loaded after shared.css so these win on small screens */
 @media(max-width:768px){
-  .layout{grid-template-rows:auto 1fr}
-  .topbar{padding:10px 12px;gap:6px 12px;flex-wrap:wrap}
-  .logo{width:100%;font-size:13px}
+  :root{--topbar-h:0px}
+  .topbar{position:static;height:auto;padding:10px 12px;gap:6px 12px;flex-wrap:wrap}
+  .topbar-title{width:100%}
+  .logo{font-size:13px}
   .topbar-actions{margin-left:0;gap:6px;flex-wrap:wrap}
   .btn{padding:5px 10px;font-size:11px}
   .main{padding:8px}

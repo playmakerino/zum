@@ -21,7 +21,15 @@ const state = {
   sort: { ads: { key: 'print_id', dir: -1 } },
   filters: { ads: {} },
   pageLimit: { ads: PAGE_SIZE },
+  mode: (() => { try { return localStorage.getItem('van_mode') === 'all' ? 'all' : 'active'; } catch { return 'active'; } })(),
 };
+
+// Card tabs "Active ads" / "All ads" pick which mode Load Data fetches.
+function setMode(mode) {
+  state.mode = mode;
+  try { localStorage.setItem('van_mode', mode); } catch {}
+  document.querySelectorAll('.tab-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
 
 const TABLES = {
   ads: {
@@ -37,6 +45,7 @@ const loadCacheLocal = () => { try { return JSON.parse(localStorage.getItem(cach
 
 // Init
 window.addEventListener('DOMContentLoaded', async () => {
+  setMode(state.mode);
   restoreLogs();
 
   try {

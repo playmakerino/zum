@@ -9,6 +9,9 @@
 <body>
 <div class="layout">
   <header class="topbar">
+    <select class="period-select submitter-select" id="submitterSelect" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
+      <option value="">All submitters</option>
+    </select>
     <div class="topbar-actions">
       <span class="cache-time" id="cachedAt"></span>
       <select class="period-select" id="periodSelect" onchange="onPeriodChange()">

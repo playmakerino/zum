@@ -167,7 +167,8 @@ function renderDebug(d) {
   ].filter(Boolean).join(', ');
   const parts = [
     `Loaded in ${sec}s`,
-    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend > 1`,
+    `Insights: ${d.insights.raw} rows${insightsSrc} → ${d.insights.afterSpendFilter} with spend > 1`
+      + (d.insights.withVideoPlays != null ? ` → ${d.insights.withVideoPlays} with video plays` : ''),
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Creatives: ${d.creatives.total} (${formatBreakdown})`,
     `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
@@ -317,6 +318,7 @@ function enrichRow(row) {
 
 // Render
 function renderTable(type) {
+  if (type === 'creatives') refreshSubmitterOptions();
   const cfg = TABLES[type];
   const data = state[type];
   const { key, dir } = state.sort[type];
@@ -351,9 +353,34 @@ function sortTable(type, key) {
   renderTable(type);
 }
 
+// Submitter filter (topbar): values parsed server-side from campaign name
+const NO_SUBMITTER = '__none__';
+const escapeHtml = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function storedSubmitter() { try { return localStorage.getItem('vidthao_submitter') || ''; } catch { return ''; } }
+
+function refreshSubmitterOptions() {
+  const sel = $('submitterSelect');
+  if (!sel) return;
+  const rows = state.creatives?.current || [];
+  const names = [...new Set(rows.map(r => r.submitted_by).filter(Boolean))].sort();
+  const hasNone = rows.some(r => !r.submitted_by);
+  const want = sel.value || storedSubmitter();
+  sel.innerHTML = '<option value="">All submitters</option>'
+    + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')
+    + (hasNone ? `<option value="${NO_SUBMITTER}">(no email)</option>` : '');
+  sel.value = [...sel.options].some(o => o.value === want) ? want : '';
+}
+
+function onSubmitterChange() {
+  try { localStorage.setItem('vidthao_submitter', $('submitterSelect').value); } catch {}
+  filterTable('creatives');
+}
+
 // Pure filter: returns filtered subset of rows
 function applyFilters(type, rows) {
   const metricFilters = state.filters[type];
+  const submitter = $('submitterSelect')?.value || '';
+  if (submitter) rows = rows.filter(r => submitter === NO_SUBMITTER ? !r.submitted_by : r.submitted_by === submitter);
 
   // Collect text/select filters from header row
   const colFilters = {};

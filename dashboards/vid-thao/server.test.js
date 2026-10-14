@@ -6,6 +6,8 @@ const {
   aggregateMetrics,
   groupByCreative,
   collectFetchableCreativeIds,
+  hasVideoPlays,
+  parseSubmittedBy,
 } = require('./server');
 
 // ── dateStr ──────────────────────────────────────────────────────────────────
@@ -260,5 +262,27 @@ describe('collectFetchableCreativeIds', () => {
       { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },  // dup
     ];
     expect(collectFetchableCreativeIds(ads).sort()).toEqual(['c1']);
+  });
+});
+
+describe('hasVideoPlays', () => {
+  test('true when any play value > 0', () => {
+    expect(hasVideoPlays({ video_play_actions: [{ action_type: 'video_view', value: '12' }] })).toBe(true);
+  });
+  test('false when missing or zero', () => {
+    expect(hasVideoPlays({})).toBe(false);
+    expect(hasVideoPlays({ video_play_actions: [{ action_type: 'video_view', value: '0' }] })).toBe(false);
+  });
+});
+
+describe('parseSubmittedBy', () => {
+  test('email part from TC | Vid campaign', () => {
+    expect(parseSubmittedBy('TC | Vid | Folder A | thaodp | 261014')).toBe('thaodp');
+  });
+  test('empty when no email part or other campaign', () => {
+    expect(parseSubmittedBy('TC | Vid | Folder A | 261014')).toBe('');
+    expect(parseSubmittedBy('TC | Vid')).toBe('');
+    expect(parseSubmittedBy('TC | Img | x | thaodp | 261014')).toBe('');
+    expect(parseSubmittedBy(undefined)).toBe('');
   });
 });

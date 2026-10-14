@@ -33,6 +33,7 @@ body{background:var(--bg);color:var(--t);font:13px/1.45 'Inter',-apple-system,sy
 .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
 .period-select{background:var(--s);border:1px solid var(--b);color:var(--t2);border-radius:5px;padding:5px 10px;font:500 12.5px/1 inherit;cursor:pointer;outline:none;min-width:240px;transition:.1s}
 .period-select:hover{border-color:var(--t4)}
+.submitter-select{min-width:160px}
 .period-select:focus{border-color:var(--indigo);box-shadow:0 0 0 2px rgba(94,106,210,.18)}
 
 .btn{padding:5px 12px;border-radius:5px;font:500 12.5px/1 inherit;cursor:pointer;border:1px solid transparent;transition:.1s;display:inline-flex;align-items:center;gap:6px}
@@ -128,6 +129,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .topbar-actions{gap:6px}
   #cachedAt{display:none}
   .period-select{min-width:0}
+  .submitter-select{max-width:140px}
   .col-filter-btn{padding:5px 4px}
   .load-popup{min-width:0;width:calc(100% - 32px)}
 }
@@ -138,6 +140,7 @@ thead th .th-content{display:flex;align-items:center;gap:4px;white-space:nowrap}
   .topbar{flex-wrap:wrap;height:auto;padding:8px 12px;gap:6px}
   .topbar-actions{flex-basis:100%;margin-left:0;gap:8px}
   .period-select{flex:1;min-width:0;padding:6px 8px;font-size:12px}
+  .submitter-select{flex-basis:100%;max-width:none}
   .tooltip-wrap{flex-shrink:0}
   .table-scroll{max-height:none}
   .filter-popup{min-width:240px;max-width:calc(100vw - 16px)}

@@ -1,31 +1,24 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express   = require('express');
-const cors      = require('cors');
 const axios     = require('axios');
 const path      = require('path');
-const fs        = require('fs');
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const META_BASE_URL = `https://graph.facebook.com/v22.0`;
 
-// Non-blocking cache write (fire-and-forget)
-function saveCacheAsync(filePath, data) {
-  fs.writeFile(filePath, JSON.stringify(data), err => {
-    if (err) console.error(`Cache write error (${path.basename(filePath)}):`, err.message);
-  });
-}
-
-// ── File-based cache for creative info (30 day TTL) ─────────────────────────
-const CACHE_FILE = path.join(__dirname, '.cache-creatives.json');
-const CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
-// Ads cached with creative:null (e.g. video still encoding at fetch time) must be
-// retried, else a transient null sticks for the full 30-day TTL and the video stays
-// hidden. Retry such entries once this cooldown passes (avoids refetch loops per load).
+// ── In-memory caches ─────────────────────────────────────────────────────────
+// Render free has no persistent disk (restart/spin-down wipes files), so caches
+// live in memory only and last as long as the process.
+// Ads cached with creative:null (e.g. video still encoding at fetch time) are
+// retried once this cooldown passes, so a transient null doesn't hide the video.
 const NULL_CREATIVE_RETRY_MS = 60 * 60 * 1000; // 1 hour
+const HD_THUMB_TTL = 24 * 60 * 60 * 1000;      // Meta CDN URLs expire
+
+const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog} | null, _cachedAt }
+const insightsCache = {}; // days → { current: rows }
+const hdThumbCache  = {}; // creative_id → { url, _cachedAt }
 
 function slimCreative(ad) {
   const c = ad.creative;
@@ -34,78 +27,12 @@ function slimCreative(ad) {
     id: ad.id,
     creative: {
       id:          c.id,
-      name:        c.name || '',
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
 }
-
-function loadCacheFromFile() {
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      let migrated = false;
-      for (const [id, entry] of Object.entries(raw)) {
-        if (entry._cachedAt && (now - entry._cachedAt) > CACHE_TTL) continue;
-        // Auto-migrate old bulky entries to slim format
-        if (entry.creative?.object_story_spec || entry.creative?.asset_feed_spec) {
-          filtered[id] = slimCreative(entry);
-          migrated = true;
-        } else {
-          filtered[id] = entry;
-        }
-      }
-      if (migrated) saveCacheAsync(CACHE_FILE, filtered);
-      return filtered;
-    }
-  } catch (e) { console.error('Cache read error:', e.message); }
-  return {};
-}
-
-let creativeCache = loadCacheFromFile();
-
-// ── File-based cache for insights (survive server restart) ──────────────────
-const INSIGHTS_CACHE_FILE = path.join(__dirname, '.cache-insights.json');
-
-function loadInsightsCacheFromFile() {
-  try {
-    if (fs.existsSync(INSIGHTS_CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(INSIGHTS_CACHE_FILE, 'utf8'));
-    }
-  } catch (e) { console.error('Insights cache read error:', e.message); }
-  return {};
-}
-
-let insightsCache = loadInsightsCacheFromFile();
-
-// ── File-based cache for HD thumbnails (creative_id → {url, _cachedAt}) ──────
-const HD_THUMB_CACHE_FILE = path.join(__dirname, '.cache-hd-thumbs.json');
-const HD_THUMB_TTL = 24 * 60 * 60 * 1000; // 24 hours (Meta CDN URLs expire quickly)
-
-function loadHdThumbCache() {
-  try {
-    if (fs.existsSync(HD_THUMB_CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(HD_THUMB_CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      let changed = false;
-      for (const [id, entry] of Object.entries(raw)) {
-        if (typeof entry === 'string') { changed = true; continue; }
-        if (entry._cachedAt && (now - entry._cachedAt) > HD_THUMB_TTL) { changed = true; continue; }
-        filtered[id] = entry;
-      }
-      if (changed) saveCacheAsync(HD_THUMB_CACHE_FILE, filtered);
-      return filtered;
-    }
-  } catch (e) { console.error('HD thumb cache read error:', e.message); }
-  return {};
-}
-
-let hdThumbCache = loadHdThumbCache();
 
 const AD_METRICS = [
   'impressions', 'clicks', 'spend',
@@ -175,16 +102,27 @@ function aggregateMetrics(entry, rows) {
   return entry;
 }
 
-// Group insights rows by creative_id (looked up via creativeCache by ad_id)
-// and aggregate metrics. Thumbnail comes from hdThumbMap[creative_id].
+// Campaign name from tc_vid_form workflow: "TC | Vid | {folder} | {email before @} | yyMMdd";
+// the email part is omitted when the form had no email. Returns '' otherwise.
+function parseSubmittedBy(campaignName) {
+  const p = String(campaignName || '').split('|').map(s => s.trim());
+  if (p[0] !== 'TC' || p[1] !== 'Vid' || p.length < 5 || !/^\d{6}$/.test(p[p.length - 1])) return '';
+  return p[p.length - 2].toLowerCase();
+}
+
+// Group insights rows by creative_id + submitter (creative looked up via
+// creativeCache by ad_id) and aggregate metrics. Thumbnail comes from hdThumbMap[creative_id].
 function groupByCreative(rows, creativeCache, hdThumbMap) {
   const map = {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
     const id = c?.id || 'unknown';
-    if (!map[id]) {
-      map[id] = {
+    const submittedBy = parseSubmittedBy(row.campaign_name);
+    const key = `${id}|${submittedBy}`;
+    if (!map[key]) {
+      map[key] = {
         creative_id:   id,
+        submitted_by:  submittedBy,
         format:        c ? (FORMAT_MAP[c.object_type] || 'Image') : null,
         thumbnail_url: c ? (hdThumbMap[c.id] || null) : null,
         is_catalog:    !!c?.is_catalog,
@@ -192,9 +130,15 @@ function groupByCreative(rows, creativeCache, hdThumbMap) {
         _rows:         [],
       };
     }
-    map[id]._rows.push(row);
+    map[key]._rows.push(row);
   }
   return Object.values(map).map(({ _rows, ...entry }) => aggregateMetrics(entry, _rows));
+}
+
+// Only ads with video plays can be video ads; skipping the rest avoids fetching
+// creative info for image ads the dashboard never shows.
+function hasVideoPlays(row) {
+  return sumActionValue(row.video_play_actions) > 0;
 }
 
 function collectFetchableCreativeIds(allAds) {
@@ -320,7 +264,6 @@ async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, cu
     progress(`Polling report: ${p}% [${elapsed()}]`);
   });
   insightsCache[cacheKey] = { current: currRows };
-  saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
   progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
   return { rows: currRows, source: 'api' };
 }
@@ -338,7 +281,7 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
     return;
   }
   progress(`Fetching creative info for ${missingIds.length} ads (new or retried) [${elapsed()}]`);
-  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,object_story_spec{template_data}}');
+  const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data}}');
   const now = Date.now();
   for (const ad of fetched) {
     creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -346,12 +289,12 @@ async function ensureCreativeInfo({ adIds, token, progress, elapsed }) {
   for (const id of missingIds) {
     if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
   }
-  saveCacheAsync(CACHE_FILE, creativeCache);
   progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
 }
 
 async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
-  const missing = creativeIds.filter(cid => !hdThumbCache[cid]);
+  const now = Date.now();
+  const missing = creativeIds.filter(cid => !hdThumbCache[cid] || (now - hdThumbCache[cid]._cachedAt) > HD_THUMB_TTL);
   if (missing.length === 0) {
     if (creativeIds.length > 0) progress(`All ${creativeIds.length} HD thumbnails cached [${elapsed()}]`);
     return { attempted: 0, succeeded: 0 };
@@ -374,7 +317,6 @@ async function ensureHdThumbnails({ creativeIds, token, progress, elapsed }) {
       console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
     }
   }
-  saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
   progress(`Fetched HD thumbnails for ${succeeded}/${missing.length} creatives [${elapsed()}]`);
   return { attempted: missing.length, succeeded };
 }
@@ -424,7 +366,7 @@ app.get('/api/dashboard', async (req, res) => {
   const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
   const current = { since: dateStr(days), until: dateStr(0) };
-  const fields  = `ad_id,ad_name,${AD_METRICS}`;
+  const fields  = `ad_id,ad_name,campaign_name,${AD_METRICS}`;
   const base    = `${META_BASE_URL}/act_${accountId}`;
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -436,7 +378,8 @@ app.get('/api/dashboard', async (req, res) => {
 
   try {
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
-    const currRows = rawRows.filter(r => parseFloat(r.spend || 0) > 1);
+    const spendRows = rawRows.filter(r => parseFloat(r.spend || 0) > 1);
+    const currRows  = spendRows.filter(hasVideoPlays);
 
     const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
     const cachedAdsBefore  = allAdIds.filter(id => creativeCache[id]).length;
@@ -444,7 +387,7 @@ app.get('/api/dashboard', async (req, res) => {
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
     const fetchableHdIds = collectFetchableCreativeIds(allAds);
-    const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid]).length;
+    const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL).length;
     const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed });
 
     const hdThumbMap = {};
@@ -466,7 +409,7 @@ app.get('/api/dashboard', async (req, res) => {
       account: accountId,
       days,
       refresh: forceRefresh,
-      insights:  { source: insightsSource, raw: rawRows.length, afterSpendFilter: currRows.length },
+      insights:  { source: insightsSource, raw: rawRows.length, afterSpendFilter: spendRows.length, withVideoPlays: currRows.length },
       ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
       hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
       creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
@@ -499,5 +442,7 @@ if (typeof module !== 'undefined' && module.exports) {
     aggregateMetrics,
     groupByCreative,
     collectFetchableCreativeIds,
+    hasVideoPlays,
+    parseSubmittedBy,
   };
 }

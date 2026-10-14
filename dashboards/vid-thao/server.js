@@ -512,9 +512,12 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   try {
+    // The BigQuery video table loads while Meta builds the insights report (neither needs the
+    // other). loadVideoTable never rejects: errors come back as status 'error'.
+    const videoTablePending = loadVideoTable();
     const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed });
     progress(`Loading videos from BigQuery... [${elapsed()}]`);
-    const videoTable = await loadVideoTable();
+    const videoTable = await videoTablePending;
     // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
     // delivery yet. Other video ads: spend > 1 with video plays, as before.
     const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);

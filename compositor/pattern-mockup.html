@@ -103,7 +103,10 @@
   .tabs button[aria-checked="true"]::before{ left:-16px; border-radius:0 0 12px 0; box-shadow:2px 2px 0 2px #fff; }
   .tabs button[aria-checked="true"]::after{ right:-16px; border-radius:0 0 0 12px; box-shadow:-2px 2px 0 2px #fff; }
   .ctl-panel{ padding:12px; display:flex; flex-direction:column; gap:16px; }
-  .ctl-panel > .hint{ padding:0 4px; margin-bottom:-8px; }
+  /* tab hint: 16px from the tabs and from the card bottom (the negative margin only pulls the boxes under it closer) */
+  .ctl-panel > .hint{ padding:4px 4px 0; }
+  .ctl-panel > .hint:has(+ #restOpts[hidden]){ padding-bottom:4px; }
+  .ctl-panel > .hint + #restOpts{ margin-top:-4px; }
   #restOpts{ display:flex; flex-direction:column; gap:16px; }
   .ctl{ background:#fff; border-radius:8px; box-shadow:0 0 0 1px #ddd; }
   .ctl-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; padding:0 6px 0 8px; background:var(--hover); border-radius:8px 8px 0 0; font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; }

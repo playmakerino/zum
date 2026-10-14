@@ -96,9 +96,9 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 .card-foot:has(> .debug-line:empty,> .load-log:empty)::after{content:attr(data-empty);color:#101010;font-size:13px;line-height:20px}
 .table-wrap{flex:none;min-height:0;background:none;border:none;border-radius:0;box-shadow:none;overflow:visible;position:relative}
 .table-scroll{overflow:visible;height:auto;max-height:none}
-/* loading popup stays in view while the (possibly long) table is covered */
+/* loading popup sits at the vertical middle of the screen while the (possibly long) table is covered */
 .load-overlay{align-items:flex-start}
-.load-overlay .load-popup{position:sticky;top:calc(var(--topbar-h) + 80px);margin-top:80px}
+.load-overlay .load-popup{position:sticky;top:50vh;margin-top:80px;transform:translateY(-50%)}
 /* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page) */
 @media(max-width:1100px){.table-scroll{overflow-x:auto}thead{top:0}}
 table{width:100%;font-size:12px;line-height:18px;letter-spacing:-.005em}

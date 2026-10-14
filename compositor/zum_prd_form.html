@@ -427,13 +427,15 @@
 
     .flat-msg { margin-top: 8px; font-size: 13px; color: var(--text-sub); min-height: 20px; }
     .flat-msg.error { color: var(--error); }
+    /* inline action = Shopify tertiary button: 28px pill, 6px 12px, 12px/16px 500 #101010, hover rgba(0,0,0,.08) */
     .flat-msg button {
-      background: none; border: none; padding: 0;
-      color: #1650d0;
-      font-family: inherit; font-size: inherit; line-height: inherit; letter-spacing: inherit;
-      cursor: pointer;
+      height: 28px; padding: 6px 12px; margin: -4px 0;
+      border: none; border-radius: 9999px; background: transparent;
+      color: #101010; font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: inherit;
+      cursor: pointer; transition: background-color .4s cubic-bezier(.2,.8,0,1);
     }
-    .flat-msg button:hover { color: #1347b9; text-decoration: underline; }
+    .flat-msg button:hover { background: rgba(0,0,0,.08); }
+    .flat-msg button:active { background: rgba(0,0,0,.13); }
 
     .submit-wrap { margin-top: 20px; }
 

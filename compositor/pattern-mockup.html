@@ -70,8 +70,12 @@
   .flabel em, .ctl-head em{ font-style:normal; font-weight:400; color:var(--mut); }
   /* help text = Polaris help text: 12px/18px #4a4a4a */
   .hint{ font-size:12px; line-height:18px; color:var(--ph); font-weight:400; }
-  .linkbtn{ border:0; background:none; padding:0; color:var(--link); font-size:13px; font-weight:450; }
-  .linkbtn:hover{ color:var(--link-hover); text-decoration:underline; }
+  /* secondary text action = Shopify tertiary button ("Learn more about metaobjects", measured 2026-10-14): 28px pill,
+     6px 12px, 12px/16px 500 #101010, no fill; hover rgba(0,0,0,.08). Negative margins keep a 20px label row from growing */
+  .linkbtn{ height:28px; padding:6px 12px; border:0; border-radius:9999px; background:transparent; color:#101010; font-size:12px; line-height:16px; font-weight:500; text-decoration:none; transition:background-color .4s cubic-bezier(.2,.8,0,1); margin:-4px -12px -4px 0; white-space:nowrap; }
+  .flabel .linkbtn{ margin-top:-5px; margin-bottom:-5px; }   /* baseline-aligned in a 20px row: -4px still adds 1px */
+  .linkbtn:hover:not(:disabled){ background:rgba(0,0,0,.08); }
+  .linkbtn:active:not(:disabled){ background:rgba(0,0,0,.13); }
 
   /* pattern drop zone = Shopify media drop zone: 1px dashed #c0c0c0, #f7f7f7 */
   .drop{ border:1px dashed #c0c0c0; border-radius:12px; background:var(--hover); cursor:pointer; transition:border-color .12s, background .12s; }
@@ -83,7 +87,9 @@
   .drop-full img{ width:64px; height:64px; object-fit:cover; border-radius:8px; box-shadow:0 0 0 1px rgba(0,0,0,.06); background:#fff; flex:none; }
   .drop-full .meta{ min-width:0; display:flex; flex-direction:column; gap:0; font-size:13px; color:var(--mut); }
   .drop-full b{ color:var(--ink); font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .drop-full .link{ color:var(--link); font-weight:450; }
+  /* "Replace" inside the filled drop zone reads as the same tertiary button; the whole zone is the click target */
+  .drop-full .link{ align-self:flex-start; display:inline-flex; align-items:center; height:28px; padding:6px 12px; border:0; border-radius:9999px; background:transparent; color:#101010; font-size:12px; line-height:16px; font-weight:500; text-decoration:none; transition:background-color .4s cubic-bezier(.2,.8,0,1); margin:2px 0 0 -12px; }
+  .drop:hover .drop-full .link{ background:rgba(0,0,0,.08); }
 
   /* placement print: options under the Print switch, compact second-pattern drop */
   .seg.two{ grid-template-columns:repeat(2,1fr); }

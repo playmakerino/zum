@@ -262,12 +262,6 @@ describe('groupByVideo', () => {
     expect(res[0]).toMatchObject({ ad_count: 2, created_at: '2026-10-14T11:03:10Z' });
   });
 
-  test('thumbnail image in the folder is used as the Drive thumbnail', () => {
-    const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', drive_file_id: 'd1', thumb_drive_id: 't1' }]);
-    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1') }, {}, table);
-    expect(res[0].drive_thumb_id).toBe('t1');
-  });
-
   test('a BigQuery ad whose creative Meta no longer returns is still a video', () => {
     const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', drive_file_id: 'd1' }]);
     const res = groupByVideo([row('a1')], { a1: cacheEntry(null) }, {}, table);

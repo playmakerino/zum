@@ -147,7 +147,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
     if (!g.thumb_ad_id) g.thumb_ad_id = row.ad_id || null;
     if (!g.drive_file_id && bq?.drive_file_id) {
       g.drive_file_id  = bq.drive_file_id;
-      g.drive_thumb_id = bq.thumb_drive_id || bq.drive_file_id;
+      g.drive_thumb_id = bq.drive_file_id;
     }
     if (!g.reel_url && bq?.reel_url) g.reel_url = bq.reel_url;
     if (!g.created_at && bq?.created_at) g.created_at = bq.created_at;
@@ -169,7 +169,6 @@ function indexVideoTable(rows) {
       ad_name:        r.ad_name || '',
       submitted_by:   String(r.submitted_by || '').trim().toLowerCase(),
       drive_file_id:  r.drive_file_id || null,
-      thumb_drive_id: r.thumb_drive_id || null,
       reel_url:       r.reel_url || null,
       created_at:     r.created_at || null,
     };
@@ -216,7 +215,7 @@ function collectFetchableCreativeIds(allAds) {
 // JSON (Render), or BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty
 // table: rows then have no submitter and no Drive video.
 const VIDEOS_SQL = `SELECT video_id, LOWER(TRIM(SPLIT(IFNULL(submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by,
-  ad_id, ad_name, drive_file_id, thumb_drive_id, reel_url,
+  ad_id, ad_name, drive_file_id, reel_url,
   FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at
 FROM \`zum-media-log.media.ad_videos\`
 WHERE video_id IS NOT NULL`;

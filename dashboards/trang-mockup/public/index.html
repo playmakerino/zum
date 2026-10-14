@@ -75,14 +75,19 @@
         <option value="between">between</option>
         <option value="notBetween">not between</option>
       </select>
-      <input type="number" id="filterVal1" class="filter-chip-input" step="any" placeholder="Add value" onkeydown="if(event.key==='Enter')applyFilter()">
-      <span id="filterAnd" class="filter-and" style="display:none">and</span>
-      <input type="number" id="filterVal2" class="filter-chip-input" step="any" placeholder="Add value" style="display:none" onkeydown="if(event.key==='Enter')applyFilter()">
+      <button type="button" class="filter-value-chip" id="filterValueChip">Add value</button>
     </div>
   </div>
-  <div class="filter-popup-actions">
-    <button class="filter-clear" onclick="clearCurrentFilter()">Clear</button>
-    <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
+  <div class="filter-editor">
+    <div class="filter-inputs">
+      <input type="number" id="filterVal1" step="any" placeholder="0" onkeydown="if(event.key==='Enter')applyFilter()">
+      <span id="filterAnd" class="filter-and" style="display:none">and</span>
+      <input type="number" id="filterVal2" step="any" placeholder="0" style="display:none" onkeydown="if(event.key==='Enter')applyFilter()">
+    </div>
+    <div class="filter-popup-actions">
+      <button class="filter-clear" onclick="clearCurrentFilter()">Clear</button>
+      <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
+    </div>
   </div>
 </div>
 <script src="shared.js"></script>

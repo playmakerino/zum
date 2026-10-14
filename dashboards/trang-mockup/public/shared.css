@@ -54,9 +54,9 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 .dd-btn .dd-chevron{width:16px;height:16px;transition:transform .12s}
 .dd.open .dd-chevron{transform:rotate(180deg)}
 .dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;max-height:320px;overflow:auto;background:#fff;border-radius:16px;padding:6px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);z-index:200}
-.dd-item{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;border:none;background:none;padding:8px 12px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
+.dd-item{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;border:none;background:none;padding:6px 8px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
 .dd-item:hover{background:#f2f2f2}
-.dd-item.selected{background:#ebebeb;font-weight:650;color:#101010}
+.dd-item.selected{background:#ebebeb;font-weight:600;color:#101010}
 .dd-check{width:16px;height:16px;flex-shrink:0}
 /* field variant (inside the filter popup): white input-like box */
 .dd-field,.dd-field .dd-btn{width:100%}
@@ -138,26 +138,30 @@ thead tr.total-row td.td-metric,thead tr.total-row td.td-prints{text-align:right
 .col-filter-btn:hover{color:#303030;background:rgba(0,0,0,.08)}
 .col-filter-btn.active{color:#101010}
 
-/* ── Column filter popup = Shopify report "Filters" card: grey header, then pills
-   [operator ▸ menu with ✓] [Add value], footer Clear (blue link) + Apply (dark) */
-.filter-popup{min-width:240px;overflow:visible}
-.filter-popup-title{background:#f7f7f7;padding:10px 12px;border-radius:16px 16px 0 0;font-weight:600;font-size:13px;line-height:20px;color:#101010;border-bottom:1px solid #ebebeb}
-.filter-popup-body{padding:10px 12px;display:block}
-.filter-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.dd-chip .dd-btn{height:28px;padding:0 10px;border-radius:8px;background:#e3e3e3;color:#303030}
-.dd-chip .dd-btn:hover{background:#d4d4d4}
-.dd-chip.open .dd-btn{background:#cccccc}
-.filter-chip-input{width:96px;height:28px;padding:0 10px;border:none;border-radius:8px;background:#e3e3e3;color:#303030;font-family:inherit;font-size:13px;line-height:20px;outline:none;-moz-appearance:textfield;transition:background .1s}
-.filter-chip-input::placeholder{color:#303030}
-.filter-chip-input:hover{background:#d4d4d4}
-.filter-chip-input:focus{background:#fff;box-shadow:0 0 0 2px #005bd3}
-.filter-chip-input:focus::placeholder{color:#8a8a8a}
-.filter-chip-input::-webkit-outer-spin-button,.filter-chip-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* ── Column filter popup = Shopify report "Filters" card (measured 2026-10-14):
+   header 32px #f7f7f7 13px/500; chips 22px, 2px 6px padding, 8px radius, #ddd, 12px/18px;
+   value editor = Shopify value popover: 30px input 13px/20px, 5px 12px padding, blue focus;
+   footer Clear (blue link) + Apply (28px dark). */
+.filter-popup{min-width:248px;padding:0;overflow:visible;border:none;border-radius:12px;box-shadow:0 0 0 1px #ddd,0 4px 16px rgba(0,0,0,.12)}
+.filter-popup .filter-popup-title{height:32px;display:flex;align-items:center;padding:0 8px;background:#f7f7f7;border-radius:12px 12px 0 0;border-bottom:1px solid #ddd;font-size:13px;line-height:20px;font-weight:500;color:#101010}
+.filter-popup .filter-popup-body{display:block;padding:6px 8px}
+.filter-chips{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.dd-chip .dd-btn,.filter-value-chip{height:22px;padding:2px 6px;border:none;border-radius:8px;background:#ddd;color:#303030;font-family:inherit;font-size:12px;font-weight:450;line-height:18px;cursor:pointer;transition:background .1s}
+.dd-chip .dd-btn:hover,.filter-value-chip:hover{background:#d0d0d0}
+.dd-chip.open .dd-btn,.filter-popup.editing .filter-value-chip{background:#c4c4c4}
+.filter-value-chip.empty{color:#616161}
+.filter-editor{display:none;border-top:1px solid #ebebeb}
+.filter-popup.editing .filter-editor{display:block}
+.filter-popup .filter-inputs{display:flex;align-items:center;gap:8px;padding:12px}
+.filter-popup .filter-inputs input{flex:1;min-width:0;height:30px;padding:5px 12px;border:1px solid #8a8a8a;border-radius:8px;background:#fff;color:#101010;font-family:inherit;font-size:13px;line-height:20px;outline:none;-moz-appearance:textfield}
+.filter-popup .filter-inputs input:hover{border-color:#616161}
+.filter-popup .filter-inputs input:focus{border-color:#005bd3;background:#f5f9ff;box-shadow:0 0 0 1px #005bd3}
+.filter-popup .filter-inputs input::-webkit-outer-spin-button,.filter-popup .filter-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .filter-and{font-size:13px;color:#616161}
-.filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:8px 12px;border-top:1px solid #ebebeb}
-.filter-popup .filter-popup-actions .filter-clear{background:none;border:none;box-shadow:none;padding:4px;color:#005bd3;font-family:inherit;font-size:13px;font-weight:450;cursor:pointer}
-.filter-popup .filter-popup-actions .filter-clear:hover{background:none;text-decoration:underline;color:#004299}
-.filter-popup .filter-popup-actions .btn-primary{height:28px;padding:0 14px;border:none;border-radius:10px;font-weight:600;color:#fff;background:linear-gradient(#3a3a3a,#1a1a1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.3)}
+.filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ebebeb}
+.filter-popup .filter-popup-actions .filter-clear{height:28px;background:none;border:none;box-shadow:none;padding:0 6px;color:#005bd3;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer}
+.filter-popup .filter-popup-actions .filter-clear:hover{background:none;color:#004299;text-decoration:underline}
+.filter-popup .filter-popup-actions .btn-primary{height:28px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:600;line-height:20px;color:#fff;background:linear-gradient(#3a3a3a,#1a1a1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.3)}
 .filter-popup .filter-popup-actions .btn-primary:hover{background:linear-gradient(#2a2a2a,#101010);color:#fff}
 
 /* ── Popovers, overlay, toast, tooltip */

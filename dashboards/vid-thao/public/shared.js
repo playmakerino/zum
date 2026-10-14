@@ -92,3 +92,33 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(openDd); });
   document.querySelectorAll('select').forEach(enhance);
 })();
+
+// 3) Column filter popup chips (Shopify report Filters): the value chip shows the current
+//    value(s) or "Add value"; clicking it opens the editor (input + Clear/Apply). The app's
+//    own openFilterPopup/applyFilter keep working on #filterOp/#filterVal1/#filterVal2.
+(() => {
+  const popup = document.getElementById('filterPopup');
+  const chip = document.getElementById('filterValueChip');
+  if (!popup || !chip) return;
+  const v1 = document.getElementById('filterVal1'), v2 = document.getElementById('filterVal2');
+  const op = document.getElementById('filterOp');
+  const between = () => op.value === 'between' || op.value === 'notBetween';
+  const label = () => {
+    const a = v1.value.trim(), b = v2.value.trim();
+    const txt = !a ? '' : between() ? a + ' and ' + (b || '…') : a;
+    chip.textContent = txt || 'Add value';
+    chip.classList.toggle('empty', !txt);
+  };
+  const edit = on => { popup.classList.toggle('editing', on); if (on) setTimeout(() => v1.focus(), 0); };
+  chip.addEventListener('click', () => edit(!popup.classList.contains('editing')));
+  [v1, v2].forEach(i => i.addEventListener('input', label));
+  op.addEventListener('change', label);
+  // popup opened by app code (style.display = 'block'): refresh chip, open editor if no value yet
+  new MutationObserver(() => {
+    if (popup.style.display !== 'block') { delete popup.dataset.shown; return; }
+    if (popup.dataset.shown) return;
+    popup.dataset.shown = '1';
+    label();
+    edit(!v1.value.trim());
+  }).observe(popup, { attributes: true, attributeFilter: ['style'] });
+})();

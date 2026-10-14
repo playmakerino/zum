@@ -1,5 +1,9 @@
 # git/ — n8n workflows, forms, dashboards
 
+## Git
+
+Commit + push thẳng lên `main`, **không tạo nhánh, không mở PR** (user chốt 2026-10-15), kể cả khi chạy Claude Code trên cloud. Container cloud có thể mở ở HEAD detached với `main` local cũ, lệch `origin/main`: `git checkout -B main origin/main` trước khi commit, rồi `git push origin main`.
+
 ## Dùng MCP n8n nào
 
 Luật chọn server (bảng phân công, UUID connector, bẫy draft/published) đã chuyển lên **CLAUDE.md ở workspace root** — nó kế thừa xuống đây nên luôn có sẵn. Đừng chép lại vào file này, tránh 2 bản lệch nhau.

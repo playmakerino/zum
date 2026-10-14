@@ -51,12 +51,10 @@
             <th data-sort="video_3sec_rate" onclick="sortTable('creatives','video_3sec_rate')"><div class="th-content" title="3-second video plays / impressions">3s/Impr <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_3sec_rate" onclick="event.stopPropagation();openFilterPopup('creatives','video_3sec_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="thruplay_rate" onclick="sortTable('creatives','thruplay_rate')"><div class="th-content" title="ThruPlays / Video plays">ThruPlay% <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="thruplay_rate" onclick="event.stopPropagation();openFilterPopup('creatives','thruplay_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="video_avg_time" onclick="sortTable('creatives','video_avg_time')"><div class="th-content" title="Video average play time">Avg Time <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_avg_time" onclick="event.stopPropagation();openFilterPopup('creatives','video_avg_time',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-          </tr></thead><tbody id="creativesBody">
-            <tr><td colspan="12"><div class="state-box">Click "Load Data" to start</div></td></tr>
-          </tbody></table>
+          </tr></thead><tbody id="creativesBody"></tbody></table>
         </div>
       </div>
-      <div class="card-foot"><div id="debugLine" class="debug-line"></div></div>
+      <div class="card-foot" data-empty='Click "Load Data" to start'><div id="debugLine" class="debug-line"></div></div>
     </div>
     </div>
 

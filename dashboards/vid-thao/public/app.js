@@ -132,7 +132,7 @@ function onPeriodChange() {
   } else {
     state.creatives = { current: [], period: null };
     state.pageLimit.creatives = PAGE_SIZE;
-    $('creativesBody').innerHTML = `<tr><td colspan="${TABLES.creatives.cols}"><div class="state-box">Click "Load Data" to load this period</div></td></tr>`;
+    $('creativesBody').innerHTML = ''; // hint shows in the card footer (data-empty)
     showCacheTime(null);
     updatePeriodSelectLabels();
     renderDebug(null);

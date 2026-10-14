@@ -42,7 +42,7 @@ const METRIC_COLS = [
 ].map(c => ({ ...c, type: 'metric' }));
 
 const creativeRow = r =>
-  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`;
+  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog, r.thumb_cid)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`;
 
 const CREATIVE_TABLE = {
   cols: 9, idKey: 'creative_id',
@@ -59,7 +59,7 @@ const TABLES = {
       { key: 'print_count', type: 'metric', label: 'Prints' },
       ...METRIC_COLS,
     ],
-    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td><td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
+    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog, r.thumb_cid)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td><td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
   },
   creativesValid: CREATIVE_TABLE,
   creativesSpend: CREATIVE_TABLE,
@@ -273,7 +273,7 @@ async function fetchAll(refresh = true) {
     const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
     const fmt = state.creativesValid.current.length, hs = state.creativesSpend.current.length;
     const result = st
-      ? `${st.insights.rows} ads · ${st.qualifiedRows ?? '?'} qualified · ${totalCreatives} creatives (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups · ${st.thumbnails.fetched + st.thumbnails.cached} thumbs`
+      ? `${st.insights.rows} ads · ${st.qualifiedRows ?? '?'} qualified · ${totalCreatives} creatives (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups · thumbs load on scroll`
       : `${data.mockups.current.length} mockups · ${fmt} full format · ${hs} high spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
@@ -289,6 +289,67 @@ async function fetchAll(refresh = true) {
     toast('Error: ' + err.message, 'error');
     for (const t of ['mockups', 'creativesValid', 'creativesSpend']) $(t + 'Body').innerHTML = empty(TABLES[t].cols);
   }
+}
+
+// ── Lazy HD thumbnails ───────────────────────────────────────────────────────
+// Server no longer fetches thumbnails during load. Placeholders carrying
+// data-thumb-cid are observed; when they scroll into view their creative ids
+// are batched (≤50) to /api/thumbs and the URL is written back into state.
+const THUMB_BATCH = 50;
+const _thumbRequested = new Set();
+let _thumbQueue = [];
+let _thumbTimer = null;
+
+const _thumbObserver = 'IntersectionObserver' in window
+  ? new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        _thumbObserver.unobserve(e.target);
+        queueThumb(e.target.dataset.thumbCid);
+      }
+    }, { rootMargin: '200px' })
+  : null;
+
+function observeThumbs(container) {
+  container.querySelectorAll('[data-thumb-cid]').forEach(el => {
+    if (_thumbObserver) _thumbObserver.observe(el); else queueThumb(el.dataset.thumbCid);
+  });
+}
+
+function queueThumb(cid) {
+  if (!cid || _thumbRequested.has(cid)) return;
+  _thumbRequested.add(cid);
+  _thumbQueue.push(cid);
+  clearTimeout(_thumbTimer);
+  _thumbTimer = setTimeout(flushThumbs, 100);
+}
+
+async function flushThumbs() {
+  while (_thumbQueue.length) {
+    const batch = _thumbQueue.splice(0, THUMB_BATCH);
+    try {
+      const res = await fetch('/api/thumbs?ids=' + batch.join(','));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      applyThumbs(await res.json());
+    } catch (err) {
+      console.error('Thumb load failed:', err.message);
+      batch.forEach(cid => _thumbRequested.delete(cid));
+    }
+  }
+}
+
+function applyThumbs(map) {
+  for (const list of [state.mockups.current, state.creatives.current]) {
+    for (const r of list) if (r.thumb_cid && map[r.thumb_cid]) r.thumbnail_url = map[r.thumb_cid];
+  }
+  for (const [cid, url] of Object.entries(map)) {
+    document.querySelectorAll(`[data-thumb-cid="${cid}"]`).forEach(el => {
+      if (url) el.outerHTML = thumb(url, el.dataset.catalog === '1');
+      else el.removeAttribute('data-thumb-cid');
+    });
+  }
+  saveCache('mockups', state.mockups);
+  saveCache('creatives', state.creatives);
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -315,6 +376,7 @@ function renderTable(type) {
     html += `<tr class="show-more-row"><td colspan="${cfg.cols}"><button class="btn-show-more" onclick="showMore('${type}')">Show more (${filtered.length - limit} remaining)</button></td></tr>`;
   }
   $(type + 'Body').innerHTML = html || empty(cfg.cols);
+  observeThumbs($(type + 'Body'));
   if (type === 'mockups' || type === 'creativesValid') buildTotalRow(type, filtered);
 
   $$(`#${type}Table thead th`).forEach(th => {
@@ -452,8 +514,8 @@ const fmtF = n => parseFloat(n || 0).toFixed(2);
 const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
 
-function thumb(url, isCatalog) {
-  if (!url) return `<div class="thumb-placeholder">${THUMB_SVG}</div>`;
+function thumb(url, isCatalog, cid) {
+  if (!url) return `<div class="thumb-placeholder"${cid ? ` data-thumb-cid="${esc(cid)}" data-catalog="${isCatalog ? 1 : 0}"` : ''}>${THUMB_SVG}</div>`;
   return `<img class="thumb" src="${esc(url)}"${isCatalog ? '' : ` onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()" onclick="event.stopPropagation()"`} alt="" loading="lazy" onerror="thumbError(this)">`;
 }
 

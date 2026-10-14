@@ -170,7 +170,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
       time_range: JSON.stringify(timeRange),
       filtering: JSON.stringify([
         { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
-        { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+        { field: 'spend', operator: 'GREATER_THAN', value: 1 },
       ]),
       sort: 'spend_descending',
     },

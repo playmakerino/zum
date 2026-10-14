@@ -8,6 +8,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const META_BASE_URL = 'https://graph.facebook.com/v22.0';
 const DAYS = 30;
+const MIN_SPEND          = 1;   // insights API filter: ads at or below this spend are never returned
+const MIN_SPEND_ANY_NAME = 100; // ads without [Print-Type_Mockup] name qualify only above this spend
 
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
@@ -57,7 +59,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
         time_range: JSON.stringify(timeRange),
         filtering: JSON.stringify([
           { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
-          { field: 'spend', operator: 'GREATER_THAN', value: 0 },
+          { field: 'spend', operator: 'GREATER_THAN', value: MIN_SPEND },
         ]),
         sort: 'spend_descending',
       },
@@ -170,10 +172,11 @@ function groupByMockup(rows) {
     // Pick the thumbnail from the highest-spend ad that actually has an image
     // (always within this mockup group, so the mockup is always correct; the print may differ).
     // Falls back to the overall top-spend ad only when no ad in the group has an image.
-    const withThumb = _rows.filter(r => r.thumbnail_url);
+    const withThumb = _rows.filter(r => r.thumbnail_url || r.thumb_cid);
     const pickFrom = withThumb.length ? withThumb : _rows;
     const topAd = pickFrom.reduce((best, r) => parseFloat(r.spend || 0) > parseFloat(best.spend || 0) ? r : best, pickFrom[0]);
     entry.thumbnail_url = topAd?.thumbnail_url || null;
+    entry.thumb_cid = topAd?.thumb_cid || null;
     entry.is_catalog = !!topAd?.is_catalog;
     computeMetrics(entry, _rows);
     return entry;
@@ -188,6 +191,7 @@ function groupByCreative(rows) {
       map[id] = {
         creative_id:   id,
         thumbnail_url: row.creative?.thumbnail_url || null,
+        thumb_cid:     row.creative?.thumb_cid || null,
         is_catalog:    !!row.creative?.is_catalog,
         ad_name:       row.ad_name || '',
         _rows:         [],
@@ -208,6 +212,31 @@ app.get('/api/config', (req, res) => {
     hasMetaToken:   !!process.env.META_ACCESS_TOKEN,
     hasAdAccountId: !!process.env.META_AD_ACCOUNT_ID,
   });
+});
+
+// GET /api/thumbs?ids=cid1,cid2 — HD thumbnails (480px) for creatives, max 50 per call.
+// Called by the frontend for rows scrolled into view; served from memory when cached.
+app.get('/api/thumbs', async (req, res) => {
+  const { token } = getCredentials(req);
+  if (!token) return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN' });
+  const ids = [...new Set(String(req.query.ids || '').split(',').map(s => s.trim()).filter(id => /^\d+$/.test(id)))].slice(0, 50);
+  const now = Date.now();
+  const missing = ids.filter(id => !hdThumbCache[id] || (now - hdThumbCache[id]._cachedAt) > HD_THUMB_TTL);
+  if (missing.length) {
+    try {
+      const r = await axios.get(`${META_BASE_URL}/`, {
+        params: { ids: missing.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
+      });
+      for (const [id, data] of Object.entries(r.data)) {
+        if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
+      }
+    } catch (err) {
+      console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
+    }
+  }
+  const out = {};
+  for (const id of ids) out[id] = hdThumbCache[id]?.url || null;
+  res.json(out);
 });
 
 app.get('/api/dashboard', async (req, res) => {
@@ -244,7 +273,7 @@ app.get('/api/dashboard', async (req, res) => {
       progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
     }
 
-    // 2. Collect qualified ads: valid format OR spend > $100
+    // 2. Collect qualified ads (API already dropped spend <= MIN_SPEND): valid format OR spend > $100
     const adSpendMap = {};
     const adNameMap = {};
     for (const r of currRows) {
@@ -253,11 +282,14 @@ app.get('/api/dashboard', async (req, res) => {
       adNameMap[r.ad_id] = r.ad_name || '';
     }
     const uniqueAdIds = [...new Set(Object.keys(adSpendMap))];
-    const isQualified = id => hasValidFormat(adNameMap[id]) || (adSpendMap[id] || 0) > 100;
+    const isQualified = id => {
+      const spend = adSpendMap[id] || 0;
+      return hasValidFormat(adNameMap[id]) || spend > MIN_SPEND_ANY_NAME;
+    };
     const allAdIds = uniqueAdIds.filter(id => isQualified(id));
     const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
     const highSpendCount = allAdIds.length - validFmtCount;
-    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format + ${highSpendCount} spend>$100) [${elapsed()}]`);
+    progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}, all spend>$${MIN_SPEND}) [${elapsed()}]`);
 
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
@@ -276,42 +308,16 @@ app.get('/api/dashboard', async (req, res) => {
     }
     const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-    // 3. Fetch HD thumbnails for non-catalog creatives
-    const creativeInfoMap = {};
-    for (const ad of allAds) {
-      if (ad.creative?.id) creativeInfoMap[ad.creative.id] = {
-        type: ad.creative.object_type,
-        isCatalog: !!ad.creative.is_catalog,
-      };
-    }
-    const nonCatalogCreativeIds = Object.keys(creativeInfoMap).filter(cid => {
-      const info = creativeInfoMap[cid];
-      return info.type && ['SHARE', 'VIDEO'].includes(info.type) && !info.isCatalog;
-    });
-    const missingHdIds = nonCatalogCreativeIds.filter(cid => !hdThumbCache[cid] || (Date.now() - hdThumbCache[cid]._cachedAt) > HD_THUMB_TTL);
-    if (missingHdIds.length > 0) {
-      progress(`Fetching HD thumbnails for ${missingHdIds.length} creatives... [${elapsed()}]`);
-      const BATCH = 50;
-      for (let i = 0; i < missingHdIds.length; i += BATCH) {
-        const batch = missingHdIds.slice(i, i + BATCH);
-        try {
-          const thumbRes = await axios.get(`${META_BASE_URL}/`, {
-            params: { ids: batch.join(','), fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token }
-          });
-          for (const [id, data] of Object.entries(thumbRes.data)) {
-            if (data?.thumbnail_url) hdThumbCache[id] = { url: data.thumbnail_url, _cachedAt: Date.now() };
-          }
-        } catch (err) {
-          console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
-        }
-      }
-      progress(`Fetched HD thumbnails [${elapsed()}]`);
-    } else if (nonCatalogCreativeIds.length > 0) {
-      progress(`All ${nonCatalogCreativeIds.length} HD thumbnails cached [${elapsed()}]`);
-    }
-
-    const hdThumbMap = {};
-    for (const [id, entry] of Object.entries(hdThumbCache)) hdThumbMap[id] = entry.url;
+    // 3. HD thumbnails are loaded lazily by the frontend (/api/thumbs) for rows
+    // scrolled into view; here we only mark which creatives can have one and
+    // attach URLs already in the in-memory cache.
+    const thumbable = c => c?.id && ['SHARE', 'VIDEO'].includes(c.object_type) && !c.is_catalog;
+    const cachedThumb = cid => {
+      const e = hdThumbCache[cid];
+      return e && (Date.now() - e._cachedAt) <= HD_THUMB_TTL ? e.url : null;
+    };
+    const thumbableIds = new Set(allAds.filter(a => thumbable(a.creative)).map(a => a.creative.id));
+    const cachedThumbCount = [...thumbableIds].filter(cachedThumb).length;
 
     // 4. Build creative map
     const creativeMap = {};
@@ -322,13 +328,14 @@ app.get('/api/dashboard', async (req, res) => {
         id:            c.id,
         object_type:   c.object_type || '',
         is_catalog:    !!c.is_catalog,
-        thumbnail_url: hdThumbMap[c.id] || null,
+        thumbnail_url: thumbable(c) ? cachedThumb(c.id) : null,
+        thumb_cid:     thumbable(c) ? c.id : null,
       };
     }
 
     const attachThumb = rows => rows.map(r => {
       const cm = creativeMap[r.ad_id];
-      return { ...r, thumbnail_url: cm?.thumbnail_url || null, is_catalog: !!cm?.is_catalog };
+      return { ...r, thumbnail_url: cm?.thumbnail_url || null, thumb_cid: cm?.thumb_cid || null, is_catalog: !!cm?.is_catalog };
     });
     const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
@@ -349,7 +356,7 @@ app.get('/api/dashboard', async (req, res) => {
       stats: {
         insights:   { rows: currRows.length, qualified: allAdIds.length, cached: !forceRefresh && !!ic },
         creatives:  { total: allAdIds.length, cached: allAdIds.length - missingIds.length, fetched: missingIds.length },
-        thumbnails: { total: nonCatalogCreativeIds.length, cached: nonCatalogCreativeIds.length - missingHdIds.length, fetched: missingHdIds.length },
+        thumbnails: { total: thumbableIds.size, cached: cachedThumbCount, fetched: 0, lazy: true },
         _v: 2, qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
       },
     };

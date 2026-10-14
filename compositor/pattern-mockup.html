@@ -134,8 +134,8 @@
   .primary{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:32px; border:0; border-radius:9999px; padding:6px 12px; font-weight:600; font-size:13px; background:#101010; color:#fff; box-shadow:var(--pri-shadow); }
   .primary:hover:not(:disabled){ background:#2a2a2a; }
   .primary.stop{ background:var(--err); box-shadow:none; }
-  .primary.stop kbd{ display:none; }
-  .primary kbd{ font-family:inherit; font-size:11px; line-height:16px; font-weight:500; color:rgba(255,255,255,.7); border-radius:6px; background:rgba(255,255,255,.14); padding:0 5px; }
+  /* Shopify buttons carry no shortcut chip; Ctrl+Enter still works */
+  .primary kbd{ display:none; }
   .secondary{ display:flex; align-items:center; justify-content:center; gap:4px; width:100%; height:32px; border:0; background:#fff; border-radius:9999px; padding:4px 12px; font-weight:500; font-size:13px; color:var(--ink); box-shadow:var(--btn-shadow); }
   .secondary:hover:not(:disabled){ background:var(--hover); }
   .secondary svg{ width:16px; height:16px; }

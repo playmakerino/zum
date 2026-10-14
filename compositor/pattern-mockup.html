@@ -93,7 +93,19 @@
   /* Print step = Shopify report Controls panel (Metrics / Visualization), measured 2026-10-14:
      sub-cards 8px radius + 1px #ddd ring, 16px apart, 12px from the card edge; header 32px #f7f7f7 13px/20px 500;
      rows separated by a 1px #ddd line, 6px 8px padding */
+  /* All-over / Body + rest = the Freeform / Cohorts tabs on top of the card: 36px, active white with 12px top
+     corners, the other one #ddd and rounded towards the active tab */
+  .step-body.tabbed{ padding:0; overflow:hidden; }
+  .tabs{ display:grid; grid-template-columns:1fr 1fr; background:#fff; }
+  .tabs button{ height:36px; padding:8px 12px; border:0; background:#ddd; color:var(--mut); font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tabs button[aria-checked="true"]{ background:#fff; color:var(--ink); border-radius:12px 12px 0 0; }
+  .tabs button[aria-checked="true"] + button{ border-radius:12px 0 0 12px; }
+  .tabs button:has(+ button[aria-checked="true"]){ border-radius:0 12px 12px 0; }
+  .tabs button:hover:not(:disabled):not([aria-checked="true"]){ color:var(--ink); background:#d4d4d4; }
+  .tabs button:disabled{ opacity:1; color:#b5b5b5; }
   .ctl-panel{ padding:12px; display:flex; flex-direction:column; gap:16px; }
+  .ctl-panel > .hint{ padding:0 4px; margin-bottom:-8px; }
+  #restOpts{ display:flex; flex-direction:column; gap:16px; }
   .ctl{ background:#fff; border-radius:8px; box-shadow:0 0 0 1px #ddd; }
   .ctl-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; padding:0 6px 0 8px; background:var(--hover); border-radius:8px 8px 0 0; font-size:13px; line-height:20px; font-weight:500; white-space:nowrap; }
   .ctl-head label{ font-weight:500; }
@@ -275,23 +287,24 @@
 
       <section class="step ok">
         <h2><span class="n">3</span>Print</h2>
-        <div class="step-body ctl-panel">
-        <div class="ctl">
-          <div class="ctl-head"><span>Layout</span><span class="hint" id="layoutHint"></span></div>
-          <div class="ctl-row">
-            <div class="seg two" id="layout" role="radiogroup" aria-label="Print layout">
-              <button type="button" role="radio" data-v="allover">All-over</button>
-              <button type="button" role="radio" data-v="placement">Body + rest</button>
-            </div>
-          </div>
-          <div id="restOpts" hidden>
+        <div class="step-body tabbed">
+        <div class="tabs" id="layout" role="radiogroup" aria-label="Print layout">
+          <button type="button" role="radio" data-v="allover">All-over</button>
+          <button type="button" role="radio" data-v="placement">Body + rest</button>
+        </div>
+        <div class="ctl-panel">
+        <div class="hint" id="layoutHint"></div>
+        <div id="restOpts" hidden>
+          <div class="ctl">
+            <div class="ctl-head"><label for="bodySize">Body print size <em>(% of body width)</em></label><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
             <div class="ctl-row col">
-              <div class="flabel"><label for="bodySize">Body print size <em>(% of body width)</em></label><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
               <input type="range" id="bodySize" min="0.3" max="1" step="0.05" value="0.75">
               <div class="range-ends"><span>Smaller</span><span>Larger</span></div>
             </div>
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><label for="restHex">Background color</label><span class="hint" id="restHint"></span></div>
             <div class="ctl-row col">
-              <div class="flabel"><label for="restHex">Background color</label><span class="hint" id="restHint"></span></div>
               <div class="trim">
                 <input type="color" id="restColor" value="#ffffff" aria-label="Background color picker">
                 <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Background color hex">
@@ -299,8 +312,10 @@
               </div>
               <div class="hint">Fills the body around the print, and the whole body on a photo that crops it</div>
             </div>
-            <div class="ctl-row col">
-              <div class="flabel"><span>Rest of the garment</span><span class="hint">sleeves, pants, hood…</span></div>
+          </div>
+          <div class="ctl">
+            <div class="ctl-head"><span>Rest of the garment</span><span class="hint">sleeves, pants, hood…</span></div>
+            <div class="ctl-row">
               <div class="seg two" id="restKind" role="radiogroup" aria-label="Rest of the garment">
                 <button type="button" role="radio" data-v="solid">Background color</button>
                 <button type="button" role="radio" data-v="pattern">Second pattern</button>
@@ -337,6 +352,7 @@
               <button type="button" class="ghost" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
             </div>
           </div>
+        </div>
         </div>
         </div>
       </section>

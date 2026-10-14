@@ -654,7 +654,7 @@ function closeVideo() {
   $('videoViewer').classList.remove('open');
   document.body.style.overflow = '';
 }
-const THUMB_SOURCE = { meta: '(Fetched from Meta)', drive: '(Google Drive)' };
+const THUMB_SOURCE = { meta: '(Meta)', fetched: '(Fetched from Meta)', drive: '(Google Drive)' };
 function showViewerThumb(url, source) {
   const t = $('viThumb');
   t.dataset.source = url ? source : '';
@@ -664,7 +664,7 @@ function showViewerThumb(url, source) {
 // expired Meta link (saved result) → the Drive thumbnail; a broken Drive one → no image
 function viewerThumbError(img) {
   const drive = $('videoViewer').dataset.driveThumb;
-  if (img.dataset.source === 'meta' && drive) showViewerThumb(drive, 'drive');
+  if ((img.dataset.source === 'meta' || img.dataset.source === 'fetched') && drive) showViewerThumb(drive, 'drive');
   else showViewerThumb('', '');
 }
 
@@ -683,7 +683,7 @@ async function fetchAdThumb() {
     if (viewer.dataset.token !== token) return;
     if (!j.url) { toast('Meta returned no thumbnail for this ad', 'error'); return; }
     r.thumbnail_url = j.url;
-    showViewerThumb(j.url, 'meta');
+    showViewerThumb(j.url, 'fetched');
     renderTable('creatives'); // the row's small thumbnail follows
   } catch (err) {
     toast('Error: ' + err.message, 'error');

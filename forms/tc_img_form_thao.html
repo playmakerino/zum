@@ -13,13 +13,13 @@
   <style>
     .container {
       width: 100%;
-      max-width: 480px;
+      max-width: 760px;
       position: relative;
       z-index: 1;
     }
 
     .field {
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .field label {
@@ -27,7 +27,7 @@
       font-size: 12px;
       font-weight: 500;
       color: var(--text-sub);
-      margin-bottom: 8px;
+      margin-bottom: 7px;
       letter-spacing: 0.01em;
     }
 
@@ -45,7 +45,7 @@
       background: var(--surface-elevated);
       border: none;
       border-radius: 4px;
-      padding: 0 16px;
+      padding: 0 14px;
       font-family: var(--font);
       font-size: 14px;
       font-weight: 400;
@@ -73,7 +73,7 @@
 
     .submit-btn {
       width: 100%;
-      max-width: 280px;
+      max-width: 300px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -91,15 +91,7 @@
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
 
-    .submit-btn svg {
-      width: 14px;
-      height: 14px;
-    }
 
-    #payloadPreview {
-      font-family: 'SF Mono', 'Fira Code', monospace !important;
-      font-size: 12px !important;
-    }
 
     .guide-tree code, .guide-sb code, .guide-note p code {
       background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
@@ -133,15 +125,10 @@
 
       <div class="submit-wrap">
         <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
           Create Ads
         </button>
         <div class="status" id="statusMsg"></div>
       </div>
-
-      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:12px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>
@@ -181,9 +168,6 @@
 
         if (res.ok) {
           showStatus('success', '✅ Sent successfully! The n8n workflow is running.');
-          const preview = document.getElementById('payloadPreview');
-          preview.style.display = 'block';
-          preview.textContent = '📦 Payload sent:\n' + JSON.stringify(payload, null, 2);
         } else {
           const errText = await res.text();
           showStatus('error', `❌ Error from n8n (${res.status}): ${errText.slice(0,120)}`);

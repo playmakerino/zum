@@ -45,10 +45,10 @@
 
   /* layout: settings column of cards on the left, results on the right */
   .app{ display:grid; grid-template-columns:360px minmax(0,1fr); min-height:100vh; }
-  .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; background:var(--panel); box-shadow:inset -1px 0 0 var(--line2); }
+  .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; background:var(--panel); }
   .side-scroll{ flex:1; overflow:auto; padding:12px 16px 16px; display:flex; flex-direction:column; gap:16px; }
   /* Generate / Download sit under the cards with no box of their own */
-  .side-foot{ padding:4px 16px 16px; box-shadow:inset -1px 0 0 var(--line2); display:flex; flex-direction:column; gap:8px; background:var(--panel); }
+  .side-foot{ padding:4px 16px 16px; display:flex; flex-direction:column; gap:8px; background:var(--panel); }
   @media (max-width:860px){
     .app{ grid-template-columns:1fr; }
     .side{ position:static; height:auto; box-shadow:none; }
@@ -60,8 +60,6 @@
   .step-body + .step-body{ margin-top:12px; }
   /* side-card heading = Shopify side card title (Status, Publishing): 13px/20px 500 */
   .step h2{ margin:0 0 8px; padding:0 4px; font-size:15px; line-height:22px; font-weight:500; display:flex; align-items:center; gap:8px; }
-  .step h2 .n{ width:20px; height:20px; border-radius:8px; background:var(--t4-bg); color:var(--t4); font-size:12px; line-height:18px; font-weight:500; display:inline-grid; place-items:center; }
-  .step.ok h2 .n{ background:var(--t1-bg); color:var(--t1); }
   .field{ display:flex; flex-direction:column; gap:4px; margin-top:16px; }
   .field:first-of-type{ margin-top:0; }
   /* label left, hint/value right; when both do not fit on one line the right part drops to its own line instead of each wrapping inside half the width */
@@ -249,7 +247,7 @@
   <aside class="side">
     <div class="side-scroll">
       <section class="step" id="stepPattern">
-        <h2><span class="n">1</span>Pattern</h2>
+        <h2>Pattern</h2>
         <div class="step-body">
         <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a pattern file">
           <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
@@ -272,7 +270,7 @@
       </section>
 
       <section class="step ok">
-        <h2><span class="n">2</span>Product</h2>
+        <h2>Product</h2>
         <div class="step-body">
         <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
         <div class="field">
@@ -287,7 +285,7 @@
       </section>
 
       <section class="step ok">
-        <h2><span class="n">3</span>Print</h2>
+        <h2>Print</h2>
         <div class="step-body tabbed">
         <div class="tabs" id="layout" role="radiogroup" aria-label="Print layout">
           <button type="button" role="radio" data-v="allover">All-over</button>

@@ -251,7 +251,11 @@
       }
 
       const submitted_by_email = document.getElementById('submitted_by_email').value.trim();
-      if (submitted_by_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) {
+      if (!submitted_by_email) {
+        document.getElementById('submitted_by_email').focus();
+        return showStatus('error', '⚠️ Please enter your email.');
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) {
         document.getElementById('submitted_by_email').focus();
         return showStatus('error', '⚠️ Please enter a valid email.');
       }

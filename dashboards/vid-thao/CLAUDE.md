@@ -52,7 +52,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
-- Custom CSS tooltip cho nút Load Data
+- Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%, Avg Time; chữ trên giao diện không dùng em dash
 - **Debug line:** hàng cuối card (trước khi có thì hiện câu nhắc Load Data), hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics

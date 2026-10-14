@@ -129,9 +129,9 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress, fi
           if (probe) {
             // Attach as a Meta error so the route's code-190 / rate-limit branches apply.
             err.response = { data: { error: probe } };
-            err.message = `${err.message} — real reason: [${probe.code ?? '?'}] ${probe.message}`;
+            err.message = `${err.message}. Real reason: [${probe.code ?? '?'}] ${probe.message}`;
           } else {
-            err.message = `${err.message} — query is valid; transient Meta failure, ${backoffs.length} retries exhausted. Try again shortly.`;
+            err.message = `${err.message}. The query is valid; this is a temporary Meta failure, ${backoffs.length} retries exhausted. Try again shortly.`;
           }
         }
         throw err;

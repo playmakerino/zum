@@ -359,7 +359,7 @@ function metaErrorMessage(err) {
     if (ar.error_code != null)    codeBits.push(`code ${ar.error_code}`);
     if (ar.error_subcode != null) codeBits.push(`subcode ${ar.error_subcode}`);
     const reason = ar.error_message || ar.error_user_msg || `${ar.status} at ${ar.percent_complete}% (poll #${ar.poll_attempt})`;
-    const summary = codeBits.length ? `${codeBits.join(' / ')} — ${reason}` : reason;
+    const summary = codeBits.length ? `${codeBits.join(' / ')}: ${reason}` : reason;
     return { error: `Meta async report ${ar.status}`, detail: { message: summary, ...ar } };
   }
   const metaError = err.response?.data?.error;

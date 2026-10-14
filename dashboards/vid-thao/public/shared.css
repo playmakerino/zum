@@ -173,5 +173,7 @@ thead tr.total-row td.td-metric,thead tr.total-row td.td-prints{text-align:right
 #toast{background:#303030;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:500;line-height:20px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 #toast.error{background:#8e0b21;border:none}
 #toast.success{border:none}
-.tooltip-box{background:#1a1a1a;border-radius:8px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;padding:4px 8px}
-.tooltip-box::before{border-bottom-color:#1a1a1a}
+/* Tooltip (shared.js, data-tip / data-tip-title) = Shopify admin hover card */
+.tip{position:fixed;z-index:1000;max-width:280px;padding:12px;border-radius:12px;background:#1a1a1a;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;font-size:13px;line-height:20px;letter-spacing:-.01em}
+.tip-title{font-weight:600;margin-bottom:2px}
+.tip-body{font-weight:450;color:#e3e3e3}

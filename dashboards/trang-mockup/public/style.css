@@ -97,7 +97,3 @@ thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 #toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;z-index:9999;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
 
-.tooltip-wrap{position:relative;display:inline-flex}
-.tooltip-box{position:absolute;top:calc(100% + 8px);right:0;color:#fff;white-space:normal;width:260px;opacity:0;visibility:hidden;transition:opacity .12s,visibility .12s;pointer-events:none;z-index:20;box-shadow:var(--shadow-lg)}
-.tooltip-box::before{content:'';position:absolute;bottom:100%;right:16px;border:6px solid transparent}
-.tooltip-wrap:hover .tooltip-box{opacity:1;visibility:visible}

@@ -21,17 +21,14 @@
         <option value="14">Last 14 days</option>
         <option value="30">Last 30 days</option>
       </select>
-      <div class="tooltip-wrap">
-        <button class="btn btn-primary" onclick="fetchAll()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
-        <div class="tooltip-box">Fetches fresh data from Meta API. Frequent use may trigger rate limits — wait a few minutes between loads.</div>
-      </div>
+      <button class="btn btn-primary" onclick="fetchAll()" data-tip-title="Load Data" data-tip="Fetches fresh data from Meta API. Loading often may hit Meta's rate limit, so wait a few minutes between loads."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
     </div>
   </header>
 
   <main class="main">
     <div class="card">
     <div class="card-head">
-      <select class="period-select submitter-select" id="submitterSelect" data-icon="person" onchange="onSubmitterChange()" title="Submitted by email (from campaign name)">
+      <select class="period-select submitter-select" id="submitterSelect" data-icon="person" onchange="onSubmitterChange()" data-tip-title="Submitted by" data-tip="Who sent the video through the form. Read from the n8n table Vid · submitters, or from the email in the campaign name.">
         <option value="">All submitters</option>
       </select>
     </div>
@@ -48,9 +45,9 @@
             <th data-sort="cpm" onclick="sortTable('creatives','cpm')"><div class="th-content">CPM <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="cpm" onclick="event.stopPropagation();openFilterPopup('creatives','cpm',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="ctr" onclick="sortTable('creatives','ctr')"><div class="th-content">CTR <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="ctr" onclick="event.stopPropagation();openFilterPopup('creatives','ctr',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="cpc" onclick="sortTable('creatives','cpc')"><div class="th-content">CPC <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="cpc" onclick="event.stopPropagation();openFilterPopup('creatives','cpc',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="video_3sec_rate" onclick="sortTable('creatives','video_3sec_rate')"><div class="th-content" title="3-second video plays / impressions">3s/Impr <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_3sec_rate" onclick="event.stopPropagation();openFilterPopup('creatives','video_3sec_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="thruplay_rate" onclick="sortTable('creatives','thruplay_rate')"><div class="th-content" title="ThruPlays / Video plays">ThruPlay% <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="thruplay_rate" onclick="event.stopPropagation();openFilterPopup('creatives','thruplay_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="video_avg_time" onclick="sortTable('creatives','video_avg_time')"><div class="th-content" title="Video average play time">Avg Time <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_avg_time" onclick="event.stopPropagation();openFilterPopup('creatives','video_avg_time',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="video_3sec_rate" onclick="sortTable('creatives','video_3sec_rate')"><div class="th-content" data-tip-title="3s/Impr" data-tip="3-second video plays divided by impressions">3s/Impr <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_3sec_rate" onclick="event.stopPropagation();openFilterPopup('creatives','video_3sec_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="thruplay_rate" onclick="sortTable('creatives','thruplay_rate')"><div class="th-content" data-tip-title="ThruPlay%" data-tip="ThruPlays divided by video plays">ThruPlay% <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="thruplay_rate" onclick="event.stopPropagation();openFilterPopup('creatives','thruplay_rate',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+            <th data-sort="video_avg_time" onclick="sortTable('creatives','video_avg_time')"><div class="th-content" data-tip-title="Avg Time" data-tip="Average video play time, weighted by plays">Avg Time <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="creatives" data-col="video_avg_time" onclick="event.stopPropagation();openFilterPopup('creatives','video_avg_time',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="creativesBody"></tbody></table>
         </div>
       </div>

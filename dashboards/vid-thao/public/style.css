@@ -82,8 +82,3 @@ thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 #toast{position:fixed;bottom:18px;right:18px;padding:8px 14px;font:500 12.5px/1 'Inter',-apple-system,system-ui,sans-serif;z-index:9999;opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
 
-/* Custom tooltip */
-.tooltip-wrap{position:relative;display:inline-flex}
-.tooltip-box{position:absolute;top:calc(100% + 8px);right:0;color:#fff;font:450 12px/1.5 'Inter',-apple-system,system-ui,sans-serif;white-space:normal;width:260px;opacity:0;visibility:hidden;transition:opacity .12s,visibility .12s;pointer-events:none;z-index:20;box-shadow:0 6px 16px rgba(15,15,16,.18)}
-.tooltip-box::before{content:'';position:absolute;bottom:100%;right:14px;border:5px solid transparent}
-.tooltip-wrap:hover .tooltip-box{opacity:1;visibility:visible}

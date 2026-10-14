@@ -16,8 +16,8 @@
       <span class="cache-time" id="headerCachedAt"></span>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-primary" onclick="fetchAll('active')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Active Ads</button>
-      <button class="btn btn-secondary" style="opacity:0.45" title="Takes a few minutes. Click once and wait — clicking again will hit the rate limit." onclick="fetchAll('all')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load All</button>
+      <button class="btn btn-primary" onclick="fetchAll('active')" data-tip-title="Load Active Ads" data-tip="Top-spend image ad per design, from ads that are active now. Usually loads in under a minute."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Active Ads</button>
+      <button class="btn btn-secondary" style="opacity:0.45" data-tip-title="Load All" data-tip="Includes paused ads and takes a few minutes. Click once and wait: clicking again will hit Meta's rate limit." onclick="fetchAll('all')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load All</button>
     </div>
   </header>
 

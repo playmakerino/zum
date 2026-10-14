@@ -307,7 +307,7 @@ async function fetchAll(refresh = true) {
     });
     const detailStr = formatErrorDetail(err.detail);
     const statusStr = err.status ? ` (HTTP ${err.status})` : '';
-    toast(`Error${statusStr}: ${err.message}${detailStr ? ' — ' + detailStr : ''}`, 'error');
+    toast(`Error${statusStr}: ${err.message}${detailStr ? ': ' + detailStr : ''}`, 'error');
     $('creativesBody').innerHTML = empty(TABLES.creatives.cols);
   }
 }

@@ -19,6 +19,5 @@
   .dd-periodSelect{flex:1}
   .dd-periodSelect .dd-btn{width:100%}
   .dd-submitterSelect{flex-basis:100%;max-width:none}
-  .tooltip-wrap{flex-shrink:0}
   .filter-popup{min-width:240px;max-width:calc(100vw - 16px)}
 }

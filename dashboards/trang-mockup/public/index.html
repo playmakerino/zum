@@ -17,10 +17,7 @@
     </div>
     <div class="topbar-actions">
       <span class="period-label" id="periodLabel"></span>
-      <div class="tooltip-wrap">
-        <button class="btn btn-primary" onclick="fetchAll()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
-        <div class="tooltip-box">Fetches fresh data from Meta API. Frequent use may trigger rate limits — wait a few minutes between loads.</div>
-      </div>
+      <button class="btn btn-primary" onclick="fetchAll()" data-tip-title="Load Data" data-tip="Fetches fresh data from Meta API. Loading often may hit Meta's rate limit, so wait a few minutes between loads."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
     </div>
   </header>
 

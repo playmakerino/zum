@@ -35,7 +35,7 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'dd-btn';
-    if (sel.title) btn.title = sel.title;
+    for (const a of ['data-tip', 'data-tip-title']) if (sel.hasAttribute(a)) btn.setAttribute(a, sel.getAttribute(a));
     const menu = document.createElement('div');
     menu.className = 'dd-menu';
     menu.hidden = true;
@@ -121,4 +121,34 @@
     label();
     edit(!v1.value.trim());
   }).observe(popup, { attributes: true, attributeFilter: ['style'] });
+})();
+
+// 4) Tooltips like Shopify admin: dark card, bold title + description, below the element
+//    (above when there is no room). Any element with data-tip (and optional data-tip-title).
+(() => {
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  let cur = null;
+  const hide = () => { tip.hidden = true; cur = null; };
+  const show = el => {
+    cur = el;
+    tip.innerHTML = '';
+    const t = el.getAttribute('data-tip-title');
+    if (t) { const h = document.createElement('div'); h.className = 'tip-title'; h.textContent = t; tip.appendChild(h); }
+    const b = document.createElement('div'); b.className = 'tip-body'; b.textContent = el.getAttribute('data-tip'); tip.appendChild(b);
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+    let top = r.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+    tip.style.top = top + 'px';
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + 'px';
+  };
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && el !== cur) show(el); else if (!el && cur) hide();
+  });
+  document.addEventListener('scroll', hide, true);
+  document.addEventListener('mousedown', hide);
 })();

@@ -134,6 +134,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
         drive_file_id:  null,
         drive_thumb_id: null,
         reel_url:       null,
+        created_at:     null,
         _creatives:     new Set(),
         _rows:          [],
       };
@@ -146,10 +147,11 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
       g.drive_thumb_id = bq.thumb_drive_id || bq.drive_file_id;
     }
     if (!g.reel_url && bq?.reel_url) g.reel_url = bq.reel_url;
+    if (!g.created_at && bq?.created_at) g.created_at = bq.created_at;
     g._rows.push(row);
   }
   return Object.values(map).map(({ _rows, _creatives, ...entry }) =>
-    aggregateMetrics({ ...entry, creative_count: _creatives.size }, _rows));
+    aggregateMetrics({ ...entry, creative_count: _creatives.size, ad_count: new Set(_rows.map(r => r.ad_id)).size }, _rows));
 }
 
 // BigQuery video table rows → byAd (ads TC Vid created) and byVideo (uploaded video_id; an ad row
@@ -425,6 +427,31 @@ app.get('/api/config', (req, res) => {
     hasMetaToken:   !!process.env.META_ACCESS_TOKEN,
     hasAdAccountId: !!process.env.META_AD_ACCOUNT_ID,
   });
+});
+
+// GET|HEAD /api/drive-video/:id — the original video from Google Drive. Browsers are refused when they
+// load drive.usercontent.google.com directly; the server is not. Range is passed through so the
+// player can seek; HEAD gives the size for the viewer's Details line.
+app.get('/api/drive-video/:id', async (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^[\w-]{20,}$/.test(id)) return res.status(400).end();
+  const url = `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t`;
+  try {
+    const up = await axios({
+      method: req.method === 'HEAD' ? 'head' : 'get', url, responseType: 'stream', timeout: 30000,
+      headers: req.headers.range ? { Range: req.headers.range } : {}, validateStatus: s => s < 500,
+    });
+    if (!/^video\//.test(up.headers['content-type'] || '')) { up.data?.destroy?.(); return res.status(404).end(); }
+    res.status(up.status);
+    for (const h of ['content-type', 'content-length', 'content-range', 'accept-ranges']) if (up.headers[h]) res.setHeader(h, up.headers[h]);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    if (req.method === 'HEAD') return res.end();
+    up.data.pipe(res);
+    req.on('close', () => up.data.destroy());
+  } catch (err) {
+    console.error('Drive video proxy failed:', err.message);
+    if (!res.headersSent) res.status(502).end();
+  }
 });
 
 // GET /api/dashboard?days=7 — SSE with progress updates

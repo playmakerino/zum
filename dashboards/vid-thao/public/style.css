@@ -49,21 +49,49 @@ tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-wi
 .td-name{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
-.thumb-play{cursor:pointer}
+/* rows with a video open the viewer; hover = Shopify Files list row (#f7f7f7, 12px rounded ends) */
+tbody tr.row-play{cursor:pointer}
+tbody tr.row-play:hover td{background:#f7f7f7}
+tbody tr.row-play:hover td:first-child{border-radius:12px 0 0 12px}
+tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 
-/* Video popup (click a thumbnail): 9:16 player sized to fit the window, title bar + link row */
-.video-modal{position:fixed;inset:0;z-index:990;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
-.video-modal.open{display:flex}
-.video-dialog{display:flex;flex-direction:column;width:min(400px,calc(100vw - 32px),calc((100vh - 121px) * 9 / 16));background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.2)}
-.video-head{display:flex;align-items:center;gap:8px;height:44px;padding:0 8px 0 16px;border-bottom:1px solid #ebebeb}
-.video-title{flex:1;min-width:0;font-size:13px;font-weight:600;line-height:20px;color:#101010;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.video-close{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border:none;border-radius:8px;background:none;color:#4a4a4a;cursor:pointer}
-.video-close:hover{background:#f2f2f2;color:#101010}
-.video-close svg{width:20px;height:20px}
-.video-body{position:relative;aspect-ratio:9/16;background:#000}
-.video-body iframe,.video-body video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-.video-links{display:flex;align-items:center;justify-content:flex-end;gap:16px;height:44px;padding:0 16px;border-top:1px solid #ebebeb;font-size:13px;line-height:20px}
-.video-links[hidden]{display:none}
+/* Video viewer = Shopify Content → Files viewer (measured 2026-10-14 with getComputedStyle):
+   page #0a0a0a; top bar 56px #1a1a1a, padding 0 12px 0 8px, 28px round icon buttons (#aaa, 16px icon),
+   title 13px/20px 600 #eee; stage padding 20px, rgba(0,0,0,.71) + 2px dots every 40px; media box
+   padding 12px, video centred; side column 20px around a 320px #1a1a1a card, radius 12px; card header
+   16px padding, 15px/22px 600 with a 20px icon 8px before it; body 4px 16px 16px, sections 8px apart,
+   label 13px/20px 500 #eee, values 13px/20px 400 #aaa 2px apart (Name 4px); thumbnail row padding 6px,
+   40px image (contain, radius 10px) 8px before "Cover image" #eee. */
+.viewer{position:fixed;inset:0;z-index:990;display:none;flex-direction:column;background:#0a0a0a;color:#eee;font-size:13px;line-height:20px;letter-spacing:-.01em}
+.viewer.open{display:flex}
+.viewer-bar{display:flex;align-items:center;gap:8px;flex-shrink:0;height:56px;padding:0 12px 0 8px;background:#1a1a1a}
+.viewer-btn{display:grid;place-items:center;flex-shrink:0;width:28px;height:28px;padding:0;border:none;border-radius:9999px;background:none;color:#aaa;cursor:pointer;transition:background-color .2s}
+.viewer-btn:hover{background:rgba(255,255,255,.08);color:#eee}
+.viewer-btn svg{width:16px;height:16px}
+.viewer-title{flex:1;min-width:0;margin:0;font-size:13px;line-height:20px;font-weight:600;color:#eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer-stage{flex:1;min-height:0;display:flex;padding:20px;background:radial-gradient(rgba(255,255,255,.05) 2px,transparent 2px) 0 0/40px 40px rgba(0,0,0,.71)}
+.viewer-media{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px}
+.viewer-media video{max-width:100%;max-height:100%;height:100%;object-fit:contain;background:transparent}
+.viewer-side{flex-shrink:0;width:360px;padding:20px;overflow:auto}
+.viewer-card{background:#1a1a1a;border-radius:12px}
+.viewer-card-head{display:flex;align-items:center;gap:8px;padding:16px;font-size:15px;line-height:22px;font-weight:600;color:#eee}
+.viewer-card-head svg{width:20px;height:20px;flex-shrink:0}
+.viewer-card-body{display:flex;flex-direction:column;gap:8px;padding:4px 16px 16px}
+.viewer-sec{display:flex;flex-direction:column;gap:2px}
+.viewer-sec[hidden]{display:none}
+.viewer-sec-name{gap:4px}
+.viewer-sec h4{margin:0;font-size:13px;line-height:20px;font-weight:500;color:#eee}
+.viewer-sec p{margin:0;font-size:13px;line-height:20px;font-weight:400;color:#aaa;overflow-wrap:anywhere}
+.viewer-sec p[hidden]{display:none}
+.viewer-thumb{display:flex;align-items:center;gap:8px;padding:6px}
+.viewer-thumb img{width:40px;height:40px;flex-shrink:0;object-fit:contain;border-radius:10px}
+.viewer-sec .viewer-thumb p,.viewer-sec .viewer-used{color:#eee}
+/* narrow screens: video on top, information card under it */
+@media(max-width:760px){
+  .viewer-stage{flex-direction:column;overflow:auto;padding:12px}
+  .viewer-media{flex:none;height:65vh;padding:0}
+  .viewer-side{width:auto;padding:12px 0 0;overflow:visible}
+}
 
 thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 .th-filter-input{font:450 11.5px/1.2 'Inter',-apple-system,system-ui,sans-serif;outline:none;width:140px;transition:.1s}

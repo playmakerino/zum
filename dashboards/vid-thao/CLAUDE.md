@@ -51,9 +51,11 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
 - **Thumbnail preview:** hover hiện ảnh HD 240×240 (position:fixed)
   - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480` (thumb hiện tại của ad trên Meta)
-  - Link Meta hết hạn sau vài ngày (kết quả lưu localStorage): `onerror` đổi sang thumb Drive `lh3.googleusercontent.com/d/<drive_thumb_id>=w480` (vĩnh viễn, không tốn call); không có Drive thì hiện ô xám
+  - Link Meta hết hạn sau vài ngày (kết quả lưu localStorage): `onerror` đổi sang thumb Drive `drive.google.com/thumbnail?id=<drive_thumb_id>&sz=w480` (vĩnh viễn, không tốn call); không có Drive thì hiện ô xám
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)
-- **Bấm thumbnail = popup phát video** (`openVideo`): có `drive_file_id` → iframe `drive.google.com/file/d/<id>/preview` (không tốn call); không có → `<video src="…/webhook/mp4?id=<video_id>">` (workflow n8n WsyDx1JIhZj5mVrf, 1 execution + 1 call Meta mỗi lần mở). Hàng dưới có link Open in Drive / View on Facebook (reel). Esc / bấm nền để đóng; đóng là xoá player để dừng phát.
+- **Bấm vào bất kỳ đâu trên dòng (có video) = trình xem video kiểu Shopify Content → Files** (`openVideo(i)`, i = vị trí trong `state.rendered`; đo bằng getComputedStyle trên admin 2026-10-14, số đo ghi trong comment `style.css`): thanh trên 56px (Exit / tên / Download), video `<video>` gốc giữa nền chấm, thẻ Information 320px (Name, Details "MP4 • size" + Added, Submitted by, Thumbnail, Used in "Ads (n)"). Hover dòng = `#f7f7f7` bo 12px. Esc hoặc nút Exit để đóng.
+  - Video Drive phát qua **proxy của server** `GET|HEAD /api/drive-video/:id` (chuyển Range để tua): trình duyệt gọi thẳng `drive.usercontent.google.com` bị từ chối (đo 2026-10-14), server thì được. Không tốn call Meta; HEAD cho dung lượng. Không có Drive → `…/webhook/mp4?id=<video_id>` (n8n WsyDx1JIhZj5mVrf, 1 execution + 1 call Meta).
+  - Thumb Drive dùng `drive.google.com/thumbnail?id=…&sz=w480`; `lh3.googleusercontent.com` trả 429 khi trang gửi Referer. Trang có `<meta name="referrer" content="no-referrer">`.
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
 - Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%, Avg Time; chữ trên giao diện không dùng em dash

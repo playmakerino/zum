@@ -72,7 +72,8 @@ const COL_LABELS = {
 const TABLES = {
   creatives: {
     cols: 12, idKey: 'creative_id',
-    row: r => `<tr><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
+    // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
+    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
 };
 
@@ -333,7 +334,8 @@ function renderTable(type) {
   const limit = state.pageLimit[type];
   const page = filtered.slice(0, limit);
 
-  let html = page.map(r => cfg.row(r)).join('');
+  state.rendered = page;
+  let html = page.map((r, i) => cfg.row(r, i)).join('');
   if (filtered.length > limit) {
     html += `<tr class="show-more-row"><td colspan="${cfg.cols}"><button class="btn-show-more" onclick="showMore('${type}')">Show more (${filtered.length - limit} remaining)</button></td></tr>`;
   }
@@ -558,23 +560,22 @@ const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 
 // Thumbnail = the ad's current Meta thumbnail (read again on Load Data, so a thumbnail changed in
 // Ads Manager shows). Meta links expire after a few days; a saved result then falls back to the
-// Drive thumbnail of the original file (permanent). Click plays the video.
-const DRIVE_THUMB = id => `https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w480`;
+// Drive thumbnail of the original file (permanent).
+// drive.google.com/thumbnail loads in browsers; lh3.googleusercontent.com answers 429 to pages that send a Referer
+const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w480`;
+// the original mp4 goes through our server (browsers are refused by drive.usercontent.google.com)
+const DRIVE_MP4 = id => `/api/drive-video/${encodeURIComponent(id)}`;
+const DRIVE_DOWNLOAD = id => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
 const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
 const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
-const PLAY_ATTRS = ['video', 'drive', 'reel', 'name'];
+const canPlay = r => !!(r.drive_file_id || r.video_id);
 
 function thumb(r) {
   const drive = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
   const src = r.thumbnail_url || drive;
-  const playable = !!(r.drive_file_id || r.video_id);
-  const play = playable
-    ? ` data-video="${esc(r.video_id || '')}" data-drive="${esc(r.drive_file_id || '')}" data-reel="${esc(r.reel_url || '')}" data-name="${esc(r.ad_name || '')}" onclick="openVideo(this, event)"`
-    : '';
-  const cls = playable ? ' thumb-play' : '';
-  if (!src) return `<div class="thumb-placeholder${cls}"${play}>${PLACEHOLDER_SVG}</div>`;
+  if (!src) return `<div class="thumb-placeholder">${PLACEHOLDER_SVG}</div>`;
   const hover = r.is_catalog ? '' : ' onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()"';
-  return `<img class="thumb${cls}" src="${esc(src)}" data-fallback="${esc(src === drive ? '' : drive)}"${hover}${play} alt="" loading="lazy" onerror="thumbError(this)">`;
+  return `<img class="thumb" src="${esc(src)}" data-fallback="${esc(src === drive ? '' : drive)}"${hover} alt="" loading="lazy" onerror="thumbError(this)">`;
 }
 function thumbError(img) {
   const fallback = img.dataset.fallback;
@@ -582,37 +583,67 @@ function thumbError(img) {
   const div = document.createElement('div');
   div.className = 'thumb-placeholder';
   div.innerHTML = PLACEHOLDER_SVG;
-  if (img.classList.contains('thumb-play')) {
-    div.classList.add('thumb-play');
-    for (const k of PLAY_ATTRS) div.dataset[k] = img.dataset[k] || '';
-    div.onclick = e => openVideo(div, e);
-  }
   img.replaceWith(div);
 }
 
-// Video popup: the original file from Drive (free, no Meta call); a video that is not in
-// BigQuery plays its current mp4 through the n8n webhook (1 execution + 1 Meta call per open).
-function openVideo(el, e) {
-  if (e) e.stopPropagation();
+// ── Video viewer = Shopify Content → Files viewer (measured 2026-10-14) ─────────
+// The original file from Drive (free, no Meta call); a video that is not in BigQuery plays its
+// current mp4 through the n8n webhook (1 execution + 1 Meta call per open).
+const fmtSize = n => n >= 1e6 ? (n / 1e6).toFixed(2) + ' MB' : (n / 1e3).toFixed(1) + ' kB';
+
+function openVideo(i) {
+  const r = state.rendered?.[i];
+  if (!r || !canPlay(r)) return;
   hideThumbPreview();
-  const { video, drive, reel, name } = el.dataset;
-  $('videoTitle').textContent = name || '';
-  $('videoBody').innerHTML = drive
-    ? `<iframe src="https://drive.google.com/file/d/${encodeURIComponent(drive)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`
-    : `<video src="${MP4_URL}${encodeURIComponent(video)}" controls autoplay playsinline></video>`;
-  const links = [];
-  if (drive) links.push(`<a href="https://drive.google.com/file/d/${encodeURIComponent(drive)}/view" target="_blank" rel="noopener">Open in Drive</a>`);
-  if (reel) links.push(`<a href="${esc(reel)}" target="_blank" rel="noopener">View on Facebook</a>`);
-  $('videoLinks').innerHTML = links.join('');
-  $('videoLinks').hidden = !links.length;
-  $('videoModal').classList.add('open');
+  const src = r.drive_file_id ? DRIVE_MP4(r.drive_file_id) : MP4_URL + encodeURIComponent(r.video_id);
+  const driveThumb = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
+  const viewer = $('videoViewer');
+  const token = String(Date.now());
+  viewer.dataset.token = token;
+
+  $('viewerTitle').textContent = r.ad_name || '';
+  $('viewerDownload').href = r.drive_file_id ? DRIVE_DOWNLOAD(r.drive_file_id) : src;
+  $('viName').textContent = r.ad_name || '';
+  $('viFormat').textContent = 'MP4';
+  if (r.drive_file_id) {
+    fetch(src, { method: 'HEAD' }).then(res => {
+      const n = +res.headers.get('content-length');
+      if (n && viewer.dataset.token === token) $('viFormat').textContent = 'MP4 • ' + fmtSize(n);
+    }).catch(() => {});
+  }
+  $('viAdded').textContent = r.created_at ? 'Added ' + fmtDateLabel(new Date(r.created_at)) : '';
+  $('viAdded').hidden = !r.created_at;
+  $('viSubmitter').textContent = r.submitted_by || '';
+  $('viSubmitterSec').hidden = !r.submitted_by;
+  const t = $('viThumb');
+  t.dataset.fallback = r.thumbnail_url && driveThumb ? driveThumb : '';
+  t.src = r.thumbnail_url || driveThumb;
+  $('viThumbSec').hidden = !(r.thumbnail_url || driveThumb);
+  $('viUsedIn').textContent = `Ads (${r.ad_count || 1})`;
+
+  const v = $('viewerVideo');
+  // the poster gives the player its shape before the video loads; the Drive thumbnail keeps the video's ratio
+  v.poster = driveThumb || r.thumbnail_url || '';
+  v.src = src;
+  viewer.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  v.play().catch(() => {});
+  $('viewerExit').focus();
 }
 function closeVideo() {
-  $('videoModal').classList.remove('open');
-  $('videoBody').innerHTML = ''; // removing the player stops playback
+  const v = $('viewerVideo');
+  v.pause();
+  v.removeAttribute('src');
+  v.load(); // drops the stream
+  $('videoViewer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function viewerThumbError(img) {
+  const fallback = img.dataset.fallback;
+  if (fallback) { img.dataset.fallback = ''; img.src = fallback; } else $('viThumbSec').hidden = true;
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && $('videoModal')?.classList.contains('open')) closeVideo();
+  if (e.key === 'Escape' && $('videoViewer')?.classList.contains('open')) closeVideo();
 });
 
 const _thumbPreview = (() => {

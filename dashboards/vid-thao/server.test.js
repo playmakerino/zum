@@ -254,6 +254,14 @@ describe('groupByVideo', () => {
     expect(res[0]).toMatchObject({ video_id: 'v9', submitted_by: 'ngocvp', drive_file_id: 'd1', drive_thumb_id: 'd1', reel_url: 'https://www.facebook.com/reel/r1' });
   });
 
+  test('counts the ads of a video and keeps its BigQuery creation time', () => {
+    const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', created_at: '2026-10-14T11:03:10Z' }]);
+    const cache = { a1: cacheEntry('c1', { video_id: 'v1' }), a2: cacheEntry('c2', { video_id: 'v1' }) };
+    const res = groupByVideo([row('a1'), row('a2')], cache, {}, table);
+    expect(res).toHaveLength(1);
+    expect(res[0]).toMatchObject({ ad_count: 2, created_at: '2026-10-14T11:03:10Z' });
+  });
+
   test('thumbnail image in the folder is used as the Drive thumbnail', () => {
     const table = indexVideoTable([{ video_id: 'v1', ad_id: 'a1', drive_file_id: 'd1', thumb_drive_id: 't1' }]);
     const res = groupByVideo([row('a1')], { a1: cacheEntry('c1') }, {}, table);

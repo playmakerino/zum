@@ -30,9 +30,14 @@ html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font-f
 ::-webkit-scrollbar-thumb{ background-color:transparent; border:2px solid transparent; border-radius:12px; background-clip:content-box; }
 :hover::-webkit-scrollbar-thumb,::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{ background-color:#8c8c8c; }
 
-/* sidebars: a stack of cards (20px radius, hairline shadow); 4px padding keeps the shadows inside the scroller */
+/* sidebars: Shopify cards (20px radius, hairline shadow). Left = one Product card; right = the values card + the
+   Preview patterns card. Sections inside a card are split by a #f2f2f2 line. 4px padding keeps the shadows inside the scroller */
 .pane{ overflow:auto; display:flex; flex-direction:column; gap:8px; padding:4px; }
-.sec{ padding:12px 16px 16px; background:var(--panel); border-radius:20px; box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02); display:flex; flex-direction:column; gap:8px; flex:none; }
+.box{ background:var(--panel); border-radius:20px; box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02); display:flex; flex-direction:column; flex:none; }
+.box.grow{ flex:1 0 auto; }
+.sec{ padding:12px 16px; display:flex; flex-direction:column; gap:8px; flex:none; }
+.sec + .sec{ border-top:1px solid var(--line); }
+.sec:last-child{ padding-bottom:16px; }
 .sec.grow{ flex:1 0 auto; }
 /* card title = Shopify side card title (Status, Publishing): 13px/20px 500 */
 .h{ font-size:13px; line-height:20px; font-weight:500; color:var(--ink); display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
@@ -140,6 +145,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
 <body>
 <div class="app" id="app">
   <aside class="pane left">
+    <div class="box grow">
     <section class="sec">
       <div class="h">Product</div>
       <select id="garment"></select>
@@ -154,6 +160,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
       <div class="h">Photos</div>
       <div class="views" id="views"></div>
     </section>
+    </div>
   </aside>
 
   <main class="stage" id="stage">
@@ -162,6 +169,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
   </main>
 
   <aside class="pane right">
+    <div class="box">
     <section class="sec">
       <div class="whorow"><span class="who" id="who"></span><span class="sub" id="whoSub"></span></div>
     </section>
@@ -192,6 +200,8 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
         <button class="pri" id="copyAll">Copy all</button><button id="clearAll" title="Put every photo back">Undo all</button>
       </div>
     </section>
+    </div>
+    <div class="box">
     <section class="sec">
       <div class="h">Preview patterns</div>
       <div class="pats">
@@ -205,6 +215,7 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
       <div class="h" style="margin-top:4px">Body print size <span class="val" id="fracV">0.75</span></div>
       <div id="fracRow"><input type="range" id="frac" min="0.3" max="1" step="0.05" value="0.75"></div>
     </section>
+    </div>
   </aside>
 </div>
 

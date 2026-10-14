@@ -442,14 +442,18 @@ function totals(rows) {
   };
 }
 
+// Total row sits in <thead> right under the column names (like Shopify's Summary row),
+// so it sticks with the header while the page scrolls.
 function buildTotalRow(type, filtered) {
+  const thead = document.querySelector(`#${type}Table thead`);
+  thead.querySelector('.total-row')?.remove();
   if (filtered.length === 0) return;
   const labelCols = 2;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
   const emptyTds = '<td></td>'.repeat(labelCols - 2);
   tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${emptyTds}${metrics(totals(filtered))}`;
-  $(type + 'Body').appendChild(tr);
+  thead.appendChild(tr);
 }
 
 // ── Filter Popup ──────────────────────────────────────────────────────────────

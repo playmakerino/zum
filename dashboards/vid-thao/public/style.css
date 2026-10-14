@@ -54,8 +54,6 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}
 thead th{background:var(--s);color:var(--t3);font-weight:500;font-size:11px;letter-spacing:.2px;padding:9px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--b);transition:color .08s}
 thead th:first-child{position:sticky;left:0;z-index:3;background:var(--s);min-width:42px}
 thead th:hover{color:var(--t)}
-.total-row{position:sticky;bottom:0;z-index:2}
-.total-row td{background:var(--s);border-top:1px solid var(--b);font-weight:500;color:var(--t)}
 thead th .sort-icon{opacity:0;margin-left:2px;font-size:11px;color:var(--t4);transition:opacity .08s}
 thead th:hover .sort-icon{opacity:.6}
 thead th.sorted{color:var(--t)}

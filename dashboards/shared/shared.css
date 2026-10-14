@@ -69,7 +69,7 @@ html,body{height:auto}
 .card{position:relative;background:#fff;border-radius:20px;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
 .card-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1px solid #ebebeb}
 .card-head .topbar-tabs{margin:0}
-.card-foot{min-height:16px;padding:8px 16px;border-top:1px solid #ebebeb}
+.card-foot{min-height:16px;padding:8px 16px;border-top:1px solid #ebebeb;text-align:center}
 .card-foot .debug-line,.card-foot .load-log{margin:0;max-height:none}
 .table-wrap{flex:none;min-height:0;background:none;border:none;border-radius:0;box-shadow:none;overflow:visible;position:relative}
 .table-scroll{overflow:visible;height:auto;max-height:none}
@@ -77,9 +77,10 @@ html,body{height:auto}
 .load-overlay{align-items:flex-start}
 .load-overlay .load-popup{position:sticky;top:calc(var(--topbar-h) + 80px);margin-top:80px}
 /* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page) */
-@media(max-width:1100px){.table-scroll{overflow-x:auto}thead th{top:0}}
+@media(max-width:1100px){.table-scroll{overflow-x:auto}thead{top:0}}
 table{width:100%;font-size:13px}
-thead th{top:var(--topbar-h);background:#fff;color:#101010;font-weight:400;font-size:13px;line-height:20px;text-transform:none;letter-spacing:0;padding:7px 8px;border-bottom:1px solid #ddd}
+thead{position:sticky;top:var(--topbar-h);z-index:3}
+thead th{top:auto;background:#fff;color:#101010;font-weight:400;font-size:13px;line-height:20px;text-transform:none;letter-spacing:0;padding:7px 8px;border-bottom:1px solid #ddd}
 thead th:hover{color:#101010}
 thead th.sorted{color:#101010;font-weight:600}
 thead th .th-content{gap:2px}
@@ -102,7 +103,10 @@ tbody tr{border-bottom:1px solid #ebebeb}
 tbody tr:hover,tbody tr:hover td:first-child{background:#f7f7f7}
 tbody td{padding:8px 12px;color:#101010;font-variant-numeric:tabular-nums}
 .td-name{font-weight:400;color:#101010}
-tbody tr.total-row td,tbody tr.total-row:hover td{box-shadow:0 -1px 0 #ddd;background:#f2f2f2;font-weight:600;color:#101010;border-top:1px solid #ddd}
+/* Total row: in <thead> under the column names (Shopify Summary row) */
+.total-row{position:static}
+thead tr.total-row td{position:static;background:#f2f2f2;font-weight:600;color:#101010;padding:8px 12px;border-bottom:1px solid #ddd;font-variant-numeric:tabular-nums;white-space:nowrap}
+thead tr.total-row td.td-metric,thead tr.total-row td.td-prints{text-align:right}
 .thumb,.thumb-placeholder{border-radius:6px;background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
 

@@ -16,17 +16,15 @@
       <span class="cache-time" id="headerCachedAt"></span>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-primary" onclick="fetchAll(state.mode)" title="Loads the selected tab. All ads takes a few minutes: click once and wait, clicking again will hit the rate limit."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
+      <button class="btn btn-primary" onclick="fetchAll('active')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Active Ads</button>
+      <button class="btn btn-secondary" style="opacity:0.45" title="Takes a few minutes. Click once and wait — clicking again will hit the rate limit." onclick="fetchAll('all')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load All</button>
     </div>
   </header>
 
   <main class="main">
     <div class="card">
     <div class="card-head">
-      <nav class="topbar-tabs">
-        <button class="tab-btn" data-mode="active" onclick="setMode('active')">Active ads</button>
-        <button class="tab-btn" data-mode="all" onclick="setMode('all')" title="All ads takes a few minutes to load">All ads</button>
-      </nav>
+      <span class="card-title" id="modeTitle"></span>
     </div>
     <div id="page-ads" class="page active">
       <div class="table-wrap">
@@ -39,7 +37,7 @@
             <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
             <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
           </tr></thead><tbody id="adsBody">
-            <tr><td colspan="6"><div class="state-box">Choose a tab, then click "Load Data"</div></td></tr>
+            <tr><td colspan="6"><div class="state-box">Click "Load Active Ads" or "Load All" to start</div></td></tr>
           </tbody></table>
         </div>
       </div>

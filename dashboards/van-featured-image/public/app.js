@@ -24,11 +24,11 @@ const state = {
   mode: (() => { try { return localStorage.getItem('van_mode') === 'all' ? 'all' : 'active'; } catch { return 'active'; } })(),
 };
 
-// Card tabs "Active ads" / "All ads" pick which mode Load Data fetches.
+// Card title shows which mode the table currently holds ("Active ads" / "All ads").
 function setMode(mode) {
   state.mode = mode;
   try { localStorage.setItem('van_mode', mode); } catch {}
-  document.querySelectorAll('.tab-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  $('modeTitle').textContent = mode === 'all' ? 'All ads' : 'Active ads';
 }
 
 const TABLES = {
@@ -163,6 +163,7 @@ async function fetchAll(mode = 'all') {
     showCacheTime(data.cached_at);
     ov.style.display = 'none';
 
+    setMode(mode);
     const modeLabel = mode === 'active' ? 'Active' : 'All';
     const fetchLabel = data.incremental ? 'incremental' : 'full';
     addLog(`${modeLabel} (${fetchLabel}): ${data.totalRows} insight rows → ${data.topAdsCount} spend>$100 → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');

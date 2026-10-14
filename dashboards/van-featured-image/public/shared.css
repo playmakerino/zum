@@ -73,6 +73,7 @@ body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
 .card{position:relative;background:#fff;border-radius:20px;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
 .card-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1px solid #ebebeb}
 .card-head .topbar-tabs{margin:0}
+.card-title{font-size:13px;font-weight:600;line-height:20px;padding:4px 4px;color:#101010}
 /* fixed 36px row even before the log/debug text exists (box-sizing is border-box, so min-height includes padding) */
 .card-foot{min-height:37px;display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-top:1px solid #ebebeb;text-align:center}
 .card-foot .debug-line,.card-foot .load-log{margin:0;max-height:none;line-height:18px}

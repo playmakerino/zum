@@ -1,32 +1,22 @@
-require('dotenv').config({ path: ['anthropic', 'meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
+require('dotenv').config({ path: ['meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
 const express   = require('express');
-const cors      = require('cors');
 const axios     = require('axios');
 const path      = require('path');
-const fs        = require('fs');
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const META_BASE_URL = 'https://graph.facebook.com/v22.0';
 const DAYS = 30;
 
-let _tmpCounter = 0;
-function saveCacheAsync(filePath, data) {
-  const tmp = `${filePath}.${process.pid}-${++_tmpCounter}.tmp`;
-  fs.writeFile(tmp, JSON.stringify(data), err => {
-    if (err) { console.error(`Cache write error (${path.basename(filePath)}):`, err.message); return; }
-    fs.rename(tmp, filePath, err2 => {
-      if (err2) { console.error(`Cache rename error (${path.basename(filePath)}):`, err2.message); fs.unlink(tmp, () => {}); }
-    });
-  });
-}
+// ── In-memory caches ─────────────────────────────────────────────────────────
+// Render free has no persistent disk (restart/spin-down wipes files), so caches
+// live in memory only and last as long as the process.
+const HD_THUMB_TTL = 24 * 60 * 60 * 1000; // Meta CDN URLs expire
 
-// ── Creative cache (30-day TTL) ──────────────────────────────────────────────
-const CACHE_FILE = path.join(__dirname, '.cache-creatives.json');
-const CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog} | null, _cachedAt }
+const insightsCache = {}; // days → { current: rows }
+const hdThumbCache  = {}; // creative_id → { url, _cachedAt }
 
 function slimCreative(ad) {
   const c = ad.creative;
@@ -35,70 +25,12 @@ function slimCreative(ad) {
     id: ad.id,
     creative: {
       id:          c.id,
-      name:        c.name || '',
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
 }
-
-function loadCacheFromFile() {
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      for (const [id, entry] of Object.entries(raw)) {
-        if (entry._cachedAt && (now - entry._cachedAt) > CACHE_TTL) continue;
-        filtered[id] = entry;
-      }
-      return filtered;
-    }
-  } catch (e) { console.error('Cache read error:', e.message); }
-  return {};
-}
-
-let creativeCache = loadCacheFromFile();
-
-// ── Insights cache ───────────────────────────────────────────────────────────
-const INSIGHTS_CACHE_FILE = path.join(__dirname, '.cache-insights.json');
-
-function loadInsightsCacheFromFile() {
-  try {
-    if (fs.existsSync(INSIGHTS_CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(INSIGHTS_CACHE_FILE, 'utf8'));
-    }
-  } catch (e) { console.error('Insights cache read error:', e.message); }
-  return {};
-}
-
-let insightsCache = loadInsightsCacheFromFile();
-
-// ── HD thumbnail cache (24h TTL) ─────────────────────────────────────────────
-const HD_THUMB_CACHE_FILE = path.join(__dirname, '.cache-hd-thumbs.json');
-const HD_THUMB_TTL = 24 * 60 * 60 * 1000;
-
-function loadHdThumbCache() {
-  try {
-    if (fs.existsSync(HD_THUMB_CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(HD_THUMB_CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      let changed = false;
-      for (const [id, entry] of Object.entries(raw)) {
-        if (typeof entry === 'string') { changed = true; continue; }
-        if (entry._cachedAt && (now - entry._cachedAt) > HD_THUMB_TTL) { changed = true; continue; }
-        filtered[id] = entry;
-      }
-      if (changed) saveCacheAsync(HD_THUMB_CACHE_FILE, filtered);
-      return filtered;
-    }
-  } catch (e) { console.error('HD thumb cache read error:', e.message); }
-  return {};
-}
-
-let hdThumbCache = loadHdThumbCache();
 
 const AD_METRICS = ['impressions', 'clicks', 'spend', 'actions', 'action_values'].join(',');
 
@@ -135,13 +67,13 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
     const reportId = createRes.data.report_run_id;
     if (!reportId) throw new Error('No report_run_id returned from Meta');
 
-    let jobFailed = false;
+    let jobFailed = false, completed = false;
     for (let i = 0; i < 60; i++) {
       const poll = await axios.get(`${META_BASE_URL}/${reportId}`, { params: { access_token: token } });
       const status = poll.data.async_status;
       const pct = poll.data.async_percent_completion || 0;
       if (onProgress) onProgress(status, pct);
-      if (status === 'Job Completed') break;
+      if (status === 'Job Completed') { completed = true; break; }
       if (status === 'Job Failed' || status === 'Job Skipped') {
         if (attempt < MAX_RETRIES) {
           if (onProgress) onProgress(`${status}, retrying (${attempt}/${MAX_RETRIES})...`, 0);
@@ -153,6 +85,7 @@ async function fetchInsightsAsync(base, token, fields, timeRange, onProgress) {
       await new Promise(r => setTimeout(r, 2000));
     }
     if (jobFailed) { await new Promise(r => setTimeout(r, 3000 * attempt)); continue; }
+    if (!completed) throw new Error('Async report timed out after 120s');
 
     const results = [];
     let url = `${META_BASE_URL}/${reportId}/insights`;
@@ -308,7 +241,6 @@ app.get('/api/dashboard', async (req, res) => {
         progress(`Polling report: ${p}% [${elapsed()}]`);
       });
       insightsCache[cacheKey] = { current: currRows };
-      saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
       progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
     }
 
@@ -330,7 +262,7 @@ app.get('/api/dashboard', async (req, res) => {
     const missingIds = allAdIds.filter(id => !creativeCache[id]);
     if (missingIds.length > 0) {
       progress(`Fetching creative info for ${missingIds.length}/${allAdIds.length} ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,name,object_type,object_story_spec}');
+      const fetched = await fetchAdsByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data}}');
       const now = Date.now();
       for (const ad of fetched) {
         creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -338,7 +270,6 @@ app.get('/api/dashboard', async (req, res) => {
       for (const id of missingIds) {
         if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
       }
-      saveCacheAsync(CACHE_FILE, creativeCache);
       progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
     } else {
       progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
@@ -357,7 +288,7 @@ app.get('/api/dashboard', async (req, res) => {
       const info = creativeInfoMap[cid];
       return info.type && ['SHARE', 'VIDEO'].includes(info.type) && !info.isCatalog;
     });
-    const missingHdIds = nonCatalogCreativeIds.filter(cid => !hdThumbCache[cid]);
+    const missingHdIds = nonCatalogCreativeIds.filter(cid => !hdThumbCache[cid] || (Date.now() - hdThumbCache[cid]._cachedAt) > HD_THUMB_TTL);
     if (missingHdIds.length > 0) {
       progress(`Fetching HD thumbnails for ${missingHdIds.length} creatives... [${elapsed()}]`);
       const BATCH = 50;
@@ -374,7 +305,6 @@ app.get('/api/dashboard', async (req, res) => {
           console.error('HD thumb fetch error:', err.response?.data?.error?.message || err.message);
         }
       }
-      saveCacheAsync(HD_THUMB_CACHE_FILE, hdThumbCache);
       progress(`Fetched HD thumbnails [${elapsed()}]`);
     } else if (nonCatalogCreativeIds.length > 0) {
       progress(`All ${nonCatalogCreativeIds.length} HD thumbnails cached [${elapsed()}]`);
@@ -390,7 +320,6 @@ app.get('/api/dashboard', async (req, res) => {
       if (!c) continue;
       creativeMap[ad.id] = {
         id:            c.id,
-        name:          c.name || '',
         object_type:   c.object_type || '',
         is_catalog:    !!c.is_catalog,
         thumbnail_url: hdThumbMap[c.id] || null,

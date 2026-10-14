@@ -21,7 +21,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - **GET /api/config** — trả về status config (có token chưa)
 - **GET /api/dashboard** — SSE stream pipeline
 - **Error handling:** detect token expiry (code 190), rate limit (code 4/17)
-- **Async file writes:** `saveCacheAsync()` dùng atomic write (tmp → rename)
+- **Render free:** không có persistent disk → mọi cache server chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle). Sau restart, "Load All" chạy lại full 12 tháng.
 - Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds }`
 
 ### Frontend (app.js)
@@ -49,7 +49,7 @@ Meta API: POST /act_{id}/insights (async report)
 ```
 - Fields: `ad_id, ad_name, spend, action_values`
 - Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), incremental fetch từ `lastUntil`
-- Cache: `insightsCache` (memory + file)
+- Cache: `insightsCache` (RAM)
 
 ### Step 1.5: pickTopSpendAds()
 - Aggregate rows theo `ad_id` → tính tổng spend + purchase_value
@@ -61,7 +61,7 @@ Meta API: POST /act_{id}/insights (async report)
 ```
 Meta API: GET /?ids={batch}&fields=id,creative{id,object_type,object_story_spec,asset_feed_spec}
 ```
-- Batch 50 ads/request, chỉ fetch ads chưa có link trong cache
+- Batch 50 ads/request, chỉ fetch ad chưa có trong cache, hoặc ad ảnh (SHARE, không catalog) còn thiếu image_hash. Fields chỉ lấy `object_story_spec{link_data{link,image_hash},template_data}` + `asset_feed_spec{images,link_urls}` (bằng 1/4 payload so với lấy cả spec, kết quả như nhau, đo 2026-10-14)
 - Cache: `creativeCache[ad_id] = { creative_id, object_type, is_catalog, link, image_hash, _cachedAt }`
 - `link`: fallback `oss.link_data.link` → `afs.link_urls[0].website_url`
 - `image_hash`: fallback `oss.link_data.image_hash` → `afs.images[0].hash`
@@ -98,9 +98,9 @@ Meta API: GET /act_{id}/adimages?hashes=[...]&fields=hash,url
 
 | Layer | File | TTL | Key | Var |
 |-------|------|-----|-----|-----|
-| Insights | `.cache-insights.json` | No expire, incremental | — | `insightsCache` |
-| Creative | `.cache-creatives.json` | 30 ngày | `ad_id` | `creativeCache` |
-| Image | `.cache-images.json` | 24 giờ | `creative_id` | `imageCache` |
+| Insights | RAM | Đến restart, incremental | — | `insightsCache` |
+| Creative | RAM | Đến restart | `ad_id` | `creativeCache` |
+| Image | RAM | 24 giờ | `creative_id` | `imageCache` |
 | Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | — |
 
 ## Environment Variables (.env)

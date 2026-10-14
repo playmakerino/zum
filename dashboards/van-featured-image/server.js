@@ -1,87 +1,22 @@
-require('dotenv').config({ path: ['anthropic', 'meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
+require('dotenv').config({ path: ['meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
 const express   = require('express');
-const cors      = require('cors');
 const axios     = require('axios');
 const path      = require('path');
-const fs        = require('fs');
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const META_BASE_URL = `https://graph.facebook.com/v22.0`;
 
-let _tmpCounter = 0;
-function saveCacheAsync(filePath, data) {
-  const tmp = `${filePath}.${process.pid}-${++_tmpCounter}.tmp`;
-  fs.writeFile(tmp, JSON.stringify(data), err => {
-    if (err) { console.error(`Cache write error (${path.basename(filePath)}):`, err.message); return; }
-    fs.rename(tmp, filePath, err2 => {
-      if (err2) { console.error(`Cache rename error (${path.basename(filePath)}):`, err2.message); fs.unlink(tmp, () => {}); }
-    });
-  });
-}
+// ── In-memory caches ─────────────────────────────────────────────────────────
+// Render free has no persistent disk (restart/spin-down wipes files), so caches
+// live in memory only and last as long as the process.
+const IMAGE_TTL = 24 * 60 * 60 * 1000; // Meta CDN URLs expire
 
-// ── Insights Cache (incremental, rows + lastUntil) ───────────────────────────
-const INSIGHTS_CACHE_FILE = path.join(__dirname, '.cache-insights.json');
-
-function loadInsightsCacheFromFile() {
-  try {
-    if (fs.existsSync(INSIGHTS_CACHE_FILE)) {
-      const data = JSON.parse(fs.readFileSync(INSIGHTS_CACHE_FILE, 'utf8'));
-      if (data && Array.isArray(data.rows) && data.lastUntil) return data;
-    }
-  } catch (e) { console.error('Insights cache read error:', e.message); }
-  return null;
-}
-
-let insightsCache = loadInsightsCacheFromFile();
-
-// ── Creative Cache (ad_id → { creative_id, object_type, link, image_hash }, 30-day TTL)
-const CREATIVE_CACHE_FILE = path.join(__dirname, '.cache-creatives.json');
-const CREATIVE_TTL = 30 * 24 * 60 * 60 * 1000;
-
-function loadCreativeCacheFromFile() {
-  try {
-    if (fs.existsSync(CREATIVE_CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(CREATIVE_CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      for (const [id, entry] of Object.entries(raw)) {
-        if (entry._cachedAt && (now - entry._cachedAt) > CREATIVE_TTL) continue;
-        if (entry.creative_id !== undefined) filtered[id] = entry;
-      }
-      return filtered;
-    }
-  } catch (e) { console.error('Creative cache read error:', e.message); }
-  return {};
-}
-
-let creativeCache = loadCreativeCacheFromFile();
-
-// ── Image Cache (creative_id → { url }, 24h TTL) ────────────────────────────
-const IMAGE_CACHE_FILE = path.join(__dirname, '.cache-images.json');
-const IMAGE_TTL = 24 * 60 * 60 * 1000;
-
-function loadImageCache() {
-  try {
-    if (fs.existsSync(IMAGE_CACHE_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(IMAGE_CACHE_FILE, 'utf8'));
-      const now = Date.now();
-      const filtered = {};
-      for (const [id, entry] of Object.entries(raw)) {
-        if (typeof entry === 'string') continue;
-        if (entry._cachedAt && (now - entry._cachedAt) > IMAGE_TTL) continue;
-        filtered[id] = entry;
-      }
-      return filtered;
-    }
-  } catch (e) { console.error('HD thumb cache read error:', e.message); }
-  return {};
-}
-
-let imageCache = loadImageCache();
+let insightsCache = null; // { rows, lastUntil, cached_at } — incremental "all" mode
+const creativeCache = {}; // ad_id → { creative_id, object_type, is_catalog, link, image_hash, _cachedAt }
+const imageCache    = {}; // creative_id → { url, _cachedAt }
+const hasImage = cid => imageCache[cid] && (Date.now() - imageCache[cid]._cachedAt) <= IMAGE_TTL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -288,7 +223,6 @@ app.get('/api/dashboard', async (req, res) => {
   const elapsed = () => ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
   const mode = req.query.mode || 'all';
-  const fromStep = parseInt(req.query.from) || 1;
   const defaultFilter = [
     { field: 'ad.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
     { field: 'spend', operator: 'GREATER_THAN', value: 0 },
@@ -304,14 +238,7 @@ app.get('/api/dashboard', async (req, res) => {
     let allRows;
     let isIncremental = false;
 
-    if (fromStep >= 2) {
-      if (!insightsCache) {
-        res.write(`data: ${JSON.stringify({ error: 'No insights cache', detail: 'Cannot skip Step 1: no cached insights found. Run full pipeline first.' })}\n\n`);
-        return res.end();
-      }
-      allRows = insightsCache.rows;
-      progress(`Step 1: Skipped — using cached insights (${allRows.length} rows) [${elapsed()}]`);
-    } else if (mode === 'active') {
+    if (mode === 'active') {
       const since = allTimeStart();
       progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
       allRows = await fetchInsightsAsync(base, token, fields, { since, until: today }, (s, p) => {
@@ -345,7 +272,6 @@ app.get('/api/dashboard', async (req, res) => {
       }
 
       insightsCache = { rows: allRows, lastUntil: today, cached_at: new Date().toISOString() };
-      saveCacheAsync(INSIGHTS_CACHE_FILE, insightsCache);
     }
 
     // Pick top-spend ad per ad_name
@@ -354,10 +280,14 @@ app.get('/api/dashboard', async (req, res) => {
 
     // ── Step 2: Fetch creative info for top ads (only missing) ───────────────
     const topAdIds = topAds.map(a => a.ad_id);
-    const missingCreativeIds = topAdIds.filter(id => !creativeCache[id] || !creativeCache[id].image_hash);
+    // Re-fetch only image ads still missing a hash; video/catalog entries never get one.
+    const missingCreativeIds = topAdIds.filter(id => {
+      const cc = creativeCache[id];
+      return !cc || (cc.object_type === 'SHARE' && !cc.is_catalog && !cc.image_hash);
+    });
     if (missingCreativeIds.length > 0) {
       progress(`Step 2: Fetching creative info for ${missingCreativeIds.length} ads... [${elapsed()}]`);
-      const fetched = await fetchAdsByIds(token, missingCreativeIds, 'id,creative{id,object_type,object_story_spec,asset_feed_spec}');
+      const fetched = await fetchAdsByIds(token, missingCreativeIds, 'id,creative{id,object_type,object_story_spec{link_data{link,image_hash},template_data},asset_feed_spec{images,link_urls}}');
       const now = Date.now();
       for (const ad of fetched) {
         const oss = ad.creative?.object_story_spec;
@@ -374,7 +304,6 @@ app.get('/api/dashboard', async (req, res) => {
       for (const id of missingCreativeIds) {
         if (!creativeCache[id]) creativeCache[id] = { creative_id: null, object_type: '', link: '', _cachedAt: now };
       }
-      saveCacheAsync(CREATIVE_CACHE_FILE, creativeCache);
       progress(`Step 2: Creative info cached (${fetched.length} ads) [${elapsed()}]`);
     } else {
       progress(`Step 2: All creative info cached [${elapsed()}]`);
@@ -396,7 +325,7 @@ app.get('/api/dashboard', async (req, res) => {
     const hashToCreativeIds = {};
     for (const ad of imageAds) {
       const cc = creativeCache[ad.ad_id];
-      if (cc?.image_hash && ad.creative_id && !imageCache[ad.creative_id]) {
+      if (cc?.image_hash && ad.creative_id && !hasImage(ad.creative_id)) {
         if (!hashToCreativeIds[cc.image_hash]) hashToCreativeIds[cc.image_hash] = [];
         hashToCreativeIds[cc.image_hash].push(ad.creative_id);
       }
@@ -427,7 +356,7 @@ app.get('/api/dashboard', async (req, res) => {
 
       // Fallback: fetch thumbnail_url for creatives still missing after adimages
       const stillMissing = imageAds
-        .filter(ad => ad.creative_id && !imageCache[ad.creative_id])
+        .filter(ad => ad.creative_id && !hasImage(ad.creative_id))
         .map(ad => ad.creative_id);
       if (stillMissing.length > 0) {
         progress(`Step 3: ${stillMissing.length} images not in adimages, fetching thumbnails... [${elapsed()}]`);
@@ -451,7 +380,6 @@ app.get('/api/dashboard', async (req, res) => {
         progress(`Step 3: 0 need thumbnail fallback [${elapsed()}]`);
       }
 
-      saveCacheAsync(IMAGE_CACHE_FILE, imageCache);
       progress(`Step 3: Images done [${elapsed()}]`);
     } else if (imageAds.length > 0) {
       progress(`Step 3: All images cached [${elapsed()}]`);

@@ -30,12 +30,12 @@ body{font:13px/1.5 'Inter',-apple-system,system-ui,sans-serif;-webkit-font-smoot
 .page{display:none}
 .page.active{flex-direction:column;flex:1;min-height:0}
 table{border-collapse:collapse;table-layout:fixed}
-col.col-img{width:44px}
-col.col-pid{width:70px}
-col.col-name{width:20%}
-col.col-link{width:30%}
-col.col-spend{width:90px}
-col.col-roas{width:80px}
+/* fixed widths for the short columns; Ad Name + Link have no width so they share the rest
+   (with % widths the leftover space was spread into Image/Print ID/Spend/ROAS) */
+col.col-img{width:56px}
+col.col-pid{width:110px}
+col.col-spend{width:120px}
+col.col-roas{width:110px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 tbody tr{transition:background .08s}
 tbody tr:last-child{border-bottom:none}

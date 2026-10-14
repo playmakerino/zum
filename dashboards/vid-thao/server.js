@@ -212,7 +212,7 @@ function collectFetchableCreativeIds(allAds) {
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 // Video table from BigQuery zum-media-log: media.ad_videos (one row per ad TC Vid created: Drive
-// file, reel link, submitter) + media.video_submitters_legacy (older videos, submitter only), one
+// file, reel link, submitter), one
 // row per uploaded video_id, served by n8n workflow ZoSYMQV5RQYGx8jO (GET, header x-auth-key).
 // Missing key/URL or any error → empty table: rows then have no submitter and no Drive video.
 const VIDEOS_URL = process.env.VID_SUBMITTERS_URL || 'https://playmakerino.app.n8n.cloud/webhook/vid-submitters';

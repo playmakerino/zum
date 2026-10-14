@@ -80,6 +80,8 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-sec{display:flex;flex-direction:column;gap:2px}
 .viewer-sec[hidden]{display:none}
 .viewer-sec-name{gap:4px}
+/* note inside a label (guide: weight 400, secondary colour) */
+.viewer-note{font-weight:400;color:#aaa}
 .viewer-sec h4{margin:0;font-size:13px;line-height:20px;font-weight:500;color:#eee}
 .viewer-sec p{margin:0;font-size:13px;line-height:20px;font-weight:400;color:#aaa;overflow-wrap:anywhere}
 .viewer-sec p[hidden]{display:none}

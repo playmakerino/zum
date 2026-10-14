@@ -619,11 +619,13 @@ function openVideo(i) {
   $('viAdded').hidden = !r.created_at;
   $('viSubmitter').textContent = r.submitted_by || '';
   $('viSubmitterSec').hidden = !r.submitted_by;
-  // Thumbnail = only the ad's real thumbnail from Meta (current creative), never a Drive frame.
-  // "Fetch from Meta" reads it again on demand (2 Meta calls).
+  // Thumbnail: the ad's thumbnail from Meta (current creative) when there is one, else the Drive
+  // file's thumbnail; the label says which. "Fetch from Meta" reads Meta again (2 Meta calls).
   viewer.dataset.row = String(i);
-  $('viThumbSec').hidden = !r.thumb_ad_id;
-  showViewerThumb(r.thumbnail_url);
+  viewer.dataset.driveThumb = driveThumb;
+  $('viThumbSec').hidden = !(r.thumb_ad_id || driveThumb);
+  $('viThumbFetch').hidden = !r.thumb_ad_id;
+  if (r.thumbnail_url) showViewerThumb(r.thumbnail_url, 'meta'); else showViewerThumb(driveThumb, 'drive');
   $('viThumbFetch').disabled = false;
   $('viThumbFetch').textContent = 'Fetch from Meta';
   const ads = r.ad_count || 1;
@@ -652,12 +654,19 @@ function closeVideo() {
   $('videoViewer').classList.remove('open');
   document.body.style.overflow = '';
 }
-function showViewerThumb(url) {
+const THUMB_SOURCE = { meta: '(Fetched from Meta)', drive: '(Google Drive)' };
+function showViewerThumb(url, source) {
   const t = $('viThumb');
+  t.dataset.source = url ? source : '';
+  $('viThumbSource').textContent = url ? THUMB_SOURCE[source] : '';
   if (url) { t.src = url; t.hidden = false; } else { t.removeAttribute('src'); t.hidden = true; }
 }
-// expired Meta link (saved result): hide the image, the button can fetch a fresh one
-function viewerThumbError(img) { img.hidden = true; }
+// expired Meta link (saved result) → the Drive thumbnail; a broken Drive one → no image
+function viewerThumbError(img) {
+  const drive = $('videoViewer').dataset.driveThumb;
+  if (img.dataset.source === 'meta' && drive) showViewerThumb(drive, 'drive');
+  else showViewerThumb('', '');
+}
 
 async function fetchAdThumb() {
   const viewer = $('videoViewer');
@@ -674,7 +683,7 @@ async function fetchAdThumb() {
     if (viewer.dataset.token !== token) return;
     if (!j.url) { toast('Meta returned no thumbnail for this ad', 'error'); return; }
     r.thumbnail_url = j.url;
-    showViewerThumb(j.url);
+    showViewerThumb(j.url, 'meta');
     renderTable('creatives'); // the row's small thumbnail follows
   } catch (err) {
     toast('Error: ' + err.message, 'error');

@@ -167,8 +167,10 @@
   .secondary svg{ width:16px; height:16px; }
   .progress{ height:4px; border-radius:2px; background:var(--sel); overflow:hidden; }
   .progress div{ height:100%; width:0; background:var(--ink2); transition:width .25s; }
-  .msg{ font-size:13px; color:var(--mut); min-height:20px; }
-  .msg.err{ color:var(--err); }
+  /* status = Shopify toast: dark card bottom-centre, 4s (errors: critical red, 6s) */
+  .toast{ position:fixed; left:50%; bottom:24px; z-index:60; max-width:min(560px,calc(100vw - 32px)); transform:translateX(-50%) translateY(10px); padding:12px 16px; border-radius:12px; background:#1b1b1b; color:#fff; font-size:13px; line-height:20px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; }
+  .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.err{ background:var(--err); }
 
   /* main */
   .main{ padding:12px 16px 40px; min-width:0; }
@@ -356,7 +358,6 @@
       <div class="actions">
         <button class="primary" id="go"><span id="goLabel">Generate</span><kbd>Ctrl ↵</kbd></button>
         <div class="progress" id="progress" hidden><div id="bar"></div></div>
-        <div class="msg" id="msg" role="status" aria-live="polite"></div>
         <button class="secondary" id="dl" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
           <span id="dlLabel">Download PNGs</span>
@@ -377,6 +378,8 @@
     <div id="groups"></div>
   </main>
 </div>
+
+<div class="toast" id="msg" role="status" aria-live="polite"></div>
 
 <div class="dropveil" id="dropveil" hidden><span>Drop to use as the pattern</span></div>
 
@@ -1214,7 +1217,11 @@ const cards=new Map();     // viewId -> {id,view,title,isFlat,el,cb,img,dl,badge
 let groups=[];             // [{sec,cnt,tog,mine}] Flatlay / On model sections
 let lastRun=null;          // settingsKey() of the last Generate: results are stale once it changes
 
-const msg=(m,err)=>{ $('msg').textContent=m||''; $('msg').classList.toggle('err',!!err); };
+// status toast (Shopify): replaces the previous one; empty message hides it. Render progress goes in the Generate button (prog)
+let msgTimer=0, prog='';
+const msg=(m,err)=>{ const el=$('msg'); clearTimeout(msgTimer); if(!m){ el.classList.remove('on'); return; }
+  el.textContent=m; el.classList.toggle('err',!!err); el.classList.add('on');
+  msgTimer=setTimeout(()=>el.classList.remove('on'), err?6000:4000); };
 // colour field = picker <prefix>Color + hex box <prefix>Hex; hex = '#rrggbb'
 function setColor(prefix,hex){ $(prefix+'Color').value=hex.toLowerCase(); $(prefix+'Hex').value=hex.toUpperCase(); }
 function setTrim(hex){ setColor('trim',hex); }
@@ -1373,7 +1380,7 @@ function refresh(){
     sec.hidden=!v.length; cnt.textContent=n+' of '+v.length; tog.textContent=n===v.length?'Clear':'Select all';
   }
   const all=shown(), sel=picked(), ready=sel.filter(c=>results.has(c.id)), hidden=cards.size-all.length;
-  $('goLabel').textContent=busy?(stopReq?'Stopping…':'Stop'):sel.length?'Generate '+sel.length+' image'+(sel.length>1?'s':''):'Generate';
+  $('goLabel').textContent=busy?(stopReq?'Stopping…':'Stop'+(prog?' · '+prog:'')):sel.length?'Generate '+sel.length+' image'+(sel.length>1?'s':''):'Generate';
   $('go').classList.toggle('stop', busy);
   $('go').disabled=busy?stopReq:(!sel.length||!patImg||needPat2());
   $('go').title=busy?'Stop after the current image':!patImg?'Add a pattern first':needPat2()?'Add the second pattern':!sel.length?'Select at least one photo':'';
@@ -1435,7 +1442,7 @@ async function generate(){
       if(stopReq) break;
       const c=sel[i];
       c.el.classList.remove('queued'); c.el.classList.add('busy');
-      msg('Rendering '+(i+1)+' of '+sel.length+' · '+c.title); await nextPaint();
+      prog=(i+1)+' of '+sel.length; if(!stopReq) $('goLabel').textContent='Stop · '+prog; await nextPaint();
       try{
         const G=await analyzeGarment(c.view, !c.isFlat);
         let opt=lopt;
@@ -1453,7 +1460,7 @@ async function generate(){
     msg(ok+' image'+(ok!==1?'s':'')+' ready in '+secs+'s'+(done<sel.length?' · stopped, '+(sel.length-done)+' skipped':'')+(failed?' · '+failed+' failed (hover the card)':''), failed>0);
   }catch(err){ msg('Error: '+err.message, true); }
   finally{
-    busy=false; stopReq=false; document.body.classList.remove('busy');
+    busy=false; stopReq=false; prog=''; document.body.classList.remove('busy');
     for(const c of cards.values()) c.el.classList.remove('queued');
     setTimeout(()=>{ if(!busy) $('progress').hidden=true; }, 600);
     refresh();

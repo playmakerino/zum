@@ -56,7 +56,7 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-card-head svg{width:20px;height:20px;flex-shrink:0}
 .viewer-card-body{display:flex;flex-direction:column;gap:8px;padding:4px 16px 16px}
 .viewer-sec{display:flex;flex-direction:column;gap:2px}
-.viewer-sec[hidden]{display:none}
+.viewer-sec[hidden],.viewer-sec p[hidden]{display:none}
 .viewer-sec-name{gap:4px}
 /* note inside a label (guide: weight 400, secondary colour) */
 .viewer-note{font-weight:400;color:#aaa}
@@ -70,7 +70,7 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-tertiary:active{background:rgba(255,255,255,.13)}
 .viewer-tertiary:disabled{color:#aaa;cursor:default;background:none}
 .viewer-sec .viewer-used{color:#eee}
-.viewer-sec .viewer-link{color:#eee;text-decoration:underline;text-underline-offset:2px}
+.viewer-sec .viewer-link{color:#aaa;text-decoration:underline;text-underline-offset:2px}
 .viewer-sec .viewer-link:hover{color:#fff}
 /* narrow screens: video on top, information card under it */
 @media(max-width:760px){

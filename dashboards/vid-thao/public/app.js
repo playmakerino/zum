@@ -392,12 +392,13 @@ function openVideo(i) {
   $('viewerTitle').textContent = r.ad_name || '';
   $('viewerDownload').href = r.drive_file_id ? DRIVE_DOWNLOAD(r.drive_file_id) : src;
   $('viName').textContent = r.ad_name || '';
-  // Details: "Facebook reel" when the reel plays; otherwise like Shopify ("JPG • 1600 × 2000 • 521.8 kB"):
+  // Details: only the date when the reel plays; otherwise like Shopify ("JPG • 1600 × 2000 • 521.8 kB"):
   // MP4 • size × size • duration • file size, each part filled in as it becomes known.
   // The Drive file is only a backup of the original: its own section, "Google Drive • 5.2 MB", links to Drive.
   const fmt = { size: '', dims: '', dur: '' };
   const showFormat = () => {
-    $('viFormat').textContent = r.reel_url ? 'Facebook reel' : ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • ');
+    $('viFormat').textContent = r.reel_url ? '' : ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • ');
+    $('viFormat').hidden = !!r.reel_url;
     $('viBackup').textContent = ['Google Drive', fmt.size].filter(Boolean).join(' • ');
   };
   $('viBackupSec').hidden = !r.drive_file_id;

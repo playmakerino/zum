@@ -32,19 +32,32 @@ function findPurchaseAction(arr = []) {
 // Thrown by stopped() once no browser is waiting for the load any more (see sseLoad).
 class LoadStopped extends Error {}
 
-// GET /?ids=… in batches of 50 → [{ id, ...fields }]. A failed batch is logged and skipped.
+// Graph batch request (POST / with batch=[GET <id>?fields=…]), 50 ids per request → [{ id, ...fields }].
+// v26.0 dropped GET /?ids=… ("The ids query parameter is deprecated in v26.0+").
+// A failed id or batch is logged and skipped.
 async function fetchByIds(token, ids, fields, extraParams = {}, stopped) {
   const out = [];
+  const query = new URLSearchParams({ fields, ...extraParams }).toString();
+  let failed = 0, lastError = '';
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     stopped?.();
     const batch = ids.slice(i, i + BATCH_SIZE);
     try {
-      const res = await axios.get(`${META_BASE_URL}/`, { params: { ids: batch.join(','), fields, ...extraParams, access_token: token } });
-      for (const [id, data] of Object.entries(res.data)) if (data && !data.error) out.push({ ...data, id: data.id || id });
+      const res = await axios.post(`${META_BASE_URL}/`, null, {
+        params: { access_token: token, include_headers: false, batch: JSON.stringify(batch.map(id => ({ method: 'GET', relative_url: `${id}?${query}` }))) },
+      });
+      (res.data || []).forEach((r, j) => {
+        let body = null;
+        try { body = JSON.parse(r?.body || 'null'); } catch {}
+        if (r?.code === 200 && body && !body.error) out.push({ ...body, id: body.id || batch[j] });
+        else { failed++; lastError = body?.error?.message || `HTTP ${r?.code}`; }
+      });
     } catch (err) {
-      console.error(`Meta batch of ${batch.length} (${fields}) failed:`, err.response?.data?.error?.message || err.message);
+      failed += batch.length;
+      lastError = err.response?.data?.error?.message || err.message;
     }
   }
+  if (failed) console.error(`Meta: ${failed}/${ids.length} ids (${fields}) failed, last error: ${lastError}`);
   return out;
 }
 

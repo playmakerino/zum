@@ -130,15 +130,21 @@ describe('metaErrorMessage', () => {
 });
 
 describe('fetchByIds', () => {
-  test('batches of 50, keeps the id, skips per-id errors and failed batches', async () => {
+  test('Graph batch of 50 per request, keeps the id, skips per-id errors and failed batches', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     const ids = Array.from({ length: 120 }, (_, i) => String(i));
-    axios.get
-      .mockResolvedValueOnce({ data: { 0: { thumbnail_url: 'u0' }, 1: { error: { message: 'x' } } } })
+    const ok = body => ({ code: 200, body: JSON.stringify(body) });
+    axios.post
+      .mockResolvedValueOnce({ data: [ok({ thumbnail_url: 'u0' }), { code: 400, body: JSON.stringify({ error: { message: 'x' } }) }] })
       .mockRejectedValueOnce(new Error('network'))
-      .mockResolvedValueOnce({ data: { 100: { id: '100', thumbnail_url: 'u100' } } });
-    const out = await meta.fetchByIds('t', ids, 'thumbnail_url');
-    expect(axios.get).toHaveBeenCalledTimes(3);
+      .mockResolvedValueOnce({ data: [ok({ id: '100', thumbnail_url: 'u100' })] });
+    const out = await meta.fetchByIds('t', ids, 'thumbnail_url', { thumbnail_width: 480 });
+    expect(axios.post).toHaveBeenCalledTimes(3);
+    const params = axios.post.mock.calls[0][2].params;
+    const batch = JSON.parse(params.batch);
+    expect(batch).toHaveLength(50);
+    expect(batch[0]).toEqual({ method: 'GET', relative_url: '0?fields=thumbnail_url&thumbnail_width=480' });
+    expect(params.ids).toBeUndefined();
     expect(out).toEqual([{ id: '0', thumbnail_url: 'u0' }, { id: '100', thumbnail_url: 'u100' }]);
   });
 });

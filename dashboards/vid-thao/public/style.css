@@ -46,6 +46,8 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-stage{flex:1;min-height:0;display:flex;padding:20px;background:radial-gradient(rgba(255,255,255,.05) 2px,transparent 2px) 0 0/40px 40px rgba(0,0,0,.71)}
 .viewer-media{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px}
 .viewer-media video{max-width:100%;max-height:100%;height:100%;object-fit:contain}
+.viewer-media video[hidden],.viewer-media iframe[hidden]{display:none}
+.viewer-media iframe{flex-shrink:0;border:none;background:#000}
 .viewer-side{flex-shrink:0;width:360px;padding:20px;overflow:auto}
 .viewer-card{background:#1a1a1a;border-radius:12px}
 .viewer-card-head{display:flex;align-items:center;gap:8px;padding:16px;font-size:15px;line-height:22px;font-weight:600;color:#eee}

@@ -349,7 +349,9 @@ const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComp
 const DRIVE_MP4 = id => `/api/drive-video/${encodeURIComponent(id)}`;
 const DRIVE_DOWNLOAD = id => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
 const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
-const canPlay = r => !!(r.drive_file_id || r.video_id);
+// the ad's reel through Facebook's video plugin: plays without a Facebook login, no Meta API call
+const REEL_EMBED = (url, w, h) => `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=${w}&height=${h}`;
+const canPlay = r => !!(r.reel_url || r.drive_file_id || r.video_id);
 
 function thumb(r) {
   const drive = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
@@ -368,8 +370,9 @@ function thumbError(img) {
 }
 
 // ── Video viewer = Shopify Content → Files viewer (measured 2026-10-14) ─────────
-// The original file from Drive (free, no Meta call); a video that is not in BigQuery plays its
-// current mp4 through the n8n webhook (1 execution + 1 Meta call per open).
+// The ad's reel when BigQuery has one; otherwise the original file from Drive (free, no Meta call);
+// a video that is not in BigQuery plays its current mp4 through the n8n webhook (1 execution +
+// 1 Meta call per open).
 const fmtSize = n => n >= 1e6 ? (n / 1e6).toFixed(2) + ' MB' : (n / 1e3).toFixed(1) + ' kB';
 
 function openVideo(i) {
@@ -413,6 +416,21 @@ function openVideo(i) {
   $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'ad' : 'ads'}`;
 
   const v = $('viewerVideo');
+  const reel = $('viewerReel');
+  v.hidden = !!r.reel_url;
+  reel.hidden = !r.reel_url;
+  viewer.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (r.reel_url) {
+    // the plugin draws at the size in its URL: fit a 9:16 frame into the stage
+    const box = reel.parentElement;
+    const h = Math.max(200, Math.min(box.clientHeight - 24, Math.round((box.clientWidth - 24) * 16 / 9)));
+    const w = Math.round(h * 9 / 16);
+    reel.width = w;
+    reel.height = h;
+    reel.src = REEL_EMBED(r.reel_url, w, h);
+    return;
+  }
   // the poster gives the player its shape before the video loads; the Drive thumbnail keeps the video's ratio
   v.poster = driveThumb || r.thumbnail_url || '';
   v.onloadedmetadata = () => {
@@ -423,12 +441,11 @@ function openVideo(i) {
     showFormat();
   };
   v.src = src;
-  viewer.classList.add('open');
-  document.body.style.overflow = 'hidden';
   v.play().catch(() => {});
 }
 function closeVideo() {
   const v = $('viewerVideo');
+  $('viewerReel').removeAttribute('src'); // stops the reel
   v.pause();
   v.removeAttribute('src');
   v.load(); // drops the stream

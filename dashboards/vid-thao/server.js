@@ -328,6 +328,37 @@ app.get('/api/ad-thumb', async (req, res) => {
   }
 });
 
+// GET /api/reel-thumb/:id — the reel's poster frame (what the reel player shows before play).
+// Facebook's video plugin page carries it as an fbcdn link (expires after a few days) and needs no
+// token, so no Meta API call; the link is read again after 24h. 302 to the image, 404 when not found.
+const reelThumbCache = {};
+const REEL_THUMB_TTL = 24 * 3600 * 1000;
+function reelPosterFromPluginHtml(html) {
+  const m = String(html || '').match(/<img[^>]+src="(https:\/\/[^"]*fbcdn\.net\/v\/t15\.5256-10\/[^"]+)"/);
+  return m ? m[1].replace(/&amp;/g, '&') : null;
+}
+app.get('/api/reel-thumb/:id', async (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^\d+$/.test(id)) return res.status(400).end();
+  let hit = reelThumbCache[id];
+  if (!hit || Date.now() - hit._cachedAt > REEL_THUMB_TTL) {
+    try {
+      const href = encodeURIComponent(`https://www.facebook.com/reel/${id}`);
+      const page = await axios.get(`https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&width=480&height=600`, {
+        timeout: 15000, responseType: 'text',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' },
+      });
+      hit = reelThumbCache[id] = { url: reelPosterFromPluginHtml(page.data), _cachedAt: Date.now() };
+    } catch (err) {
+      console.error('Reel thumb failed:', id, err.message);
+      return res.status(502).end();
+    }
+  }
+  if (!hit.url) return res.status(404).end();
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.redirect(302, hit.url);
+});
+
 // GET|HEAD /api/drive-video/:id — the original video from Google Drive. Browsers are refused when they
 // load drive.usercontent.google.com directly; the server is not. Range is passed through so the
 // player can seek; HEAD gives the size for the viewer's Details line.
@@ -433,6 +464,7 @@ if (require.main === module) {
 
 // Export for testing
 module.exports = {
+  reelPosterFromPluginHtml,
   dateStr,
   findPurchaseAction,
   sumActionValue,

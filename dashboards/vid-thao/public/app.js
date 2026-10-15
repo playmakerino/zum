@@ -353,16 +353,19 @@ const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
 const REEL_EMBED = (url, w, h) => `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=${w}&height=${h}`;
 const canPlay = r => !!(r.reel_url || r.drive_file_id || r.video_id);
 
+// the reel's poster frame through our server (read from Facebook's video plugin, no Meta call)
+const REEL_THUMB = url => { const id = String(url || '').match(/\/reel\/(\d+)/)?.[1]; return id ? `/api/reel-thumb/${id}` : ''; };
+
+// Thumbnail order: reel poster → Meta thumbnail → Drive thumbnail; each failure tries the next one
 function thumb(r) {
-  const drive = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
-  const src = r.thumbnail_url || drive;
-  if (!src) return `<div class="thumb-placeholder">${PLACEHOLDER_SVG}</div>`;
+  const srcs = [REEL_THUMB(r.reel_url), r.thumbnail_url, r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : ''].filter(Boolean);
+  if (!srcs.length) return `<div class="thumb-placeholder">${PLACEHOLDER_SVG}</div>`;
   const hover = r.is_catalog ? '' : ' onmouseenter="showThumbPreview(event)" onmouseleave="hideThumbPreview()"';
-  return `<img class="thumb" src="${esc(src)}" data-fallback="${esc(src === drive ? '' : drive)}"${hover} alt="" loading="lazy" onerror="thumbError(this)">`;
+  return `<img class="thumb" src="${esc(srcs[0])}" data-fallback="${esc(srcs.slice(1).join(' '))}"${hover} alt="" loading="lazy" onerror="thumbError(this)">`;
 }
 function thumbError(img) {
-  const fallback = img.dataset.fallback;
-  if (fallback) { img.dataset.fallback = ''; img.src = fallback; return; } // expired Meta link → Drive thumbnail
+  const [next, ...rest] = (img.dataset.fallback || '').split(' ').filter(Boolean);
+  if (next) { img.dataset.fallback = rest.join(' '); img.src = next; return; }
   const div = document.createElement('div');
   div.className = 'thumb-placeholder';
   div.innerHTML = PLACEHOLDER_SVG;
@@ -496,7 +499,7 @@ document.addEventListener('keydown', e => {
 
 const _thumbPreview = (() => {
   const el = document.createElement('img');
-  el.style.cssText = 'display:none;position:fixed;width:240px;height:240px;object-fit:cover;border-radius:7px;border:1px solid #e8e8eb;box-shadow:0 8px 24px rgba(15,15,16,.12);z-index:9998;background:#fff;pointer-events:none';
+  el.style.cssText = 'display:none;position:fixed;width:192px;height:240px;object-fit:cover;border-radius:7px;border:1px solid #e8e8eb;box-shadow:0 8px 24px rgba(15,15,16,.12);z-index:9998;background:#fff;pointer-events:none';
   el.onerror = () => { el.style.display = 'none'; };
   document.body.appendChild(el);
   return el;
@@ -507,15 +510,17 @@ function showThumbPreview(e) {
   _thumbPreview.onload = function() { _thumbPreview.style.display = 'block'; };
   _thumbPreview.src = src;
   // Shrink preview on narrow viewports so it never dominates the screen
-  const size = Math.min(240, window.innerWidth - 24, window.innerHeight - 24);
-  _thumbPreview.style.width = size + 'px';
-  _thumbPreview.style.height = size + 'px';
+  // 4:5 like the row thumbnail
+  const h = Math.min(240, window.innerHeight - 24, Math.round((window.innerWidth - 24) * 5 / 4));
+  const w = Math.round(h * 4 / 5);
+  _thumbPreview.style.width = w + 'px';
+  _thumbPreview.style.height = h + 'px';
   const rect = e.target.getBoundingClientRect();
-  let top  = rect.top + rect.height / 2 - size / 2;
+  let top  = rect.top + rect.height / 2 - h / 2;
   let left = rect.right + 10;
-  if (left + size > window.innerWidth) left = rect.left - size - 10;
+  if (left + w > window.innerWidth) left = rect.left - w - 10;
   if (left < 4) left = 4;
-  if (top + size > window.innerHeight) top = window.innerHeight - size - 4;
+  if (top + h > window.innerHeight) top = window.innerHeight - h - 4;
   if (top < 4) top = 4;
   _thumbPreview.style.top = top + 'px';
   _thumbPreview.style.left = left + 'px';

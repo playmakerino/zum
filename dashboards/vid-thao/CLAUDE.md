@@ -50,7 +50,9 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - **Tables:** sortable, text/metric range filters, search
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
-- **Thumbnail preview:** hover hiện ảnh HD 240×240 (position:fixed)
+- **Thumbnail 4:5** (user chốt 2026-10-15): ô bảng 24×30, hover 192×240, `object-fit:cover`. Thứ tự nguồn: **poster reel** → thumb Meta → thumb Drive; ảnh lỗi thì thử nguồn kế (`data-fallback` cách nhau bằng dấu cách).
+  - Poster reel = `GET /api/reel-thumb/:reelId`: server tải trang plugin `facebook.com/plugins/video.php?href=<reel>` (không token, không tốn call Meta), lấy `<img>` fbcdn `t15.5256-10` đầu tiên (`reelPosterFromPluginHtml`; ảnh `t39.30808-1` là avatar page), cache RAM 24h, 302 sang ảnh; không thấy → 404.
+- **Thumbnail preview:** hover hiện ảnh HD (position:fixed)
   - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480` (thumb hiện tại của ad trên Meta)
   - Link Meta hết hạn sau vài ngày (kết quả lưu localStorage): `onerror` đổi sang thumb Drive `drive.google.com/thumbnail?id=<drive_thumb_id>&sz=w480` (vĩnh viễn, không tốn call); không có Drive thì hiện ô xám
   - Catalog/DPA ads: không có hover preview (Meta không cung cấp ảnh lớn)

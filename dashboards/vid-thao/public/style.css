@@ -22,6 +22,8 @@ thead th .sort-icon{color:var(--t4);transition:opacity .08s}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-width:42px}
 .td-name{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
+/* 4:5 (shared.css sets 24×24 for every dashboard; img./div. outweighs it) */
+img.thumb,div.thumb-placeholder{height:30px}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
 /* rows with a video open the viewer; hover = Shopify Files list row (#f7f7f7, 12px rounded ends) */
 tbody tr.row-play{cursor:pointer}

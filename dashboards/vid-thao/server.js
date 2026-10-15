@@ -28,7 +28,7 @@ function slimCreative(ad) {
       id:          c.id,
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
-      // video_id = the uploaded file (ad library id, = ad.info.video_id = media.submitter.video_id);
+      // video_id = the uploaded file (ad library id, = ad.info.video_id = media.video_submitter.video_id);
       // reel_id = creative.video_id, the creative's own copy on the page: plays anonymously at facebook.com/reel/<id>
       video_id:    c.object_story_spec?.video_data?.video_id || c.video_id || null,
       reel_id:     c.video_id || null,
@@ -99,7 +99,7 @@ function aggregateMetrics(entry, rows) {
 
 // One row per video: insights rows (one per ad) are grouped by video (+ submitter), so every
 // ad/creative that uses the same uploaded video is summed together. The video is the upload id
-// (ad.info, else the creative read from Meta); the submitter + Drive file come from media.submitter
+// (ad.info, else the creative read from Meta); the submitter + Drive file come from media.video_submitter
 // by that id; the reel plays the ad's own reel id. Creatives without a video fall back to their creative id. The thumbnail is the first HD thumbnail found among the group's
 // current creatives (hdThumbMap is keyed by creative id), so a thumbnail changed in Ads Manager
 // shows once the ad's creative is read again.
@@ -218,7 +218,7 @@ function collectFetchableCreativeIds(allAds) {
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 // Video table read straight from BigQuery zum-media-log: ad.info (every ad's upload id, reel id and
-// name, written daily by Cloud Run meta-ad-media) joined on video_id (upload id) to media.submitter
+// name, written daily by Cloud Run meta-ad-media) joined on video_id (upload id) to media.video_submitter
 // (videos sent through the TC Vid form: submitter, Drive backup file). Service account n8n-bigquery: env BQ_SA_KEY = the key JSON (Render), or
 // BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty table: rows then have
 // no submitter, no Drive video and no reel.
@@ -227,7 +227,7 @@ const VIDEOS_SQL = `SELECT a.ad_id, a.ad_name, COALESCE(a.video_id, s.video_id) 
   FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', COALESCE(s.created_at, a.created_at)) AS created_at,
   s.video_id IS NOT NULL AS from_form
 FROM \`zum-media-log.ad.info\` a
-FULL OUTER JOIN \`zum-media-log.media.submitter\` s ON s.video_id = a.video_id
+FULL OUTER JOIN \`zum-media-log.media.video_submitter\` s ON s.video_id = a.video_id
 WHERE a.video_id IS NOT NULL OR s.video_id IS NOT NULL`;
 let _bq = null;
 function bigQuery() {

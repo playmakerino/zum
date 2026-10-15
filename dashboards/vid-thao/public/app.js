@@ -506,7 +506,7 @@ document.addEventListener('keydown', e => {
 
 const _thumbPreview = (() => {
   const el = document.createElement('img');
-  el.style.cssText = 'display:none;position:fixed;width:192px;height:240px;object-fit:cover;border-radius:7px;border:1px solid #e8e8eb;box-shadow:0 8px 24px rgba(15,15,16,.12);z-index:9998;background:#fff;pointer-events:none';
+  el.style.cssText = 'display:none;position:fixed;border-radius:7px;border:1px solid #e8e8eb;box-shadow:0 8px 24px rgba(15,15,16,.12);z-index:9998;background:#fff;pointer-events:none';
   el.onerror = () => { el.style.display = 'none'; };
   document.body.appendChild(el);
   return el;
@@ -514,15 +514,21 @@ const _thumbPreview = (() => {
 
 function showThumbPreview(e) {
   const src = e.target.src;
-  _thumbPreview.onload = function() { _thumbPreview.style.display = 'block'; };
-  _thumbPreview.src = src;
-  // Shrink preview on narrow viewports so it never dominates the screen
-  // 4:5 like the row thumbnail
-  const h = Math.min(240, window.innerHeight - 24, Math.round((window.innerWidth - 24) * 5 / 4));
-  const w = Math.round(h * 4 / 5);
+  const rect = e.target.getBoundingClientRect();
+  // the image's own aspect ratio (no crop): 240px tall, smaller if the viewport is too small for it
+  _thumbPreview.onload = function() { placeThumbPreview(rect); };
+  // same src again fires no load event
+  if (_thumbPreview.src === src && _thumbPreview.complete && _thumbPreview.naturalWidth) placeThumbPreview(rect);
+  else _thumbPreview.src = src;
+}
+
+function placeThumbPreview(rect) {
+  const ratio = (_thumbPreview.naturalWidth / _thumbPreview.naturalHeight) || 0.8;
+  let h = Math.min(240, window.innerHeight - 24);
+  let w = Math.round(h * ratio);
+  if (w > window.innerWidth - 24) { w = window.innerWidth - 24; h = Math.round(w / ratio); }
   _thumbPreview.style.width = w + 'px';
   _thumbPreview.style.height = h + 'px';
-  const rect = e.target.getBoundingClientRect();
   let top  = rect.top + rect.height / 2 - h / 2;
   let left = rect.right + 10;
   if (left + w > window.innerWidth) left = rect.left - w - 10;
@@ -531,6 +537,7 @@ function showThumbPreview(e) {
   if (top < 4) top = 4;
   _thumbPreview.style.top = top + 'px';
   _thumbPreview.style.left = left + 'px';
+  _thumbPreview.style.display = 'block';
 }
 
 function hideThumbPreview() {

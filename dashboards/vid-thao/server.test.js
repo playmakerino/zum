@@ -248,10 +248,10 @@ describe('groupByVideo', () => {
   });
 
   test('BigQuery ad row gives the video, Drive file, reel and submitter', () => {
-    const table = indexVideoTable([{ video_id: 'v9', ad_id: 'a1', submitted_by: 'ngocvp', drive_file_id: 'd1', from_form: true }]);
-    // the creative read from Meta carries the uploaded video id; the reel id from BigQuery wins
-    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'other' }) }, {}, table);
-    expect(res[0]).toMatchObject({ video_id: 'v9', submitted_by: 'ngocvp', drive_file_id: 'd1', drive_thumb_id: 'd1', reel_url: 'https://www.facebook.com/reel/v9' });
+    const table = indexVideoTable([{ video_id: 'v9', reel_id: 'r9', ad_id: 'a1', submitted_by: 'ngocvp', drive_file_id: 'd1', from_form: true }]);
+    // the ad.info ids win over the creative read from Meta
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'other', reel_id: 'rOther' }) }, {}, table);
+    expect(res[0]).toMatchObject({ video_id: 'v9', submitted_by: 'ngocvp', drive_file_id: 'd1', drive_thumb_id: 'd1', reel_url: 'https://www.facebook.com/reel/r9' });
   });
 
   test('counts the ads of a video and keeps its BigQuery creation time', () => {
@@ -269,21 +269,31 @@ describe('groupByVideo', () => {
   });
 
   test('an ad outside the form gets its reel from ad_info, with no submitter', () => {
-    const table = indexVideoTable([{ ad_id: 'a1', video_id: 'r1', ad_name: 'Phu7570 Video', from_form: false }]);
+    const table = indexVideoTable([{ ad_id: 'a1', video_id: 'u1', reel_id: 'r1', ad_name: 'Phu7570 Video', from_form: false }]);
     expect(table.byAd).toEqual({});
-    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'upload1' }) }, {}, table);
-    expect(res[0]).toMatchObject({ video_id: 'r1', submitted_by: '', reel_url: 'https://www.facebook.com/reel/r1', drive_file_id: null });
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'u1' }) }, {}, table);
+    expect(res[0]).toMatchObject({ video_id: 'u1', submitted_by: '', reel_url: 'https://www.facebook.com/reel/r1', drive_file_id: null });
   });
 
-  test('a form ad not yet in ad_info keeps its submitter and Drive file, without reel', () => {
-    const table = indexVideoTable([{ ad_id: 'a1', video_id: null, submitted_by: 'ngocvp', drive_file_id: 'd1', from_form: true }]);
-    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'upload1' }) }, {}, table);
-    expect(res[0]).toMatchObject({ video_id: 'upload1', submitted_by: 'ngocvp', drive_file_id: 'd1', reel_url: null });
+  test('two creatives of one uploaded video are one row, keyed by the upload id', () => {
+    const table = indexVideoTable([
+      { ad_id: 'a1', video_id: 'u1', reel_id: 'r1', from_form: true, submitted_by: 'ngocvp' },
+      { ad_id: 'a2', video_id: 'u1', reel_id: 'r2', from_form: true, submitted_by: 'ngocvp' },
+    ]);
+    const res = groupByVideo([row('a1'), row('a2')], { a1: cacheEntry('c1'), a2: cacheEntry('c2') }, {}, table);
+    expect(res).toHaveLength(1);
+    expect(res[0]).toMatchObject({ video_id: 'u1', submitted_by: 'ngocvp', ad_count: 2, creative_count: 2 });
   });
 
-  test('rows without BigQuery data have no Drive video', () => {
-    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'v1' }) }, {}, indexVideoTable([]));
-    expect(res[0]).toMatchObject({ video_id: 'v1', drive_file_id: null, drive_thumb_id: null, reel_url: null });
+  test('a form video whose ad is not in ad.info yet is found by the creative read from Meta', () => {
+    const table = indexVideoTable([{ ad_id: null, video_id: 'u1', submitted_by: 'ngocvp', drive_file_id: 'd1', from_form: true }]);
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'u1', reel_id: 'r1' }) }, {}, table);
+    expect(res[0]).toMatchObject({ video_id: 'u1', submitted_by: 'ngocvp', drive_file_id: 'd1', reel_url: 'https://www.facebook.com/reel/r1' });
+  });
+
+  test('rows without BigQuery data still play the creative reel, without Drive', () => {
+    const res = groupByVideo([row('a1')], { a1: cacheEntry('c1', { video_id: 'u1', reel_id: 'r1' }) }, {}, indexVideoTable([]));
+    expect(res[0]).toMatchObject({ video_id: 'u1', drive_file_id: null, drive_thumb_id: null, reel_url: 'https://www.facebook.com/reel/r1' });
   });
 
   test('maps object_type to format label', () => {

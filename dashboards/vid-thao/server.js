@@ -28,7 +28,10 @@ function slimCreative(ad) {
       id:          c.id,
       object_type: c.object_type || '',
       is_catalog:  !!c.object_story_spec?.template_data,
-      video_id:    c.object_story_spec?.video_data?.video_id || null,
+      // video_id = the uploaded file (ad library id, = ad.info.video_id = media.submitter.video_id);
+      // reel_id = creative.video_id, the creative's own copy on the page: plays anonymously at facebook.com/reel/<id>
+      video_id:    c.object_story_spec?.video_data?.video_id || c.video_id || null,
+      reel_id:     c.video_id || null,
     },
     _cachedAt: ad._cachedAt || Date.now(),
   };
@@ -95,9 +98,9 @@ function aggregateMetrics(entry, rows) {
 }
 
 // One row per video: insights rows (one per ad) are grouped by video (+ submitter), so every
-// ad/creative that uses the same video is summed together. The video is the BigQuery one for ads
-// TC Vid created (videoTable.byAd), else the creative's uploaded video; creatives without a video
-// fall back to their creative id. The thumbnail is the first HD thumbnail found among the group's
+// ad/creative that uses the same uploaded video is summed together. The video is the upload id
+// (ad.info, else the creative read from Meta); the submitter + Drive file come from media.submitter
+// by that id; the reel plays the ad's own reel id. Creatives without a video fall back to their creative id. The thumbnail is the first HD thumbnail found among the group's
 // current creatives (hdThumbMap is keyed by creative id), so a thumbnail changed in Ads Manager
 // shows once the ad's creative is read again.
 function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
@@ -105,12 +108,15 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
   const byVideo = videoTable.byVideo || {};
   const map = {};
   const adVideo = videoTable.adVideo || {};
+  const adReel = videoTable.adReel || {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
-    // reel id of the ad's creative from media.ad_info (every ad, not only TC Vid's)
-    const reelId = adVideo[row.ad_id] || null;
-    const bq = byAd[row.ad_id] || (reelId && byVideo[reelId]) || (c?.video_id && byVideo[c.video_id]) || null;
-    const videoId = reelId || bq?.video_id || c?.video_id || null;
+    // upload id + reel id of the ad's creative: ad.info (every ad), else the creative read from Meta
+    // (an ad created today, before the 03:00 sync)
+    const uploadId = adVideo[row.ad_id] || c?.video_id || null;
+    const reelId = adReel[row.ad_id] || c?.reel_id || null;
+    const bq = (uploadId && byVideo[uploadId]) || byAd[row.ad_id] || null;
+    const videoId = uploadId || bq?.video_id || null;
     const id = videoId || c?.id || 'unknown';
     // submitter: BigQuery only; a video that is not there has no submitter
     const submittedBy = bq?.submitted_by || '';
@@ -143,7 +149,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
       g.drive_file_id  = bq.drive_file_id;
       g.drive_thumb_id = bq.drive_file_id;
     }
-    if (!g.reel_url) g.reel_url = reelId ? REEL_URL + reelId : (bq?.reel_url || null);
+    if (!g.reel_url && reelId) g.reel_url = REEL_URL + reelId;
     if (!g.created_at && bq?.created_at) g.created_at = bq.created_at;
     g._rows.push(row);
   }
@@ -153,15 +159,17 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
 
 const REEL_URL = 'https://www.facebook.com/reel/';
 
-// BigQuery rows → byAd (ads TC Vid created: from_form), byVideo (reel id → form row) and adVideo
-// (ad_id → reel id for every video ad in media.ad_info). A form ad that ad_info has not synced yet
-// (Cloud Run runs at 03:00) has no video_id: it still counts as a form ad, and plays from Drive.
+// BigQuery rows → byVideo (upload id → submitter row of a form video), byAd (ads that use a form
+// video: listed even without delivery), adVideo (ad_id → upload id) and adReel (ad_id → reel id) for
+// every video ad in ad.info. A form video whose ad ad.info has not synced yet (Cloud Run runs at
+// 03:00) has no ad_id: it is found by the creative's video from Meta once the ad delivers.
 function indexVideoTable(rows) {
-  const byAd = {}, byVideo = {}, adVideo = {};
+  const byAd = {}, byVideo = {}, adVideo = {}, adReel = {};
   for (const r of rows || []) {
     const adId = r?.ad_id ? String(r.ad_id) : null;
     const videoId = r?.video_id ? String(r.video_id) : null;
     if (adId && videoId) adVideo[adId] = videoId;
+    if (adId && r?.reel_id) adReel[adId] = String(r.reel_id);
     if (r?.from_form === false || (!adId && !videoId)) continue;
     const row = {
       video_id:       videoId,
@@ -169,13 +177,12 @@ function indexVideoTable(rows) {
       ad_name:        r.ad_name || '',
       submitted_by:   String(r.submitted_by || '').trim().toLowerCase(),
       drive_file_id:  r.drive_file_id || null,
-      reel_url:       r.reel_url || (videoId ? REEL_URL + videoId : null),
       created_at:     r.created_at || null,
     };
     if (adId) byAd[adId] = row;
     if (videoId && (!byVideo[videoId] || (adId && !byVideo[videoId].ad_id))) byVideo[videoId] = row;
   }
-  return { byAd, byVideo, adVideo };
+  return { byAd, byVideo, adVideo, adReel };
 }
 
 // Ads TC Vid created inside the period that have no insights row (no delivery yet): listed with
@@ -210,18 +217,18 @@ function collectFetchableCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-// Video table read straight from BigQuery zum-media-log: media.ad_info (every ad's reel id + name,
-// written daily by Cloud Run meta-ad-media) joined to media.ad_videos (ads TC Vid created: submitter,
-// Drive file). Service account n8n-bigquery: env BQ_SA_KEY = the key JSON (Render), or
+// Video table read straight from BigQuery zum-media-log: ad.info (every ad's upload id, reel id and
+// name, written daily by Cloud Run meta-ad-media) joined on video_id (upload id) to media.submitter
+// (videos sent through the TC Vid form: submitter, Drive backup file). Service account n8n-bigquery: env BQ_SA_KEY = the key JSON (Render), or
 // BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty table: rows then have
 // no submitter, no Drive video and no reel.
-const VIDEOS_SQL = `SELECT COALESCE(v.ad_id, a.ad_id) AS ad_id, a.ad_name, a.video_id,
-  LOWER(TRIM(SPLIT(IFNULL(v.submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by, v.drive_file_id,
-  FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', COALESCE(v.created_at, a.created_time)) AS created_at,
-  v.ad_id IS NOT NULL AS from_form
-FROM \`zum-media-log.media.ad_info\` a
-FULL OUTER JOIN \`zum-media-log.media.ad_videos\` v ON v.ad_id = a.ad_id
-WHERE a.video_id IS NOT NULL OR v.ad_id IS NOT NULL`;
+const VIDEOS_SQL = `SELECT a.ad_id, a.ad_name, COALESCE(a.video_id, s.video_id) AS video_id, a.reel_id,
+  LOWER(TRIM(SPLIT(IFNULL(s.submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by, s.drive_file_id,
+  FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', COALESCE(s.created_at, a.created_at)) AS created_at,
+  s.video_id IS NOT NULL AS from_form
+FROM \`zum-media-log.ad.info\` a
+FULL OUTER JOIN \`zum-media-log.media.submitter\` s ON s.video_id = a.video_id
+WHERE a.video_id IS NOT NULL OR s.video_id IS NOT NULL`;
 let _bq = null;
 function bigQuery() {
   if (_bq) return _bq;
@@ -280,7 +287,7 @@ async function ensureCreativeInfo({ adIds, force = false, token, progress, elaps
     return;
   }
   progress(`Fetching creative info for ${missingIds.length} ads (${force ? 'all, Load Data' : 'new or retried'}) [${elapsed()}]`);
-  const fetched = await fetchByIds(token, missingIds, 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}', {}, stopped);
+  const fetched = await fetchByIds(token, missingIds, 'id,creative{id,object_type,video_id,object_story_spec{template_data,video_data{video_id}}}', {}, stopped);
   const now = Date.now();
   for (const ad of fetched) {
     creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
@@ -326,7 +333,7 @@ app.get('/api/ad-thumb', async (req, res) => {
   const adId = String(req.query.ad_id || '');
   if (!token || !/^\d+$/.test(adId)) return res.status(400).json({ error: 'Missing token or ad id' });
   try {
-    const ad = (await axios.get(`${META_BASE_URL}/${adId}`, { params: { fields: 'id,creative{id,object_type,object_story_spec{template_data,video_data{video_id}}}', access_token: token } })).data;
+    const ad = (await axios.get(`${META_BASE_URL}/${adId}`, { params: { fields: 'id,creative{id,object_type,video_id,object_story_spec{template_data,video_data{video_id}}}', access_token: token } })).data;
     creativeCache[adId] = slimCreative({ ...ad, _cachedAt: Date.now() });
     const cid = ad?.creative?.id;
     if (!cid) return res.json({ url: null });

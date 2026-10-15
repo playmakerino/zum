@@ -171,6 +171,12 @@
   .seg button:hover:not(:disabled):not([aria-checked="true"]){ color:var(--ink); background:rgba(0,0,0,.05); }
   .seg button[aria-checked="true"]{ background:#fff; color:var(--ink); font-weight:500; box-shadow:var(--seg-on); }
   .seg.disabled{ opacity:.45; pointer-events:none; }
+  .radios{ display:flex; flex-wrap:wrap; gap:6px 20px; }
+  .radios button{ display:inline-flex; align-items:center; gap:8px; border:0; background:none; padding:2px 0; font-size:13px; font-weight:450; color:var(--ink); cursor:pointer; }
+  .radios button::before{ content:""; flex:none; box-sizing:border-box; width:16px; height:16px; border-radius:50%; border:1px solid #c4c4c4; background:linear-gradient(#fff,#f3f3f3); }
+  .radios button:hover:not([aria-checked="true"])::before{ border-color:#8a8a8a; }
+  .radios button[aria-checked="true"]::before{ border:5px solid #303030; background:#fff; }
+  .radios.disabled{ opacity:.45; pointer-events:none; }
 
   /* slider */
   .val{ font-variant-numeric:tabular-nums; font-weight:400; }
@@ -318,7 +324,7 @@
         <div class="garments" id="garments" role="radiogroup" aria-label="Product"></div>
         <div class="field">
           <div class="flabel"><span>Model gender</span><span class="hint" id="genderHint"></span></div>
-          <div class="seg" id="gender" role="radiogroup" aria-label="Model gender">
+          <div class="radios" id="gender"role="radiogroup" aria-label="Model gender">
             <button type="button" role="radio" data-v="boy">Boy</button>
             <button type="button" role="radio" data-v="girl">Girl</button>
             <button type="button" role="radio" data-v="neutral">All</button>

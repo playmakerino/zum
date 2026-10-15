@@ -6,7 +6,6 @@ const {
   aggregateMetrics,
   groupByVideo,
   indexVideoTable,
-  newAdRows,
   collectFetchableCreativeIds,
   hasVideoPlays,
 } = require('./server');
@@ -333,18 +332,6 @@ describe('indexVideoTable', () => {
     expect(Object.keys(t.byAd)).toEqual(['a1']);
     expect(t.byVideo.v1).toMatchObject({ ad_id: 'a1', submitted_by: 'minhn', drive_file_id: 'd1' });
     expect(t.byVideo.v2).toMatchObject({ ad_id: null, submitted_by: 'thaodp' });
-  });
-});
-
-describe('newAdRows', () => {
-  const byAd = indexVideoTable([
-    { video_id: 'v1', ad_id: 'a1', ad_name: 'New', created_at: '2026-10-14T11:03:10Z' },
-    { video_id: 'v2', ad_id: 'a2', ad_name: 'Old', created_at: '2026-09-01T10:00:00Z' },
-    { video_id: 'v3', ad_id: 'a3', ad_name: 'Delivered', created_at: '2026-10-13T10:00:00Z' },
-  ]).byAd;
-  test('ads created in the period without an insights row, with zero metrics', () => {
-    const rows = newAdRows(byAd, { since: '2026-10-07', until: '2026-10-14' }, new Set(['a3']));
-    expect(rows).toEqual([{ ad_id: 'a1', ad_name: 'New', impressions: '0', clicks: '0', spend: '0' }]);
   });
 });
 

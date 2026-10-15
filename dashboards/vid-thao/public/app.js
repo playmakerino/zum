@@ -126,7 +126,6 @@ function renderDebug(d) {
     `Loaded in ${sec}s`,
     ins.formAds != null
       ? `Insights: ${ins.raw} rows${insightsSrc} → ${ins.formAds} form ads + ${ins.otherVideoAds} other video ads (spend > 1)`
-        + (ins.newAds ? ` + ${ins.newAds} new without delivery` : '')
       : `Insights: ${ins.raw} rows${insightsSrc} → ${ins.afterSpendFilter} with spend > 1`
         + (ins.withVideoPlays != null ? ` → ${ins.withVideoPlays} with video plays` : ''),
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,

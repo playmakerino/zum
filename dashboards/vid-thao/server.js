@@ -185,18 +185,6 @@ function indexVideoTable(rows) {
   return { byAd, byVideo, adVideo, adReel };
 }
 
-// Ads TC Vid created inside the period that have no insights row (no delivery yet): listed with
-// zero metrics so a video shows up as soon as it is submitted.
-function newAdRows(byAd, period, seenAdIds) {
-  const out = [];
-  for (const r of Object.values(byAd || {})) {
-    const day = String(r.created_at || '').slice(0, 10);
-    if (!day || day < period.since || day > period.until || seenAdIds.has(r.ad_id)) continue;
-    out.push({ ad_id: r.ad_id, ad_name: r.ad_name || '', impressions: '0', clicks: '0', spend: '0' });
-  }
-  return out;
-}
-
 // Only ads with video plays can be video ads; skipping the rest avoids fetching
 // creative info for image ads the dashboard never shows.
 function hasVideoPlays(row) {
@@ -428,8 +416,8 @@ async function loadDashboard({ token, accountId, days, forceRefresh, progress, s
   // delivery yet. Other video ads: spend > 1 with video plays, as before.
   const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);
   const otherRows = rawRows.filter(r => !videoTable.byAd[r.ad_id] && parseFloat(r.spend || 0) > 1 && hasVideoPlays(r));
-  const newRows   = newAdRows(videoTable.byAd, current, new Set(rawRows.map(r => r.ad_id)));
-  const currRows  = [...formRows, ...otherRows, ...newRows];
+  // ads that have not delivered are not listed: their post is not public yet, so the reel does not play
+  const currRows  = [...formRows, ...otherRows];
 
   const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
   const cachedAdsBefore  = forceRefresh ? 0 : allAdIds.filter(id => creativeCache[id]).length;
@@ -463,7 +451,7 @@ async function loadDashboard({ token, accountId, days, forceRefresh, progress, s
     account: accountId,
     days,
     refresh: forceRefresh,
-    insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length, newAds: newRows.length },
+    insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length },
     ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
     bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
     hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
@@ -491,7 +479,6 @@ module.exports = {
   aggregateMetrics,
   groupByVideo,
   indexVideoTable,
-  newAdRows,
   collectFetchableCreativeIds,
   hasVideoPlays,
 };

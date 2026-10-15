@@ -347,6 +347,7 @@ const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w480`;
 // the original mp4 goes through our server (browsers are refused by drive.usercontent.google.com)
 const DRIVE_MP4 = id => `/api/drive-video/${encodeURIComponent(id)}`;
+const DRIVE_VIEW = id => `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
 const DRIVE_DOWNLOAD = id => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
 const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
 // the ad's reel through Facebook's video plugin: plays without a Facebook login, no Meta API call
@@ -391,13 +392,19 @@ function openVideo(i) {
   $('viewerTitle').textContent = r.ad_name || '';
   $('viewerDownload').href = r.drive_file_id ? DRIVE_DOWNLOAD(r.drive_file_id) : src;
   $('viName').textContent = r.ad_name || '';
-  // Details like Shopify ("JPG • 1600 × 2000 • 521.8 kB"): MP4 • size × size • duration • file size,
-  // each part filled in as it becomes known
+  // Details: "Facebook reel" when the reel plays; otherwise like Shopify ("JPG • 1600 × 2000 • 521.8 kB"):
+  // MP4 • size × size • duration • file size, each part filled in as it becomes known.
+  // The Drive file is only a backup of the original: its own section, "Google Drive • 5.2 MB", links to Drive.
   const fmt = { size: '', dims: '', dur: '' };
-  const showFormat = () => { $('viFormat').textContent = ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • '); };
+  const showFormat = () => {
+    $('viFormat').textContent = r.reel_url ? 'Facebook reel' : ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • ');
+    $('viBackup').textContent = ['Google Drive', fmt.size].filter(Boolean).join(' • ');
+  };
+  $('viBackupSec').hidden = !r.drive_file_id;
+  $('viBackup').href = r.drive_file_id ? DRIVE_VIEW(r.drive_file_id) : '#';
   showFormat();
   if (r.drive_file_id) {
-    fetch(src, { method: 'HEAD' }).then(res => {
+    fetch(DRIVE_MP4(r.drive_file_id), { method: 'HEAD' }).then(res => {
       const n = +res.headers.get('content-length');
       if (n && viewer.dataset.token === token) { fmt.size = fmtSize(n); showFormat(); }
     }).catch(() => {});

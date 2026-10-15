@@ -70,6 +70,8 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-tertiary:active{background:rgba(255,255,255,.13)}
 .viewer-tertiary:disabled{color:#aaa;cursor:default;background:none}
 .viewer-sec .viewer-used{color:#eee}
+.viewer-sec .viewer-link{color:#eee;text-decoration:underline;text-underline-offset:2px}
+.viewer-sec .viewer-link:hover{color:#fff}
 /* narrow screens: video on top, information card under it */
 @media(max-width:760px){
   .viewer-stage{flex-direction:column;overflow:auto;padding:12px}

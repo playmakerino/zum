@@ -22,6 +22,9 @@ thead th .sort-icon{color:var(--t4);transition:opacity .08s}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-width:42px}
 .td-name{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
+/* square thumbnail cell like Shopify Files: 36×36, 6px around the 24px image on every side; header has no label */
+thead th.th-thumb{width:36px;padding:0}
+tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){width:36px;padding:6px}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
 /* rows with a video open the viewer; hover = Shopify Files list row (#f7f7f7, 12px rounded ends) */
 tbody tr.row-play{cursor:pointer}

@@ -24,7 +24,10 @@ tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-wi
 .thumb{object-fit:cover;cursor:pointer}
 /* square thumbnail cell like Shopify Files: 36×36, 6px around the 24px image on every side; header has no label */
 thead th.th-thumb{width:36px;padding:0}
-tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){width:36px;padding:6px}
+tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){width:36px;min-width:36px;max-width:36px;padding:6px;vertical-align:middle}
+/* block, not inline: an inline img sits on the text baseline and gets pushed down by the line box */
+img.thumb{display:block;margin:0 auto}
+div.thumb-placeholder{margin:0 auto}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
 /* rows with a video open the viewer; hover = Shopify Files list row (#f7f7f7, 12px rounded ends) */
 tbody tr.row-play{cursor:pointer}

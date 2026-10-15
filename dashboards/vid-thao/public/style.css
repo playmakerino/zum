@@ -17,9 +17,9 @@ table{border-collapse:collapse}
 #creativesTable th:nth-child(2){min-width:200px}
 #creativesTable th:nth-child(n+3){min-width:90px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2;transition:color .08s}
-thead th:first-child{position:sticky;left:0;z-index:3;min-width:42px}
+thead th:first-child{position:sticky;left:0;z-index:3;min-width:36px}
 thead th .sort-icon{color:var(--t4);transition:opacity .08s}
-tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-width:42px}
+tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-width:36px}
 .td-name{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
 /* square thumbnail cell like Shopify Files: 36×36, 6px around the 24px image on every side; header has no label */

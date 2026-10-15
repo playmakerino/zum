@@ -104,10 +104,13 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
   const byAd = videoTable.byAd || {};
   const byVideo = videoTable.byVideo || {};
   const map = {};
+  const adVideo = videoTable.adVideo || {};
   for (const row of rows) {
     const c = creativeCache[row.ad_id]?.creative;
-    const bq = byAd[row.ad_id] || (c?.video_id && byVideo[c.video_id]) || null;
-    const videoId = bq?.video_id || c?.video_id || null;
+    // reel id of the ad's creative from media.ad_info (every ad, not only TC Vid's)
+    const reelId = adVideo[row.ad_id] || null;
+    const bq = byAd[row.ad_id] || (reelId && byVideo[reelId]) || (c?.video_id && byVideo[c.video_id]) || null;
+    const videoId = reelId || bq?.video_id || c?.video_id || null;
     const id = videoId || c?.id || 'unknown';
     // submitter: BigQuery only; a video that is not there has no submitter
     const submittedBy = bq?.submitted_by || '';
@@ -140,7 +143,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
       g.drive_file_id  = bq.drive_file_id;
       g.drive_thumb_id = bq.drive_file_id;
     }
-    if (!g.reel_url && bq?.reel_url) g.reel_url = bq.reel_url;
+    if (!g.reel_url) g.reel_url = reelId ? REEL_URL + reelId : (bq?.reel_url || null);
     if (!g.created_at && bq?.created_at) g.created_at = bq.created_at;
     g._rows.push(row);
   }
@@ -148,25 +151,31 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
     aggregateMetrics({ ...entry, creative_count: _creatives.size, ad_count: new Set(_rows.map(r => r.ad_id)).size }, _rows));
 }
 
-// BigQuery video table rows → byAd (ads TC Vid created) and byVideo (uploaded video_id; an ad row
-// wins over a legacy row that only has the submitter).
+const REEL_URL = 'https://www.facebook.com/reel/';
+
+// BigQuery rows → byAd (ads TC Vid created: from_form), byVideo (reel id → form row) and adVideo
+// (ad_id → reel id for every video ad in media.ad_info). A form ad that ad_info has not synced yet
+// (Cloud Run runs at 03:00) has no video_id: it still counts as a form ad, and plays from Drive.
 function indexVideoTable(rows) {
-  const byAd = {}, byVideo = {};
+  const byAd = {}, byVideo = {}, adVideo = {};
   for (const r of rows || []) {
-    if (!r?.video_id) continue;
+    const adId = r?.ad_id ? String(r.ad_id) : null;
+    const videoId = r?.video_id ? String(r.video_id) : null;
+    if (adId && videoId) adVideo[adId] = videoId;
+    if (r?.from_form === false || (!adId && !videoId)) continue;
     const row = {
-      video_id:       String(r.video_id),
-      ad_id:          r.ad_id ? String(r.ad_id) : null,
+      video_id:       videoId,
+      ad_id:          adId,
       ad_name:        r.ad_name || '',
       submitted_by:   String(r.submitted_by || '').trim().toLowerCase(),
       drive_file_id:  r.drive_file_id || null,
-      reel_url:       r.reel_url || null,
+      reel_url:       r.reel_url || (videoId ? REEL_URL + videoId : null),
       created_at:     r.created_at || null,
     };
-    if (row.ad_id) byAd[row.ad_id] = row;
-    if (!byVideo[row.video_id] || (row.ad_id && !byVideo[row.video_id].ad_id)) byVideo[row.video_id] = row;
+    if (adId) byAd[adId] = row;
+    if (videoId && (!byVideo[videoId] || (adId && !byVideo[videoId].ad_id))) byVideo[videoId] = row;
   }
-  return { byAd, byVideo };
+  return { byAd, byVideo, adVideo };
 }
 
 // Ads TC Vid created inside the period that have no insights row (no delivery yet): listed with
@@ -201,15 +210,18 @@ function collectFetchableCreativeIds(allAds) {
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
-// Video table read straight from BigQuery zum-media-log.media.ad_videos (one row per ad TC Vid
-// created: Drive file, reel link, submitter). Service account n8n-bigquery: env BQ_SA_KEY = the key
-// JSON (Render), or BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty
-// table: rows then have no submitter and no Drive video.
-const VIDEOS_SQL = `SELECT video_id, LOWER(TRIM(SPLIT(IFNULL(submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by,
-  ad_id, ad_name, drive_file_id, reel_url,
-  FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at
-FROM \`zum-media-log.media.ad_videos\`
-WHERE video_id IS NOT NULL`;
+// Video table read straight from BigQuery zum-media-log: media.ad_info (every ad's reel id + name,
+// written daily by Cloud Run meta-ad-media) joined to media.ad_videos (ads TC Vid created: submitter,
+// Drive file). Service account n8n-bigquery: env BQ_SA_KEY = the key JSON (Render), or
+// BQ_SA_KEY_FILE = path to the key file (local). No key or any error → empty table: rows then have
+// no submitter, no Drive video and no reel.
+const VIDEOS_SQL = `SELECT COALESCE(v.ad_id, a.ad_id) AS ad_id, a.ad_name, a.video_id,
+  LOWER(TRIM(SPLIT(IFNULL(v.submitter_email, ''), '@')[OFFSET(0)])) AS submitted_by, v.drive_file_id,
+  FORMAT_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ', COALESCE(v.created_at, a.created_time)) AS created_at,
+  v.ad_id IS NOT NULL AS from_form
+FROM \`zum-media-log.media.ad_info\` a
+FULL OUTER JOIN \`zum-media-log.media.ad_videos\` v ON v.ad_id = a.ad_id
+WHERE a.video_id IS NOT NULL OR v.ad_id IS NOT NULL`;
 let _bq = null;
 function bigQuery() {
   if (_bq) return _bq;

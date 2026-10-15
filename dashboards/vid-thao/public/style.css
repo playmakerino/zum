@@ -15,7 +15,13 @@ body{-webkit-font-smoothing:antialiased}
 .debug-line:empty{display:none}
 table{border-collapse:collapse}
 #creativesTable th:nth-child(2){min-width:200px}
-#creativesTable th:nth-child(n+3){min-width:90px}
+/* metric columns all 100px: the filter button takes no space (it floats over the left side of the
+   header on hover or while a filter is on), so the widest header "ThruPlay%" + sort icon fits */
+#creativesTable th:nth-child(n+3){width:100px;min-width:100px}
+@media(hover:hover){
+  thead th .col-filter-btn{position:absolute;left:2px;top:50%;transform:translateY(-50%);display:none}
+  thead th:hover .col-filter-btn,thead th .col-filter-btn.active{display:inline-flex}
+}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2;transition:color .08s}
 thead th:first-child{position:sticky;left:0;z-index:3;min-width:36px}
 thead th .sort-icon{color:var(--t4);transition:opacity .08s}

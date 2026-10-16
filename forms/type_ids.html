@@ -9,371 +9,94 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
 
-  <!-- Type ID lookup (standalone page). Same frame as mockup_table.html, which was measured on the Shopify Metaobjects entries list:
-       title bar, filter card, one list table with sortable headers, row count under it, empty result. Read only. -->
+  <!-- Type ID lookup, laid out like Shopify Settings > Metafields and metaobjects > Product metafield definitions
+       (measured on admin 2026-10-16): 26px title, one 784px card, tab pills in the card head (here: type groups) with a search
+       button on the right, a 32px #f7f7f7 header row, 36px rows split by 1px #f2f2f2. Type ID shown as a product tag chip. -->
   <style>
-
     :root {
       --text: #101010; --text-sub: #616161; --text-header: #4a4a4a; --placeholder: #4a4a4a;
-      --line: #f2f2f2; --band: #f7f7f7; --hover: #f7f7f7; --pill: #f2f2f2;
-      --t-hover: rgba(0,0,0,.08); --t-active: rgba(0,0,0,.13);
-      --focus: #5083f0; --critical: #8e0b21; --success-bg: #b3f782; --success: #214b03;
+      --line: #f2f2f2; --band: #f7f7f7; --t-hover: rgba(0,0,0,.08); --t-active: rgba(0,0,0,.13); --focus: #5083f0;
       --card-sh: 0 0 2px rgba(0,0,0,.24), 0 2px 12px rgba(0,0,0,.02), 0 4px 16px rgba(0,0,0,.02), 0 4px 48px rgba(0,0,0,.02);
-      --ring: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.13);
-      --ring-focus: 0 0 0 1px var(--focus), 0 0 0 3px rgba(53,115,246,.06);
     }
     * { box-sizing: border-box; margin: 0; }
-    body {
-      background: #fff; color: var(--text);
-      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 13px; line-height: 20px; letter-spacing: -.01em;
-      -webkit-font-smoothing: antialiased;
-    }
-    button, input, select { font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
+    body { background: #fff; color: var(--text); font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px; line-height: 20px; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+    button, input { font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
     button { cursor: pointer; }
-    .page { max-width: 792px; margin: 0 auto; padding: 0 16px 32px; }
+    button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    mark { background: #fff3a8; color: inherit; border-radius: 2px; }
 
-    /* top bar: title left, actions right */
-    .topbar { height: 60px; display: flex; align-items: center; gap: 6px; }
-    .topbar h1 { flex: 1; font-size: 13px; line-height: 20px; font-weight: 500; }
-    .btn {
-      height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px;
-      font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap;
-      background: #fff; color: var(--text);
-      box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03);
-      transition: background-color .4s cubic-bezier(.2,.8,0,1);
-    }
-    .btn:hover:not(:disabled) { background: var(--hover); }
-    .btn.primary {
-      background: var(--text); color: #fff;
-      box-shadow: 0 1px .5px -.5px rgba(0,0,0,.13), 0 1px 2px -.5px rgba(0,0,0,.13), 0 4px 6px -2px rgba(0,0,0,.13), 0 2px 3px -1.5px rgba(0,0,0,.13), inset 0 0 4px 1px #101010, inset 0 0 4px 2px rgba(255,255,255,.1), inset 0 0 12px -6px rgba(255,255,255,.75);
-    }
-    .btn.primary:hover:not(:disabled) { background: #2a2a2a; }
-    .btn:disabled { opacity: .45; cursor: default; }
-    .btn.tertiary { background: none; box-shadow: none; }
-    .btn.tertiary:hover:not(:disabled) { background: var(--t-hover); }
-    .btn.tertiary:active:not(:disabled) { background: var(--t-active); }
-    .btn:focus-visible, .sortbtn:focus-visible, .x:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    .hint { color: var(--text-sub); margin-bottom: 12px; }
+    .page { max-width: 816px; margin: 0 auto; padding: 40px 16px 48px; }
+    /* page title: 26px/32px weight 500, letter-spacing -0.52px, 13px above the card */
+    h1 { font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.52px; margin-bottom: 13px; }
 
-    /* filter bar: 36px card, 4px padding */
-    .filters {
-      display: flex; align-items: center; gap: 4px; padding: 4px; margin-bottom: 8px;
-      background: #fff; border-radius: 12px; box-shadow: var(--card-sh); flex-wrap: wrap;
-    }
-    /* search and filter field: filter tokens + free text in one line (Shopify entries list) */
-    .search { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 28px; padding: 0 4px 0 8px; border-radius: 8px; cursor: text; }
-    .search > svg { flex: none; width: 16px; height: 16px; margin-right: 4px; fill: var(--text-header); pointer-events: none; }
-    .search input { flex: 1; min-width: 120px; height: 28px; padding: 4px; border: 0; background: transparent; outline: none; }
-    /* token, measured: key #f2f2f2 (open #ddd), value #d2f6fe text #01246f, 20px, 1px apart; the open value shows x */
-    .tok { display: inline-flex; gap: 1px; flex: none; height: 20px; }
-    .tok-k, .tok-v { display: inline-flex; align-items: center; height: 20px; border: 0; cursor: pointer; font-size: 12px; line-height: 16px; font-weight: 400; transition: background-color .1s; }
-    .tok-k { padding: 2px 4px 2px 6px; border-radius: 8px 2px 2px 8px; background: #f2f2f2; color: var(--text); }
-    .tok-v { padding: 2px 6px 2px 4px; border-radius: 2px 8px 8px 2px; background: #d2f6fe; color: #01246f; }
-    .tok-k:hover { background: #ebebeb; }
-    .tok-k.open { background: #ddd; }
-    .tok-v:hover, .tok-v.open { background: #bfeffc; }
-    .tok-k:focus-visible, .tok-v:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    .tok-x { display: inline-grid; place-items: center; width: 14px; height: 14px; margin-left: 2px; border-radius: 4px; }
-    .tok-x svg { width: 12px; height: 12px; fill: currentColor; }
-    .tok-x:hover { background: rgba(1,36,111,.1); }
-    .tok-add { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 9999px; background: none; cursor: pointer; }
-    .tok-add svg { width: 18px; height: 18px; fill: var(--text-header); }
-    .tok-add:hover { background: var(--t-hover); }
-    .clearq { flex: none; }
-    .clearq[hidden] { display: none; }
-    /* field / value list under the search field */
-    .tok-wait .tok-k { cursor: default; }
-    .fmenu { position: fixed; z-index: 300; min-width: 200px; max-width: 280px; overflow-y: auto; padding: 4px; background: #fff; border-radius: 16px;
-      box-shadow: 0 2px 2px -1px rgba(0,0,0,.06), 0 3px 4px -2px rgba(0,0,0,.06), 0 6px 8px -3px rgba(0,0,0,.06), 0 12px 16px -4px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.08); }
-    .fmenu[hidden] { display: none; }
-    .fmenu button { display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 4px 8px; border: 0; border-radius: 12px;
-      background: none; text-align: left; font-size: 13px; line-height: 20px; font-weight: 400; color: var(--text); white-space: nowrap; }
-    .fmenu button.kb { background: #f7f7f7; }
-    .fmenu .ck { width: 16px; height: 16px; flex: none; }
-    .fmenu .lb { flex: 1; }
-    .fmenu .none { padding: 4px 8px; color: var(--text-sub); }
-    .fmenu .cb { width: 14px; height: 14px; margin: 1px; flex: none; border-radius: 4px; background: #fff;
-      box-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2); }
-    .fmenu .cb.on { box-shadow: none; background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3 6.2 5 8.2 9 3.8'/%3E%3C/svg%3E") center / 12px no-repeat; }
-    .enter { display: inline-flex; align-items: center; gap: 2px; height: 20px; margin: -2px -4px -2px 8px; padding: 1px 4px; border-radius: 6px;
-      background: #f2f2f2; color: var(--text-header); font-size: 12px; line-height: 16px; }
-    .enter svg { width: 14px; height: 14px; fill: currentColor; }
-    .fmenu::-webkit-scrollbar { width: 11px; background: transparent; }
-    .fmenu::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 12px; background-clip: content-box; background-color: transparent; }
-    .fmenu:hover::-webkit-scrollbar-thumb, .fmenu::-webkit-scrollbar-thumb:hover { background-color: #8c8c8c; }
-    .fmenu hr { border: 0; border-top: 1px solid #f2f2f2; margin: 4px -4px; }
-    ::placeholder { color: var(--placeholder); opacity: 1; }
+    /* card: 20px radius, card shadow, clips its rows */
+    .card { background: #fff; border-radius: 20px; box-shadow: var(--card-sh); overflow: hidden; }
 
-    /* select in a cell: native select drawn as a pill (look below with .cell), the option list is .menu */
-    .pick { appearance: none; -webkit-appearance: none; border: 0; outline: none; border-radius: 9999px; cursor: pointer; }
+    /* card head 45px: tab pills left (28px, padding 4px 12px, 12px/18px weight 500; current rgba(0,0,0,.13) #101010, others transparent #4a4a4a),
+       search button right; searching swaps the tabs for a search field */
+    .head { display: flex; align-items: center; gap: 4px; min-height: 45px; padding: 8px 8px 8px 12px; }
+    .tabs { flex: 1; display: flex; flex-wrap: wrap; gap: 0; min-width: 0; }
+    .tab { height: 28px; padding: 4px 12px; border: 0; border-radius: 9999px; background: transparent; color: var(--text-header);
+      font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: -0.06px; white-space: nowrap; transition: background-color .2s; }
+    .tab:hover { background: var(--t-hover); color: var(--text); }
+    .tab.on { background: var(--t-active); color: var(--text); }
+    .icon { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: none; display: grid; place-items: center; }
+    .icon:hover { background: var(--t-hover); }
+    .icon svg { width: 20px; height: 20px; fill: var(--text-header); }
+    .sfield { flex: 1; display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 4px 0 8px; border-radius: 8px; box-shadow: 0 0 0 1px var(--focus), 0 0 0 3px rgba(53,115,246,.06); }
+    .sfield svg { width: 16px; height: 16px; fill: var(--text-header); flex: none; }
+    .sfield input { flex: 1; min-width: 0; height: 28px; border: 0; outline: none; background: none; }
+    .sfield input::placeholder { color: var(--placeholder); opacity: 1; }
+    .cancel { height: 28px; padding: 4px 12px; border: 0; border-radius: 9999px; background: none; font-size: 12px; line-height: 18px; font-weight: 500; }
+    .cancel:hover { background: var(--t-hover); }
+    [hidden] { display: none !important; }
 
-    /* option list drawn like Shopify's (native select menus cannot be styled); the <select> stays the source of truth */
-    .menu {
-      position: fixed; z-index: 300; min-width: 120px; max-height: 320px; overflow: auto;
-      background: #fff; border-radius: 16px; padding: 6px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
-    }
-    .menu[hidden] { display: none; }
-    .menu button {
-      display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%;
-      min-height: 32px; padding: 6px 8px; border: 0; border-radius: 12px; background: none; text-align: left;
-      font-size: 13px; line-height: 20px; font-weight: 450; color: #303030; white-space: nowrap;
-    }
-    .menu button:hover, .menu button.kb { background: #f2f2f2; }
-    .menu button.sel { background: #ebebeb; font-weight: 600; color: var(--text); }
-    .menu button svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .menu::-webkit-scrollbar { width: 11px; background: transparent; }
-    .menu::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 12px; background-clip: content-box; background-color: transparent; }
-    .menu:hover::-webkit-scrollbar-thumb, .menu::-webkit-scrollbar-thumb:hover { background-color: #8c8c8c; }
+    /* list: header row 32px #f7f7f7, padding 8px 12px 8px 16px, 12px/16px weight 500 #4a4a4a; rows 36px + 1px #f2f2f2 line, cells padding 8px 12px */
+    .row { display: grid; grid-template-columns: 1fr 140px; align-items: center; }
+    .row > div { padding: 8px 12px; min-width: 0; }
+    .row > div:first-child { padding-left: 16px; }
+    .thead { background: var(--band); color: var(--text-header); font-size: 12px; line-height: 16px; font-weight: 500; }
+    .thead > div { padding-top: 8px; padding-bottom: 8px; }
+    .item { min-height: 37px; border-top: 1px solid var(--line); }
+    .thead + .item { border-top: 0; }
+    .nm { font-weight: 500; }
+    .nm div + div { margin-top: 2px; }
+    .grp { margin-top: 2px; font-size: 12px; line-height: 18px; color: var(--text-sub); font-weight: 400; }
+    /* Type ID as a product tag chip (measured): 20px, padding 2px 8px, radius 8px, rgba(0,0,0,.05), 12px/18px weight 500, #4a4a4a */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text-header);
+      font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: -0.06px; white-space: nowrap; }
+    .foot { padding: 12px 16px; border-top: 1px solid var(--line); color: var(--text-sub); text-align: center; }
 
-    /* table: header band #f7f7f7 with 10px ends, rows 36px split by #f2f2f2 */
-    table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; line-height: 18px; }
-    th {
-      height: 31px; padding: 6px; background: var(--band); color: var(--text-header);
-      font-weight: 500; text-align: left; white-space: nowrap;
-    }
-    th:first-child { padding-left: 12px; border-radius: 10px 0 0 10px; }
-    th:last-child { padding-right: 12px; border-radius: 0 10px 10px 0; }
-    .sortbtn {
-      border: 0; background: none; padding: 1px 4px; margin: -1px -4px; border-radius: 6px;
-      font-size: 12px; line-height: 18px; font-weight: 500; color: inherit; display: inline-flex; align-items: center; gap: 2px;
-      transition: background-color .4s cubic-bezier(.2,.8,0,1);
-    }
-    .sortbtn:hover { background: var(--t-hover); }
-    th.sorted .sortbtn { color: var(--text); font-weight: 600; }
-    .sortbtn .arr { width: 14px; text-align: center; visibility: hidden; }
-    th.sorted .arr, .sortbtn:hover .arr { visibility: visible; }
-    th.c, td.c { text-align: center; }
-    td { height: 36px; padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: middle; background: #fff; }
-    td:first-child { padding-left: 12px; }
-    td:last-child { padding-right: 12px; }
-    tbody tr:first-child td { border-top: 0; }
-    .col-num { width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-sub); }
-    th.col-num .sortbtn { flex-direction: row-reverse; }
-    .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
-
-    /* mock thumbnail as in the Shopify entries list: 24px square before the name, 6px radius, 1px rgba(0,0,0,.08) frame,
-       whole image (contain) on white, image icon when empty, 12px to the name; hover shows it large, click opens the image dialog */
-    .thumb {
-      position: relative; flex: none; width: 24px; height: 24px; margin: -6px 12px -6px 0; border-radius: 6px; overflow: hidden;
-      background: #fff; display: grid; place-items: center;
-    }
-    .thumb::after { content: ""; position: absolute; inset: 0; border: 1px solid rgba(0,0,0,.08); border-radius: inherit; pointer-events: none; }
-    .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .thumb svg { width: 16px; height: 16px; fill: #606060; }
-    tr.deleted .thumb { opacity: .45; }
-    .preview {
-      position: fixed; z-index: 60; width: 240px; border-radius: 12px; overflow: hidden; pointer-events: none;
-      background: var(--pill); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
-    }
-    .preview img { width: 100%; display: block; }
-    button.thumb { padding: 0; border: 0; cursor: pointer; }
-    button.thumb:hover::after { border-color: rgba(0,0,0,.3); }
-    button.thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    tr.deleted button.thumb { pointer-events: none; }
-
-    /* image dialog, measured on Shopify "Select image": title 15/22/500, white round close, one drop zone
-       (empty: Add files; filled: image + name, x on the image), Cancel / Done; nothing changes on the row until Done */
-    .scrim { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.5); display: grid; place-items: center; padding: 16px; }
-    .scrim[hidden] { display: none; }
-    .dlg { width: 100%; max-width: 560px; background: #fff; border-radius: 16px; overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
-    .dlg-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 16px 20px; background: #fff; }
-    .dlg-head h2 { flex: 1; font-size: 15px; line-height: 22px; font-weight: 500; }
-    .dlg-head .x { background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03); }
-    .dlg-head .x:hover { background: #f7f7f7; }
-    .dlg-head .x svg { width: 16px; height: 16px; fill: var(--text); }
-    .dlg-body { padding: 0 20px; }
-    .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; }
-    .zone.filled { cursor: pointer; padding: 16px 16px 12px; }
-    .zone.filled img { max-width: 100%; max-height: 260px; object-fit: contain; display: block; border-radius: 6px; box-shadow: 0 0 0 1px rgba(23,24,24,.05); }
-    .zone-name { max-width: 100%; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .imgwrap { position: relative; display: block; max-width: 100%; }
-    .zone .zx { position: absolute; top: 6px; right: 6px; display: none; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.08); }
-    .zone .zx svg { width: 16px; height: 16px; fill: var(--text); }
-    .zone:hover .zx, .zone:focus-within .zx, .zone:focus .zx { display: inline-grid; }
-    .zone { position: relative; display: grid; place-items: center; gap: 8px; min-height: 122px; padding: 16px;
-      border: 1px dashed #c0c0c0; border-radius: 8px; background: #fff; cursor: pointer; text-align: center; transition: border-color .1s; }
-    .zone:hover, .zone.drag { border-color: #8a8a8a; }
-    .zone.drag { background: #f7f7f7; }
-    .zone:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    .zone-pill { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 4px 12px 4px 8px; border-radius: 9999px;
-      background: #ebebeb; font-size: 13px; line-height: 20px; font-weight: 500; transition: background .1s; }
-    .zone:hover .zone-pill { background: #e3e3e3; }
-    .zone-pill svg { width: 16px; height: 16px; fill: var(--text); }
-    .zone-sub { color: var(--text-sub); font-size: 13px; line-height: 20px; }
-    .zone .zx:hover { background: #f2f2f2; }
-
-    /* unsaved changes bar (Shopify contextual save bar) */
-    .savebar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 350; display: flex; align-items: center; gap: 4px;
-      height: 36px; padding: 4px 4px 4px 16px; border-radius: 9999px; background: #0a0a0a; color: #fff;
-      box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; }
-    .savebar[hidden] { display: none; }
-    .savebar span { font-size: 13px; line-height: 20px; font-weight: 450; margin-right: 12px; }
-    .savebar button { height: 28px; padding: 4px 12px; border: 0; border-radius: 9999px; font-size: 13px; line-height: 20px; font-weight: 600; transition: background-color .2s; }
-    .sb-discard { background: #303030; color: #fff; }
-    .sb-discard:hover { background: #404040; }
-    .sb-save { background: #fff; color: var(--text); font-weight: 500 !important; }
-    .sb-save:hover { background: #ebebeb; }
-    .savebar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    /* saving: Discard dims, Save turns into a spinner of the same size */
-    .savebar.saving .sb-discard { color: rgba(255,255,255,.3); background: #202020; pointer-events: none; }
-    .savebar.saving .sb-save { position: relative; color: transparent; background: #404040; pointer-events: none; }
-    .savebar.saving .sb-save::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px;
-      border: 2px solid #fff; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    /* result toast where the bar was: dark pill, green check ("Entry saved"); errors red and longer */
-    .toast { position: fixed; top: 12px; left: 50%; z-index: 360; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px);
-      min-height: 36px; padding: 8px 16px 8px 12px; border-radius: 9999px; background: #0a0a0a; color: #fff; font-size: 13px; line-height: 20px; font-weight: 500;
-      box-shadow: 0 8px 24px rgba(0,0,0,.2); transform: translate(-50%, -8px); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translate(-50%, 0); }
-    .toast.err { background: #8e0b21; border-radius: 18px; }
-    .toast svg { width: 18px; height: 18px; flex: none; }
-
-    /* inline fields, measured on the Shopify entry page: pill 28px as wide as its text, select with an up/down chevron; grey #f2f2f2 only on the hovered row; focus = white with an inset #c0c0c0 line */
-    .cell {
-      field-sizing: content; min-width: 64px; max-width: 100%; height: 28px; border: 0; border-radius: 9999px; outline: none;
-      padding: 4px 8px; font-size: 13px; line-height: 20px; background: #f2f2f2;
-    }
-    td .pick {
-      field-sizing: content; min-width: 48px; max-width: 100%; height: 28px; padding: 4px 24px 4px 8px; font-size: 13px; line-height: 20px; font-weight: 400;
-      background: #f2f2f2 url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Cpath fill=%27none%27 stroke=%27%234a4a4a%27 stroke-width=%271.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 d=%27m7 8 3-3 3 3M7 12l3 3 3-3%27/%3E%3C/svg%3E") no-repeat right 4px center / 16px;
-    }
-    /* grey only on the row under the pointer */
-    .cell, td .pick { background-color: transparent; }
-    tr:hover .cell, tr:hover td .pick { background-color: #f2f2f2; }
-    tr .cell:focus, tr td .pick:focus, tr td .pick.open { background-color: #fff; }
-    .cell:focus, td .pick:focus, td .pick.open { background-color: #fff; box-shadow: inset 0 0 0 1px #c0c0c0; }
-    input.cell { text-transform: uppercase; }
-    input.cell::placeholder { text-transform: none; }
-    td .pick.empty-val { color: var(--text-sub); }
-
-    /* checkbox: 14px, 4px radius, dark when checked */
-    .chk {
-      appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0; border-radius: 4px; background: #fff; cursor: pointer;
-      box-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2); vertical-align: middle;
-    }
-    .chk:checked {
-      background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3 6.2 5 8.2 9 3.8'/%3E%3C/svg%3E") center / 12px no-repeat;
-      box-shadow: none;
-    }
-    .chk:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-
-    .x {
-      width: 28px; height: 28px; padding: 0; border: 0; border-radius: 9999px; background: none;
-      display: inline-grid; place-items: center; vertical-align: middle;
-    }
-    .x svg { width: 20px; height: 20px; fill: var(--text-header); }
-    .x:hover { background: var(--t-hover); }
-    .undo { margin-right: -6px; }
-
-    /* row states */
-    tr.changed td:first-child { box-shadow: inset 2px 0 0 var(--text); }
-    tr.new td { background: #f3fde9; }
-    tr.deleted td { color: var(--text-sub); }
-    tr.deleted .cell, tr.deleted .pick, tr.deleted .chk { opacity: .45; pointer-events: none; }
-    tr.deleted input.cell { text-decoration: line-through; }
-    .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 12px; line-height: 18px; font-weight: 500; margin-left: 6px; vertical-align: middle; }
-    .badge.new { background: var(--success-bg); color: var(--success); }
-    .idwrap { display: flex; align-items: center; }
-
-    .foot { text-align: center; padding: 16px 8px; min-height: 52px; }
-    #msg.err { color: var(--critical); }
-    .busy { opacity: .6; pointer-events: none; }
-    /* no rows after search / filters, as Shopify: grey magnifier, title, one line, dark button */
-    .empty { padding: 48px 8px 40px; text-align: center; color: var(--text-sub); font-size: 13px; line-height: 20px; }
+    .empty { padding: 48px 16px 40px; text-align: center; color: var(--text-sub); }
     .empty svg { width: 60px; height: 60px; fill: #8a8a8a; display: block; margin: 0 auto 16px; }
     .empty h3 { color: var(--text); font-size: 20px; line-height: 24px; font-weight: 600; margin-bottom: 8px; }
-    .empty .btn { margin-top: 16px; }
-
-    /* auth.js chip + dialog are styled dark for the TC forms; light versions here */
-    body #tcAuthChip { position: fixed; top: auto; right: auto; bottom: 16px; left: 16px; z-index: 50; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03); padding: 4px 12px; font-family: inherit; }
-    body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 16px; color: var(--text-sub); }
-    body #tcAuthChip .tc-link { color: var(--text); font-weight: 500; }
-    body #tcAuthChip .tc-link:hover { color: var(--text); }
-    body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }
-    body #tcAuthScrim .tc-card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
-    body #tcAuthScrim h2 { color: var(--text); font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 4px; }
-    body #tcAuthScrim .tc-sub { color: var(--text-sub); font-size: 13px; margin-bottom: 12px; }
-    body #tcAuthScrim input { height: 30px; border: 0; border-radius: 12px; background: #fff; color: var(--text); font-size: 13px; padding: 0 12px; box-shadow: var(--ring); }
-    body #tcAuthScrim input:hover { border: 0; }
-    body #tcAuthScrim input:focus { box-shadow: var(--ring-focus); }
-    body #tcAuthScrim.tc-invalid input { box-shadow: 0 0 0 1px var(--critical); }
-    body #tcAuthScrim .tc-err { color: var(--critical); font-size: 13px; margin-top: 4px; }
-    body #tcAuthScrim .tc-save { height: 32px; margin-top: 12px; border-radius: 9999px; background: var(--text); color: #fff; font-size: 13px; font-weight: 600; transform: none; }
-    body #tcAuthScrim .tc-save:hover { background: #2a2a2a; transform: none; }
-    body #tcAuthScrim .tc-x { color: var(--text-header); }
-    body #tcAuthToast { background: #1b1b1b; border-radius: 12px; font-family: inherit; font-size: 13px; font-weight: 500; }
 
     @media (max-width: 640px) {
-      .page { padding: 0 12px 24px; }
-      .topbar { height: 52px; }
-      .search { flex-basis: 100%; }
-      .col-num { width: 36px; }
-      .col-type { width: 76px; } .col-tier { width: 52px; } .col-flag { width: 52px; } .col-del { width: 44px; }
-      th, td { padding-left: 4px; padding-right: 4px; }
-      input, select, .cell { font-size: 16px; }
-      .hint { font-size: 12px; line-height: 18px; }
+      .page { padding: 24px 12px 32px; }
+      h1 { font-size: 20px; line-height: 24px; }
+      .row { grid-template-columns: 1fr 104px; }
+      .sfield input { font-size: 16px; }
     }
-  
-    /* view picker ("All ⇅"), measured on Products 2026-10-16: first thing in the filter card, 28px pill, padding 0 2px 0 8px,
-       13px/20px weight 400, transparent; hover rgba(0,0,0,.08), open rgba(0,0,0,.13); up/down chevron after the label */
-    .view { position: relative; flex: none; }
-    .viewbtn { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px 0 8px; border: 0; border-radius: 9999px; background: transparent; font-weight: 400; white-space: nowrap; }
-    .viewbtn:hover { background: rgba(0,0,0,.08); }
-    .viewbtn.open { background: rgba(0,0,0,.13); }
-    .viewbtn svg { width: 20px; height: 20px; fill: var(--text-header); }
-    .viewbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    /* its menu: min 188px, radius 16, padding 4; items 28px, radius 12, padding 4px 32px 4px 4px, 16px check on the left of the current view, hover rgba(0,0,0,.08) */
-    .vmenu { position: absolute; left: 0; top: 32px; z-index: 300; min-width: 188px; padding: 4px; background: #fff; border-radius: 16px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
-    .vmenu[hidden] { display: none; }
-    .vmenu button { display: flex; align-items: center; gap: 12px; width: 100%; height: 28px; padding: 4px 32px 4px 4px; border: 0; border-radius: 12px; background: none; text-align: left; font-weight: 400; white-space: nowrap; }
-    .vmenu button:hover, .vmenu button.kb { background: rgba(0,0,0,.08); }
-    .vmenu .ck { width: 16px; height: 16px; flex: none; }
-    .vmenu .n { margin-left: auto; padding-left: 16px; color: var(--text-sub); }
-    .search input { min-width: 0; }
-    /* Type ID as a product tag chip (product page Tags, measured 2026-10-16): 20px, padding 2px 8px, radius 8px,
-       rgba(0,0,0,.05), 12px/18px weight 500, letter-spacing -0.06px, #4a4a4a */
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 8px; background: rgba(0,0,0,.05); color: #4a4a4a;
-      font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: -0.06px; white-space: nowrap; }
-    /* Product type as the product title in the Products list (measured): 12px/18px weight 500, letter-spacing -0.06px, #101010, at most 2 lines */
-    td.names div { font-weight: 500; letter-spacing: -0.06px; color: #101010;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
-    td.names div + div { margin-top: 2px; }
-    td.grp { color: var(--text-sub); }
-    /* body cells measured: padding 6px, 12px/18px weight 400 #101010 */
-    tbody td { height: 36px; padding: 6px; vertical-align: middle; }
-    tbody td:first-child { padding-left: 12px; } tbody td:last-child { padding-right: 12px; }
-    mark { background: #fff3a8; color: inherit; border-radius: 2px; }
-    .col-id { width: 120px; } .col-grp { width: 160px; }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="topbar"><h1>Type IDs</h1></div>
-
-    <div class="filters">
-      <div class="view">
-        <button type="button" class="viewbtn" id="viewBtn" aria-haspopup="listbox" aria-expanded="false"><span id="viewLabel">All</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10.53 4.72a.75.75 0 0 0-1.06 0l-2.75 2.75a.75.75 0 0 0 1.06 1.06L10 6.31l2.22 2.22a.75.75 0 1 0 1.06-1.06l-2.75-2.75Zm-3.81 7.81a.75.75 0 0 1 1.06-1.06L10 13.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-2.75 2.75a.75.75 0 0 1-1.06 0l-2.75-2.75Z"/></svg></button>
-        <div class="vmenu" id="viewMenu" role="listbox" hidden></div>
+    <h1>Type IDs</h1>
+    <div class="card">
+      <div class="head">
+        <div class="tabs" id="tabs" role="tablist" aria-label="Type group"></div>
+        <div class="sfield" id="sfield" hidden>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>
+          <input type="text" id="q" placeholder="Search by ID or product type" aria-label="Search by ID or product type" autocomplete="off" />
+        </div>
+        <button type="button" class="cancel" id="cancel" hidden>Cancel</button>
+        <button type="button" class="icon" id="searchBtn" aria-label="Search"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg></button>
       </div>
-      <label class="search">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>
-        <input type="text" id="fQ" placeholder="Search by ID or product type" aria-label="Search by ID or product type" autocomplete="off" />
-      </label>
+      <div class="row thead"><div>Product type</div><div>Type ID</div></div>
+      <div id="list"></div>
+      <div class="foot" id="count"></div>
     </div>
-
-    <table>
-      <thead><tr>
-        <th class="col-id" data-sort="id">Type ID</th>
-        <th data-sort="name">Product type</th>
-        <th class="col-grp" data-sort="group">Type group</th>
-      </tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div class="foot" id="count"></div>
   </div>
 
   <script>
@@ -425,75 +148,42 @@
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const hl = (s, q) => { const i = q ? s.toLowerCase().indexOf(q) : -1; return i < 0 ? esc(s) : esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length)); };
 
-    // one row per Type ID; a Type ID with several product names lists them all
+    // one entry per Type ID (several product names allowed); FML first, the rest by product name
     const byId = new Map();
-    for (const [id, name, group] of TYPES) {
-      if (!byId.has(id)) byId.set(id, { id, names: [], group });
-      byId.get(id).names.push(name);
-    }
-    const rows = [...byId.values()];
+    for (const [id, name, group] of TYPES) { if (!byId.has(id)) byId.set(id, { id, names: [], group }); byId.get(id).names.push(name); }
+    const rows = [...byId.values()].sort((a, b) => (b.id === 'FML') - (a.id === 'FML') || a.names[0].localeCompare(b.names[0]));
     const groups = [...new Set(rows.map(r => r.group).filter(Boolean))];
-    let group = '', sort = { key: 'name', dir: 1 };
+    const TABS = [['*', 'All'], ...groups.map(g => [g, g]), ['', 'No type group']];
+    let tab = '*';
 
-    // views = type groups, like the saved views of the Products list
-    const views = [['', 'All'], ...groups.map(g => [g, g]), ['-', 'No group']];
-    const CK = '<svg class="ck" viewBox="0 0 20 20" aria-hidden="true"><path fill="#101010" d="M15.78 5.97a.75.75 0 0 1 0 1.06l-6.5 6.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.97 2.97 5.97-5.97a.75.75 0 0 1 1.06 0Z"/></svg>';
-    const viewCount = v => rows.filter(r => !v || (v === '-' ? !r.group : r.group === v)).length;
-    let vKb = -1;
-    function viewOpen(on) {
-      $('viewMenu').hidden = !on; $('viewBtn').classList.toggle('open', on); $('viewBtn').setAttribute('aria-expanded', String(on));
-      if (!on) return;
-      $('viewMenu').innerHTML = views.map(([v, l]) => `<button type="button" role="option" aria-selected="${v === group}" data-g="${esc(v)}">${v === group ? CK : '<span class="ck"></span>'}<span>${esc(l)}</span><span class="n">${viewCount(v)}</span></button>`).join('');
-      vKb = views.findIndex(([v]) => v === group);
-    }
-    $('viewBtn').addEventListener('click', () => viewOpen($('viewMenu').hidden));
-    $('viewMenu').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; group = b.dataset.g; viewOpen(false); render(); $('viewBtn').focus(); });
-    document.addEventListener('mousedown', e => { if (!e.target.closest('.view')) viewOpen(false); });
-    $('viewBtn').addEventListener('keydown', e => {
-      const items = [...$('viewMenu').querySelectorAll('button')];
-      if (e.key === 'Escape') { viewOpen(false); return; }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault(); if ($('viewMenu').hidden) { viewOpen(true); return; }
-        vKb = (vKb + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-        items.forEach((b, i) => b.classList.toggle('kb', i === vKb));
-      }
-      if (e.key === 'Enter' && !$('viewMenu').hidden && vKb >= 0) { e.preventDefault(); items[vKb].click(); }
-    });
-
-    // sortable header labels as in mockup_table (transparent button, arrow on hover and on the sorted column)
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-      th.innerHTML = `<button type="button" class="sortbtn">${esc(th.textContent)}<span class="arr">↓</span></button>`;
-      th.querySelector('.sortbtn').addEventListener('click', () => {
-        const k = th.dataset.sort;
-        sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
-        render();
-      });
-    });
-
-    const val = (r, k) => (k === 'id' ? r.id : k === 'group' ? (r.group || '￿') : r.names[0]).toLowerCase();
-    const EMPTY = '<tr><td colspan="3" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>'
-      + '<h3>No type IDs found</h3><p>Try changing the search or the type group.</p><button type="button" class="btn primary" id="emptyClear">Clear filters</button></td></tr>';
+    const EMPTY = '<div class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No type IDs found</h3><p>Try another ID or product type name.</p></div>';
 
     function render() {
-      const q = $('fQ').value.trim().toLowerCase();
-      const list = rows.filter(r =>
-        (!group || (group === '-' ? !r.group : r.group === group)) &&
-        (!q || r.id.toLowerCase().includes(q) || r.names.some(n => n.toLowerCase().includes(q))))
-        .sort((a, b) => { const x = val(a, sort.key), y = val(b, sort.key); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || a.id.localeCompare(b.id); });
-      $('rows').innerHTML = list.length ? list.map(r =>
-        `<tr><td class="col-id"><span class="tag">${hl(r.id, q)}</span></td><td class="names">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}</td><td class="col-grp grp">${esc(r.group || '')}</td></tr>`).join('') : EMPTY;
-      $('count').textContent = list.length === rows.length ? rows.length + ' type IDs' : list.length + ' of ' + rows.length + ' type IDs';
-      $('viewLabel').textContent = (views.find(([v]) => v === group) || ['', 'All'])[1];
-      document.querySelectorAll('th[data-sort]').forEach(th => {
-        const on = th.dataset.sort === sort.key;
-        th.classList.toggle('sorted', on);
-        th.querySelector('.arr').textContent = on && sort.dir < 0 ? '↑' : '↓';
-      });
+      const q = $('q').value.trim().toLowerCase();
+      const searching = !$('sfield').hidden;
+      $('tabs').innerHTML = TABS.map(([v, l]) => `<button type="button" role="tab" class="tab${v === tab ? ' on' : ''}" aria-selected="${v === tab}" data-v="${esc(v)}">${esc(l)}</button>`).join('');
+      // a search looks through every group; the tab applies when not searching
+      const base = searching && q ? rows : rows.filter(r => tab === '*' || (r.group || '') === tab);
+      const list = base.filter(r => !q || r.id.toLowerCase().includes(q) || r.names.some(n => n.toLowerCase().includes(q)));
+      const showGroup = tab === '*' || (searching && q);
+      $('list').innerHTML = list.length ? list.map(r => `<div class="row item"><div class="nm">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}${showGroup && r.group ? `<p class="grp">${esc(r.group)}</p>` : ''}</div><div><span class="tag">${hl(r.id, q)}</span></div></div>`).join('') : EMPTY;
+      $('count').textContent = list.length + (list.length === 1 ? ' type ID' : ' type IDs');
     }
-    const clear = () => { $('fQ').value = ''; group = ''; render(); $('fQ').focus(); };
-    $('fQ').addEventListener('input', render);
-    $('fQ').addEventListener('keydown', e => { if (e.key === 'Escape') clear(); });
-    $('rows').addEventListener('click', e => { if (e.target.closest('#emptyClear')) clear(); });
+
+    function setSearch(on) {
+      $('sfield').hidden = !on; $('cancel').hidden = !on; $('tabs').hidden = on; $('searchBtn').hidden = on;
+      if (on) $('q').focus(); else { $('q').value = ''; $('searchBtn').focus(); }
+      render();
+    }
+    $('tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) { tab = b.dataset.v; render(); } });
+    $('searchBtn').addEventListener('click', () => setSearch(true));
+    $('cancel').addEventListener('click', () => setSearch(false));
+    $('q').addEventListener('input', render);
+    $('q').addEventListener('keydown', e => { if (e.key === 'Escape') setSearch(false); });
+    // typing anywhere on the page starts a search
+    document.addEventListener('keydown', e => {
+      if ($('sfield').hidden && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement.tagName !== 'INPUT') { setSearch(true); }
+    });
     render();
   </script>
 </body>

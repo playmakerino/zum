@@ -39,11 +39,10 @@
   img { max-width: 100%; height: auto; display: block; border-radius: 8px; }
   figure { margin: 0; }
   figcaption { color: var(--text-sub); margin-top: 6px; font-size: 12px; line-height: 18px; }
-  /* summary box: the bordered box of the Credit card */
-  .box { border: 1px solid #ddd; border-radius: 8px; box-shadow: var(--tile-sh); padding: 24px; margin: 4px 0 0; }
-  .box .grp { font-weight: 600; margin: 16px 0 2px; }
-  .box .grp:first-child { margin-top: 0; }
-  .box ul { margin: 2px 0 0; }
+  /* summary: group labels (Nhận / Làm / Trả) straight in the card */
+  .grp { font-weight: 600; margin: 16px 0 2px; }
+  h2 + .grp { margin-top: 0; }
+  .grp + ul { margin: 2px 0 0; }
   /* tables: Polaris list table, header band #f7f7f7 with 10px ends, rows split by #f2f2f2 */
   table { border-collapse: separate; border-spacing: 0; width: 100%; margin: 8px 0 12px; }
   th { background: var(--band); color: var(--text-header); font-size: 12px; line-height: 16px; font-weight: 500; text-align: left; padding: 8px 12px; white-space: nowrap; }
@@ -80,7 +79,6 @@
 <p class="sub">Mỗi ảnh mẫu cần 1 file PNG cùng khổ, mỗi vùng tô một mức xám. Máy đọc map để biết in hoạ tiết vào đâu.</p>
 <section class="card">
 <h2>Tóm tắt</h2>
-<div class="box">
   <div class="grp">Nhận</div>
   <ul><li>Ảnh mẫu, mỗi ảnh 1 file. Ví dụ <code>moc_CZR_PI-SIN-15.jpg</code></li></ul>
   <div class="grp">Làm</div>
@@ -91,7 +89,6 @@
   </ul>
   <div class="grp">Trả</div>
   <ul><li>1 PNG cho mỗi ảnh. Ví dụ <code>map_CZR_PI-SIN-15_r1.087.png</code></li></ul>
-</div>
 </section>
 <section class="card">
 <h2>Map là gì</h2>

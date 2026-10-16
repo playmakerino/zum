@@ -43,7 +43,7 @@
       ],
       forms: {
         'drive|mockup': 'tc_img_form_drive.html',
-        'device|pattern': 'tc_form_1_trang.html', 'drive|pattern': 'tc_form_1_trang_drive.html'
+        'device|pattern': 'tc_form_1_trang.html'
       }
     }
   };

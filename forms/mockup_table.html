@@ -102,6 +102,18 @@
     tbody tr:first-child td { border-top: 0; }
     tbody tr:hover td { background: var(--hover); }
     .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
+    .col-img { width: 52px; }
+
+    /* mock thumbnail, 4:5 like the mock photos; click to paste or clear the image link */
+    .thumb {
+      width: 28px; height: 35px; padding: 0; border: 0; border-radius: 6px; overflow: hidden; display: block;
+      background: var(--pill); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb:hover { box-shadow: 0 0 0 2px var(--text-header); }
+    .thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    tr.deleted .thumb { opacity: .45; pointer-events: none; }
+    td.col-img { padding-top: 0; padding-bottom: 0; }
 
     /* inline fields: pill like the entry page (#f2f2f2, 28px), shown on hover and focus */
     .cell {
@@ -205,6 +217,7 @@
 
       <table>
         <thead><tr>
+          <th class="col-img"></th>
           <th data-sort="Mockup_ID">Mockup ID</th>
           <th class="col-type" data-sort="Product_type_ID">Type ID</th>
           <th class="col-tier" data-sort="tier">Tier</th>
@@ -220,7 +233,9 @@
 
   <script>
     const WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/mockup-table';
-    const FIELDS = ['Mockup_ID', 'Product_type_ID', 'tier', 'used_in_tc_prd', 'used_in_tc_img'];
+    const FIELDS = ['Mockup_ID', 'Product_type_ID', 'tier', 'used_in_tc_prd', 'used_in_tc_img', 'thumb_url'];
+    // Shopify CDN resizes on request: a 28px cell only needs a ~96px wide image (a few KB instead of the full mock)
+    const thumbSrc = u => /^https:\/\/cdn\.shopify\.com\//.test(u) ? u + (u.includes('?') ? '&' : '?') + 'width=96' : u;
     const X_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
@@ -229,7 +244,7 @@
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const say = (text, isErr) => { const m = $('msg'); m.textContent = text || ''; m.classList.toggle('err', !!isErr); };
-    const norm = r => ({ Mockup_ID: String(r.Mockup_ID || '').trim().toUpperCase(), Product_type_ID: r.Product_type_ID || '', tier: r.tier == null || r.tier === '' ? '' : String(r.tier), used_in_tc_prd: !!r.used_in_tc_prd, used_in_tc_img: !!r.used_in_tc_img });
+    const norm = r => ({ Mockup_ID: String(r.Mockup_ID || '').trim().toUpperCase(), Product_type_ID: r.Product_type_ID || '', tier: r.tier == null || r.tier === '' ? '' : String(r.tier), used_in_tc_prd: !!r.used_in_tc_prd, used_in_tc_img: !!r.used_in_tc_img, thumb_url: String(r.thumb_url || '').trim() });
 
     // ---- server: only Load and Save send a request ----
     async function call(payload) {
@@ -261,7 +276,7 @@
     function changes() {
       const out = { inserts: [], updates: [], deletes: [] };
       for (const r of work) {
-        const row = { Mockup_ID: r.Mockup_ID, Product_type_ID: r.Product_type_ID, tier: r.tier, used_in_tc_prd: r.used_in_tc_prd, used_in_tc_img: r.used_in_tc_img };
+        const row = { Mockup_ID: r.Mockup_ID, Product_type_ID: r.Product_type_ID, tier: r.tier, used_in_tc_prd: r.used_in_tc_prd, used_in_tc_img: r.used_in_tc_img, thumb_url: r.thumb_url };
         if (r.id == null) { if (!r.deleted) out.inserts.push(row); }
         else if (r.deleted) out.deletes.push(r.id);
         else if (isChanged(r)) out.updates.push({ id: r.id, row });
@@ -305,7 +320,9 @@
       const del = r.deleted
         ? '<button type="button" class="btn tertiary undo del">Undo</button>'
         : `<button type="button" class="x del" aria-label="Delete">${X_ICON}</button>`;
+      const img = r.thumb_url ? `<img src="${esc(thumbSrc(r.thumb_url))}" alt="" loading="lazy" />` : '';
       return `<tr data-key="${r.key}" class="${cls}">
+        <td class="col-img"><button type="button" class="thumb" aria-label="${r.thumb_url ? 'Change image link' : 'Add image link'}" data-tip="${r.thumb_url ? 'Change image link' : 'Add image link'}">${img}</button></td>
         <td><div class="idwrap"><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
@@ -327,7 +344,7 @@
       ['fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).classList.toggle('on', !!$(id).value));
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty">No mockups match these filters.</td></tr>';
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="7" class="empty">No mockups match these filters.</td></tr>';
       renderCount(list.filter(r => r.id != null).length);
     }
     function renderCount(shown) {
@@ -365,13 +382,22 @@
       say(''); updateRowClass(tr, r);
     });
     $('rows').addEventListener('click', e => {
+      const t = e.target.closest('.thumb');
+      if (t) {
+        const r = rowOf(t.closest('tr')); if (!r) return;
+        const v = prompt('Image link (https://…). Leave empty to remove the image.', r.thumb_url);
+        if (v === null) return;
+        r.thumb_url = v.trim();
+        say(''); render();
+        return;
+      }
       const b = e.target.closest('.del'); if (!b) return;
       const r = rowOf(b.closest('tr')); if (!r) return;
       if (r.id == null) work = work.filter(x => x !== r); else r.deleted = !r.deleted;
       say(''); render();
     });
     $('addBtn').addEventListener('click', () => {
-      work.unshift({ key: 'n' + (++newKey), id: null, deleted: false, Mockup_ID: '', Product_type_ID: '', tier: '', used_in_tc_prd: false, used_in_tc_img: true });
+      work.unshift({ key: 'n' + (++newKey), id: null, deleted: false, Mockup_ID: '', Product_type_ID: '', tier: '', used_in_tc_prd: false, used_in_tc_img: true, thumb_url: '' });
       say(''); render();
       $('rows').querySelector('tr.new .f-id').focus();
     });

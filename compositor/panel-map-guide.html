@@ -58,7 +58,7 @@
   /* text left, picture right, as in the Credit card */
   .two { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin: 6px 0 12px; }
   .two .col { flex: 1; min-width: 280px; }
-  .two figure { width: 250px; flex: 0 0 250px; }
+  .two > figure { width: 250px; flex: 0 0 250px; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 8px 0 0; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .rrow { display: flex; gap: 16px; align-items: flex-start; }
@@ -72,7 +72,7 @@
     h1 { font-size: 20px; line-height: 24px; }
     .card { padding: 16px; }
     .trio { flex-direction: column; }
-    .two figure { flex: 1 1 100%; width: 100%; }
+    .two > figure { flex: 1 1 100%; width: 100%; }
     table { display: block; overflow-x: auto; }
   }
   td ol { margin: 0; padding-left: 18px; }

@@ -32,7 +32,7 @@
     .page { max-width: 792px; margin: 0 auto; padding: 0 16px 32px; }
 
     /* top bar: title left, actions right */
-    .topbar { height: 60px; display: flex; align-items: center; gap: 8px; }
+    .topbar { height: 60px; display: flex; align-items: center; gap: 6px; }
     .topbar h1 { flex: 1; font-size: 13px; line-height: 20px; font-weight: 500; }
     .btn {
       height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px;
@@ -138,6 +138,47 @@
       background: var(--pill); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
     }
     .preview img { width: 100%; display: block; }
+    button.thumb { padding: 0; border: 0; cursor: pointer; }
+    button.thumb:hover::after { border-color: rgba(0,0,0,.3); }
+    button.thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    tr.deleted button.thumb { pointer-events: none; }
+
+    /* image dialog: Shopify file drop zone (empty: grey "Add files" pill + one grey line; filled: image, x on hover) */
+    .scrim { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.5); display: grid; place-items: center; padding: 16px; }
+    .scrim[hidden] { display: none; }
+    .dlg { width: 100%; max-width: 420px; background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
+    .dlg-head { height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; background: #f7f7f7; }
+    .dlg-head h2 { flex: 1; font-size: 13px; line-height: 20px; font-weight: 600; }
+    .dlg-body { padding: 16px; }
+    .zone { position: relative; display: grid; place-items: center; gap: 8px; min-height: 168px; padding: 16px;
+      border: 1px dashed #c0c0c0; border-radius: 8px; background: #fff; cursor: pointer; text-align: center; transition: border-color .1s; }
+    .zone:hover, .zone.drag { border-color: #8a8a8a; }
+    .zone.drag { background: #f7f7f7; }
+    .zone:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .zone-pill { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 4px 12px 4px 8px; border-radius: 9999px;
+      background: #ebebeb; font-size: 13px; line-height: 20px; font-weight: 500; transition: background .1s; }
+    .zone:hover .zone-pill { background: #e3e3e3; }
+    .zone-pill svg { width: 16px; height: 16px; fill: var(--text); }
+    .zone-sub { color: var(--text-sub); font-size: 13px; line-height: 20px; }
+    .zone img { max-width: 100%; max-height: 240px; object-fit: contain; display: block; border-radius: 6px; }
+    .zone .zx { position: absolute; top: 8px; right: 8px; display: none; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+    .zone:hover .zx, .zone:focus-within .zx { display: inline-grid; }
+    .zone .zx:hover { background: #f2f2f2; }
+    .dlg-note { color: var(--text-sub); font-size: 12px; line-height: 18px; margin-top: 8px; }
+
+    /* unsaved changes bar (Shopify contextual save bar) */
+    .savebar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 350; display: flex; align-items: center; gap: 4px;
+      height: 36px; padding: 4px 4px 4px 16px; border-radius: 9999px; background: #0a0a0a; color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; }
+    .savebar[hidden] { display: none; }
+    .savebar span { font-size: 13px; line-height: 20px; font-weight: 450; margin-right: 12px; }
+    .savebar button { height: 28px; padding: 4px 12px; border: 0; border-radius: 9999px; font-size: 13px; line-height: 20px; font-weight: 600; transition: background-color .2s; }
+    .sb-discard { background: #303030; color: #fff; }
+    .sb-discard:hover { background: #404040; }
+    .sb-save { background: #fff; color: var(--text); font-weight: 500 !important; }
+    .sb-save:hover { background: #ebebeb; }
+    .savebar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
     /* inline fields: pill like the entry page (#f2f2f2, 28px), shown on hover and focus */
     .cell {
@@ -222,7 +263,22 @@
     <div class="topbar">
       <h1>Mockups</h1>
       <button type="button" class="btn" id="loadBtn">Load</button>
-      <button type="button" class="btn primary" id="saveBtn" disabled>Save</button>
+      <button type="button" class="btn primary" id="addBtn" disabled>Add mockup</button>
+    </div>
+    <div class="savebar" id="savebar" role="region" aria-label="Unsaved changes" hidden>
+      <span>Unsaved changes</span>
+      <button type="button" class="sb-discard" id="discardBtn">Discard</button>
+      <button type="button" class="sb-save" id="saveBtn">Save</button>
+    </div>
+    <div class="scrim" id="imgDlg" hidden>
+      <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="imgTitle">
+        <div class="dlg-head"><h2 id="imgTitle">Image</h2><button type="button" class="x" id="imgClose" aria-label="Close"></button></div>
+        <div class="dlg-body">
+          <div class="zone" id="imgZone" tabindex="0" role="button" aria-label="Add or replace the image"></div>
+          <input type="file" id="imgFile" accept="image/*" hidden />
+          <p class="dlg-note">The image is uploaded to Shopify when you press Save.</p>
+        </div>
+      </div>
     </div>
     <p class="hint">Changes stay in this page until you press Save. Load reads the table again.</p>
 
@@ -236,7 +292,6 @@
         <select class="pick" id="fTier" aria-label="Filter by tier"><option value="">Tier</option><option value="none">No tier</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select>
         <select class="pick" id="fPrd" aria-label="Filter by TC prd"><option value="">TC prd</option><option value="yes">TC prd: yes</option><option value="no">TC prd: no</option></select>
         <select class="pick" id="fImg" aria-label="Filter by TC img"><option value="">TC img</option><option value="yes">TC img: yes</option><option value="no">TC img: no</option></select>
-        <button type="button" class="btn tertiary" id="addBtn" disabled>Add mockup</button>
       </div>
 
       <table>
@@ -263,6 +318,8 @@
     const STORE_KEY = 'mockup_table_state_v1';
     const IMG_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path fill-rule="evenodd" d="M6.75 3.5a3.25 3.25 0 0 0-3.25 3.25v6.5a3.25 3.25 0 0 0 3.25 3.25h6.5a3.25 3.25 0 0 0 3.25-3.25v-6.5a3.25 3.25 0 0 0-3.25-3.25h-6.5Zm-1.75 3.25c0-.966.784-1.75 1.75-1.75h6.5c.966 0 1.75.784 1.75 1.75v4.19l-1.72-1.72a.75.75 0 0 0-1.06 0l-2.22 2.22-1.22-1.22a.75.75 0 0 0-1.06 0l-1.72 1.72v-5.19Zm0 6.5v.31l2.25-2.25 1.22 1.22a.75.75 0 0 0 1.06 0l2.22-2.22 2.22 2.22v.72c0 .966-.784 1.75-1.75 1.75h-6.5a1.75 1.75 0 0 1-1.75-1.75Z"/></svg>';
     const X_ICON ='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
+    const PLUS_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"/></svg>';
+    const pending = new Map(); // row key -> { file, url } image picked on this page, uploaded on Save (not kept across F5)
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
     let types = [], loaded = false, newKey = 0;
@@ -273,10 +330,20 @@
     const norm = r => ({ Mockup_ID: String(r.Mockup_ID || '').trim().toUpperCase(), Product_type_ID: r.Product_type_ID || '', tier: r.tier == null || r.tier === '' ? '' : String(r.tier), used_in_tc_prd: !!r.used_in_tc_prd, used_in_tc_img: !!r.used_in_tc_img, thumb_url: String(r.thumb_url || '').trim() });
 
     // ---- server: only Load and Save send a request ----
-    async function call(payload) {
+    // with images: multipart, field "payload" = the JSON, each file named <ref>.<ext> (the row says _upload: <ref>)
+    async function call(payload, files) {
       let res;
       try {
-        res = await fetch(WEBHOOK_URL, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, TC_AUTH_HEADERS()), body: JSON.stringify(payload) });
+        let body, headers = TC_AUTH_HEADERS();
+        if (files && files.length) {
+          body = new FormData();
+          body.append('payload', JSON.stringify(payload));
+          for (const f of files) body.append('files', f.file, f.ref + '.' + ((f.file.name.split('.').pop() || 'jpg').toLowerCase()));
+        } else {
+          body = JSON.stringify(payload);
+          headers = Object.assign({ 'Content-Type': 'application/json' }, headers);
+        }
+        res = await fetch(WEBHOOK_URL, { method: 'POST', headers, body });
       } catch (e) { throw new Error('Could not reach the server. Check the connection and try again.'); }
       if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); throw new Error('Wrong or missing password. Enter it, then press Load again.'); }
       let data = null; try { data = await res.json(); } catch (e) {}
@@ -298,15 +365,19 @@
     }
 
     // ---- changes ----
-    const isChanged = r => r.id == null || r.deleted || FIELDS.some(f => orig.get(r.id)[f] !== r[f]);
+    const isChanged = r => r.id == null || r.deleted || pending.has(r.key) || FIELDS.some(f => orig.get(r.id)[f] !== r[f]);
     function changes() {
       const out = { inserts: [], updates: [], deletes: [] };
+      const files = [];
       for (const r of work) {
         const row = { Mockup_ID: r.Mockup_ID, Product_type_ID: r.Product_type_ID, tier: r.tier, used_in_tc_prd: r.used_in_tc_prd, used_in_tc_img: r.used_in_tc_img, thumb_url: r.thumb_url };
+        const p = !r.deleted && pending.get(r.key);
+        if (p) { row._upload = 'u' + files.length; files.push({ ref: row._upload, file: p.file }); }
         if (r.id == null) { if (!r.deleted) out.inserts.push(row); }
         else if (r.deleted) out.deletes.push(r.id);
         else if (isChanged(r)) out.updates.push({ id: r.id, row });
       }
+      Object.defineProperty(out, 'files', { value: files });   // not part of the JSON
       return out;
     }
     const changeCount = () => { const c = changes(); return c.inserts.length + c.updates.length + c.deletes.length; };
@@ -346,9 +417,11 @@
       const del = r.deleted
         ? '<button type="button" class="btn tertiary undo del">Undo</button>'
         : `<button type="button" class="x del" aria-label="Delete">${X_ICON}</button>`;
-      const img = r.thumb_url ? `<img src="${esc(thumbSrc(r.thumb_url))}" alt="" loading="lazy" />` : IMG_ICON;
+      const p = pending.get(r.key);
+      const small = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url) : '', big = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url, 480) : '';
+      const img = small ? `<img src="${esc(small)}" alt="" loading="lazy" />` : IMG_ICON;
       return `<tr data-key="${r.key}" class="${cls}">
-        <td><div class="idwrap"><div class="thumb"${r.thumb_url ? ` data-full="${esc(thumbSrc(r.thumb_url, 480))}"` : ''}>${img}</div><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
+        <td><div class="idwrap"><button type="button" class="thumb"${big ? ` data-full="${esc(big)}"` : ''} aria-label="${small ? 'Change or remove the image' : 'Add an image'}"${off}>${img}</button><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
         <td class="c col-flag"><input type="checkbox" class="chk f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
@@ -362,9 +435,7 @@
         th.classList.toggle('sorted', on);
         th.querySelector('.arr').textContent = on && sort.dir < 0 ? '↑' : '↓';
       });
-      const n = changeCount();
-      $('saveBtn').disabled = !loaded || !n;
-      $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
+      $('savebar').hidden = !loaded || !changeCount();
       $('addBtn').disabled = !loaded;
       ['fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).classList.toggle('on', !!$(id).value));
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
@@ -379,8 +450,7 @@
     }
     function updateRowClass(tr, r) {
       tr.classList.toggle('changed', isChanged(r));
-      const n = changeCount();
-      $('saveBtn').disabled = !n; $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
+      $('savebar').hidden = !changeCount();
       renderCount($('rows').querySelectorAll('tr[data-key]:not(.new)').length);
     }
 
@@ -407,6 +477,8 @@
       say(''); updateRowClass(tr, r); persist();
     });
     $('rows').addEventListener('click', e => {
+      const t = e.target.closest('button.thumb');
+      if (t) { const r = rowOf(t.closest('tr')); if (r) openImage(r); return; }
       const b = e.target.closest('.del'); if (!b) return;
       const r = rowOf(b.closest('tr')); if (!r) return;
       if (r.id == null) work = work.filter(x => x !== r); else r.deleted = !r.deleted;
@@ -458,22 +530,81 @@
       if (changeCount() && !confirm('Discard ' + changeCount() + ' unsaved changes and load the table again?')) return;
       say('Loading…');
       withBusy(async () => {
-        try { take(await call({ action: 'list' })); persist(); say(''); }
+        try { const data = await call({ action: 'list' }); clearPending(); take(data); persist(); say(''); }
         catch (e) { say(e.message, true); }
       });
     });
+    const clearPending = () => { for (const p of pending.values()) URL.revokeObjectURL(p.url); pending.clear(); };
     $('saveBtn').addEventListener('click', () => {
       const ch = changes();
-      say('Saving…');
+      say(ch.files.length ? 'Saving and uploading ' + ch.files.length + ' image' + (ch.files.length > 1 ? 's' : '') + '…' : 'Saving…');
+      $('savebar').classList.add('busy');
       withBusy(async () => {
         try {
-          const data = await call({ action: 'save', changes: ch });
-          take(data); persist();
+          const data = await call({ action: 'save', changes: { inserts: ch.inserts, updates: ch.updates, deletes: ch.deletes } }, ch.files);
+          clearPending(); take(data); persist();
           const s = data.saved || {};
-          say('Saved: ' + (s.inserted || 0) + ' added, ' + (s.updated || 0) + ' changed, ' + (s.deleted || 0) + ' deleted.');
+          say('Saved: ' + (s.inserted || 0) + ' added, ' + (s.updated || 0) + ' changed, ' + (s.deleted || 0) + ' deleted' + (s.uploaded ? ', ' + s.uploaded + ' image' + (s.uploaded > 1 ? 's' : '') + ' uploaded' : '') + '.');
         } catch (e) { say(e.message + ' Nothing was saved.', true); }
+        finally { $('savebar').classList.remove('busy'); }
       });
     });
+    // Discard: back to the table as last loaded or saved, no request
+    $('discardBtn').addEventListener('click', () => {
+      clearPending();
+      work = [...orig].map(([id, r]) => Object.assign({ key: 'r' + id, id, deleted: false }, r));
+      say(''); render(); persist();
+    });
+
+    // ---- image dialog: add, replace (click, drop or paste) or remove; nothing is sent until Save ----
+    let imgRow = null;
+    const zone = $('imgZone'), fileInput = $('imgFile');
+    $('imgClose').innerHTML = X_ICON;
+    function drawZone() {
+      const r = imgRow, p = pending.get(r.key);
+      const src = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url, 800) : '';
+      if (!src) {
+        zone.innerHTML = `<div><span class="zone-pill">${PLUS_ICON}Add files</span><div class="zone-sub" style="margin-top:8px">Drag and drop images</div></div>`;
+        return;
+      }
+      const name = p ? p.file.name : decodeURIComponent((r.thumb_url.split('?')[0].split('/').pop()) || '');
+      zone.innerHTML = `<img src="${esc(src)}" alt="" /><div class="zone-sub">${esc(name)}</div><button type="button" class="x zx" aria-label="Remove image">${X_ICON}</button>`;
+    }
+    function openImage(r) {
+      imgRow = r;
+      $('imgTitle').textContent = 'Image' + (r.Mockup_ID ? ' · ' + r.Mockup_ID : '');
+      drawZone();
+      $('imgDlg').hidden = false;
+      zone.focus();
+    }
+    function closeImage() { $('imgDlg').hidden = true; imgRow = null; render(); persist(); }
+    function setImage(file) {
+      if (!file || !imgRow) return;
+      if (!/^image\//.test(file.type)) { say('That file is not an image.', true); return; }
+      if (file.size > 20 * 1024 * 1024) { say('Images must be under 20 MB.', true); return; }
+      const old = pending.get(imgRow.key); if (old) URL.revokeObjectURL(old.url);
+      pending.set(imgRow.key, { file, url: URL.createObjectURL(file) });
+      say(''); drawZone();
+    }
+    zone.addEventListener('click', e => {
+      if (e.target.closest('.zx')) {
+        e.stopPropagation();
+        const old = pending.get(imgRow.key); if (old) { URL.revokeObjectURL(old.url); pending.delete(imgRow.key); }
+        imgRow.thumb_url = '';
+        drawZone();
+        return;
+      }
+      fileInput.click();
+    });
+    zone.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === zone) { e.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', () => { setImage(fileInput.files[0]); fileInput.value = ''; });
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); setImage(e.dataTransfer.files[0]); });
+    document.addEventListener('paste', e => { if (!$('imgDlg').hidden) { const f = [...(e.clipboardData || {}).files || []][0]; if (f) setImage(f); } });
+    $('imgClose').addEventListener('click', closeImage);
+    $('imgDlg').addEventListener('mousedown', e => { if (e.target === $('imgDlg')) closeImage(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('imgDlg').hidden) closeImage(); });
     // ---- Shopify-style option list for every select.pick (filters and cells); the native select keeps the value ----
     (() => {
       const CHECK = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';

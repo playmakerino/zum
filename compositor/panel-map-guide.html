@@ -91,7 +91,7 @@
     <li>Tìm số <code>r</code> (cỡ hoạ tiết).</li>
   </ul>
   <div class="grp">Trả</div>
-  <ul><li>1 PNG cho mỗi ảnh. Ví dụ <code>map_CZR_PI-SIN-15_r1.087.png</code>; ảnh cắt mất thân thì thêm <code>bc</code>: <code>map_TPJ_KAN-FVI-03_r1.32_bc0.55,-0.12.png</code></li></ul>
+  <ul><li>1 PNG cho mỗi ảnh, tên có <code>r</code> và <code>bc</code>. Ví dụ <code>map_TPJ_KAN-FVI-03_r1.2_bc0.444,0.303.png</code></li></ul>
 </section>
 <section class="card">
 <h2>Map là gì</h2>
@@ -227,13 +227,14 @@
 <p style="margin-top:12px">Mỗi ảnh crop khác nhau nên mỗi ảnh một <code>r</code> riêng: chọn <code>r</code> sao cho số ô ngang ngực bằng nhau giữa các ảnh của cùng sản phẩm. Ghi <code>r</code> vào cuối tên file map.</p>
 </section>
 <section class="card">
-<h2>Số bc (tâm thân áo khi ảnh bị cắt)</h2>
-<p>Chỉ cần khi khung ảnh cắt mất một phần thân áo (mảnh mức 20). Thân nằm trọn trong ảnh thì bỏ trống. Ghi vào cuối tên file map, sau <code>r</code>: <code>_bc0.55,-0.12</code>.</p>
+<h2>Số bc (tâm thân áo)</h2>
+<p><code>bc</code> = tâm thân áo (mảnh mức 20) theo tỉ lệ ảnh mock: <code>[X ÷ rộng mock, Y ÷ cao mock]</code>, lấy 3 số lẻ. <b>Mọi file map đều ghi <code>bc</code></b>, ở cuối tên, sau <code>r</code>.</p>
 <p><b>Tính bằng tool:</b> <a href="https://playmakerino.github.io/zum/compositor/print-area-tuner.html" target="_blank" rel="noopener">Print Area Tuner</a> (cách dùng ở mục Các tool).</p>
 <table>
-  <tr><th>Trường hợp</th><th>bc</th></tr>
-  <tr><td>Mock 2000 × 2500, tâm thân ở X = 1100, Y = -300</td><td><code>[0.55, -0.12]</code> (X ÷ rộng, Y ÷ cao, lấy 2 số lẻ)</td></tr>
-  <tr><td>Thân không in hoạ tiết</td><td><code>[10, 10]</code></td></tr>
+  <tr><th>Trường hợp</th><th>bc</th><th>Trong tên file</th></tr>
+  <tr><td>Thân nằm trọn trong ảnh (flatlay pajama)</td><td><code>[0.444, 0.285]</code></td><td><code>_bc0.444,0.285</code></td></tr>
+  <tr><td>Thân bị khung cắt: tâm nằm ngoài ảnh (mock 2000 × 2500, X = 1100, Y = -300)</td><td><code>[0.550, -0.120]</code></td><td><code>_bc0.550,-0.120</code></td></tr>
+  <tr><td>Thân không in hoạ tiết</td><td><code>[10, 10]</code></td><td><code>_bc10,10</code></td></tr>
 </table>
 <p><b>Tính bằng Photoshop</b> (chỉ tính thân, không tính tay, quần, mũ):</p>
 <ol>
@@ -251,16 +252,16 @@
   <tr><td>Kiểm tra</td><td>Histogram chỉ vài cột rời; phóng 300% soi khe tay, cổ tay</td><td>Thấy dải xám loang giữa hai vùng: mép bị mờ</td></tr>
 </table>
 <h3>Đặt tên</h3>
-<p><code>&lt;moc|map&gt;_&lt;TYPE&gt;_&lt;ảnh&gt;[_r&lt;số&gt;][_bc&lt;x&gt;,&lt;y&gt;]</code></p>
+<p>Ảnh gốc: <code>moc_&lt;TYPE&gt;_&lt;ảnh&gt;</code>. Map: <code>map_&lt;TYPE&gt;_&lt;ảnh&gt;_r&lt;số&gt;_bc&lt;x&gt;,&lt;y&gt;</code>.</p>
 <table>
   <tr><th>Phần</th><th>Giá trị</th><th>Ví dụ</th></tr>
   <tr><td>moc / map</td><td><code>moc</code> = ảnh gốc, <code>map</code> = file map</td><td><code>map</code></td></tr>
   <tr><td>TYPE</td><td>CZR, TPJ, MPS, WPS, BLK, SLB, BHD, CSS, ZHD</td><td><code>CSS</code></td></tr>
-  <tr><td>ảnh</td><td><code>flatlay</code>, <code>flatlay2</code>, hoặc mã mockup in hoa</td><td><code>KAN-SSK-01</code></td></tr>
-  <tr><td>r</td><td>Chỉ file map</td><td><code>r1.23</code></td></tr>
-  <tr><td>bc</td><td>Chỉ file map, chỉ khi ảnh cắt mất thân; 2 số cách nhau dấu phẩy</td><td><code>bc0.55,-0.12</code></td></tr>
+  <tr><td>ảnh</td><td><code>flatlay</code>, <code>flatlay2</code>, hoặc mã mockup in hoa</td><td><code>flatlay</code></td></tr>
+  <tr><td>r</td><td>Chỉ file map, bắt buộc</td><td><code>r1.08</code></td></tr>
+  <tr><td>bc</td><td>Chỉ file map, bắt buộc; 2 số cách nhau dấu phẩy</td><td><code>bc0.491,0.494</code></td></tr>
 </table>
-<p>Một cặp: <code>moc_CSS_KAN-SSK-01.jpg</code> + <code>map_CSS_KAN-SSK-01_r1.23.png</code>. Flatlay: <code>moc_CSS_flatlay.jpg</code> + <code>map_CSS_flatlay_r1.08.png</code>. Ảnh cắt mất thân: <code>map_TPJ_KAN-FVI-03_r1.32_bc0.55,-0.12.png</code>.</p>
+<p>Một cặp: <code>moc_CSS_flatlay.jpg</code> + <code>map_CSS_flatlay_r1.08_bc0.491,0.494.png</code>. Ảnh người mặc: <code>moc_TPJ_KAN-FVI-03.jpg</code> + <code>map_TPJ_KAN-FVI-03_r1.2_bc0.444,0.303.png</code>.</p>
 </section>
 <section class="card">
 <h2>Các tool</h2>

@@ -26,9 +26,9 @@
     button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
     mark { background: #fff3a8; color: inherit; border-radius: 2px; }
 
-    .page { max-width: 816px; margin: 0 auto; padding: 40px 16px 48px; }
-    /* page title: 26px/32px weight 500, letter-spacing -0.52px, 13px above the card */
-    h1 { font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.52px; margin-bottom: 13px; }
+    .page { max-width: 816px; margin: 0 auto; padding: 0 16px 48px; }
+    /* page title as in mockup_table.html: 13px/20px weight 500 in a 60px top bar */
+    h1 { display: flex; align-items: center; height: 60px; font-size: 13px; line-height: 20px; font-weight: 500; }
 
     /* card: 20px radius, card shadow, clips its rows */
     .card { background: #fff; border-radius: 20px; box-shadow: var(--card-sh); overflow: hidden; }
@@ -73,8 +73,8 @@
     .empty h3 { color: var(--text); font-size: 20px; line-height: 24px; font-weight: 600; margin-bottom: 8px; }
 
     @media (max-width: 640px) {
-      .page { padding: 24px 12px 32px; }
-      h1 { font-size: 20px; line-height: 24px; }
+      .page { padding: 0 12px 32px; }
+      h1 { height: 52px; }
       .row { grid-template-columns: 1fr 88px 104px; }
       .sfield input { font-size: 16px; }
     }

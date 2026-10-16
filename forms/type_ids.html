@@ -53,7 +53,7 @@
     [hidden] { display: none !important; }
 
     /* list: header row 32px #f7f7f7, padding 8px 12px 8px 16px, 12px/16px weight 500 #4a4a4a; rows 36px + 1px #f2f2f2 line, cells padding 8px 12px */
-    .row { display: grid; grid-template-columns: 1fr 140px; align-items: center; }
+    .row { display: grid; grid-template-columns: 1fr 120px 160px; align-items: center; }
     .row > div { padding: 8px 12px; min-width: 0; }
     .row > div:first-child { padding-left: 16px; }
     .thead { background: var(--band); color: var(--text-header); font-size: 12px; line-height: 16px; font-weight: 500; }
@@ -62,7 +62,7 @@
     .thead + .item { border-top: 0; }
     .nm { font-weight: 500; }
     .nm div + div { margin-top: 2px; }
-    .grp { margin-top: 2px; font-size: 12px; line-height: 18px; color: var(--text-sub); font-weight: 400; }
+    .grp { color: var(--text-sub); }
     /* Type ID as a product tag chip (measured): 20px, padding 2px 8px, radius 8px, rgba(0,0,0,.05), 12px/18px weight 500, #4a4a4a */
     .tag { display: inline-block; padding: 2px 8px; border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text-header);
       font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: -0.06px; white-space: nowrap; }
@@ -75,7 +75,7 @@
     @media (max-width: 640px) {
       .page { padding: 24px 12px 32px; }
       h1 { font-size: 20px; line-height: 24px; }
-      .row { grid-template-columns: 1fr 104px; }
+      .row { grid-template-columns: 1fr 88px 104px; }
       .sfield input { font-size: 16px; }
     }
   </style>
@@ -93,7 +93,7 @@
         <button type="button" class="cancel" id="cancel" hidden>Cancel</button>
         <button type="button" class="icon" id="searchBtn" aria-label="Search"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg></button>
       </div>
-      <div class="row thead"><div>Product type</div><div>Type ID</div></div>
+      <div class="row thead"><div>Product type</div><div>Type ID</div><div>Type group</div></div>
       <div id="list"></div>
       <div class="foot" id="count"></div>
     </div>
@@ -165,8 +165,7 @@
       // a search looks through every group; the tab applies when not searching
       const base = searching && q ? rows : rows.filter(r => tab === '*' || (r.group || '') === tab);
       const list = base.filter(r => !q || r.id.toLowerCase().includes(q) || r.names.some(n => n.toLowerCase().includes(q)));
-      const showGroup = tab === '*' || (searching && q);
-      $('list').innerHTML = list.length ? list.map(r => `<div class="row item"><div class="nm">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}${showGroup && r.group ? `<p class="grp">${esc(r.group)}</p>` : ''}</div><div><span class="tag">${hl(r.id, q)}</span></div></div>`).join('') : EMPTY;
+      $('list').innerHTML = list.length ? list.map(r => `<div class="row item"><div class="nm">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}</div><div><span class="tag">${hl(r.id, q)}</span></div><div class="grp">${esc(r.group || '')}</div></div>`).join('') : EMPTY;
       $('count').textContent = list.length + (list.length === 1 ? ' type ID' : ' type IDs');
     }
 

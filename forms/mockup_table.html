@@ -7,97 +7,200 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="forms.css">
+  <!-- Polaris look, numbers measured on admin.shopify.com Metaobjects > Entries (list + entry page) and guide/SHOPIFY-UI-GUIDE.md -->
   <style>
-    .container { width: 100%; max-width: 760px; position: relative; z-index: 1; }
-    .head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-    h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; flex: 1; }
-    .sub { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.5; }
-
-    input[type="text"], select {
-      height: 36px; background: var(--surface-elevated);
-      border: none; border-radius: 4px; padding: 0 10px;
-      font-family: var(--font); font-size: 14px; color: var(--text); outline: none;
-      transition: background 0.15s, box-shadow 0.15s;
+    :root {
+      --text: #101010; --text-sub: #616161; --text-header: #4a4a4a; --placeholder: #4a4a4a;
+      --line: #f2f2f2; --band: #f7f7f7; --hover: #f7f7f7; --pill: #f2f2f2;
+      --t-hover: rgba(0,0,0,.08); --t-active: rgba(0,0,0,.13);
+      --focus: #5083f0; --critical: #8e0b21; --success-bg: #b3f782; --success: #214b03;
+      --card-sh: 0 0 2px rgba(0,0,0,.24), 0 2px 12px rgba(0,0,0,.02), 0 4px 16px rgba(0,0,0,.02), 0 4px 48px rgba(0,0,0,.02);
+      --ring: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.13);
+      --ring-focus: 0 0 0 1px var(--focus), 0 0 0 3px rgba(53,115,246,.06);
     }
-    input[type="text"]::placeholder { color: var(--text-muted); }
-    input[type="text"]:hover, select:hover, input[type="text"]:focus, select:focus { background: #2a2a2a; }
-    input[type="text"]:focus, select:focus { box-shadow: 0 0 0 2px var(--text); }
-    input:disabled, select:disabled { opacity: 0.4; cursor: default; }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: #fff; color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px; line-height: 20px; letter-spacing: -.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .page { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
 
+    /* top bar: title left, actions right */
+    .topbar { height: 60px; display: flex; align-items: center; gap: 8px; }
+    .topbar h1 { flex: 1; font-size: 13px; line-height: 20px; font-weight: 500; }
     .btn {
-      height: 36px; padding: 0 16px; border: 1px solid #727272; border-radius: 500px;
-      background: none; color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 700;
-      cursor: pointer; white-space: nowrap; transition: border-color 0.1s, transform 0.1s, background 0.1s;
+      height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px;
+      font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap;
+      background: #fff; color: var(--text);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03);
+      transition: background-color .4s cubic-bezier(.2,.8,0,1);
     }
-    .btn:hover:not(:disabled) { border-color: var(--text); transform: scale(1.04); }
-    .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; }
-    .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
-    .btn:disabled { opacity: 0.35; cursor: default; }
+    .btn:hover:not(:disabled) { background: var(--hover); }
+    .btn.primary {
+      background: var(--text); color: #fff;
+      box-shadow: 0 1px .5px -.5px rgba(0,0,0,.13), 0 1px 2px -.5px rgba(0,0,0,.13), 0 4px 6px -2px rgba(0,0,0,.13), 0 2px 3px -1.5px rgba(0,0,0,.13), inset 0 0 4px 1px #101010, inset 0 0 4px 2px rgba(255,255,255,.1), inset 0 0 12px -6px rgba(255,255,255,.75);
+    }
+    .btn.primary:hover:not(:disabled) { background: #2a2a2a; }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn.tertiary { background: none; box-shadow: none; }
+    .btn.tertiary:hover:not(:disabled) { background: var(--t-hover); }
+    .btn.tertiary:active:not(:disabled) { background: var(--t-active); }
+    .btn:focus-visible, .sortbtn:focus-visible, .x:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .hint { color: var(--text-sub); margin-bottom: 12px; }
 
-    .filters { display: grid; grid-template-columns: 1fr 96px 64px 72px 72px auto; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .filters input, .filters select { width: 100%; }
+    /* filter bar: 36px card, 4px padding */
+    .filters {
+      display: flex; align-items: center; gap: 4px; padding: 4px; margin-bottom: 8px;
+      background: #fff; border-radius: 12px; box-shadow: var(--card-sh); flex-wrap: wrap;
+    }
+    .search { position: relative; flex: 1; min-width: 180px; }
+    .search svg { position: absolute; left: 8px; top: 6px; width: 16px; height: 16px; fill: var(--text-header); pointer-events: none; }
+    .search input {
+      width: 100%; height: 28px; padding: 4px 8px 4px 30px; border: 0; border-radius: 8px; background: #fff; outline: none;
+    }
+    .search input:focus { box-shadow: var(--ring-focus); }
+    ::placeholder { color: var(--placeholder); opacity: 1; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+    /* select drawn as a pill; filter pills grey, cell pills only on hover */
+    .pick {
+      appearance: none; -webkit-appearance: none; border: 0; outline: none; height: 28px;
+      padding: 4px 24px 4px 10px; border-radius: 9999px; cursor: pointer;
+      background: #ebebeb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%234a4a4a' d='M6.24 8.2a.75.75 0 0 1 1.06.04L10 11.13l2.7-2.89a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0L6.2 9.26a.75.75 0 0 1 .04-1.06Z'/%3E%3C/svg%3E") no-repeat right 6px center / 16px;
+      font-weight: 450;
+    }
+    .pick:hover { background-color: #e3e3e3; }
+    .pick.on { background-color: #d4d4d4; font-weight: 550; }
+    .pick:focus-visible { box-shadow: var(--ring-focus); }
+
+    /* table: header band #f7f7f7 with 10px ends, rows 36px split by #f2f2f2 */
+    table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; line-height: 18px; }
     th {
-      text-align: left; font-size: 12px; font-weight: 500; color: var(--text-sub);
-      padding: 0 6px 8px; border-bottom: 1px solid var(--divider); white-space: nowrap;
-      cursor: pointer; user-select: none;
+      height: 31px; padding: 6px; background: var(--band); color: var(--text-header);
+      font-weight: 500; text-align: left; white-space: nowrap;
     }
-    th:hover { color: var(--text); }
-    th.sorted { color: var(--text); }
-    th .arr { font-size: 10px; margin-left: 3px; }
+    th:first-child { padding-left: 12px; border-radius: 10px 0 0 10px; }
+    th:last-child { padding-right: 12px; border-radius: 0 10px 10px 0; }
+    .sortbtn {
+      border: 0; background: none; padding: 1px 4px; margin: -1px -4px; border-radius: 6px;
+      font-size: 12px; line-height: 18px; font-weight: 500; color: inherit; display: inline-flex; align-items: center; gap: 2px;
+      transition: background-color .4s cubic-bezier(.2,.8,0,1);
+    }
+    .sortbtn:hover { background: var(--t-hover); }
+    th.sorted .sortbtn { color: var(--text); font-weight: 600; }
+    .sortbtn .arr { width: 14px; text-align: center; visibility: hidden; }
+    th.sorted .arr, .sortbtn:hover .arr { visibility: visible; }
     th.c, td.c { text-align: center; }
-    th.nosort { cursor: default; }
-    td { padding: 6px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
-    td input[type="text"] { width: 100%; text-transform: uppercase; }
-    td select { width: 100%; }
-    .col-type { width: 96px; } .col-tier { width: 64px; } .col-flag { width: 72px; } .col-del { width: 44px; }
-    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
-    .del {
-      width: 32px; height: 32px; border: none; background: none; border-radius: 4px;
-      color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer;
+    td { height: 36px; padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: middle; background: #fff; }
+    td:first-child { padding-left: 12px; }
+    td:last-child { padding-right: 12px; }
+    tbody tr:first-child td { border-top: 0; }
+    tbody tr:hover td { background: var(--hover); }
+    .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
+
+    /* inline fields: pill like the entry page (#f2f2f2, 28px), shown on hover and focus */
+    .cell {
+      width: 100%; height: 28px; border: 0; border-radius: 9999px; outline: none;
+      padding: 4px 8px; margin-left: -8px; background: transparent; font-size: 12px; line-height: 18px;
+      transition: background-color .2s;
     }
-    .del:hover { color: var(--error); background: var(--error-soft); }
-    tr.changed td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-    tr.new td { background: var(--accent-soft); }
-    tr.deleted td { opacity: 0.4; }
-    tr.deleted td input[type="text"] { text-decoration: line-through; }
-    tr.deleted .del { opacity: 1; color: var(--text); font-size: 13px; width: auto; padding: 0 6px; }
-    .msg { font-size: 13px; color: var(--text-sub); padding-top: 12px; min-height: 28px; line-height: 1.5; }
-    #msg.err { color: var(--error); }
-    .busy { opacity: 0.6; pointer-events: none; }
+    td .pick { background-color: transparent; font-weight: 400; font-size: 12px; line-height: 18px; margin-left: -10px; width: calc(100% + 10px); background-position: right -40px center; }
+    tr:hover .cell, .cell:focus, tr:hover td .pick, td .pick:focus { background-color: var(--pill); }
+    tr:hover td .pick, td .pick:focus { background-position: right 6px center; }
+    .cell:focus, td .pick:focus { box-shadow: var(--ring-focus); background-color: #fff; }
+    input.cell { text-transform: uppercase; font-weight: 500; }
+    input.cell::placeholder { text-transform: none; font-weight: 400; }
+
+    /* checkbox: 14px, 4px radius, dark when checked */
+    .chk {
+      appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin: 0; border-radius: 4px; background: #fff; cursor: pointer;
+      box-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2); vertical-align: middle;
+    }
+    .chk:checked {
+      background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3 6.2 5 8.2 9 3.8'/%3E%3C/svg%3E") center / 12px no-repeat;
+      box-shadow: none;
+    }
+    .chk:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+    .x {
+      width: 28px; height: 28px; padding: 0; border: 0; border-radius: 9999px; background: none;
+      display: inline-grid; place-items: center; vertical-align: middle;
+    }
+    .x svg { width: 20px; height: 20px; fill: var(--text-header); }
+    .x:hover { background: var(--t-hover); }
+    .undo { margin-right: -6px; }
+
+    /* row states */
+    tr.changed td:first-child { box-shadow: inset 2px 0 0 var(--text); }
+    tr.new td { background: #f3fde9; }
+    tr.deleted td { color: var(--text-sub); }
+    tr.deleted .cell, tr.deleted .pick, tr.deleted .chk { opacity: .45; pointer-events: none; }
+    tr.deleted input.cell { text-decoration: line-through; }
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 12px; line-height: 18px; font-weight: 500; margin-left: 6px; vertical-align: middle; }
+    .badge.new { background: var(--success-bg); color: var(--success); }
+    .idwrap { display: flex; align-items: center; }
+
+    .foot { text-align: center; padding: 16px 8px; min-height: 52px; }
+    #msg.err { color: var(--critical); }
+    .busy { opacity: .6; pointer-events: none; }
+    .empty { padding: 32px 8px; text-align: center; color: var(--text-sub); }
+
+    /* auth.js chip + dialog are styled dark for the TC forms; light versions here */
+    body #tcAuthChip { background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03); padding: 4px 12px; font-family: inherit; }
+    body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 16px; color: var(--text-sub); }
+    body #tcAuthChip .tc-link { color: var(--text); font-weight: 500; }
+    body #tcAuthChip .tc-link:hover { color: var(--text); }
+    body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }
+    body #tcAuthScrim .tc-card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
+    body #tcAuthScrim h2 { color: var(--text); font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 4px; }
+    body #tcAuthScrim .tc-sub { color: var(--text-sub); font-size: 13px; margin-bottom: 12px; }
+    body #tcAuthScrim input { height: 30px; border: 0; border-radius: 12px; background: #fff; color: var(--text); font-size: 13px; padding: 0 12px; box-shadow: var(--ring); }
+    body #tcAuthScrim input:hover { border: 0; }
+    body #tcAuthScrim input:focus { box-shadow: var(--ring-focus); }
+    body #tcAuthScrim.tc-invalid input { box-shadow: 0 0 0 1px var(--critical); }
+    body #tcAuthScrim .tc-err { color: var(--critical); font-size: 13px; margin-top: 4px; }
+    body #tcAuthScrim .tc-save { height: 32px; margin-top: 12px; border-radius: 9999px; background: var(--text); color: #fff; font-size: 13px; font-weight: 600; transform: none; }
+    body #tcAuthScrim .tc-save:hover { background: #2a2a2a; transform: none; }
+    body #tcAuthScrim .tc-x { color: var(--text-header); }
+    body #tcAuthToast { background: #1b1b1b; border-radius: 12px; font-family: inherit; font-size: 13px; font-weight: 500; }
 
     @media (max-width: 640px) {
-      .card { padding: 24px 12px; }
-      input[type="text"], select { font-size: 16px; }
-      .filters { grid-template-columns: 1fr 1fr 1fr; }
-      .filters .f-q { grid-column: 1 / -1; }
-      .col-type { width: 78px; } .col-tier { width: 56px; } .col-flag { width: 48px; }
-      th { font-size: 11px; }
+      .page { padding: 0 12px 24px; }
+      .topbar { height: 52px; }
+      .search { flex-basis: 100%; }
+      .col-type { width: 76px; } .col-tier { width: 52px; } .col-flag { width: 52px; } .col-del { width: 44px; }
+      th, td { padding-left: 4px; padding-right: 4px; }
+      input, select, .cell { font-size: 16px; }
+      .hint { font-size: 12px; line-height: 18px; }
     }
   </style>
   <script src="auth.js"></script>
 </head>
 <body>
-  <div class="container">
-    <div class="card" id="card">
-      <div class="head">
-        <h2>Mockups</h2>
-        <button type="button" class="btn" id="loadBtn">Load</button>
-        <button type="button" class="btn primary" id="saveBtn" disabled>Save</button>
-      </div>
-      <p class="sub">Changes stay in this page until you press Save. Load reads the table again.</p>
+  <div class="page">
+    <div class="topbar">
+      <h1>Mockups</h1>
+      <button type="button" class="btn" id="loadBtn">Load</button>
+      <button type="button" class="btn primary" id="saveBtn" disabled>Save</button>
+    </div>
+    <p class="hint">Changes stay in this page until you press Save. Load reads the table again.</p>
 
+    <div id="card">
       <div class="filters">
-        <input type="text" class="f-q" id="fQ" placeholder="Search mockup ID" />
-        <select id="fType" aria-label="Filter by type ID"><option value="">Type</option></select>
-        <select id="fTier" aria-label="Filter by tier"><option value="">Tier</option><option value="none">none</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
-        <select id="fPrd" aria-label="Filter by TC prd"><option value="">TC prd</option><option value="yes">yes</option><option value="no">no</option></select>
-        <select id="fImg" aria-label="Filter by TC img"><option value="">TC img</option><option value="yes">yes</option><option value="no">no</option></select>
-        <button type="button" class="btn" id="addBtn" disabled>Add</button>
+        <label class="search">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>
+          <input type="text" id="fQ" placeholder="Search mockup ID" aria-label="Search mockup ID" />
+        </label>
+        <select class="pick" id="fType" aria-label="Filter by type ID"><option value="">Type</option></select>
+        <select class="pick" id="fTier" aria-label="Filter by tier"><option value="">Tier</option><option value="none">No tier</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select>
+        <select class="pick" id="fPrd" aria-label="Filter by TC prd"><option value="">TC prd</option><option value="yes">TC prd: yes</option><option value="no">TC prd: no</option></select>
+        <select class="pick" id="fImg" aria-label="Filter by TC img"><option value="">TC img</option><option value="yes">TC img: yes</option><option value="no">TC img: no</option></select>
+        <button type="button" class="btn tertiary" id="addBtn" disabled>Add mockup</button>
       </div>
 
       <table>
@@ -107,17 +210,18 @@
           <th class="col-tier" data-sort="tier">Tier</th>
           <th class="c col-flag" data-sort="used_in_tc_prd">TC prd</th>
           <th class="c col-flag" data-sort="used_in_tc_img">TC img</th>
-          <th class="col-del nosort"></th>
+          <th class="col-del"></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
-      <div class="msg"><span id="count"></span> <span id="msg">Press Load to read the table.</span></div>
+      <div class="foot"><span id="count"></span> <span id="msg">Press Load to read the table.</span></div>
     </div>
   </div>
 
   <script>
     const WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/mockup-table';
     const FIELDS = ['Mockup_ID', 'Product_type_ID', 'tier', 'used_in_tc_prd', 'used_in_tc_img'];
+    const X_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
     let types = [], loaded = false, newKey = 0;
@@ -143,7 +247,9 @@
       work = (data.rows || []).map(r => Object.assign({ key: 'r' + r.id, id: r.id, deleted: false }, norm(r)));
       types = data.types || [];
       loaded = true;
-      $('fType').innerHTML = '<option value="">Type</option><option value="none">none</option>' + types.map(t => `<option>${esc(t)}</option>`).join('');
+      const cur = $('fType').value;
+      $('fType').innerHTML = '<option value="">Type</option><option value="none">No type</option>' + types.map(t => `<option value="${esc(t)}">Type: ${esc(t)}</option>`).join('');
+      $('fType').value = cur;
     }
     async function withBusy(fn) {
       $('card').classList.add('busy');
@@ -196,28 +302,32 @@
     function rowHtml(r) {
       const cls = [r.id == null ? 'new' : '', r.deleted ? 'deleted' : '', isChanged(r) ? 'changed' : ''].filter(Boolean).join(' ');
       const off = r.deleted ? ' disabled' : '';
+      const del = r.deleted
+        ? '<button type="button" class="btn tertiary undo del">Undo</button>'
+        : `<button type="button" class="x del" aria-label="Delete">${X_ICON}</button>`;
       return `<tr data-key="${r.key}" class="${cls}">
-        <td><input type="text" class="f-id" value="${esc(r.Mockup_ID)}" placeholder="KAN-FVI-01"${off} /></td>
-        <td class="col-type"><select class="f-type"${off}>${typeOptions(r.Product_type_ID)}</select></td>
-        <td class="col-tier"><select class="f-tier"${off}>${tierOptions(r.tier)}</select></td>
-        <td class="c col-flag"><input type="checkbox" class="f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
-        <td class="c col-flag"><input type="checkbox" class="f-img"${r.used_in_tc_img ? ' checked' : ''}${off} aria-label="Used in TC img" /></td>
-        <td class="col-del"><button type="button" class="del" aria-label="${r.deleted ? 'Undo delete' : 'Delete'}">${r.deleted ? 'Undo' : '&times;'}</button></td>
+        <td><div class="idwrap"><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
+        <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
+        <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
+        <td class="c col-flag"><input type="checkbox" class="chk f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
+        <td class="c col-flag"><input type="checkbox" class="chk f-img"${r.used_in_tc_img ? ' checked' : ''}${off} aria-label="Used in TC img" /></td>
+        <td class="col-del">${del}</td>
       </tr>`;
     }
     function render() {
       document.querySelectorAll('th[data-sort]').forEach(th => {
         const on = th.dataset.sort === sort.key;
         th.classList.toggle('sorted', on);
-        th.innerHTML = th.textContent.replace(/[▲▼]/g, '').trim() + (on ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : '');
+        th.querySelector('.arr').textContent = on && sort.dir < 0 ? '↑' : '↓';
       });
       const n = changeCount();
       $('saveBtn').disabled = !loaded || !n;
       $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
       $('addBtn').disabled = !loaded;
-      if (!loaded) { $('rows').innerHTML = ''; return; }
+      ['fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).classList.toggle('on', !!$(id).value));
+      if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.map(rowHtml).join('');
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty">No mockups match these filters.</td></tr>';
       renderCount(list.filter(r => r.id != null).length);
     }
     function renderCount(shown) {
@@ -229,8 +339,18 @@
       tr.classList.toggle('changed', isChanged(r));
       const n = changeCount();
       $('saveBtn').disabled = !n; $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
-      renderCount($('rows').querySelectorAll('tr:not(.new)').length);
+      renderCount($('rows').querySelectorAll('tr[data-key]:not(.new)').length);
     }
+
+    // sortable header labels are buttons (Polaris: transparent, hover tint, arrow on hover and on the sorted column)
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.innerHTML = `<button type="button" class="sortbtn">${esc(th.textContent)}<span class="arr">↓</span></button>`;
+      th.querySelector('.sortbtn').addEventListener('click', () => {
+        const k = th.dataset.sort;
+        sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
+        render();
+      });
+    });
 
     // ---- events ----
     const rowOf = tr => work.find(r => r.key === tr.dataset.key);
@@ -245,8 +365,8 @@
       say(''); updateRowClass(tr, r);
     });
     $('rows').addEventListener('click', e => {
-      if (!e.target.classList.contains('del')) return;
-      const r = rowOf(e.target.closest('tr')); if (!r) return;
+      const b = e.target.closest('.del'); if (!b) return;
+      const r = rowOf(b.closest('tr')); if (!r) return;
       if (r.id == null) work = work.filter(x => x !== r); else r.deleted = !r.deleted;
       say(''); render();
     });
@@ -255,11 +375,6 @@
       say(''); render();
       $('rows').querySelector('tr.new .f-id').focus();
     });
-    document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
-      const k = th.dataset.sort;
-      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
-      render();
-    }));
     ['fQ', 'fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).addEventListener('input', () => { say(''); render(); }));
 
     $('loadBtn').addEventListener('click', () => {

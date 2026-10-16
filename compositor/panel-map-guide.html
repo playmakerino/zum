@@ -37,7 +37,8 @@
   code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 18px;
     background: rgba(0,0,0,.05); color: var(--text); border-radius: 6px; padding: 1px 5px; }
   img { max-width: 100%; height: auto; display: block; border-radius: 8px; }
-  figure { margin: 0; }
+  figure { margin: 0; min-width: 0; }
+  figure > img { width: 100%; }
   figcaption { color: var(--text-sub); margin-top: 6px; font-size: 12px; line-height: 18px; }
   /* summary: group labels (Nhận / Làm / Trả) straight in the card */
   .grp { font-weight: 600; margin: 16px 0 2px; }
@@ -63,7 +64,7 @@
   .rrow { display: flex; gap: 16px; align-items: flex-start; }
   .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr 1fr; } }
-  .zwrap { max-width: 640px; margin: 16px 0 4px; }
+  .zwrap { margin: 16px 0 4px; }
   .zoomhead { display: flex; }
   .zoomhead div { flex: 1; text-align: center; color: var(--text-sub); font-size: 12px; line-height: 18px; padding-bottom: 6px; }
   @media (max-width: 640px) {

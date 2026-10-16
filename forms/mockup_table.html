@@ -32,9 +32,8 @@
     .page { max-width: 792px; margin: 0 auto; padding: 0 16px 32px; }
 
     /* top bar: title left, actions right */
-    /* page title as in type_ids.html (Settings page title, measured): 26px/32px weight 500, letter-spacing -0.52px */
-    .topbar { display: flex; align-items: center; gap: 6px; padding: 40px 0 13px; }
-    .topbar h1 { flex: 1; font-size: 26px; line-height: 32px; font-weight: 500; letter-spacing: -0.52px; }
+    .topbar { height: 60px; display: flex; align-items: center; gap: 6px; }
+    .topbar h1 { flex: 1; font-size: 13px; line-height: 20px; font-weight: 500; }
     .btn {
       height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px;
       font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap;
@@ -311,8 +310,7 @@
 
     @media (max-width: 640px) {
       .page { padding: 0 12px 24px; }
-      .topbar { padding: 24px 0 12px; }
-      .topbar h1 { font-size: 20px; line-height: 24px; }
+      .topbar { height: 52px; }
       .search { flex-basis: 100%; }
       .col-num { width: 36px; }
       .col-type { width: 76px; } .col-tier { width: 52px; } .col-flag { width: 52px; } .col-del { width: 44px; }

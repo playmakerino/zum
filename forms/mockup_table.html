@@ -12,11 +12,10 @@
   <link rel="stylesheet" href="forms.css">
   <style>
     .container { width: 100%; max-width: 760px; position: relative; z-index: 1; }
-    h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; flex: 1; }
     .sub { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.5; }
 
-    .bar { display: flex; gap: 10px; margin-bottom: 14px; }
-    .bar input { flex: 1; min-width: 0; }
     input[type="text"], select {
       height: 36px; background: var(--surface-elevated);
       border: none; border-radius: 4px; padding: 0 10px;
@@ -26,41 +25,56 @@
     input[type="text"]::placeholder { color: var(--text-muted); }
     input[type="text"]:hover, select:hover, input[type="text"]:focus, select:focus { background: #2a2a2a; }
     input[type="text"]:focus, select:focus { box-shadow: 0 0 0 2px var(--text); }
-    .bar input { height: 42px; padding: 0 16px; }
-    .btn {
-      height: 42px; padding: 0 18px; border: 1px solid #727272; border-radius: 500px;
-      background: none; color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 700;
-      cursor: pointer; white-space: nowrap; transition: border-color 0.1s, transform 0.1s;
-    }
-    .btn:hover { border-color: var(--text); transform: scale(1.04); }
+    input:disabled, select:disabled { opacity: 0.4; cursor: default; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .btn {
+      height: 36px; padding: 0 16px; border: 1px solid #727272; border-radius: 500px;
+      background: none; color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: border-color 0.1s, transform 0.1s, background 0.1s;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--text); transform: scale(1.04); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; }
+    .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+
+    .filters { display: grid; grid-template-columns: 1fr 96px 64px 72px 72px auto; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .filters input, .filters select { width: 100%; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
     th {
       text-align: left; font-size: 12px; font-weight: 500; color: var(--text-sub);
       padding: 0 6px 8px; border-bottom: 1px solid var(--divider); white-space: nowrap;
+      cursor: pointer; user-select: none;
     }
+    th:hover { color: var(--text); }
+    th.sorted { color: var(--text); }
+    th .arr { font-size: 10px; margin-left: 3px; }
     th.c, td.c { text-align: center; }
+    th.nosort { cursor: default; }
     td { padding: 6px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
     td input[type="text"] { width: 100%; text-transform: uppercase; }
     td select { width: 100%; }
-    .col-type { width: 96px; }
-    .col-tier { width: 64px; }
-    .col-flag { width: 72px; }
-    .col-del { width: 36px; }
+    .col-type { width: 96px; } .col-tier { width: 64px; } .col-flag { width: 72px; } .col-del { width: 44px; }
     input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
     .del {
       width: 32px; height: 32px; border: none; background: none; border-radius: 4px;
       color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer;
     }
     .del:hover { color: var(--error); background: var(--error-soft); }
-    tr.saving td { opacity: 0.5; }
+    tr.changed td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
     tr.new td { background: var(--accent-soft); }
-    .msg { font-size: 13px; color: var(--text-sub); padding-top: 12px; min-height: 28px; }
-    .msg.err { color: var(--error); }
+    tr.deleted td { opacity: 0.4; }
+    tr.deleted td input[type="text"] { text-decoration: line-through; }
+    tr.deleted .del { opacity: 1; color: var(--text); font-size: 13px; width: auto; padding: 0 6px; }
+    .msg { font-size: 13px; color: var(--text-sub); padding-top: 12px; min-height: 28px; line-height: 1.5; }
+    #msg.err { color: var(--error); }
+    .busy { opacity: 0.6; pointer-events: none; }
 
     @media (max-width: 640px) {
       .card { padding: 24px 12px; }
       input[type="text"], select { font-size: 16px; }
+      .filters { grid-template-columns: 1fr 1fr 1fr; }
+      .filters .f-q { grid-column: 1 / -1; }
       .col-type { width: 78px; } .col-tier { width: 56px; } .col-flag { width: 48px; }
       th { font-size: 11px; }
     }
@@ -69,114 +83,208 @@
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <h2>Mockups</h2>
-      <p class="sub">Each change is saved as soon as you leave the field. TC img: ads with this mockup go into the print's campaign; unticked mockups go into the daily mockup campaign.</p>
-      <div class="bar">
-        <input type="text" id="search" placeholder="Search mockup ID or type ID" />
-        <button type="button" class="btn" id="addBtn">Add mockup</button>
+    <div class="card" id="card">
+      <div class="head">
+        <h2>Mockups</h2>
+        <button type="button" class="btn" id="loadBtn">Load</button>
+        <button type="button" class="btn primary" id="saveBtn" disabled>Save</button>
       </div>
+      <p class="sub">Changes stay in this page until you press Save. Load reads the table again. TC img ticked: ads with this mockup go into the print's campaign; unticked: they go into the daily mockup campaign.</p>
+
+      <div class="filters">
+        <input type="text" class="f-q" id="fQ" placeholder="Search mockup ID" />
+        <select id="fType" aria-label="Filter by type ID"><option value="">Type</option></select>
+        <select id="fTier" aria-label="Filter by tier"><option value="">Tier</option><option value="none">none</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        <select id="fPrd" aria-label="Filter by TC prd"><option value="">TC prd</option><option value="yes">yes</option><option value="no">no</option></select>
+        <select id="fImg" aria-label="Filter by TC img"><option value="">TC img</option><option value="yes">yes</option><option value="no">no</option></select>
+        <button type="button" class="btn" id="addBtn" disabled>Add</button>
+      </div>
+
       <table>
         <thead><tr>
-          <th>Mockup ID</th><th class="col-type">Type ID</th><th class="col-tier">Tier</th>
-          <th class="c col-flag">TC prd</th><th class="c col-flag">TC img</th><th class="col-del"></th>
+          <th data-sort="Mockup_ID">Mockup ID</th>
+          <th class="col-type" data-sort="Product_type_ID">Type ID</th>
+          <th class="col-tier" data-sort="tier">Tier</th>
+          <th class="c col-flag" data-sort="used_in_tc_prd">TC prd</th>
+          <th class="c col-flag" data-sort="used_in_tc_img">TC img</th>
+          <th class="col-del nosort"></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
-      <div class="msg" id="msg">Loading…</div>
+      <div class="msg"><span id="count"></span> <span id="msg">Press Load to read the table.</span></div>
     </div>
   </div>
 
   <script>
     const WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/mockup-table';
-    let rows = [], types = [], adding = false;
+    const FIELDS = ['Mockup_ID', 'Product_type_ID', 'tier', 'used_in_tc_prd', 'used_in_tc_img'];
+    let orig = new Map();      // id -> row as the server has it
+    let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
+    let types = [], loaded = false, newKey = 0;
+    let sort = { key: 'Mockup_ID', dir: 1 };
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const say = (text, isErr) => { const m = $('msg'); m.textContent = text || ''; m.classList.toggle('err', !!isErr); };
+    const norm = r => ({ Mockup_ID: String(r.Mockup_ID || '').trim().toUpperCase(), Product_type_ID: r.Product_type_ID || '', tier: r.tier == null || r.tier === '' ? '' : String(r.tier), used_in_tc_prd: !!r.used_in_tc_prd, used_in_tc_img: !!r.used_in_tc_img });
 
-    function say(text, isErr) { const m = $('msg'); m.textContent = text || ''; m.classList.toggle('err', !!isErr); }
-
-    // Every call returns the whole table, so the page always shows what the server has
+    // ---- server: only Load and Save send a request ----
     async function call(payload) {
       let res;
       try {
         res = await fetch(WEBHOOK_URL, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, TC_AUTH_HEADERS()), body: JSON.stringify(payload) });
       } catch (e) { throw new Error('Could not reach the server. Check the connection and try again.'); }
-      if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); throw new Error('Wrong or missing password. Enter it, then reload the page.'); }
+      if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); throw new Error('Wrong or missing password. Enter it, then press Load again.'); }
       let data = null; try { data = await res.json(); } catch (e) {}
       if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || 'Server error ' + res.status + '.');
-      rows = data.rows || []; types = data.types || [];
       return data;
     }
+    function take(data) {
+      orig = new Map((data.rows || []).map(r => [r.id, norm(r)]));
+      work = (data.rows || []).map(r => Object.assign({ key: 'r' + r.id, id: r.id, deleted: false }, norm(r)));
+      types = data.types || [];
+      loaded = true;
+      $('fType').innerHTML = '<option value="">Type</option><option value="none">none</option>' + types.map(t => `<option>${esc(t)}</option>`).join('');
+    }
+    async function withBusy(fn) {
+      $('card').classList.add('busy');
+      try { await fn(); } finally { $('card').classList.remove('busy'); render(); }
+    }
 
+    // ---- changes ----
+    const isChanged = r => r.id == null || r.deleted || FIELDS.some(f => orig.get(r.id)[f] !== r[f]);
+    function changes() {
+      const out = { inserts: [], updates: [], deletes: [] };
+      for (const r of work) {
+        const row = { Mockup_ID: r.Mockup_ID, Product_type_ID: r.Product_type_ID, tier: r.tier, used_in_tc_prd: r.used_in_tc_prd, used_in_tc_img: r.used_in_tc_img };
+        if (r.id == null) { if (!r.deleted) out.inserts.push(row); }
+        else if (r.deleted) out.deletes.push(r.id);
+        else if (isChanged(r)) out.updates.push({ id: r.id, row });
+      }
+      return out;
+    }
+    const changeCount = () => { const c = changes(); return c.inserts.length + c.updates.length + c.deletes.length; };
+
+    // ---- view ----
+    function sortVal(r, k) {
+      const v = r[k];
+      if (k === 'tier') return v === '' ? 9 : Number(v);
+      if (typeof v === 'boolean') return v ? 0 : 1;
+      return String(v || '￿');
+    }
+    function visible() {
+      const q = $('fQ').value.trim().toLowerCase(), ft = $('fType').value, fr = $('fTier').value, fp = $('fPrd').value, fi = $('fImg').value;
+      const yn = (want, v) => !want || (want === 'yes') === v;
+      const list = work.filter(r => r.id == null || (
+        (!q || r.Mockup_ID.toLowerCase().includes(q)) &&
+        (!ft || (ft === 'none' ? !r.Product_type_ID : r.Product_type_ID === ft)) &&
+        (!fr || (fr === 'none' ? r.tier === '' : r.tier === fr)) &&
+        yn(fp, r.used_in_tc_prd) && yn(fi, r.used_in_tc_img)));
+      const k = sort.key, d = sort.dir;
+      // new rows stay on top, in the order they were added
+      return list.sort((a, b) => {
+        if ((a.id == null) !== (b.id == null)) return a.id == null ? -1 : 1;
+        if (a.id == null) return 0;
+        const x = sortVal(a, k), y = sortVal(b, k);
+        return (x < y ? -1 : x > y ? 1 : 0) * d || a.Mockup_ID.localeCompare(b.Mockup_ID);
+      });
+    }
     function typeOptions(cur) {
       const list = types.slice(); if (cur && !list.includes(cur)) list.unshift(cur);
       return '<option value=""></option>' + list.map(t => `<option${t === cur ? ' selected' : ''}>${esc(t)}</option>`).join('');
     }
-    function tierOptions(cur) {
-      return ['', 1, 2, 3, 4].map(t => `<option value="${t}"${String(t) === String(cur == null ? '' : cur) ? ' selected' : ''}>${t}</option>`).join('');
-    }
-    function rowHtml(r, isNew) {
-      return `<tr data-id="${isNew ? '' : r.id}"${isNew ? ' class="new"' : ''}>
-        <td><input type="text" class="f-id" value="${esc(r.Mockup_ID)}" placeholder="KAN-FVI-01" /></td>
-        <td class="col-type"><select class="f-type">${typeOptions(r.Product_type_ID)}</select></td>
-        <td class="col-tier"><select class="f-tier">${tierOptions(r.tier)}</select></td>
-        <td class="c col-flag"><input type="checkbox" class="f-prd"${r.used_in_tc_prd ? ' checked' : ''} aria-label="Used in TC prd" /></td>
-        <td class="c col-flag"><input type="checkbox" class="f-img"${r.used_in_tc_img ? ' checked' : ''} aria-label="Used in TC img" /></td>
-        <td class="col-del"><button type="button" class="del" aria-label="Delete" data-tip="Delete">&times;</button></td>
+    const tierOptions = cur => ['', '1', '2', '3', '4'].map(t => `<option value="${t}"${t === cur ? ' selected' : ''}>${t}</option>`).join('');
+    function rowHtml(r) {
+      const cls = [r.id == null ? 'new' : '', r.deleted ? 'deleted' : '', isChanged(r) ? 'changed' : ''].filter(Boolean).join(' ');
+      const off = r.deleted ? ' disabled' : '';
+      return `<tr data-key="${r.key}" class="${cls}">
+        <td><input type="text" class="f-id" value="${esc(r.Mockup_ID)}" placeholder="KAN-FVI-01"${off} /></td>
+        <td class="col-type"><select class="f-type"${off}>${typeOptions(r.Product_type_ID)}</select></td>
+        <td class="col-tier"><select class="f-tier"${off}>${tierOptions(r.tier)}</select></td>
+        <td class="c col-flag"><input type="checkbox" class="f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
+        <td class="c col-flag"><input type="checkbox" class="f-img"${r.used_in_tc_img ? ' checked' : ''}${off} aria-label="Used in TC img" /></td>
+        <td class="col-del"><button type="button" class="del" aria-label="${r.deleted ? 'Undo delete' : 'Delete'}">${r.deleted ? 'Undo' : '&times;'}</button></td>
       </tr>`;
     }
     function render() {
-      const q = $('search').value.trim().toLowerCase();
-      const list = rows.filter(r => !q || String(r.Mockup_ID || '').toLowerCase().includes(q) || String(r.Product_type_ID || '').toLowerCase().includes(q));
-      $('rows').innerHTML = (adding ? rowHtml({ used_in_tc_prd: false, used_in_tc_img: true }, true) : '') + list.map(r => rowHtml(r)).join('');
-      if (!adding) say(rows.length + ' mockups' + (q ? ', ' + list.length + ' shown' : ''));
+      document.querySelectorAll('th[data-sort]').forEach(th => {
+        const on = th.dataset.sort === sort.key;
+        th.classList.toggle('sorted', on);
+        th.innerHTML = th.textContent.replace(/[▲▼]/g, '').trim() + (on ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : '');
+      });
+      const n = changeCount();
+      $('saveBtn').disabled = !loaded || !n;
+      $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
+      $('addBtn').disabled = !loaded;
+      if (!loaded) { $('rows').innerHTML = ''; return; }
+      const list = visible();
+      $('rows').innerHTML = list.map(rowHtml).join('');
+      renderCount(list.filter(r => r.id != null).length);
+    }
+    function renderCount(shown) {
+      const total = work.filter(r => r.id != null).length, n = changeCount();
+      if (shown == null) shown = total;
+      $('count').textContent = total + ' mockups' + (shown !== total ? ', ' + shown + ' shown' : '') + (n ? ', ' + n + ' unsaved change' + (n > 1 ? 's' : '') : '') + '.';
+    }
+    function updateRowClass(tr, r) {
+      tr.classList.toggle('changed', isChanged(r));
+      const n = changeCount();
+      $('saveBtn').disabled = !n; $('saveBtn').textContent = n ? 'Save (' + n + ')' : 'Save';
+      renderCount($('rows').querySelectorAll('tr:not(.new)').length);
     }
 
-    function readRow(tr) {
-      return {
-        Mockup_ID: tr.querySelector('.f-id').value.trim().toUpperCase(),
-        Product_type_ID: tr.querySelector('.f-type').value,
-        tier: tr.querySelector('.f-tier').value,
-        used_in_tc_prd: tr.querySelector('.f-prd').checked,
-        used_in_tc_img: tr.querySelector('.f-img').checked
-      };
-    }
-
-    async function save(tr) {
-      const id = tr.dataset.id, row = readRow(tr);
-      if (!id && !row.Mockup_ID) return;            // new row stays open until it has an ID
-      tr.classList.add('saving');
-      try {
-        await call(id ? { action: 'update', id: Number(id), row } : { action: 'insert', row });
-        if (!id) adding = false;
-        render(); say(row.Mockup_ID + ' saved.');
-      } catch (e) {
-        tr.classList.remove('saving');
-        if (id) render();                           // put the stored values back
-        say(e.message, true);
-      }
-    }
-
-    $('rows').addEventListener('change', e => { const tr = e.target.closest('tr'); if (tr) save(tr); });
-    $('rows').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('f-id')) e.target.blur(); });
-    $('rows').addEventListener('click', async e => {
+    // ---- events ----
+    const rowOf = tr => work.find(r => r.key === tr.dataset.key);
+    $('rows').addEventListener('input', e => {
+      const tr = e.target.closest('tr'), r = tr && rowOf(tr); if (!r) return;
+      const c = e.target.classList;
+      if (c.contains('f-id')) r.Mockup_ID = e.target.value.trim().toUpperCase();
+      else if (c.contains('f-type')) r.Product_type_ID = e.target.value;
+      else if (c.contains('f-tier')) r.tier = e.target.value;
+      else if (c.contains('f-prd')) r.used_in_tc_prd = e.target.checked;
+      else if (c.contains('f-img')) r.used_in_tc_img = e.target.checked;
+      say(''); updateRowClass(tr, r);
+    });
+    $('rows').addEventListener('click', e => {
       if (!e.target.classList.contains('del')) return;
-      const tr = e.target.closest('tr'), id = tr.dataset.id;
-      if (!id) { adding = false; render(); return; }
-      const name = tr.querySelector('.f-id').value;
-      if (!confirm('Delete ' + name + '?')) return;
-      tr.classList.add('saving');
-      try { await call({ action: 'delete', id: Number(id) }); render(); say(name + ' deleted.'); }
-      catch (err) { tr.classList.remove('saving'); say(err.message, true); }
+      const r = rowOf(e.target.closest('tr')); if (!r) return;
+      if (r.id == null) work = work.filter(x => x !== r); else r.deleted = !r.deleted;
+      say(''); render();
     });
     $('addBtn').addEventListener('click', () => {
-      adding = true; $('search').value = ''; render();
-      say('Type the mockup ID, then press Enter.');
+      work.unshift({ key: 'n' + (++newKey), id: null, deleted: false, Mockup_ID: '', Product_type_ID: '', tier: '', used_in_tc_prd: false, used_in_tc_img: true });
+      say(''); render();
       $('rows').querySelector('tr.new .f-id').focus();
     });
-    $('search').addEventListener('input', render);
+    document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
+      render();
+    }));
+    ['fQ', 'fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).addEventListener('input', () => { say(''); render(); }));
 
-    call({ action: 'list' }).then(render).catch(e => say(e.message, true));
+    $('loadBtn').addEventListener('click', () => {
+      if (changeCount() && !confirm('Discard ' + changeCount() + ' unsaved changes and load the table again?')) return;
+      say('Loading…');
+      withBusy(async () => {
+        try { take(await call({ action: 'list' })); say(''); }
+        catch (e) { say(e.message, true); }
+      });
+    });
+    $('saveBtn').addEventListener('click', () => {
+      const ch = changes();
+      say('Saving…');
+      withBusy(async () => {
+        try {
+          const data = await call({ action: 'save', changes: ch });
+          take(data);
+          const s = data.saved || {};
+          say('Saved: ' + (s.inserted || 0) + ' added, ' + (s.updated || 0) + ' changed, ' + (s.deleted || 0) + ' deleted.');
+        } catch (e) { say(e.message + ' Nothing was saved.', true); }
+      });
+    });
+    window.addEventListener('beforeunload', e => { if (changeCount()) { e.preventDefault(); e.returnValue = ''; } });
+
+    render();
   </script>
 </body>
 </html>

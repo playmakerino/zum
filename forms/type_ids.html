@@ -334,7 +334,13 @@
     .vmenu .ck { width: 16px; height: 16px; flex: none; }
     .vmenu .n { margin-left: auto; padding-left: 16px; color: var(--text-sub); }
     .search input { min-width: 0; }
-    td.idc { font-weight: 500; }
+    /* Type ID as a product tag chip (product page Tags, measured 2026-10-16): 20px, padding 2px 8px, radius 8px,
+       rgba(0,0,0,.05), 12px/18px weight 500, letter-spacing -0.06px, #4a4a4a */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 8px; background: rgba(0,0,0,.05); color: #4a4a4a;
+      font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: -0.06px; white-space: nowrap; }
+    /* Product type as the product title in the Products list (measured): 12px/18px weight 500, letter-spacing -0.06px, #101010, at most 2 lines */
+    td.names div { font-weight: 500; letter-spacing: -0.06px; color: #101010;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
     td.names div + div { margin-top: 2px; }
     td.grp { color: var(--text-sub); }
     /* body cells measured: padding 6px, 12px/18px weight 400 #101010 */
@@ -475,7 +481,7 @@
         (!q || r.id.toLowerCase().includes(q) || r.names.some(n => n.toLowerCase().includes(q))))
         .sort((a, b) => { const x = val(a, sort.key), y = val(b, sort.key); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || a.id.localeCompare(b.id); });
       $('rows').innerHTML = list.length ? list.map(r =>
-        `<tr><td class="col-id idc">${hl(r.id, q)}</td><td class="names">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}</td><td class="col-grp grp">${esc(r.group || '')}</td></tr>`).join('') : EMPTY;
+        `<tr><td class="col-id"><span class="tag">${hl(r.id, q)}</span></td><td class="names">${r.names.map(n => `<div>${hl(n, q)}</div>`).join('')}</td><td class="col-grp grp">${esc(r.group || '')}</td></tr>`).join('') : EMPTY;
       $('count').textContent = list.length === rows.length ? rows.length + ' type IDs' : list.length + ' of ' + rows.length + ' type IDs';
       $('viewLabel').textContent = (views.find(([v]) => v === group) || ['', 'All'])[1];
       document.querySelectorAll('th[data-sort]').forEach(th => {

@@ -157,6 +157,8 @@
     td:first-child { padding-left: 12px; }
     td:last-child { padding-right: 12px; }
     tbody tr:first-child td { border-top: 0; }
+    .col-num { width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-sub); }
+    th.col-num .sortbtn { flex-direction: row-reverse; }
     .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
 
     /* mock thumbnail as in the Shopify entries list: 24px square before the name, 6px radius, 1px rgba(0,0,0,.08) frame,
@@ -305,6 +307,7 @@
       .page { padding: 0 12px 24px; }
       .topbar { height: 52px; }
       .search { flex-basis: 100%; }
+      .col-num { width: 36px; }
       .col-type { width: 76px; } .col-tier { width: 52px; } .col-flag { width: 52px; } .col-del { width: 44px; }
       th, td { padding-left: 4px; padding-right: 4px; }
       input, select, .cell { font-size: 16px; }
@@ -351,6 +354,7 @@
 
       <table>
         <thead><tr>
+          <th class="col-num" data-sort="id">ID</th>
           <th data-sort="Mockup_ID">Mockup ID</th>
           <th class="col-type" data-sort="Product_type_ID">Type ID</th>
           <th class="col-tier" data-sort="tier">Tier</th>
@@ -438,6 +442,7 @@
     // ---- view ----
     function sortVal(r, k) {
       const v = r[k];
+      if (k === 'id') return Number(v);
       if (k === 'tier') return v === '' ? 9 : Number(v);
       if (typeof v === 'boolean') return v ? 0 : 1;
       return String(v || '￿');
@@ -475,6 +480,7 @@
       const small = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url) : '', big = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url, 480) : '';
       const img = small ? `<img src="${esc(small)}" alt="" loading="lazy" />` : IMG_ICON;
       return `<tr data-key="${r.key}" class="${cls}">
+        <td class="col-num">${r.id == null ? '' : r.id}</td>
         <td><div class="idwrap"><button type="button" class="thumb"${big ? ` data-full="${esc(big)}"` : ''} aria-label="${small ? 'Change or remove the image' : 'Add an image'}"${off}>${img}</button><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type${r.Product_type_ID ? '' : ' empty-val'}" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier${r.tier ? '' : ' empty-val'}" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
@@ -494,7 +500,7 @@
       renderTokens();
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No mockups found</h3>Try changing the filters or search term<br><button type="button" class="btn primary" id="emptyClear">Clear search and filters</button></td></tr>';
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="7" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No mockups found</h3>Try changing the filters or search term<br><button type="button" class="btn primary" id="emptyClear">Clear search and filters</button></td></tr>';
       renderCount(list.filter(r => r.id != null).length);
     }
     function renderCount(shown) {

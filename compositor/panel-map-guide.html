@@ -59,7 +59,8 @@
   .two .col { flex: 1; min-width: 280px; }
   .two figure { width: 250px; flex: 0 0 250px; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 8px 0 0; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr 1fr; } }
   .zwrap { max-width: 640px; margin: 16px 0 4px; }
   .zoomhead { display: flex; }
   .zoomhead div { flex: 1; text-align: center; color: var(--text-sub); font-size: 12px; line-height: 18px; padding-bottom: 6px; }

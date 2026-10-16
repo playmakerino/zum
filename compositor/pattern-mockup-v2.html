@@ -33,9 +33,6 @@
   .controls{ display:flex; flex-direction:column; gap:16px; padding:16px; background:#fff; border-radius:20px; box-shadow:var(--card-shadow); }
   .field{ display:flex; flex-direction:column; gap:4px; }
   label{ font-size:13px; line-height:20px; color:var(--ink); font-weight:500; }
-  .file{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; }
-  .file button{ flex:none; }
-  .file span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--mut); }
   :focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
   input[type=text]{ font-family:inherit; font-size:13px; letter-spacing:inherit; color:var(--ink); background:#fff; border:0; border-radius:12px; height:30px; padding:0 12px; width:100%; box-sizing:border-box; outline:none; box-shadow:var(--field-shadow); transition:box-shadow .12s; }
   input[type=text]:hover{ box-shadow:var(--field-hover); }
@@ -55,8 +52,70 @@
   .secondary:hover:not(:disabled){ background:#f7f7f7; }
   .secondary:active:not(:disabled){ background:#f2f2f2; }
   button:disabled{ opacity:.45; cursor:default; }
-  .msg{ font-size:13px; color:var(--mut); min-height:20px; }
-  .view{ flex:1; min-width:280px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; justify-content:flex-start; }
+  /* from pattern-mockup.html: pattern drop zone, Stop, progress, toast, stale note, drop veil, lightbox */
+  .flabel{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .hint{ font-size:12px; line-height:16px; color:var(--mut); }
+  .linkbtn{ height:24px; padding:2px 10px; margin:-2px -10px -2px 0; background:transparent; box-shadow:none; font-size:12px; line-height:16px; }
+  .linkbtn:hover{ background:rgba(0,0,0,.08); }
+  .trim .secondary{ flex:none; height:30px; }
+  .drop{ position:relative; border:1px dashed #c0c0c0; border-radius:12px; background:#fff; cursor:pointer; transition:border-color .12s, background .12s; }
+  .drop:hover{ border-color:#8a8a8a; background:#f7f7f7; }
+  .drop:has(> .drop-full:not([hidden])){ border-color:transparent; background:#f7f7f7; }
+  .drop-empty{ padding:24px 16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; color:var(--mut); }
+  .add-pill{ display:inline-flex; align-items:center; gap:4px; height:28px; padding:4px 12px 4px 8px; border-radius:9999px; background:#ebebeb; color:var(--ink); font-weight:500; white-space:nowrap; }
+  .add-pill svg{ width:16px; height:16px; flex:none; }
+  .drop:hover .add-pill{ background:#e3e3e3; }
+  .drop-full{ display:flex; gap:12px; align-items:center; padding:8px 44px 8px 8px; }
+  .drop-full img{ width:64px; height:64px; object-fit:cover; border-radius:8px; box-shadow:0 0 0 1px rgba(0,0,0,.06); background:#fff; flex:none; }
+  .drop-full .meta{ min-width:0; display:flex; flex-direction:column; color:var(--mut); }
+  .drop-full b{ color:var(--ink); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .drop-x{ position:absolute; top:50%; right:8px; width:28px; height:28px; margin-top:-14px; display:none; place-items:center; padding:0; background:transparent; box-shadow:none; color:#4a4a4a; }
+  .drop-x svg{ width:20px; height:20px; }
+  .drop-x:hover{ background:rgba(0,0,0,.08); color:var(--ink); }
+  .drop:hover .drop-x, .drop:focus-within .drop-x{ display:grid; }
+  .primary.stop{ background:#8e0b21; box-shadow:none; }
+  .actions .progress[hidden]{ display:block!important; visibility:hidden; }
+  .progress{ height:4px; border-radius:2px; background:#ebebeb; overflow:hidden; }
+  .progress div{ height:100%; width:0; background:var(--ink2); transition:width .25s; }
+  body.busy .controls{ pointer-events:none; opacity:.5; }
+  .toast{ position:fixed; left:50%; bottom:24px; z-index:60; max-width:min(560px,calc(100vw - 32px)); transform:translateX(-50%) translateY(10px); padding:12px 16px; border-radius:12px; background:#1b1b1b; color:#fff; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; }
+  .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.err{ background:#8e0b21; }
+  .main{ flex:1; min-width:280px; display:flex; flex-direction:column; gap:16px; }
+  .note{ padding:8px 12px; border-radius:12px; background:#fff1e3; color:#5e4200; }
+  .note b{ color:inherit; font-weight:600; }
+  .shot{ position:relative; }
+  .shot canvas{ cursor:zoom-in; }
+  .badge{ position:absolute; top:10px; right:10px; font-size:12px; line-height:18px; font-weight:500; padding:1px 6px; border-radius:8px; }
+  .shot.old .badge{ background:#ffd6a4; color:#5e4200; }
+  .shot.err .badge{ background:#fedad9; color:#8e0b21; }
+  .shot .fail{ padding:40px 16px; text-align:center; color:#8e0b21; background:#fff5f5; overflow-wrap:anywhere; }
+  .dropveil{ position:fixed; inset:0; z-index:50; display:grid; place-items:center; background:rgba(255,255,255,.8); backdrop-filter:blur(2px); font-weight:500; pointer-events:none; }
+  .dropveil span{ padding:24px 32px; border-radius:20px; background:#f7f7f7; border:1px dashed #8a8a8a; }
+  dialog.lb{ border:0; padding:0; background:#0a0a0a; max-width:none; max-height:none; width:100vw; height:100vh; color:#eee; }
+  dialog.lb::backdrop{ background:#0a0a0a; }
+  .lb-wrap{ width:100%; height:100%; display:flex; flex-direction:column; }
+  .lb-top{ flex:none; height:56px; display:flex; align-items:center; gap:8px; padding:0 12px 0 8px; background:#1a1a1a; }
+  .lb-head{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .lb-head .t{ font-weight:600; color:#eee; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-head .i{ color:#aaa; }
+  .lb-icon{ flex:none; width:32px; height:32px; display:grid; place-items:center; padding:0; border-radius:12px; background:none; box-shadow:none; color:#dcdcdc; text-decoration:none; }
+  .lb-icon:hover{ background:rgba(255,255,255,.08); color:#fff; }
+  .lb-icon svg{ width:20px; height:20px; }
+  .lb-main{ flex:1; min-height:0; display:flex; gap:20px; padding:20px; background:radial-gradient(rgba(255,255,255,.05) 2px, transparent 2px) 0 0/40px 40px, #030303; }
+  .lb-body{ flex:1; min-width:0; display:flex; align-items:center; gap:16px; }
+  .lb-body img{ flex:1; min-width:0; height:100%; object-fit:contain; }
+  .lb-nav{ flex:none; width:56px; height:56px; display:grid; place-items:center; padding:0; border-radius:16px; background:#1a1a1a; box-shadow:none; color:#eee; }
+  .lb-nav:hover{ background:#262626; }
+  .lb-nav svg{ width:20px; height:20px; }
+  .lb-info{ flex:none; width:310px; align-self:flex-start; padding:16px; border-radius:12px; background:#1a1a1a; color:#eee; }
+  .lb-info h3{ margin:0 0 16px; display:flex; align-items:center; gap:8px; font-size:15px; line-height:22px; font-weight:600; }
+  .lb-info h3 svg{ width:20px; height:20px; }
+  .lb-info h4{ margin:8px 0 6px; font-weight:500; }
+  .lb-info > h4:first-of-type{ margin-top:0; }
+  .lb-info p{ margin:0; color:#aaa; overflow-wrap:anywhere; }
+  @media (max-width:900px){ .lb-info{ display:none; } .lb-main{ padding:12px; } .lb-nav{ width:44px; height:44px; } }
+  .view{ display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; justify-content:flex-start; }
   .shot{ margin:0; flex:0 0 calc((100% - 16px)/2); max-width:calc((100% - 16px)/2); display:flex; flex-direction:column; border-radius:20px; overflow:hidden; background:#fff; box-shadow:var(--tile-shadow); }
   @media (max-width:520px){ .shot{ flex-basis:100%; max-width:100%; } }
   .shot img,.shot canvas{ width:100%; max-height:74vh; object-fit:contain; display:block; }
@@ -90,11 +149,18 @@
   <div class="side">
   <div class="controls">
     <div class="field">
-      <label for="patternBtn">Pattern file</label>
-      <div class="file">
+      <label for="drop">Pattern file</label>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a pattern file">
         <input type="file" id="pattern" accept="image/png,image/jpeg,image/webp" hidden>
-        <button type="button" class="secondary" id="patternBtn">Choose file</button>
-        <span id="patternName">No file chosen</span>
+        <div class="drop-empty" id="dropEmpty">
+          <span class="add-pill"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11"/></svg>Add pattern</span>
+          <span>Drag and drop or paste an image</span>
+        </div>
+        <div class="drop-full" id="dropFull" hidden>
+          <img id="patThumb" alt="Pattern preview">
+          <div class="meta"><b id="patternName"></b><span id="patternDims"></span></div>
+          <button type="button" class="drop-x" id="patClear" aria-label="Remove pattern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m6 6 8 8M14 6l-8 8"/></svg></button>
+        </div>
       </div>
     </div>
 
@@ -107,12 +173,13 @@
     </div>
 
     <div class="field" id="restField" hidden>
-      <label for="restHex">Rest color</label>
+      <div class="flabel"><label for="restHex">Rest color</label><span class="hint" id="restHint"></span></div>
       <div class="trim">
         <input type="color" id="restColor" value="#ffffff" aria-label="Rest color picker">
         <input type="text" id="restHex" value="" placeholder="White" spellcheck="false" aria-label="Rest color hex">
+        <button type="button" class="secondary" id="restAuto" title="Use the pattern's background color">Auto</button>
       </div>
-      <label for="bodySize" style="margin-top:10px">Body print size · <span id="bodySizeVal">0.75</span></label>
+      <div class="flabel" style="margin-top:10px"><label for="bodySize">Body print size · <span id="bodySizeVal">0.75</span></label><button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></div>
       <input type="range" id="bodySize" min="0.3" max="1.5" step="0.05" value="0.75">
       <label style="margin-top:10px">Move body print</label>
       <div class="nudge">
@@ -126,23 +193,55 @@
     </div>
 
     <div class="field">
-      <label for="trimHex">Trim color</label>
+      <div class="flabel"><label for="trimHex">Trim color</label><span class="hint" id="trimHint"></span></div>
       <div class="trim">
         <input type="color" id="trimColor" value="#c9c9c9" aria-label="Trim color picker">
         <input type="text" id="trimHex" value="" placeholder="From the pattern" spellcheck="false" aria-label="Trim color hex">
+        <button type="button" class="secondary" id="trimAuto" title="Use the color picked from the pattern">Auto</button>
       </div>
     </div>
   </div>
 
     <div class="actions">
-      <button class="primary" id="go">Generate</button>
+      <div class="progress" id="progress" hidden><div id="bar"></div></div>
+      <button class="primary" id="go"><span id="goLabel">Generate</span></button>
       <button class="secondary" id="dl" disabled>Download PNGs</button>
-      <div class="msg" id="msg"></div>
     </div>
   </div>
 
-  <div class="view" id="view"></div>
+  <div class="main">
+    <div class="note" id="stale" hidden>Settings changed since the last run. Press <b>&nbsp;Generate</b> to update the images.</div>
+    <div class="view" id="view"></div>
+  </div>
 </div>
+
+<div class="toast" id="msg" role="status" aria-live="polite"></div>
+
+<div class="dropveil" id="dropveil" hidden><span>Drop to use as the pattern</span></div>
+
+<dialog class="lb" id="lb" aria-label="Image preview">
+  <div class="lb-wrap">
+    <div class="lb-top">
+      <button type="button" class="lb-icon" id="lbClose" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 4 10l4 4M4 10h9"/><path d="M11 4h3.5A1.5 1.5 0 0 1 16 5.5v9a1.5 1.5 0 0 1-1.5 1.5H11"/></svg></button>
+      <div class="lb-head"><div class="t" id="lbTitle"></div><div class="i" id="lbIdx"></div></div>
+      <a class="lb-icon" id="lbDl" download aria-label="Download"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v8M6.5 8.5 10 12l3.5-3.5"/><path d="M4 13v1.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V13"/></svg></a>
+    </div>
+    <div class="lb-main">
+      <div class="lb-body">
+        <button type="button" class="lb-nav" id="lbPrev" aria-label="Previous"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-5 5 5 5"/></svg></button>
+        <img id="lbImg" alt="">
+        <button type="button" class="lb-nav" id="lbNext" aria-label="Next"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 5 5-5 5"/></svg></button>
+      </div>
+      <aside class="lb-info">
+        <h3><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 9v4.5M10 6.5v.01"/></svg>Information</h3>
+        <h4>Name</h4>
+        <p id="lbName"></p>
+        <h4>Details</h4>
+        <p id="lbDetails"></p>
+      </aside>
+    </div>
+  </div>
+</dialog>
 
 <script>
 'use strict';
@@ -804,13 +903,36 @@ function compose(G, pat, ratio, trim, opt){
 
 // ===== page: testing page UI (this file only) =====
 const $=id=>document.getElementById(id);
-const msg=m=>{ $('msg').textContent=m; };
+// status toast (as pattern-mockup.html): replaces the previous one, hides after 4s (errors: red, 6s)
+let msgTimer=0;
+const msg=(m,err)=>{ const el=$('msg'); clearTimeout(msgTimer); if(!m){ el.classList.remove('on'); return; }
+  el.textContent=m; el.classList.toggle('err',!!err); el.classList.add('on');
+  msgTimer=setTimeout(()=>el.classList.remove('on'), err?6000:4000); };
 
-let patImg=null, patLoading=null, busy=false;   // patLoading: the decode in flight, awaited by generate()
+let patImg=null, patName='', patLoading=null, busy=false, stopReq=false;   // patLoading: the decode in flight, awaited by generate()
+let autoTrim=null, autoRest=null;   // '#rrggbb' picked from the pattern: the Auto values of trim / rest colour
 // Trim colour: the field (picker + hex, same as the dev tool). Empty = keep the mock's own trim. Auto-filled from the
 // pattern's dominant hue on load, editable by hand after that.
-function setTrim(hex){ $('trimColor').value=hex.toLowerCase(); $('trimHex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
+function setColor(prefix,hex){ $(prefix+'Color').value=hex.toLowerCase(); $(prefix+'Hex').value=hex.toUpperCase(); }   // hex = '#rrggbb'
+const setTrim=hex=>setColor('trim',hex), setRest=hex=>setColor('rest',hex);
+// Background colour of a pattern (copied from pattern-mockup.html): the most common colour (64x64 sample, 16 levels per
+// channel, mean colour of the heaviest bin). Transparent pixels count as white.
+function bgColorOf(img){
+  try{
+    const d=raster(img,64,64,false).data, cnt=new Map();
+    for(let i=0;i<d.length;i+=4){
+      const t=d[i+3]<128, r=t?255:d[i], g=t?255:d[i+1], b=t?255:d[i+2], key=(r>>4)<<8|(g>>4)<<4|(b>>4);
+      const e=cnt.get(key); if(e){ e[0]++; e[1]+=r; e[2]+=g; e[3]+=b; } else cnt.set(key,[1,r,g,b]); }
+    let best=null; for(const e of cnt.values()) if(!best||e[0]>best[0]) best=e;
+    const h=v=>Math.round(v/best[0]).toString(16).padStart(2,'0');
+    return '#'+h(best[1])+h(best[2])+h(best[3]);
+  }catch{ return null; }
+}
 const results={ flats:[], models:[] };   // each: {name,canvas,fig,live}
+// settings the shots were made with; body size + offset are live, so they never make a shot outdated
+const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', layoutV(),
+  layoutV()==='placement'?parseHex($('restHex').value)||'':''].join('|');
+let lastRun=null;
 
 // Same opt as pattern-mockup.html layoutOpt(): the map's cyan perspective dots apply when present. Panel 1 (R 20) centred on its centroid.
 const PROD_OPT={ center:true };
@@ -919,89 +1041,206 @@ function clearShots(list){
   for(const r of list) r.fig.remove();
   list.length=0;
 }
+const allShots=()=>[...results.flats,...results.models];
 // new shots wait in stage and replace the old ones in one swap at the end of the run (no blank page while re-rendering)
-let stage=document.createDocumentFragment();
-function showShot(bucket, canvas, name, caption, live){
+let stage=document.createDocumentFragment(), failed=[];   // failed: figures of views that threw, shown as error cards
+function shotFig(caption){
   const fig=document.createElement('figure'); fig.className='shot';
-  canvas.setAttribute('role','img'); canvas.setAttribute('aria-label',caption);
+  const badge=document.createElement('span'); badge.className='badge'; badge.hidden=true;
   const cap=document.createElement('figcaption'); cap.textContent=caption;
-  fig.append(canvas,cap); stage.append(fig);
-  bucket.push({ canvas, name, fig, live });
+  fig.append(badge,cap); stage.append(fig);
+  return fig;
+}
+function showShot(bucket, canvas, name, caption, live){
+  const fig=shotFig(caption);
+  canvas.setAttribute('role','img'); canvas.setAttribute('aria-label',caption);
+  fig.insertBefore(canvas, fig.lastChild);
+  const r={ canvas, name, fig, live };
+  canvas.addEventListener('click', ()=>openLightbox(r));
+  bucket.push(r);
+}
+function showFail(caption, err){
+  const fig=shotFig(caption); fig.classList.add('err');
+  const b=fig.querySelector('.badge'); b.hidden=false; b.textContent='Failed';
+  const d=document.createElement('div'); d.className='fail'; d.textContent=err&&err.message||String(err);
+  fig.insertBefore(d, fig.lastChild);
+  failed.push({ fig });
 }
 function copyCanvas(src){ const c=document.createElement('canvas'); c.width=src.width; c.height=src.height; c.getContext('2d').drawImage(src,0,0); return c; }
 
+// buttons, hints, Outdated badges: one pass after every settings change
+const isStale=()=>!!(lastRun && lastRun!==settingsKey());
+function refresh(){
+  const stale=isStale(), shots=allShots();
+  $('goLabel').textContent=busy?(stopReq?'Stopping…':'Stop'+(prog?' · '+prog:'')):'Generate';
+  $('go').classList.toggle('stop', busy);
+  $('go').disabled=busy&&stopReq;
+  $('go').title=busy?'Stop after the current image':'';
+  $('dl').disabled=busy||!shots.length;
+  $('dl').textContent=shots.length?'Download '+shots.length+' PNG'+(shots.length>1?'s':''):'Download PNGs';
+  $('stale').hidden=!(shots.length && stale) || busy;
+  for(const r of shots){ r.fig.classList.toggle('old', stale); const b=r.fig.querySelector('.badge'); b.hidden=!stale; b.textContent='Outdated'; }
+  const th=parseHex($('trimHex').value), ath=autoTrim&&parseHex(autoTrim);
+  $('trimAuto').disabled=!autoTrim || th===ath;
+  $('trimHint').textContent=!th?'Mock trim (no color)':autoTrim&&th===ath?'Picked from the pattern':'Custom';
+  const rh=parseHex($('restHex').value), arh=autoRest&&parseHex(autoRest);
+  $('restAuto').disabled=!autoRest || rh===arh;
+  $('restHint').textContent=!rh?'White':autoRest&&rh===arh?'Pattern background':'Custom';
+  if(!rh) $('restColor').value='#ffffff';
+  $('restField').hidden=layoutV()!=='placement';
+  const bs=+$('bodySize').value; $('bodySizeVal').textContent=bs.toFixed(2); $('bodyReset').hidden=bs===BODY_FRAC;
+}
+
+const setBar=f=>{ $('bar').style.width=(f*100).toFixed(1)+'%'; };
+let prog='';
 async function generate(){
-  if(busy) return;
-  busy=true; $('go').disabled=true;
+  if(busy){ stopReq=true; refresh(); return; }   // second press = Stop after the current image
+  busy=true; stopReq=false; document.body.classList.add('busy'); refresh();
   try{ if(patLoading){ msg('Reading pattern…'); await patLoading; } }catch{}
   const pat=patImg;   // one bitmap for the whole run: a decode finishing mid-run must not swap the pattern between shots
-  if(!pat){ msg('Choose a pattern file first.'); busy=false; $('go').disabled=false; return; }
-  msg('Generating…'); await nextPaint();
+  if(!pat){ msg('Add a pattern first.', true); busy=false; document.body.classList.remove('busy'); refresh(); $('drop').focus(); return; }
   const t0=performance.now();
+  const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
+  const old=[...allShots(), ...failed];
+  results.flats=[]; results.models=[]; failed=[]; stage=document.createDocumentFragment();
+  lastRun=settingsKey();
+  // every view of every garment, in page order
+  const jobs=[];
+  for(const gk of FLAT_KEYS){ const g=GARMENTS[gk];
+    for(const v of g.flats) jobs.push([gk,v,false,results.flats,'flatlay',flatName(v)]);
+    for(const v of g.models) jobs.push([gk,v,true,results.models,'model',v.name||modelName(v)]); }
+  $('progress').hidden=false; setBar(0);
+  const BRs=new Map();   // garment -> body ratio (body width / pattern width) from the uncropped bodyRef, only for Body + rest
+  let done=0, nFail=0;
   try{
-    const hex=parseHex($('trimHex').value), trim=hex&&hexToRgb(hex);
-    const old=[...results.flats, ...results.models];
-    results.flats=[]; results.models=[]; stage=document.createDocumentFragment();
-    for(const gk of FLAT_KEYS){
-      const g=GARMENTS[gk];
-      let BR=0;   // body ratio (body width / pattern width) from the uncropped bodyRef, only for Body + rest
-      if(g.bodyRef&&layoutV()==='placement'&&[...g.flats,...g.models].some(v=>!v.br)){ msg(gk+' · body reference…'); await nextPaint(); BR=bodyBr(await analyzeGarment(g.bodyRef), g.bodyRef.r); }
-      const views=[...g.flats.map(v=>[v,false,results.flats,'flatlay',flatName(v)]), ...g.models.map(v=>[v,true,results.models,'model',v.name||modelName(v)])];
-      for(let i=0;i<views.length;i++){ const [v,model,bucket,kind,name]=views[i];
-        msg(gk+' · '+kind+' '+(i+1)+'/'+views.length+'…'); await nextPaint();
-        const G=await analyzeGarment(v, model);
-        const o=prodOpt();
-        if(!o.body){ showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, o)), 'all-over-'+kind+'-'+name, name+' · all-over'); continue; }
-        const bo=bodyOpt(o, G, v, v.br||BR);
-        const L=bo.body.none ? null : buildLive(G, pat, v.r, trim, bo);
-        if(L){ renderLive(L); showShot(bucket, L.out, 'production-'+kind+'-'+name, name+' · production', L); }
-        else showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, bo)), 'production-'+kind+'-'+name, name+' · production');
-      }
+    for(const [gk,v,model,bucket,kind,name] of jobs){
+      if(stopReq) break;
+      prog=(done+1)+' of '+jobs.length; refresh(); await nextPaint();
+      try{
+        const g=GARMENTS[gk], o=prodOpt();
+        if(!o.body) showShot(bucket, copyCanvas(compose(await analyzeGarment(v, model), pat, v.r, trim, o)), 'all-over-'+kind+'-'+name, name+' · all-over');
+        else{
+          if(!v.br && !BRs.has(gk)) BRs.set(gk, g.bodyRef ? bodyBr(await analyzeGarment(g.bodyRef), g.bodyRef.r) : 0);
+          const G=await analyzeGarment(v, model), bo=bodyOpt(o, G, v, v.br||BRs.get(gk)||0);
+          const L=bo.body.none ? null : buildLive(G, pat, v.r, trim, bo);
+          if(L){ renderLive(L); showShot(bucket, L.out, 'production-'+kind+'-'+name, name+' · production', L); }
+          else showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, bo)), 'production-'+kind+'-'+name, name+' · production');
+        }
+      }catch(err){ nFail++; showFail(name+' · '+kind, err); console.error(gk, name, err); }
+      finally{ done++; setBar(done/jobs.length); }
     }
     clearShots(old); $('view').append(stage);
-    $('dl').disabled=false;
-    msg('Done · '+results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s');
-  }catch(err){ msg('Error: '+err.message); }
-  finally{ busy=false; $('go').disabled=false; }
+    msg(results.flats.length+' flatlay · '+results.models.length+' on-model images · '+((performance.now()-t0)/1000).toFixed(1)+'s'
+      +(done<jobs.length?' · stopped, '+(jobs.length-done)+' skipped':'')+(nFail?' · '+nFail+' failed':''), nFail>0);
+  }catch(err){ msg('Error: '+err.message, true); }
+  finally{
+    busy=false; stopReq=false; prog=''; document.body.classList.remove('busy');
+    setTimeout(()=>{ if(!busy) $('progress').hidden=true; }, 600);
+    refresh();
+  }
 }
 function setNudge(x,y){ nudge=[x,y]; $('nudgeVal').textContent='x '+x+' · y '+y; scheduleLive(); }
 document.querySelectorAll('.nudge [data-d]').forEach(btn=>btn.addEventListener('click', ()=>{
   const [dx,dy]=btn.dataset.d.split(',').map(Number); setNudge(nudge[0]+dx, nudge[1]+dy); }));
 $('nudgeReset').addEventListener('click', ()=>setNudge(0,0));
-$('bodySize').addEventListener('input', e=>{ $('bodySizeVal').textContent=(+e.target.value).toFixed(2); scheduleLive(); });
+$('bodySize').addEventListener('input', ()=>{ refresh(); scheduleLive(); });
+$('bodyReset').addEventListener('click', ()=>{ $('bodySize').value=String(BODY_FRAC); refresh(); scheduleLive(); });
+$('bodySize').addEventListener('dblclick', ()=>$('bodyReset').click());
 
-$('patternBtn').addEventListener('click', ()=>$('pattern').click());
-$('pattern').addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  $('patternName').textContent=f.name;
+// --- pattern: click, drag & drop anywhere, or paste (as pattern-mockup.html) ---
+async function loadPattern(f){
+  if(busy) return;
+  if(!f || !/^image\//.test(f.type)){ msg('That file is not an image.', true); return; }
   msg('Reading pattern…'); await nextPaint();
   const job=decodeFile(f); patLoading=job;
   try{
     const img=await job;
     if(patLoading!==job) return;   // a newer file was chosen meanwhile
-    if(patImg&&patImg.close&&!busy) patImg.close();
-    patImg=img; patLoading=null;
-    const c=dominantColor(img), t=c&&trimHexFrom(...c);
-    if(t) setTrim(t);
-    msg('Pattern '+img.width+'×'+img.height+(t?' · trim '+t.toUpperCase():''));
-  }catch{ if(patLoading===job) patLoading=null; msg('Could not read that image.'); }
+    if(patImg&&patImg.close) patImg.close();
+    patImg=img; patLoading=null; patName=f.name||'pattern.png';
+    const old=$('patThumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old);
+    $('patThumb').src=URL.createObjectURL(f);
+    $('patternName').textContent=patName; $('patternName').title=patName;
+    $('patternDims').textContent=img.width+' × '+img.height+' px';
+    $('dropEmpty').hidden=true; $('dropFull').hidden=false;
+    const c=dominantColor(img); autoTrim=c&&trimHexFrom(...c);
+    if(autoTrim) setTrim(autoTrim);
+    autoRest=bgColorOf(img); if(autoRest) setRest(autoRest);
+    msg('Pattern '+img.width+'×'+img.height+(autoTrim?' · trim '+autoTrim.toUpperCase():''));
+  }catch{ if(patLoading===job) patLoading=null; msg('Could not read that image.', true); }
+  refresh();
+}
+$('drop').addEventListener('click', ()=>$('pattern').click());
+$('drop').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('pattern').click(); } });
+$('pattern').addEventListener('change', e=>{ loadPattern(e.target.files[0]); e.target.value=''; });
+$('patClear').addEventListener('click', e=>{ e.stopPropagation(); if(busy) return;
+  if(patImg&&patImg.close) patImg.close(); patImg=null; patName=''; patLoading=null; autoTrim=null; autoRest=null;
+  const old=$('patThumb').src; if(old.startsWith('blob:')) URL.revokeObjectURL(old); $('patThumb').removeAttribute('src');
+  $('dropFull').hidden=true; $('dropEmpty').hidden=false; msg(''); refresh(); });
+$('patClear').addEventListener('keydown', e=>e.stopPropagation());   // Enter/Space on the x must not open the picker
+let dragDepth=0;
+const hasFiles=e=>e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e=>{ if(!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('dropveil').hidden=false; });
+window.addEventListener('dragover', e=>{ if(hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e=>{ if(!hasFiles(e)) return; if(--dragDepth<=0){ dragDepth=0; $('dropveil').hidden=true; } });
+window.addEventListener('drop', e=>{ if(!hasFiles(e)) return; e.preventDefault(); dragDepth=0; $('dropveil').hidden=true; loadPattern(e.dataTransfer.files[0]); });
+window.addEventListener('paste', e=>{
+  if(/^(INPUT|TEXTAREA)$/.test((e.target&&e.target.tagName)||'')) return;
+  const f=[...(e.clipboardData&&e.clipboardData.files||[])].find(x=>/^image\//.test(x.type));
+  if(f){ e.preventDefault(); loadPattern(f); }
 });
-$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); });
-$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); });
-$('layout').addEventListener('change', ()=>{ $('restField').hidden=layoutV()!=='placement'; });
-$('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.toUpperCase(); });
-$('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); });
+
+$('trimColor').addEventListener('input', e=>{ $('trimHex').value=e.target.value.toUpperCase(); refresh(); });
+$('trimHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('trimColor').value='#'+h.toLowerCase(); refresh(); });
+$('trimAuto').addEventListener('click', ()=>{ if(autoTrim){ setTrim(autoTrim); refresh(); } });
+$('layout').addEventListener('change', refresh);
+$('restColor').addEventListener('input', e=>{ $('restHex').value=e.target.value.toUpperCase(); refresh(); });
+$('restHex').addEventListener('input', e=>{ const h=parseHex(e.target.value); if(h) $('restColor').value='#'+h.toLowerCase(); refresh(); });
+$('restAuto').addEventListener('click', ()=>{ if(autoRest){ setRest(autoRest); refresh(); } });
 $('go').addEventListener('click', generate);
+window.addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.ctrlKey||e.metaKey) && !$('lb').open && !busy){ e.preventDefault(); generate(); } });
+const toBlob=c=>new Promise(res=>c.toBlob(res,'image/png'));
 $('dl').addEventListener('click', async ()=>{
+  const shots=allShots(); if(!shots.length) return;
   let dl=null; try{ dl = (window.claude&&claude.use) ? await claude.use('downloads') : null; }catch{}
-  const items=[];
-  for(const r of [...results.flats,...results.models]) items.push({ name:r.name+'.png', blob:await new Promise(res=>r.canvas.toBlob(res,'image/png')) });
-  for(const it of items){ if(!it.blob) continue;
-    if(dl){ try{ await dl.save({filename:it.name, data:it.blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed')); } }
-    else { const url=URL.createObjectURL(it.blob), a=document.createElement('a'); a.href=url; a.download=it.name; a.click();
+  $('dl').disabled=true;
+  for(let i=0;i<shots.length;i++){
+    $('dl').textContent='Saving '+(i+1)+' of '+shots.length+'…';
+    const r=shots[i], blob=await toBlob(r.canvas); if(!blob) continue;
+    if(dl){ try{ await dl.save({filename:r.name+'.png', data:blob}); }catch(e){ msg('Download '+((e&&e.code)||'failed'), true); } }
+    else { const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=r.name+'.png'; a.click();
       await new Promise(res=>setTimeout(res,300)); URL.revokeObjectURL(url); }
   }
+  refresh();
 });
+
+// --- lightbox over the shots on screen (a live shot is read when shown, so it has the size / offset in use) ---
+let lbList=[], lbAt=0, lbUrl='';
+function openLightbox(r){
+  lbList=allShots(); lbAt=Math.max(0, lbList.indexOf(r));
+  showLightbox(); if(!$('lb').open) $('lb').showModal();
+}
+async function showLightbox(){
+  const r=lbList[lbAt]; if(!r) return;
+  const at=lbAt, blob=await toBlob(r.canvas); if(at!==lbAt || !blob) return;
+  if(lbUrl) URL.revokeObjectURL(lbUrl); lbUrl=URL.createObjectURL(blob);
+  const kb=blob.size/1024, size=kb<1024?kb.toFixed(1)+' kB':(kb/1024).toFixed(2)+' MB', f=r.name+'.png';
+  $('lbImg').src=lbUrl; $('lbImg').alt=f;
+  $('lbTitle').textContent=f; $('lbName').textContent=f;
+  $('lbIdx').textContent=(lbAt+1)+' of '+lbList.length;
+  $('lbDetails').textContent='PNG • '+r.canvas.width+' × '+r.canvas.height+' • '+size;
+  $('lbDl').href=lbUrl; $('lbDl').download=f;
+  $('lbPrev').hidden=$('lbNext').hidden=lbList.length<2;
+}
+const lbStep=d=>{ lbAt=(lbAt+d+lbList.length)%lbList.length; showLightbox(); };
+$('lbPrev').addEventListener('click', ()=>lbStep(-1));
+$('lbNext').addEventListener('click', ()=>lbStep(1));
+$('lbClose').addEventListener('click', ()=>$('lb').close());
+$('lb').addEventListener('click', e=>{ if(e.target.classList.contains('lb-body')) $('lb').close(); });
+$('lb').addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') lbStep(-1); else if(e.key==='ArrowRight') lbStep(1); });
+
+refresh();
+
 </script>
 
 <script>

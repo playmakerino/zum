@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page not found</title>
+  <!-- GitHub Pages serves this file for every missing path under /zum/. Old links are sent to their new page here
+       (this replaces the one-line redirect files that used to sit at each old path). Add an old path: one line in MOVED. -->
+  <script>
+    var MOVED = {
+      'forms/flatlay-composite.html': 'compositor/pattern-mockup.html',
+      'forms/panel-map-guide.html': 'compositor/panel-map-guide.html',
+      'forms/zum_prd_form.html': 'compositor/zum_prd_form.html',
+      'forms/tc_embroidery_form.html': 'forms/tc_form_1.html',
+      'forms/tc_quilt_blanket_form.html': 'forms/tc_form_2.html',
+      'forms/tc_form_5.html': 'forms/tc_form_6.html',
+      'forms/tc_prd_form.html': 'forms/tc_form_10.html',
+      'tc_prd_form.html': 'forms/tc_form_10.html',
+      'tc_vid_form.html': 'forms/tc_vid_form.html'
+    };
+    (function () {
+      var base = '/zum/';
+      var p = location.pathname;
+      var rel = p.indexOf(base) === 0 ? p.slice(base.length) : p.replace(/^\//, '');
+      var to = MOVED[decodeURIComponent(rel)];
+      if (to) location.replace(base + to + location.search + location.hash);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #fff; color: #101010; font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px; line-height: 20px; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+    .empty { max-width: 480px; margin: 0 auto; padding: 96px 16px; text-align: center; color: #616161; }
+    .empty svg { width: 60px; height: 60px; fill: #8a8a8a; display: block; margin: 0 auto 16px; }
+    .empty h1 { color: #101010; font-size: 20px; line-height: 24px; font-weight: 600; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="empty">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>
+    <h1>Page not found</h1>
+    <p>This link is wrong or the page has moved. Ask for the current link.</p>
+  </div>
+</body>
+</html>

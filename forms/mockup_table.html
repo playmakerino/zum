@@ -154,8 +154,12 @@
 
     /* mock thumbnail as in the Shopify entries list: 24px square before the name, 6px radius, 1px rgba(0,0,0,.08) frame,
        whole image (contain) on white, image icon when empty, 12px to the name; hover shows it large, click opens the image dialog */
+    /* thumbnail in its own 48px column like the Products list (measured 2026-10-16): 36x36, radius 10px, rows 48px */
+    .col-img { width: 48px; }
+    td.col-img { padding: 6px !important; }
+    tbody td { height: 48px; }
     .thumb {
-      position: relative; flex: none; width: 24px; height: 24px; margin: -6px 12px -6px 0; border-radius: 6px; overflow: hidden;
+      position: relative; flex: none; width: 36px; height: 36px; margin: 0; border-radius: 10px; overflow: hidden;
       background: #fff; display: grid; place-items: center;
     }
     .thumb::after { content: ""; position: absolute; inset: 0; border: 1px solid rgba(0,0,0,.08); border-radius: inherit; pointer-events: none; }
@@ -316,6 +320,19 @@
       input, select, .cell { font-size: 16px; }
       .hint { font-size: 12px; line-height: 18px; }
     }
+    /* view picker (Products list, measured): 28px pill, padding 0 2px 0 8px, hover .08, open .13; menu 188px, radius 16, padding 4, items 28px radius 12, check on the current view */
+    .view { position: relative; flex: none; }
+    .viewbtn { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px 0 8px; border: 0; border-radius: 9999px; background: transparent; font-weight: 400; white-space: nowrap; }
+    .viewbtn:hover { background: rgba(0,0,0,.08); }
+    .viewbtn.open { background: rgba(0,0,0,.13); }
+    .viewbtn svg { width: 20px; height: 20px; fill: var(--text-header); }
+    .viewbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .vmenu { position: absolute; left: 0; top: 32px; z-index: 300; min-width: 188px; padding: 4px; background: #fff; border-radius: 16px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
+    .vmenu[hidden] { display: none; }
+    .vmenu button { display: flex; align-items: center; gap: 12px; width: 100%; height: 28px; padding: 4px 32px 4px 4px; border: 0; border-radius: 12px; background: none; text-align: left; font-weight: 400; white-space: nowrap; }
+    .vmenu button:hover { background: rgba(0,0,0,.08); }
+    .vmenu .ck { width: 16px; height: 16px; flex: none; }
   </style>
   <script src="auth.js"></script>
 </head>
@@ -345,6 +362,10 @@
 
     <div id="card">
       <div class="filters">
+        <div class="view">
+          <button type="button" class="viewbtn" id="viewBtn" aria-haspopup="listbox" aria-expanded="false"><span id="viewLabel">All</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10.53 4.72a.75.75 0 0 0-1.06 0l-2.75 2.75a.75.75 0 0 0 1.06 1.06L10 6.31l2.22 2.22a.75.75 0 1 0 1.06-1.06l-2.75-2.75Zm-3.81 7.81a.75.75 0 0 1 1.06-1.06L10 13.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-2.75 2.75a.75.75 0 0 1-1.06 0l-2.75-2.75Z"/></svg></button>
+          <div class="vmenu" id="viewMenu" role="listbox" hidden></div>
+        </div>
         <div class="search" id="searchBox">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg>
           <span id="tokens" style="display:contents"></span>
@@ -358,6 +379,7 @@
       <table>
         <thead><tr>
           <th class="col-num" data-sort="id">ID</th>
+          <th class="col-img"></th>
           <th data-sort="Mockup_ID">Mockup ID</th>
           <th class="col-type" data-sort="Product_type_ID">Type ID</th>
           <th class="col-tier" data-sort="tier">Tier</th>
@@ -486,7 +508,8 @@
       const img = small ? `<img src="${esc(small)}" alt="" loading="lazy" />` : IMG_ICON;
       return `<tr data-key="${r.key}" class="${cls}">
         <td class="col-num">${r.id == null ? '' : r.id}</td>
-        <td><div class="idwrap"><button type="button" class="thumb"${big ? ` data-full="${esc(big)}"` : ''} aria-label="${small ? 'Change or remove the image' : 'Add an image'}"${off}>${img}</button><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
+        <td class="col-img"><button type="button" class="thumb"${big ? ` data-full="${esc(big)}"` : ''} aria-label="${small ? 'Change or remove the image' : 'Add an image'}"${off}>${img}</button></td>
+        <td><div class="idwrap"><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type${r.Product_type_ID ? '' : ' empty-val'}" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier${r.tier ? '' : ' empty-val'}" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
         <td class="c col-flag"><input type="checkbox" class="chk f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
@@ -506,7 +529,7 @@
       renderTokens();
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="7" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No mockups found</h3>Try changing the filters or search term<br><button type="button" class="btn primary" id="emptyClear">Clear search and filters</button></td></tr>';
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="8" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No mockups found</h3>Try changing the filters or search term<br><button type="button" class="btn primary" id="emptyClear">Clear search and filters</button></td></tr>';
       renderCount(list.filter(r => r.id != null).length, n);
     }
     function renderCount(shown, n) {
@@ -983,6 +1006,33 @@
 
     if (restore()) say(changeCount() ? 'Unsaved changes kept from before the reload. Press Save to store them.' : 'Shown from this browser. Press Load for the latest table.');
     render();
+    // ---- views (Products list): each view is a preset of the filters; filtering by hand shows "Custom" ----
+    const VIEWS = [
+      ['All', {}], ['TC img', { fImg: 'yes' }], ['TC prd', { fPrd: 'yes' }],
+      ['Tier 1', { fTier: '1' }], ['Tier 2', { fTier: '2' }], ['Tier 3', { fTier: '3' }], ['Tier 4', { fTier: '4' }], ['No tier', { fTier: 'none' }]
+    ];
+    const VKEYS = ['fType', 'fTier', 'fPrd', 'fImg'];
+    const VCK = '<svg class="ck" viewBox="0 0 20 20" aria-hidden="true"><path fill="#101010" d="M15.78 5.97a.75.75 0 0 1 0 1.06l-6.5 6.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.97 2.97 5.97-5.97a.75.75 0 0 1 1.06 0Z"/></svg>';
+    const currentView = () => VIEWS.findIndex(([, v]) => VKEYS.every(k => ($(k).value || '') === (v[k] || '')));
+    function viewLabel() { const i = currentView(); $('viewLabel').textContent = i < 0 ? 'Custom' : VIEWS[i][0]; }
+    function viewOpen(on) {
+      $('viewMenu').hidden = !on; $('viewBtn').classList.toggle('open', on); $('viewBtn').setAttribute('aria-expanded', String(on));
+      if (!on) return;
+      const cur = currentView();
+      $('viewMenu').innerHTML = VIEWS.map(([l], i) => `<button type="button" role="option" data-i="${i}">${i === cur ? VCK : '<span class="ck"></span>'}<span>${esc(l)}</span></button>`).join('');
+    }
+    $('viewBtn').addEventListener('click', () => viewOpen($('viewMenu').hidden));
+    $('viewMenu').addEventListener('click', e => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      const v = VIEWS[Number(b.dataset.i)][1];
+      VKEYS.forEach(k => { $(k).value = v[k] || ''; });
+      viewOpen(false);
+      $('fImg').dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    document.addEventListener('mousedown', e => { if (!e.target.closest('.view')) viewOpen(false); });
+    VKEYS.concat('fQ').forEach(k => $(k).addEventListener('input', viewLabel));
+    new MutationObserver(viewLabel).observe($('tokens'), { childList: true, subtree: true });
+    viewLabel();
   </script>
 </body>
 </html>

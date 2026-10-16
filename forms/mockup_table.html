@@ -122,16 +122,17 @@
     tbody tr:first-child td { border-top: 0; }
     tbody tr:hover td { background: var(--hover); }
     .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
-    .col-img { width: 52px; }
 
-    /* mock thumbnail, 4:5 like the mock photos; hover shows it large (not clickable) */
+    /* mock thumbnail as in the Shopify entries list: 24px square before the name, 6px radius, 1px rgba(0,0,0,.08) frame,
+       whole image (contain) on white, image icon when empty, 12px to the name; hover shows it large (not clickable) */
     .thumb {
-      width: 28px; height: 35px; border-radius: 6px; overflow: hidden;
-      background: var(--pill); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+      position: relative; flex: none; width: 24px; height: 24px; margin: -6px 12px -6px 0; border-radius: 6px; overflow: hidden;
+      background: #fff; display: grid; place-items: center;
     }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb::after { content: ""; position: absolute; inset: 0; border: 1px solid rgba(0,0,0,.08); border-radius: inherit; pointer-events: none; }
+    .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .thumb svg { width: 16px; height: 16px; fill: #606060; }
     tr.deleted .thumb { opacity: .45; }
-    td.col-img { padding-top: 0; padding-bottom: 0; }
     .preview {
       position: fixed; z-index: 60; width: 240px; border-radius: 12px; overflow: hidden; pointer-events: none;
       background: var(--pill); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
@@ -240,7 +241,6 @@
 
       <table>
         <thead><tr>
-          <th class="col-img"></th>
           <th data-sort="Mockup_ID">Mockup ID</th>
           <th class="col-type" data-sort="Product_type_ID">Type ID</th>
           <th class="col-tier" data-sort="tier">Tier</th>
@@ -261,7 +261,8 @@
     const thumbSrc = (u, w) => /^https:\/\/cdn\.shopify\.com\//.test(u) ? u + (u.includes('?') ? '&' : '?') + 'width=' + (w || 96) : u;
     // loaded table + unsaved edits + filters live in this browser, so F5 keeps them; Load / Save replace them
     const STORE_KEY = 'mockup_table_state_v1';
-    const X_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
+    const IMG_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path fill-rule="evenodd" d="M6.75 3.5a3.25 3.25 0 0 0-3.25 3.25v6.5a3.25 3.25 0 0 0 3.25 3.25h6.5a3.25 3.25 0 0 0 3.25-3.25v-6.5a3.25 3.25 0 0 0-3.25-3.25h-6.5Zm-1.75 3.25c0-.966.784-1.75 1.75-1.75h6.5c.966 0 1.75.784 1.75 1.75v4.19l-1.72-1.72a.75.75 0 0 0-1.06 0l-2.22 2.22-1.22-1.22a.75.75 0 0 0-1.06 0l-1.72 1.72v-5.19Zm0 6.5v.31l2.25-2.25 1.22 1.22a.75.75 0 0 0 1.06 0l2.22-2.22 2.22 2.22v.72c0 .966-.784 1.75-1.75 1.75h-6.5a1.75 1.75 0 0 1-1.75-1.75Z"/></svg>';
+    const X_ICON ='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
     let types = [], loaded = false, newKey = 0;
@@ -345,10 +346,9 @@
       const del = r.deleted
         ? '<button type="button" class="btn tertiary undo del">Undo</button>'
         : `<button type="button" class="x del" aria-label="Delete">${X_ICON}</button>`;
-      const img = r.thumb_url ? `<img src="${esc(thumbSrc(r.thumb_url))}" alt="" loading="lazy" />` : '';
+      const img = r.thumb_url ? `<img src="${esc(thumbSrc(r.thumb_url))}" alt="" loading="lazy" />` : IMG_ICON;
       return `<tr data-key="${r.key}" class="${cls}">
-        <td class="col-img"><div class="thumb"${r.thumb_url ? ` data-full="${esc(thumbSrc(r.thumb_url, 480))}"` : ''}>${img}</div></td>
-        <td><div class="idwrap"><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
+        <td><div class="idwrap"><div class="thumb"${r.thumb_url ? ` data-full="${esc(thumbSrc(r.thumb_url, 480))}"` : ''}>${img}</div><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
         <td class="c col-flag"><input type="checkbox" class="chk f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
@@ -369,7 +369,7 @@
       ['fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).classList.toggle('on', !!$(id).value));
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="7" class="empty">No mockups match these filters.</td></tr>';
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty">No mockups match these filters.</td></tr>';
       renderCount(list.filter(r => r.id != null).length);
     }
     function renderCount(shown) {

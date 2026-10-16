@@ -29,7 +29,7 @@
     }
     button, input, select { font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
     button { cursor: pointer; }
-    .page { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+    .page { padding: 0 16px 32px; }
 
     /* top bar: title left, actions right */
     .topbar { height: 60px; display: flex; align-items: center; gap: 8px; }
@@ -77,6 +77,26 @@
     .pick:hover { background-color: #e3e3e3; }
     .pick.on { background-color: #d4d4d4; font-weight: 550; }
     .pick:focus-visible { box-shadow: var(--ring-focus); }
+    .pick.open { background-color: #d4d4d4; }
+
+    /* option list drawn like Shopify's (native select menus cannot be styled); the <select> stays the source of truth */
+    .menu {
+      position: fixed; z-index: 300; min-width: 120px; max-height: 320px; overflow: auto;
+      background: #fff; border-radius: 16px; padding: 6px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
+    }
+    .menu[hidden] { display: none; }
+    .menu button {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%;
+      min-height: 32px; padding: 6px 8px; border: 0; border-radius: 12px; background: none; text-align: left;
+      font-size: 13px; line-height: 20px; font-weight: 450; color: #303030; white-space: nowrap;
+    }
+    .menu button:hover, .menu button.kb { background: #f2f2f2; }
+    .menu button.sel { background: #ebebeb; font-weight: 600; color: var(--text); }
+    .menu button svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .menu::-webkit-scrollbar { width: 11px; background: transparent; }
+    .menu::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 12px; background-clip: content-box; background-color: transparent; }
+    .menu:hover::-webkit-scrollbar-thumb, .menu::-webkit-scrollbar-thumb:hover { background-color: #8c8c8c; }
 
     /* table: header band #f7f7f7 with 10px ends, rows 36px split by #f2f2f2 */
     table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; line-height: 18px; }
@@ -104,16 +124,19 @@
     .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
     .col-img { width: 52px; }
 
-    /* mock thumbnail, 4:5 like the mock photos; click to paste or clear the image link */
+    /* mock thumbnail, 4:5 like the mock photos; hover shows it large (not clickable) */
     .thumb {
-      width: 28px; height: 35px; padding: 0; border: 0; border-radius: 6px; overflow: hidden; display: block;
+      width: 28px; height: 35px; border-radius: 6px; overflow: hidden;
       background: var(--pill); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumb:hover { box-shadow: 0 0 0 2px var(--text-header); }
-    .thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    tr.deleted .thumb { opacity: .45; pointer-events: none; }
+    tr.deleted .thumb { opacity: .45; }
     td.col-img { padding-top: 0; padding-bottom: 0; }
+    .preview {
+      position: fixed; z-index: 60; width: 240px; border-radius: 12px; overflow: hidden; pointer-events: none;
+      background: var(--pill); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
+    }
+    .preview img { width: 100%; display: block; }
 
     /* inline fields: pill like the entry page (#f2f2f2, 28px), shown on hover and focus */
     .cell {
@@ -163,7 +186,7 @@
     .empty { padding: 32px 8px; text-align: center; color: var(--text-sub); }
 
     /* auth.js chip + dialog are styled dark for the TC forms; light versions here */
-    body #tcAuthChip { background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03); padding: 4px 12px; font-family: inherit; }
+    body #tcAuthChip { position: fixed; top: auto; right: auto; bottom: 16px; left: 16px; z-index: 50; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03); padding: 4px 12px; font-family: inherit; }
     body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 16px; color: var(--text-sub); }
     body #tcAuthChip .tc-link { color: var(--text); font-weight: 500; }
     body #tcAuthChip .tc-link:hover { color: var(--text); }
@@ -235,7 +258,9 @@
     const WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/mockup-table';
     const FIELDS = ['Mockup_ID', 'Product_type_ID', 'tier', 'used_in_tc_prd', 'used_in_tc_img', 'thumb_url'];
     // Shopify CDN resizes on request: a 28px cell only needs a ~96px wide image (a few KB instead of the full mock)
-    const thumbSrc = u => /^https:\/\/cdn\.shopify\.com\//.test(u) ? u + (u.includes('?') ? '&' : '?') + 'width=96' : u;
+    const thumbSrc = (u, w) => /^https:\/\/cdn\.shopify\.com\//.test(u) ? u + (u.includes('?') ? '&' : '?') + 'width=' + (w || 96) : u;
+    // loaded table + unsaved edits + filters live in this browser, so F5 keeps them; Load / Save replace them
+    const STORE_KEY = 'mockup_table_state_v1';
     const X_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
@@ -322,7 +347,7 @@
         : `<button type="button" class="x del" aria-label="Delete">${X_ICON}</button>`;
       const img = r.thumb_url ? `<img src="${esc(thumbSrc(r.thumb_url))}" alt="" loading="lazy" />` : '';
       return `<tr data-key="${r.key}" class="${cls}">
-        <td class="col-img"><button type="button" class="thumb" aria-label="${r.thumb_url ? 'Change image link' : 'Add image link'}" data-tip="${r.thumb_url ? 'Change image link' : 'Add image link'}">${img}</button></td>
+        <td class="col-img"><div class="thumb"${r.thumb_url ? ` data-full="${esc(thumbSrc(r.thumb_url, 480))}"` : ''}>${img}</div></td>
         <td><div class="idwrap"><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
         <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
         <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
@@ -365,7 +390,7 @@
       th.querySelector('.sortbtn').addEventListener('click', () => {
         const k = th.dataset.sort;
         sort = { key: k, dir: sort.key === k ? -sort.dir : 1 };
-        render();
+        render(); persist();
       });
     });
 
@@ -379,35 +404,61 @@
       else if (c.contains('f-tier')) r.tier = e.target.value;
       else if (c.contains('f-prd')) r.used_in_tc_prd = e.target.checked;
       else if (c.contains('f-img')) r.used_in_tc_img = e.target.checked;
-      say(''); updateRowClass(tr, r);
+      say(''); updateRowClass(tr, r); persist();
     });
     $('rows').addEventListener('click', e => {
-      const t = e.target.closest('.thumb');
-      if (t) {
-        const r = rowOf(t.closest('tr')); if (!r) return;
-        const v = prompt('Image link (https://…). Leave empty to remove the image.', r.thumb_url);
-        if (v === null) return;
-        r.thumb_url = v.trim();
-        say(''); render();
-        return;
-      }
       const b = e.target.closest('.del'); if (!b) return;
       const r = rowOf(b.closest('tr')); if (!r) return;
       if (r.id == null) work = work.filter(x => x !== r); else r.deleted = !r.deleted;
-      say(''); render();
+      say(''); render(); persist();
     });
     $('addBtn').addEventListener('click', () => {
       work.unshift({ key: 'n' + (++newKey), id: null, deleted: false, Mockup_ID: '', Product_type_ID: '', tier: '', used_in_tc_prd: false, used_in_tc_img: true, thumb_url: '' });
-      say(''); render();
+      say(''); render(); persist();
       $('rows').querySelector('tr.new .f-id').focus();
     });
-    ['fQ', 'fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).addEventListener('input', () => { say(''); render(); }));
+    ['fQ', 'fType', 'fTier', 'fPrd', 'fImg'].forEach(id => $(id).addEventListener('input', () => { say(''); render(); persist(); }));
+
+    // ---- hover preview of the mock: a larger copy next to the thumbnail ----
+    const preview = document.createElement('div');
+    preview.className = 'preview'; preview.hidden = true;
+    preview.innerHTML = '<img alt="" />';
+    document.body.appendChild(preview);
+    $('rows').addEventListener('mouseover', e => {
+      const t = e.target.closest('.thumb[data-full]'); if (!t) return;
+      preview.firstChild.src = t.dataset.full;
+      const r = t.getBoundingClientRect(), h = 300;   // 240px wide, 4:5
+      preview.style.left = (r.right + 12) + 'px';
+      preview.style.top = Math.max(8, Math.min(r.top + r.height / 2 - h / 2, innerHeight - h - 8)) + 'px';
+      preview.hidden = false;
+    });
+    $('rows').addEventListener('mouseout', e => { if (e.target.closest('.thumb')) preview.hidden = true; });
+    window.addEventListener('scroll', () => { preview.hidden = true; }, true);
+
+    // ---- keep everything across reloads (per browser) ----
+    function persist() {
+      if (!loaded) return;
+      const state = {
+        orig: [...orig].map(([id, r]) => Object.assign({ id }, r)), work, types, newKey, sort,
+        filters: { fQ: $('fQ').value, fType: $('fType').value, fTier: $('fTier').value, fPrd: $('fPrd').value, fImg: $('fImg').value }
+      };
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+    function restore() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) {}
+      if (!s || !Array.isArray(s.orig) || !Array.isArray(s.work)) return false;
+      take({ rows: s.orig, types: s.types || [] });
+      work = s.work; newKey = s.newKey || 0; if (s.sort) sort = s.sort;
+      for (const k in (s.filters || {})) if ($(k)) $(k).value = s.filters[k];
+      return true;
+    }
 
     $('loadBtn').addEventListener('click', () => {
       if (changeCount() && !confirm('Discard ' + changeCount() + ' unsaved changes and load the table again?')) return;
       say('Loading…');
       withBusy(async () => {
-        try { take(await call({ action: 'list' })); say(''); }
+        try { take(await call({ action: 'list' })); persist(); say(''); }
         catch (e) { say(e.message, true); }
       });
     });
@@ -417,14 +468,84 @@
       withBusy(async () => {
         try {
           const data = await call({ action: 'save', changes: ch });
-          take(data);
+          take(data); persist();
           const s = data.saved || {};
           say('Saved: ' + (s.inserted || 0) + ' added, ' + (s.updated || 0) + ' changed, ' + (s.deleted || 0) + ' deleted.');
         } catch (e) { say(e.message + ' Nothing was saved.', true); }
       });
     });
-    window.addEventListener('beforeunload', e => { if (changeCount()) { e.preventDefault(); e.returnValue = ''; } });
+    // ---- Shopify-style option list for every select.pick (filters and cells); the native select keeps the value ----
+    (() => {
+      const CHECK = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
+      const menu = document.createElement('div');
+      menu.className = 'menu'; menu.hidden = true; menu.setAttribute('role', 'listbox');
+      document.body.appendChild(menu);
+      let owner = null, kb = -1;
+      const close = () => { if (owner) owner.classList.remove('open'); owner = null; menu.hidden = true; };
+      const choose = (sel, v) => {
+        close(); sel.focus();
+        if (sel.value === v) return;
+        sel.value = v;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      function open(sel) {
+        close(); owner = sel; sel.classList.add('open');
+        menu.innerHTML = '';
+        [...sel.options].forEach(o => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.setAttribute('role', 'option'); b.tabIndex = -1;
+          b.textContent = o.textContent || 'None';
+          if (o.selected) { b.className = 'sel'; b.insertAdjacentHTML('beforeend', CHECK); }
+          b.addEventListener('mousedown', e => e.preventDefault());
+          b.addEventListener('click', () => choose(sel, o.value));
+          menu.appendChild(b);
+        });
+        menu.style.minWidth = '';
+        menu.hidden = false;
+        const r = sel.getBoundingClientRect();
+        menu.style.minWidth = Math.max(120, r.width) + 'px';
+        const mh = menu.offsetHeight, mw = menu.offsetWidth;
+        let top = r.bottom + 6;
+        if (top + mh > innerHeight - 8 && r.top - 6 - mh > 8) top = r.top - 6 - mh;
+        let left = r.left;
+        if (left + mw > document.documentElement.clientWidth - 8) left = r.right - mw;
+        menu.style.top = top + 'px'; menu.style.left = Math.max(8, left) + 'px';
+        kb = sel.selectedIndex;
+        const s = menu.querySelector('.sel'); if (s) s.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('mousedown', e => {
+        const sel = e.target.closest && e.target.closest('select.pick');
+        if (sel) {
+          e.preventDefault();
+          if (sel.disabled) return;
+          if (owner === sel) close(); else { sel.focus(); open(sel); }
+          return;
+        }
+        if (!menu.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', e => {
+        if (owner) {
+          const items = [...menu.children];
+          if (e.key === 'Escape') { e.preventDefault(); const s = owner; close(); s.focus(); }
+          else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            kb = (kb + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items.forEach((b, i) => b.classList.toggle('kb', i === kb));
+            items[kb].scrollIntoView({ block: 'nearest' });
+          }
+          else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (kb >= 0) choose(owner, owner.options[kb].value); }
+          else if (e.key === 'Tab') close();
+          return;
+        }
+        const sel = document.activeElement;
+        if (sel && sel.matches && sel.matches('select.pick') && ['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) { e.preventDefault(); open(sel); }
+      });
+      window.addEventListener('scroll', e => { if (e.target !== menu) close(); }, true);
+      window.addEventListener('resize', close);
+    })();
 
+    if (restore()) say(changeCount() ? 'Unsaved changes kept from before the reload. Press Save to store them.' : 'Shown from this browser. Press Load for the latest table.');
     render();
   </script>
 </body>

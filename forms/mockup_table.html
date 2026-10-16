@@ -63,23 +63,45 @@
     .search { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 28px; padding: 0 4px 0 8px; border-radius: 8px; cursor: text; }
     .search > svg { flex: none; width: 16px; height: 16px; margin-right: 4px; fill: var(--text-header); pointer-events: none; }
     .search input { flex: 1; min-width: 120px; height: 28px; padding: 4px; border: 0; background: transparent; outline: none; }
-    .tok { display: inline-flex; gap: 1px; flex: none; height: 20px; padding: 0; border: 0; background: none; cursor: pointer; font-size: 12px; line-height: 16px; font-weight: 400; }
+    /* token, measured: key #f2f2f2 (open #ddd), value #d2f6fe text #01246f, 20px, 1px apart; the open value shows x */
+    .tok { display: inline-flex; gap: 1px; flex: none; height: 20px; }
+    .tok-k, .tok-v { display: inline-flex; align-items: center; height: 20px; border: 0; cursor: pointer; font-size: 12px; line-height: 16px; font-weight: 400; transition: background-color .1s; }
     .tok-k { padding: 2px 4px 2px 6px; border-radius: 8px 2px 2px 8px; background: #f2f2f2; color: var(--text); }
     .tok-v { padding: 2px 6px 2px 4px; border-radius: 2px 8px 8px 2px; background: #d2f6fe; color: #01246f; }
-    .tok:hover .tok-k, .tok.open .tok-k { background: #ebebeb; }
-    .tok:hover .tok-v, .tok.open .tok-v { background: #bfeffc; }
-    .tok:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 8px; }
+    .tok-k:hover { background: #ebebeb; }
+    .tok-k.open { background: #ddd; }
+    .tok-v:hover, .tok-v.open { background: #bfeffc; }
+    .tok-k:focus-visible, .tok-v:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .tok-x { display: inline-grid; place-items: center; width: 14px; height: 14px; margin-left: 2px; border-radius: 4px; }
+    .tok-x svg { width: 12px; height: 12px; fill: currentColor; }
+    .tok-x:hover { background: rgba(1,36,111,.1); }
+    .tok-add { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 9999px; background: none; cursor: pointer; }
+    .tok-add svg { width: 18px; height: 18px; fill: var(--text-header); }
+    .tok-add:hover { background: var(--t-hover); }
     .clearq { flex: none; }
     .clearq[hidden] { display: none; }
     /* field / value list under the search field */
-    .fmenu { position: fixed; z-index: 300; width: 200px; padding: 4px; background: #fff; border-radius: 16px;
+    .tok-wait { cursor: default; }
+    .tok-wait .tok-k { cursor: default; }
+    .fmenu { position: fixed; z-index: 300; min-width: 200px; max-width: 280px; overflow-y: auto; padding: 4px; background: #fff; border-radius: 16px;
       box-shadow: 0 2px 2px -1px rgba(0,0,0,.06), 0 3px 4px -2px rgba(0,0,0,.06), 0 6px 8px -3px rgba(0,0,0,.06), 0 12px 16px -4px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.08); }
     .fmenu[hidden] { display: none; }
     .fmenu button { display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 4px 8px; border: 0; border-radius: 12px;
       background: none; text-align: left; font-size: 13px; line-height: 20px; font-weight: 400; color: var(--text); white-space: nowrap; }
-    .fmenu button:hover, .fmenu button.kb { background: #f2f2f2; }
+    .fmenu button.kb { background: #f7f7f7; }
     .fmenu .ck { width: 16px; height: 16px; flex: none; }
-    .fmenu hr { border: 0; border-top: 1px solid #ebebeb; margin: 4px -4px; }
+    .fmenu .lb { flex: 1; }
+    .fmenu .none { padding: 4px 8px; color: var(--text-sub); }
+    .fmenu .cb { width: 14px; height: 14px; margin: 1px; flex: none; border-radius: 4px; background: #fff;
+      box-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2); }
+    .fmenu .cb.on { box-shadow: none; background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3 6.2 5 8.2 9 3.8'/%3E%3C/svg%3E") center / 12px no-repeat; }
+    .enter { display: inline-flex; align-items: center; gap: 2px; height: 20px; margin: -2px -4px -2px 8px; padding: 1px 4px; border-radius: 6px;
+      background: #f2f2f2; color: var(--text-header); font-size: 12px; line-height: 16px; }
+    .enter svg { width: 14px; height: 14px; fill: currentColor; }
+    .fmenu::-webkit-scrollbar { width: 11px; background: transparent; }
+    .fmenu::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 12px; background-clip: content-box; background-color: transparent; }
+    .fmenu:hover::-webkit-scrollbar-thumb, .fmenu::-webkit-scrollbar-thumb:hover { background-color: #8c8c8c; }
+    .fmenu hr { border: 0; border-top: 1px solid #f2f2f2; margin: 4px -4px; }
     ::placeholder { color: var(--placeholder); opacity: 1; }
 
     /* select drawn as a pill; filter pills grey, cell pills only on hover */
@@ -135,7 +157,6 @@
     td:first-child { padding-left: 12px; }
     td:last-child { padding-right: 12px; }
     tbody tr:first-child td { border-top: 0; }
-    tbody tr:hover td { background: var(--hover); }
     .col-type { width: 112px; } .col-tier { width: 80px; } .col-flag { width: 80px; } .col-del { width: 72px; text-align: right; }
 
     /* mock thumbnail as in the Shopify entries list: 24px square before the name, 6px radius, 1px rgba(0,0,0,.08) frame,
@@ -158,15 +179,33 @@
     button.thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
     tr.deleted button.thumb { pointer-events: none; }
 
-    /* image dialog: Shopify file drop zone (empty: grey "Add files" pill + one grey line; filled: image, x on hover) */
+    /* image dialog, measured on Shopify "Select image": title 15/22/500, white round close, drop zone, image tiles with a
+       checkbox (unticking removes the image), Cancel / Done; nothing changes on the row until Done */
     .scrim { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.5); display: grid; place-items: center; padding: 16px; }
     .scrim[hidden] { display: none; }
-    .dlg { width: 100%; max-width: 420px; background: #fff; border-radius: 16px; overflow: hidden;
+    .dlg { width: 100%; max-width: 560px; background: #fff; border-radius: 16px; overflow: hidden;
       box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1); }
-    .dlg-head { display: flex; align-items: center; gap: 8px; padding: 16px 12px 4px 20px; background: #fff; }
-    .dlg-head h2 { flex: 1; font-size: 15px; line-height: 22px; font-weight: 600; }
-    .dlg-body { padding: 12px 20px 20px; }
-    .zone { position: relative; display: grid; place-items: center; gap: 8px; min-height: 168px; padding: 16px;
+    .dlg-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 16px 20px; background: #fff; }
+    .dlg-head h2 { flex: 1; font-size: 15px; line-height: 22px; font-weight: 500; }
+    .dlg-head .x { background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03); }
+    .dlg-head .x:hover { background: #f7f7f7; }
+    .dlg-head .x svg { width: 16px; height: 16px; fill: var(--text); }
+    .dlg-body { padding: 0 20px; }
+    .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; }
+    .tiles { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 20px; }
+    .tiles:empty { display: none; }
+    .tile { width: 148px; padding: 20px 12px 12px; border: 0; border-radius: 10px; background: none; text-align: center; cursor: pointer; transition: background-color .1s; }
+    .tile:hover { background: #f7f7f7; }
+    .tile.sel { background: #ebebeb; }
+    .tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .frame { position: relative; width: 108px; height: 108px; margin: 0 auto; padding: 4px; background: #fff; border-radius: 8px; box-shadow: 0 0 0 1px rgba(23,24,24,.05); }
+    .frame img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; display: block; }
+    .frame .tcb { position: absolute; top: 8px; left: 8px; width: 16px; height: 16px; border-radius: 5px; background: #fff;
+      box-shadow: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.2); }
+    .tile.sel .tcb { box-shadow: 0 1px 1px -.5px rgba(0,0,0,.13), 0 0 0 1px #101010; background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3 6.2 5 8.2 9 3.8'/%3E%3C/svg%3E") center / 12px no-repeat; }
+    .tile .tn { margin-top: 8px; font-size: 12px; line-height: 18px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile .te { font-size: 12px; line-height: 18px; color: var(--text-header); }
+    .zone { position: relative; display: grid; place-items: center; gap: 8px; min-height: 122px; padding: 16px;
       border: 1px dashed #c0c0c0; border-radius: 8px; background: #fff; cursor: pointer; text-align: center; transition: border-color .1s; }
     .zone:hover, .zone.drag { border-color: #8a8a8a; }
     .zone.drag { background: #f7f7f7; }
@@ -195,18 +234,22 @@
     .sb-save:hover { background: #ebebeb; }
     .savebar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-    /* inline fields: pill like the entry page (#f2f2f2, 28px), shown on hover and focus */
+    /* inline fields, measured on the Shopify entry page: grey pill #f2f2f2, 28px, as wide as its text, type icon on the left
+       (text: A), select with an up/down chevron; hover does not change it; focus = white with an inset #c0c0c0 line */
     .cell {
-      width: 100%; height: 28px; border: 0; border-radius: 9999px; outline: none;
-      padding: 4px 8px; margin-left: -8px; background: transparent; font-size: 12px; line-height: 18px;
-      transition: background-color .2s;
+      field-sizing: content; min-width: 64px; max-width: 100%; height: 28px; border: 0; border-radius: 9999px; outline: none;
+      padding: 4px 8px 4px 28px; font-size: 13px; line-height: 20px;
+      background: #f2f2f2 url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ctext x=%278%27 y=%2713%27 text-anchor=%27middle%27 font-family=%27Georgia,serif%27 font-size=%2714%27 fill=%27%23606060%27%3EA%3C/text%3E%3C/svg%3E") no-repeat 8px center / 16px;
     }
-    td .pick { background-color: transparent; font-weight: 400; font-size: 12px; line-height: 18px; margin-left: -10px; width: calc(100% + 10px); background-position: right -40px center; }
-    tr:hover .cell, .cell:focus, tr:hover td .pick, td .pick:focus { background-color: var(--pill); }
-    tr:hover td .pick, td .pick:focus { background-position: right 6px center; }
-    .cell:focus, td .pick:focus { box-shadow: var(--ring-focus); background-color: #fff; }
-    input.cell { text-transform: uppercase; font-weight: 500; }
-    input.cell::placeholder { text-transform: none; font-weight: 400; }
+    td .pick {
+      field-sizing: content; min-width: 48px; max-width: 100%; height: 28px; padding: 4px 24px 4px 8px; font-size: 13px; line-height: 20px; font-weight: 400;
+      background: #f2f2f2 url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Cpath fill=%27none%27 stroke=%27%234a4a4a%27 stroke-width=%271.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 d=%27m7 8 3-3 3 3M7 12l3 3 3-3%27/%3E%3C/svg%3E") no-repeat right 4px center / 16px;
+    }
+    td .pick:hover, td .pick.open { background-color: #f2f2f2; }
+    .cell:focus, td .pick:focus, td .pick.open { background-color: #fff; box-shadow: inset 0 0 0 1px #c0c0c0; }
+    input.cell { text-transform: uppercase; }
+    input.cell::placeholder { text-transform: none; }
+    td .pick.empty-val { color: var(--text-sub); }
 
     /* checkbox: 14px, 4px radius, dark when checked */
     .chk {
@@ -240,7 +283,11 @@
     .foot { text-align: center; padding: 16px 8px; min-height: 52px; }
     #msg.err { color: var(--critical); }
     .busy { opacity: .6; pointer-events: none; }
-    .empty { padding: 32px 8px; text-align: center; color: var(--text-sub); }
+    /* no rows after search / filters, as Shopify: grey magnifier, title, one line, dark button */
+    .empty { padding: 48px 8px 40px; text-align: center; color: var(--text-sub); font-size: 13px; line-height: 20px; }
+    .empty svg { width: 60px; height: 60px; fill: #8a8a8a; display: block; margin: 0 auto 16px; }
+    .empty h3 { color: var(--text); font-size: 20px; line-height: 24px; font-weight: 600; margin-bottom: 8px; }
+    .empty .btn { margin-top: 16px; }
 
     /* auth.js chip + dialog are styled dark for the TC forms; light versions here */
     body #tcAuthChip { position: fixed; top: auto; right: auto; bottom: 16px; left: 16px; z-index: 50; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03); padding: 4px 12px; font-family: inherit; }
@@ -287,10 +334,15 @@
     </div>
     <div class="scrim" id="imgDlg" hidden>
       <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="imgTitle">
-        <div class="dlg-head"><h2 id="imgTitle">Image</h2><button type="button" class="x" id="imgClose" aria-label="Close"></button></div>
+        <div class="dlg-head"><h2 id="imgTitle">Select image</h2><button type="button" class="x" id="imgClose" aria-label="Close"></button></div>
         <div class="dlg-body">
-          <div class="zone" id="imgZone" tabindex="0" role="button" aria-label="Add or replace the image"></div>
-          <input type="file" id="imgFile" accept="image/*" hidden />        </div>
+          <div class="zone" id="imgZone" tabindex="0" role="button" aria-label="Add an image">
+            <div><span class="zone-pill" id="imgAdd"></span><div class="zone-sub" style="margin-top:8px">The image is uploaded to Shopify when you press Save.</div></div>
+          </div>
+          <div class="tiles" id="imgTiles" role="listbox" aria-label="Images"></div>
+          <input type="file" id="imgFile" accept="image/*" hidden />
+        </div>
+        <div class="dlg-foot"><button type="button" class="btn" id="imgCancel">Cancel</button><button type="button" class="btn primary" id="imgDone">Done</button></div>
       </div>
     </div>
     <p class="hint">Changes stay in this page until you press Save. Load reads the table again.</p>
@@ -303,11 +355,8 @@
           <input type="text" id="fQ" placeholder="Search and filter" aria-label="Search mockup ID and filter" autocomplete="off" />
         </div>
         <button type="button" class="x clearq" id="clearQ" aria-label="Clear search and filters" hidden></button>
-        <!-- filter values live in these hidden selects (the table code and the saved state read them); the tokens above edit them -->
-        <select id="fType" hidden><option value=""></option></select>
-        <select id="fTier" hidden><option value=""></option><option value="none"></option><option value="1"></option><option value="2"></option><option value="3"></option><option value="4"></option></select>
-        <select id="fPrd" hidden><option value=""></option><option value="yes"></option><option value="no"></option></select>
-        <select id="fImg" hidden><option value=""></option><option value="yes"></option><option value="no"></option></select>
+        <!-- filter values (comma-separated, several allowed) live in these hidden inputs; the table code and the saved state read them, the tokens edit them -->
+        <input type="hidden" id="fType" /><input type="hidden" id="fTier" /><input type="hidden" id="fPrd" /><input type="hidden" id="fImg" />
       </div>
 
       <table>
@@ -339,6 +388,7 @@
     let orig = new Map();      // id -> row as the server has it
     let work = [];             // rows on the page: { key, id (null = new), ...FIELDS, deleted }
     let types = [], loaded = false, newKey = 0;
+    const filterState = { pending: null };   // id of the field whose chip waits for values in the search field
     let sort = { key: 'Mockup_ID', dir: 1 };
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -371,9 +421,6 @@
       work = (data.rows || []).map(r => Object.assign({ key: 'r' + r.id, id: r.id, deleted: false }, norm(r)));
       types = data.types || [];
       loaded = true;
-      const cur = $('fType').value;
-      $('fType').innerHTML = '<option value="">Type</option><option value="none">No type</option>' + types.map(t => `<option value="${esc(t)}">Type: ${esc(t)}</option>`).join('');
-      $('fType').value = cur;
     }
     async function withBusy(fn) {
       $('card').classList.add('busy');
@@ -406,13 +453,14 @@
       return String(v || '￿');
     }
     function visible() {
-      const q = $('fQ').value.trim().toLowerCase(), ft = $('fType').value, fr = $('fTier').value, fp = $('fPrd').value, fi = $('fImg').value;
-      const yn = (want, v) => !want || (want === 'yes') === v;
+      // while a field chip waits ("Tier is"), the typed text searches that field's values, not the table
+      const q = filterState.pending ? '' : $('fQ').value.trim().toLowerCase();
+      // filter value "a,b" = is a or b; "!a,b" = is not a or b
+      const any = (id, v) => { let s = $(id).value; const neg = s[0] === '!'; if (neg) s = s.slice(1); return !s || s.split(',').includes(v) !== neg; };
       const list = work.filter(r => r.id == null || (
         (!q || r.Mockup_ID.toLowerCase().includes(q)) &&
-        (!ft || (ft === 'none' ? !r.Product_type_ID : r.Product_type_ID === ft)) &&
-        (!fr || (fr === 'none' ? r.tier === '' : r.tier === fr)) &&
-        yn(fp, r.used_in_tc_prd) && yn(fi, r.used_in_tc_img)));
+        any('fType', r.Product_type_ID || 'none') && any('fTier', r.tier || 'none') &&
+        any('fPrd', r.used_in_tc_prd ? 'yes' : 'no') && any('fImg', r.used_in_tc_img ? 'yes' : 'no')));
       const k = sort.key, d = sort.dir;
       // new rows stay on top, in the order they were added
       return list.sort((a, b) => {
@@ -424,9 +472,9 @@
     }
     function typeOptions(cur) {
       const list = types.slice(); if (cur && !list.includes(cur)) list.unshift(cur);
-      return '<option value=""></option>' + list.map(t => `<option${t === cur ? ' selected' : ''}>${esc(t)}</option>`).join('');
+      return '<option value="">None</option>' + list.map(t => `<option${t === cur ? ' selected' : ''}>${esc(t)}</option>`).join('');
     }
-    const tierOptions = cur => ['', '1', '2', '3', '4'].map(t => `<option value="${t}"${t === cur ? ' selected' : ''}>${t}</option>`).join('');
+    const tierOptions = cur => ['', '1', '2', '3', '4'].map(t => `<option value="${t}"${t === cur ? ' selected' : ''}>${t || 'None'}</option>`).join('');
     function rowHtml(r) {
       const cls = [r.id == null ? 'new' : '', r.deleted ? 'deleted' : '', isChanged(r) ? 'changed' : ''].filter(Boolean).join(' ');
       const off = r.deleted ? ' disabled' : '';
@@ -438,8 +486,8 @@
       const img = small ? `<img src="${esc(small)}" alt="" loading="lazy" />` : IMG_ICON;
       return `<tr data-key="${r.key}" class="${cls}">
         <td><div class="idwrap"><button type="button" class="thumb"${big ? ` data-full="${esc(big)}"` : ''} aria-label="${small ? 'Change or remove the image' : 'Add an image'}"${off}>${img}</button><input type="text" class="cell f-id" value="${esc(r.Mockup_ID)}" placeholder="Mockup ID, e.g. KAN-FVI-01" aria-label="Mockup ID"${off} />${r.id == null ? '<span class="badge new">New</span>' : ''}</div></td>
-        <td class="col-type"><select class="pick f-type" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
-        <td class="col-tier"><select class="pick f-tier" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
+        <td class="col-type"><select class="pick f-type${r.Product_type_ID ? '' : ' empty-val'}" aria-label="Type ID"${off}>${typeOptions(r.Product_type_ID)}</select></td>
+        <td class="col-tier"><select class="pick f-tier${r.tier ? '' : ' empty-val'}" aria-label="Tier"${off}>${tierOptions(r.tier)}</select></td>
         <td class="c col-flag"><input type="checkbox" class="chk f-prd"${r.used_in_tc_prd ? ' checked' : ''}${off} aria-label="Used in TC prd" /></td>
         <td class="c col-flag"><input type="checkbox" class="chk f-img"${r.used_in_tc_img ? ' checked' : ''}${off} aria-label="Used in TC img" /></td>
         <td class="col-del">${del}</td>
@@ -456,7 +504,7 @@
       renderTokens();
       if (!loaded) { $('rows').innerHTML = ''; $('count').textContent = ''; return; }
       const list = visible();
-      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty">No mockups match these filters.</td></tr>';
+      $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : '<tr><td colspan="6" class="empty"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.323 13.383a5.5 5.5 0 1 1 1.06-1.06l2.897 2.897a.75.75 0 1 1-1.06 1.06l-2.897-2.897Zm.677-4.383a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/></svg><h3>No mockups found</h3>Try changing the filters or search term<br><button type="button" class="btn primary" id="emptyClear">Clear search and filters</button></td></tr>';
       renderCount(list.filter(r => r.id != null).length);
     }
     function renderCount(shown) {
@@ -482,7 +530,9 @@
 
     // ---- events ----
     const rowOf = tr => work.find(r => r.key === tr.dataset.key);
+    $('rows').addEventListener('focusin', e => { if (e.target.classList.contains('f-id')) e.target.select(); });
     $('rows').addEventListener('input', e => {
+      if (e.target.matches('select.pick')) e.target.classList.toggle('empty-val', !e.target.value);
       const tr = e.target.closest('tr'), r = tr && rowOf(tr); if (!r) return;
       const c = e.target.classList;
       if (c.contains('f-id')) r.Mockup_ID = e.target.value.trim().toUpperCase();
@@ -572,146 +622,255 @@
       say(''); render(); persist();
     });
 
-    // ---- image dialog: add, replace (click, drop or paste) or remove; nothing is sent until Save ----
-    let imgRow = null;
-    const zone = $('imgZone'), fileInput = $('imgFile');
+    // ---- image dialog (Shopify "Select image"): drop zone + tiles; the ticked tile is the image, none ticked = no image.
+    // Works on a draft: Done applies it to the row (still only sent on Save), Cancel / close / Escape drop it ----
+    let imgRow = null, draft = null;   // draft: { saved: url on the row, file, url (object URL of file), sel: 'saved' | 'new' | null }
+    const fileInput = $('imgFile');
     $('imgClose').innerHTML = X_ICON;
-    function drawZone() {
-      const r = imgRow, p = pending.get(r.key);
-      const src = p ? p.url : r.thumb_url ? thumbSrc(r.thumb_url, 800) : '';
-      if (!src) {
-        zone.innerHTML = `<div><span class="zone-pill">${PLUS_ICON}Add files</span><div class="zone-sub" style="margin-top:8px">The image is uploaded to Shopify when you press Save.</div></div>`;
-        return;
-      }
-      const name = p ? p.file.name : decodeURIComponent((r.thumb_url.split('?')[0].split('/').pop()) || '');
-      zone.innerHTML = `<img src="${esc(src)}" alt="" /><div class="zone-sub">${esc(name)}</div><button type="button" class="x zx" aria-label="Remove image">${X_ICON}</button>`;
+    $('imgAdd').innerHTML = PLUS_ICON + 'Add files';
+    const fileName = u => decodeURIComponent((u.split('?')[0].split('/').pop()) || '');
+    const extOf = n => (n.split('.').pop() || '').toUpperCase();
+    function drawTiles() {
+      const tiles = [];
+      if (draft.saved) tiles.push({ id: 'saved', src: thumbSrc(draft.saved, 240), name: fileName(draft.saved) });
+      if (draft.file) tiles.push({ id: 'new', src: draft.url, name: draft.file.name });
+      $('imgTiles').innerHTML = tiles.map(t => `<button type="button" class="tile${draft.sel === t.id ? ' sel' : ''}" data-t="${t.id}" role="option" aria-selected="${draft.sel === t.id}">
+        <div class="frame"><img src="${esc(t.src)}" alt="" /><span class="tcb"></span></div>
+        <div class="tn" title="">${esc(t.name)}</div><div class="te">${esc(extOf(t.name))}</div></button>`).join('');
     }
     function openImage(r) {
       imgRow = r;
-      $('imgTitle').textContent = 'Image' + (r.Mockup_ID ? ' · ' + r.Mockup_ID : '');
-      drawZone();
+      const p = pending.get(r.key);
+      // the tile for the image already on the row: the current link, or the stored one if the link was removed on this page
+      const saved = r.thumb_url || (r.id != null ? orig.get(r.id).thumb_url : '');
+      draft = { saved, file: p ? p.file : null, url: p ? p.url : '', sel: p ? 'new' : (r.thumb_url ? 'saved' : null) };
+      $('imgTitle').textContent = 'Select image' + (r.Mockup_ID ? ' · ' + r.Mockup_ID : '');
+      drawTiles();
       $('imgDlg').hidden = false;
-      zone.focus();
+      $('imgZone').focus();
     }
-    function closeImage() { $('imgDlg').hidden = true; imgRow = null; render(); persist(); }
-    function setImage(file) {
-      if (!file || !imgRow) return;
+    function closeImage() {
+      if (draft && draft.file && (pending.get(imgRow.key) || {}).file !== draft.file) URL.revokeObjectURL(draft.url);
+      $('imgDlg').hidden = true; imgRow = null; draft = null;
+    }
+    function doneImage() {
+      const r = imgRow, old = pending.get(r.key);
+      if (draft.sel === 'new') {
+        if (old && old.file !== draft.file) URL.revokeObjectURL(old.url);
+        pending.set(r.key, { file: draft.file, url: draft.url });
+      } else {
+        if (old) { pending.delete(r.key); if (old.file !== draft.file) URL.revokeObjectURL(old.url); }
+        if (draft.file) URL.revokeObjectURL(draft.url);
+        r.thumb_url = draft.sel === 'saved' ? draft.saved : '';
+      }
+      $('imgDlg').hidden = true; imgRow = null; draft = null;
+      say(''); render(); persist();
+    }
+    function addFile(file) {
+      if (!file || !draft) return;
       if (!/^image\//.test(file.type)) { say('That file is not an image.', true); return; }
       if (file.size > 20 * 1024 * 1024) { say('Images must be under 20 MB.', true); return; }
-      const old = pending.get(imgRow.key); if (old) URL.revokeObjectURL(old.url);
-      pending.set(imgRow.key, { file, url: URL.createObjectURL(file) });
-      say(''); drawZone();
+      if (draft.file && (pending.get(imgRow.key) || {}).file !== draft.file) URL.revokeObjectURL(draft.url);
+      draft.file = file; draft.url = URL.createObjectURL(file); draft.sel = 'new';
+      say(''); drawTiles();
     }
-    zone.addEventListener('click', e => {
-      if (e.target.closest('.zx')) {
-        e.stopPropagation();
-        const old = pending.get(imgRow.key); if (old) { URL.revokeObjectURL(old.url); pending.delete(imgRow.key); }
-        imgRow.thumb_url = '';
-        drawZone();
-        return;
-      }
-      fileInput.click();
-    });
-    zone.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === zone) { e.preventDefault(); fileInput.click(); } });
-    fileInput.addEventListener('change', () => { setImage(fileInput.files[0]); fileInput.value = ''; });
+    const zone = $('imgZone');
+    zone.addEventListener('click', () => fileInput.click());
+    zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', () => { addFile(fileInput.files[0]); fileInput.value = ''; });
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); setImage(e.dataTransfer.files[0]); });
-    document.addEventListener('paste', e => { if (!$('imgDlg').hidden) { const f = [...(e.clipboardData || {}).files || []][0]; if (f) setImage(f); } });
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); addFile(e.dataTransfer.files[0]); });
+    document.addEventListener('paste', e => { if (!$('imgDlg').hidden) { const f = [...((e.clipboardData || {}).files || [])][0]; if (f) addFile(f); } });
+    $('imgTiles').addEventListener('click', e => {
+      const t = e.target.closest('.tile'); if (!t) return;
+      draft.sel = draft.sel === t.dataset.t ? null : t.dataset.t;   // one image at most; click the ticked one to untick
+      drawTiles();
+    });
+    $('imgDone').addEventListener('click', doneImage);
+    $('imgCancel').addEventListener('click', closeImage);
     $('imgClose').addEventListener('click', closeImage);
     $('imgDlg').addEventListener('mousedown', e => { if (e.target === $('imgDlg')) closeImage(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('imgDlg').hidden) closeImage(); });
-    // ---- search and filter field: tokens "Type ID is CZR" + free text, field list then value list (Shopify entries list) ----
+    // ---- search and filter field, as on Shopify's entries list ----
+    // Click the field: list of fields. Pick one: its chip waits in the field ("Tier is"); typing narrows its values.
+    // Multi fields tick several values (checkbox), single fields take one (check mark); both end with Is / Is not.
+    // The highlighted row shows "Enter". Ticking shows the value in the token at once. Click outside keeps the filter,
+    // Escape drops the one being built. On a token: the "Tier is" part opens Is / Is not, the value part opens the values
+    // and shows x (remove). Backspace on empty text removes the last token.
     const FILTERS = [
-      { id: 'fType', label: 'Type ID', values: () => [['none', 'None'], ...types.map(t => [t, t])] },
-      { id: 'fTier', label: 'Tier', values: () => [['none', 'None'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']] },
-      { id: 'fPrd', label: 'TC prd', values: () => [['yes', 'Yes'], ['no', 'No']] },
-      { id: 'fImg', label: 'TC img', values: () => [['yes', 'Yes'], ['no', 'No']] },
+      { id: 'fType', label: 'Type ID', multi: true, values: () => [['none', 'None'], ...types.map(t => [t, t])] },
+      { id: 'fTier', label: 'Tier', multi: true, values: () => [['none', 'None'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']] },
+      { id: 'fPrd', label: 'TC prd', multi: false, values: () => [['yes', 'Yes'], ['no', 'No']] },
+      { id: 'fImg', label: 'TC img', multi: false, values: () => [['yes', 'Yes'], ['no', 'No']] },
     ];
-    const CK = '<svg class="ck" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
+    const CK = '<svg class="ck" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m5 10.5 3.2 3L15 6.5"/></svg>';
+    const ENTER = '<span class="enter"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.25 4.5a.75.75 0 0 1 .75.75v5a2.75 2.75 0 0 1-2.75 2.75H6.56l1.72 1.72a.75.75 0 1 1-1.06 1.06l-3-3a.75.75 0 0 1 0-1.06l3-3a.75.75 0 0 1 1.06 1.06L6.56 11.5h6.69c.69 0 1.25-.56 1.25-1.25v-5a.75.75 0 0 1 .75-.75Z"/></svg>Enter</span>';
+    const SMALL_X = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06l-3.97-3.97 3.97-3.97a.75.75 0 0 0-1.06-1.06l-3.97 3.97-3.97-3.97a.75.75 0 0 0-1.06 1.06l3.97 3.97-3.97 3.97a.75.75 0 1 0 1.06 1.06l3.97-3.97 3.97 3.97Z"/></svg>';
+    const PLUS_CIRCLE = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10.75 6.75a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z"/><path fill-rule="evenodd" d="M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm0-1.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Z"/></svg>';
     const fmenu = document.createElement('div');
     fmenu.className = 'fmenu'; fmenu.hidden = true; fmenu.setAttribute('role', 'listbox');
     document.body.appendChild(fmenu);
-    let fmFor = null, fmKb = -1;
+    // fmFor: field whose menu is open; fmPart: 'values' | 'op'; fmKb: highlighted row; snapshot: value before the pending filter started
+    let fmFor = null, fmPart = 'values', fmKb = -1, fmLeft = 0, snapshot = '';
     $('clearQ').innerHTML = X_ICON;
+    const fdef = id => FILTERS.find(f => f.id === id);
+    const isNeg = id => $(id).value[0] === '!';
+    const vals = id => { const s = $(id).value.replace(/^!/, ''); return s ? s.split(',') : []; };
+    const write = (id, list, neg) => { setFilter(id, list.length || neg ? (neg ? '!' : '') + list.join(',') : ''); };
+    const label = (f, v) => (f.values().find(x => x[0] === v) || [v, v])[1];
     function renderTokens() {
-      const on = FILTERS.filter(f => $(f.id).value);
-      $('tokens').innerHTML = on.map(f => {
-        const v = f.values().find(x => x[0] === $(f.id).value);
-        return `<button type="button" class="tok${fmFor === f.id ? ' open' : ''}" data-f="${f.id}"><span class="tok-k">${esc(f.label)} is</span><span class="tok-v">${esc(v ? v[1] : $(f.id).value)}</span></button>`;
-      }).join('');
-      $('fQ').placeholder = on.length ? '' : 'Search and filter';
-      $('clearQ').hidden = !($('fQ').value || on.length);
+      const P = filterState.pending;
+      const shown = FILTERS.filter(f => vals(f.id).length || f.id === P);
+      const order = shown.filter(f => f.id !== P).concat(P ? [fdef(P)] : []);   // the one being built sits last, at the cursor
+      $('tokens').innerHTML = order.map(f => {
+        const v = vals(f.id), key = `${esc(f.label)} ${isNeg(f.id) ? 'is not' : 'is'}`;
+        const keyOpen = fmFor === f.id && fmPart === 'op' && !fmenu.hidden, valOpen = fmFor === f.id && fmPart === 'values' && !fmenu.hidden && f.id !== P;
+        if (!v.length) return `<span class="tok tok-wait"><span class="tok-k">${key}</span></span>`;
+        return `<span class="tok" data-f="${f.id}"><button type="button" class="tok-k${keyOpen ? ' open' : ''}" data-part="op">${key}</button>`
+          + `<button type="button" class="tok-v${valOpen ? ' open' : ''}" data-part="values">${esc(v.map(x => label(f, x)).join(', '))}${valOpen ? `<span class="tok-x" data-part="remove" aria-label="Remove filter">${SMALL_X}</span>` : ''}</button></span>`;
+      }).join('') + (order.length && !fmenu.hidden ? `<button type="button" class="tok-add" aria-label="Add filter">${PLUS_CIRCLE}</button>` : '');
+      $('fQ').placeholder = order.length ? '' : 'Search and filter';
+      $('clearQ').hidden = !($('fQ').value || order.length);
     }
     function showMenu(html, left) {
-      fmenu.innerHTML = html; fmKb = -1;
+      fmenu.innerHTML = html;
       fmenu.hidden = false;
-      fmenu.style.top = (document.querySelector('.filters').getBoundingClientRect().bottom + 2) + 'px';
+      const top = document.querySelector('.filters').getBoundingClientRect().bottom + 2;
+      fmenu.style.top = top + 'px';
+      fmenu.style.maxHeight = Math.max(120, innerHeight - top - 12) + 'px';   // long lists (Type ID) scroll inside
       fmenu.style.left = Math.max(8, Math.min(left, document.documentElement.clientWidth - fmenu.offsetWidth - 8)) + 'px';
+      const k = fmenu.querySelector('.kb'); if (k) k.scrollIntoView({ block: 'nearest' });
     }
-    function closeFmenu() { if (fmenu.hidden && !fmFor) return; fmenu.hidden = true; fmFor = null; renderTokens(); }
+    function closeFmenu() { fmenu.hidden = true; fmFor = null; fmKb = -1; renderTokens(); }
+    const row = (attrs, mark, text, i) => `<button type="button" ${attrs}${i === fmKb ? ' class="kb"' : ''}>${mark}<span class="lb">${esc(text)}</span>${i === fmKb ? ENTER : ''}</button>`;
     function fieldMenu() {
       if (!loaded) return;
+      if (filterState.pending) return valueMenu(filterState.pending);
       const q = $('fQ').value.trim().toLowerCase();
-      const list = FILTERS.filter(f => !$(f.id).value && (!q || f.label.toLowerCase().includes(q)));
+      const list = FILTERS.filter(f => !vals(f.id).length && (!q || f.label.toLowerCase().includes(q)));
       fmFor = null;
-      if (!list.length) { fmenu.hidden = true; return; }
-      showMenu(list.map(f => `<button type="button" data-pick="${f.id}">${esc(f.label)}</button>`).join(''), $('fQ').getBoundingClientRect().left);
+      if (!list.length) { fmenu.hidden = true; renderTokens(); return; }
+      if (fmKb >= list.length) fmKb = list.length - 1;
+      showMenu(list.map((f, i) => row(`data-pick="${f.id}"`, '', f.label, i)).join(''), $('fQ').getBoundingClientRect().left);
+      renderTokens();
     }
-    function valueMenu(id, left) {
-      const f = FILTERS.find(x => x.id === id), cur = $(id).value;
-      fmFor = id;
-      showMenu(f.values().map(([v, l]) => `<button type="button" data-set="${esc(v)}">${v === cur ? CK : '<span class="ck"></span>'}${esc(l)}</button>`).join('')
-        + (cur ? '<hr><button type="button" data-set=""><span class="ck"></span>Remove filter</button>' : ''), left);
+    // values of a field (+ Is / Is not), or only Is / Is not when opened from the "Tier is" part of a token
+    function valueMenu(id, left, part) {
+      const f = fdef(id), cur = vals(id), P = filterState.pending === id;
+      if (fmFor !== id || (part && part !== fmPart)) fmKb = P || part === 'values' ? 0 : -1;
+      fmFor = id; fmPart = part || (fmFor === id && fmPart) || 'values';
+      if (left != null) fmLeft = left;
+      const q = P ? $('fQ').value.trim().toLowerCase() : '';
+      const list = fmPart === 'op' ? [] : f.values().filter(([, l]) => !q || l.toLowerCase().includes(q));
+      const ops = [['is', 'Is'], ['not', 'Is not']];
+      const total = list.length + ops.length;
+      if (fmKb >= total) fmKb = total - 1;
+      const mark = v => f.multi ? `<span class="cb${cur.includes(v) ? ' on' : ''}"></span>` : (cur.includes(v) ? CK : '<span class="ck"></span>');
+      let html = list.map(([v, l], i) => row(`data-set="${esc(v)}"`, mark(v), l, i)).join('');
+      if (fmPart !== 'op' && !list.length) html = '<div class="none">No matches</div>';
+      if (fmPart !== 'op') html += '<hr>';
+      html += ops.map(([o, l], j) => row(`data-op="${o}"`, (o === 'not') === isNeg(id) ? CK : '<span class="ck"></span>', l, list.length + j)).join('');
+      showMenu(html, fmLeft);
       renderTokens();
     }
     function setFilter(id, v) {
       $(id).value = v;
       $(id).dispatchEvent(new Event('input', { bubbles: true }));
     }
+    function choose(id, v) {
+      const f = fdef(id), cur = vals(id);
+      const next = f.multi ? (cur.includes(v) ? cur.filter(x => x !== v) : cur.concat(v)) : (cur.length === 1 && cur[0] === v ? [] : [v]);
+      write(id, next, isNeg(id));
+    }
+    function startPending(id) {
+      filterState.pending = id; snapshot = $(id).value; fmKb = 0;
+      if ($('fQ').value) setFilter('fQ', '');   // the typed text was the field name
+      valueMenu(id, $('fQ').getBoundingClientRect().left, 'values');
+      $('fQ').focus();
+    }
+    // keep the filter being built (a field with nothing ticked just disappears); its typed text was for the values
+    function commit() {
+      const P = filterState.pending;
+      if (P && !vals(P).length && isNeg(P)) $(P).value = '';
+      filterState.pending = null;
+      if (P && $('fQ').value) setFilter('fQ', ''); else render();
+      closeFmenu();
+    }
+    function cancelPending() {
+      const P = filterState.pending;
+      filterState.pending = null;
+      if (P) { $(P).value = snapshot; if ($('fQ').value) $('fQ').value = ''; $(P).dispatchEvent(new Event('input', { bubbles: true })); }
+      closeFmenu();
+    }
+    const redraw = () => { const st = fmenu.scrollTop; fmFor ? valueMenu(fmFor) : fieldMenu(); fmenu.scrollTop = st; };
     fmenu.addEventListener('mousedown', e => e.preventDefault());
+    fmenu.addEventListener('mousemove', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const i = [...fmenu.querySelectorAll('button')].indexOf(b);
+      if (i !== fmKb) { fmKb = i; redraw(); }
+    });
+    fmenu.addEventListener('mouseleave', () => { if (!filterState.pending && !fmFor) { fmKb = -1; redraw(); } });
     fmenu.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.pick) {
-        const q = $('fQ').value.trim().toLowerCase(), f = FILTERS.find(x => x.id === b.dataset.pick);
-        if (q && f.label.toLowerCase().includes(q)) setFilter('fQ', '');   // the typed text was the field name
-        valueMenu(b.dataset.pick, $('fQ').getBoundingClientRect().left);
-        return;
-      }
+      if (b.dataset.pick) { startPending(b.dataset.pick); return; }
       const id = fmFor;
-      fmFor = null; fmenu.hidden = true;
-      setFilter(id, b.dataset.set);
-      $('fQ').focus();
+      if (b.dataset.op) { write(id, vals(id), b.dataset.op === 'not'); if (fmPart === 'op') { closeFmenu(); return; } redraw(); return; }
+      choose(id, b.dataset.set);
+      if (!fdef(id).multi && filterState.pending) { commit(); $('fQ').focus(); return; }   // single value: done
+      redraw();   // multi: keep the list open
     });
+    $('tokens').addEventListener('mousedown', e => { if (e.target.closest('.tok, .tok-add')) e.preventDefault(); });
     $('tokens').addEventListener('click', e => {
-      const t = e.target.closest('.tok'); if (!t) return;
-      if (fmFor === t.dataset.f) { closeFmenu(); return; }
-      valueMenu(t.dataset.f, t.getBoundingClientRect().left);
+      if (e.target.closest('.tok-add')) { if (filterState.pending) commit(); fmKb = -1; $('fQ').focus(); fieldMenu(); return; }
+      const part = e.target.closest('[data-part]'), t = e.target.closest('.tok[data-f]'); if (!part || !t) return;
+      const id = t.dataset.f;
+      if (part.dataset.part === 'remove') { write(id, [], false); closeFmenu(); return; }
+      if (filterState.pending && filterState.pending !== id) commit();
+      if (fmFor === id && fmPart === part.dataset.part && !fmenu.hidden) { closeFmenu(); return; }
+      valueMenu(id, part.getBoundingClientRect().left, part.dataset.part);
     });
-    $('searchBox').addEventListener('mousedown', e => { if (e.target === $('searchBox') || e.target.tagName === 'svg' || e.target.tagName === 'path') { e.preventDefault(); $('fQ').focus(); fieldMenu(); } });
-    $('fQ').addEventListener('focus', fieldMenu);
-    $('fQ').addEventListener('click', () => { if (fmenu.hidden || fmFor) fieldMenu(); });
-    $('fQ').addEventListener('input', fieldMenu);
+    $('searchBox').addEventListener('mousedown', e => {
+      if (e.target.closest('.tok, .tok-add') || e.target === $('fQ')) return;
+      e.preventDefault(); $('fQ').focus(); if (fmenu.hidden) fieldMenu();
+    });
+    $('fQ').addEventListener('focus', () => { if (fmenu.hidden) fieldMenu(); });
+    $('fQ').addEventListener('click', () => { if (fmenu.hidden || (fmFor && !filterState.pending)) { fmKb = -1; fieldMenu(); } });
+    $('fQ').addEventListener('input', () => { fmKb = filterState.pending ? 0 : -1; fieldMenu(); });
     $('fQ').addEventListener('keydown', e => {
       const items = fmenu.hidden ? [] : [...fmenu.querySelectorAll('button')];
       if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && items.length) {
         e.preventDefault();
         fmKb = (fmKb + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-        items.forEach((b, i) => b.classList.toggle('kb', i === fmKb));
-      } else if (e.key === 'Enter' && fmKb >= 0 && items[fmKb]) { e.preventDefault(); items[fmKb].click(); }
-      else if (e.key === 'Escape' && !fmenu.hidden) { e.preventDefault(); closeFmenu(); }
+        redraw();
+      } else if (e.key === 'Enter' && items.length && fmKb >= 0 && items[fmKb]) {
+        e.preventDefault();
+        const b = items[fmKb];
+        if (b.dataset.pick) { startPending(b.dataset.pick); return; }
+        if (b.dataset.op) { write(fmFor, vals(fmFor), b.dataset.op === 'not'); redraw(); return; }
+        if (!vals(fmFor).includes(b.dataset.set) || !fdef(fmFor).multi) choose(fmFor, b.dataset.set);
+        commit();
+      } else if (e.key === 'Escape' && (!fmenu.hidden || filterState.pending)) { e.preventDefault(); filterState.pending ? cancelPending() : closeFmenu(); }
       else if (e.key === 'Backspace' && !$('fQ').value) {
-        const last = [...FILTERS].reverse().find(f => $(f.id).value);
-        if (last) { e.preventDefault(); setFilter(last.id, ''); fieldMenu(); }
+        if (filterState.pending) { e.preventDefault(); cancelPending(); fieldMenu(); return; }
+        const last = [...FILTERS].reverse().find(f => vals(f.id).length);
+        if (last) { e.preventDefault(); write(last.id, [], false); fieldMenu(); }
       }
     });
-    $('clearQ').addEventListener('click', () => {
+    function clearAll() {
+      filterState.pending = null;
       for (const f of FILTERS) $(f.id).value = '';
       setFilter('fQ', '');
-      closeFmenu(); $('fQ').focus();
+      closeFmenu();
+    }
+    $('clearQ').addEventListener('click', () => { clearAll(); $('fQ').focus(); });
+    $('rows').addEventListener('click', e => { if (e.target.closest('#emptyClear')) clearAll(); });
+    document.addEventListener('mousedown', e => {
+      if (fmenu.hidden && !filterState.pending) return;
+      if (fmenu.contains(e.target) || $('searchBox').contains(e.target)) return;
+      commit();
     });
-    document.addEventListener('mousedown', e => { if (!fmenu.hidden && !fmenu.contains(e.target) && !$('searchBox').contains(e.target)) closeFmenu(); });
-    window.addEventListener('resize', closeFmenu);
+    window.addEventListener('resize', () => { if (!fmenu.hidden) closeFmenu(); });
 
     // ---- Shopify-style option list for every select.pick (filters and cells); the native select keeps the value ----
     (() => {
@@ -744,9 +903,14 @@
         menu.hidden = false;
         const r = sel.getBoundingClientRect();
         menu.style.minWidth = Math.max(120, r.width) + 'px';
-        const mh = menu.offsetHeight, mw = menu.offsetWidth;
-        let top = r.bottom + 6;
-        if (top + mh > innerHeight - 8 && r.top - 6 - mh > 8) top = r.top - 6 - mh;
+        menu.style.maxHeight = '';
+        const mw = menu.offsetWidth;
+        // open below; if it does not fit, open on the side with more room and scroll inside
+        const below = innerHeight - r.bottom - 14, above = r.top - 14;
+        let mh = Math.min(menu.offsetHeight, 320), top = r.bottom + 6;
+        if (mh > below && above > below) { mh = Math.min(mh, above); top = r.top - 6 - mh; }
+        else mh = Math.min(mh, below);
+        menu.style.maxHeight = Math.max(96, mh) + 'px';
         let left = r.left;
         if (left + mw > document.documentElement.clientWidth - 8) left = r.right - mw;
         menu.style.top = top + 'px'; menu.style.left = Math.max(8, left) + 'px';

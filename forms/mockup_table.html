@@ -226,6 +226,19 @@
     .sb-save { background: #fff; color: var(--text); font-weight: 500 !important; }
     .sb-save:hover { background: #ebebeb; }
     .savebar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    /* saving: Discard dims, Save turns into a spinner of the same size */
+    .savebar.saving .sb-discard { color: rgba(255,255,255,.3); background: #202020; pointer-events: none; }
+    .savebar.saving .sb-save { position: relative; color: transparent; background: #404040; pointer-events: none; }
+    .savebar.saving .sb-save::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+      border: 2px solid #fff; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* result toast where the bar was: dark pill, green check ("Entry saved"); errors red and longer */
+    .toast { position: fixed; top: 12px; left: 50%; z-index: 360; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px);
+      min-height: 36px; padding: 8px 16px 8px 12px; border-radius: 9999px; background: #0a0a0a; color: #fff; font-size: 13px; line-height: 20px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2); transform: translate(-50%, -8px); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.err { background: #8e0b21; border-radius: 18px; }
+    .toast svg { width: 18px; height: 18px; flex: none; }
 
     /* inline fields, measured on the Shopify entry page: grey pill #f2f2f2, 28px, as wide as its text, select with an up/down chevron; hover does not change it; focus = white with an inset #c0c0c0 line */
     .cell {
@@ -406,7 +419,7 @@
       } catch (e) { throw new Error('Could not reach the server. Check the connection and try again.'); }
       if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); throw new Error('Wrong or missing password. Enter it, then press Load again.'); }
       let data = null; try { data = await res.json(); } catch (e) {}
-      if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || 'Server error ' + res.status + '.');
+      if (!res.ok || !data || data.ok === false) throw new Error((data && (data.error || data.message)) || 'Server error ' + res.status + '.');
       return data;
     }
     function take(data) {
@@ -596,18 +609,35 @@
       });
     });
     const clearPending = () => { for (const p of pending.values()) URL.revokeObjectURL(p.url); pending.clear(); };
+    // ---- toast: result of Save / Load (Shopify "Entry saved") ----
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast'; toastEl.setAttribute('role', 'status');
+    document.body.appendChild(toastEl);
+    let toastTimer = null;
+    function toast(text, isErr) {
+      const icon = isErr
+        ? '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#fff"/><path d="M10 5.75v5" stroke="#8e0b21" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="13.75" r="1.1" fill="#8e0b21"/></svg>'
+        : '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#4ad06a"/><path d="m6.6 10.2 2.3 2.3 4.5-4.8" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      toastEl.innerHTML = icon + '<span></span>';
+      toastEl.lastChild.textContent = text;
+      toastEl.classList.toggle('err', !!isErr);
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), isErr ? 6000 : 3000);
+    }
     $('saveBtn').addEventListener('click', () => {
       const ch = changes();
       say(ch.files.length ? 'Saving and uploading ' + ch.files.length + ' image' + (ch.files.length > 1 ? 's' : '') + '…' : 'Saving…');
-      $('savebar').classList.add('busy');
+      $('savebar').classList.add('saving');
       withBusy(async () => {
         try {
           const data = await call({ action: 'save', changes: { inserts: ch.inserts, updates: ch.updates, deletes: ch.deletes } }, ch.files);
           clearPending(); take(data); persist();
           const s = data.saved || {};
           say('Saved: ' + (s.inserted || 0) + ' added, ' + (s.updated || 0) + ' changed, ' + (s.deleted || 0) + ' deleted' + (s.uploaded ? ', ' + s.uploaded + ' image' + (s.uploaded > 1 ? 's' : '') + ' uploaded' : '') + '.');
-        } catch (e) { say(e.message + ' Nothing was saved.', true); }
-        finally { $('savebar').classList.remove('busy'); }
+          toast('Changes saved');
+        } catch (e) { say(e.message + ' Nothing was saved.', true); toast('Not saved: ' + e.message, true); }
+        finally { $('savebar').classList.remove('saving'); }
       });
     });
     // Discard: back to the table as last loaded or saved, no request

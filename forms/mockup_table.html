@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockups</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="forms.css">
+  <style>
+    .container { width: 100%; max-width: 760px; position: relative; z-index: 1; }
+    h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .sub { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.5; }
+
+    .bar { display: flex; gap: 10px; margin-bottom: 14px; }
+    .bar input { flex: 1; min-width: 0; }
+    input[type="text"], select {
+      height: 36px; background: var(--surface-elevated);
+      border: none; border-radius: 4px; padding: 0 10px;
+      font-family: var(--font); font-size: 14px; color: var(--text); outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    input[type="text"]::placeholder { color: var(--text-muted); }
+    input[type="text"]:hover, select:hover, input[type="text"]:focus, select:focus { background: #2a2a2a; }
+    input[type="text"]:focus, select:focus { box-shadow: 0 0 0 2px var(--text); }
+    .bar input { height: 42px; padding: 0 16px; }
+    .btn {
+      height: 42px; padding: 0 18px; border: 1px solid #727272; border-radius: 500px;
+      background: none; color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: border-color 0.1s, transform 0.1s;
+    }
+    .btn:hover { border-color: var(--text); transform: scale(1.04); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      text-align: left; font-size: 12px; font-weight: 500; color: var(--text-sub);
+      padding: 0 6px 8px; border-bottom: 1px solid var(--divider); white-space: nowrap;
+    }
+    th.c, td.c { text-align: center; }
+    td { padding: 6px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
+    td input[type="text"] { width: 100%; text-transform: uppercase; }
+    td select { width: 100%; }
+    .col-type { width: 96px; }
+    .col-tier { width: 64px; }
+    .col-flag { width: 72px; }
+    .col-del { width: 36px; }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .del {
+      width: 32px; height: 32px; border: none; background: none; border-radius: 4px;
+      color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer;
+    }
+    .del:hover { color: var(--error); background: var(--error-soft); }
+    tr.saving td { opacity: 0.5; }
+    tr.new td { background: var(--accent-soft); }
+    .msg { font-size: 13px; color: var(--text-sub); padding-top: 12px; min-height: 28px; }
+    .msg.err { color: var(--error); }
+
+    @media (max-width: 640px) {
+      .card { padding: 24px 12px; }
+      input[type="text"], select { font-size: 16px; }
+      .col-type { width: 78px; } .col-tier { width: 56px; } .col-flag { width: 48px; }
+      th { font-size: 11px; }
+    }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>Mockups</h2>
+      <p class="sub">Each change is saved as soon as you leave the field. TC img: ads with this mockup go into the print's campaign; unticked mockups go into the daily mockup campaign.</p>
+      <div class="bar">
+        <input type="text" id="search" placeholder="Search mockup ID or type ID" />
+        <button type="button" class="btn" id="addBtn">Add mockup</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Mockup ID</th><th class="col-type">Type ID</th><th class="col-tier">Tier</th>
+          <th class="c col-flag">TC prd</th><th class="c col-flag">TC img</th><th class="col-del"></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="msg" id="msg">Loading…</div>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = 'https://playmakerino.app.n8n.cloud/webhook/mockup-table';
+    let rows = [], types = [], adding = false;
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function say(text, isErr) { const m = $('msg'); m.textContent = text || ''; m.classList.toggle('err', !!isErr); }
+
+    // Every call returns the whole table, so the page always shows what the server has
+    async function call(payload) {
+      let res;
+      try {
+        res = await fetch(WEBHOOK_URL, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, TC_AUTH_HEADERS()), body: JSON.stringify(payload) });
+      } catch (e) { throw new Error('Could not reach the server. Check the connection and try again.'); }
+      if (res.status === 401 || res.status === 403) { TC_AUTH_FAIL(); throw new Error('Wrong or missing password. Enter it, then reload the page.'); }
+      let data = null; try { data = await res.json(); } catch (e) {}
+      if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || 'Server error ' + res.status + '.');
+      rows = data.rows || []; types = data.types || [];
+      return data;
+    }
+
+    function typeOptions(cur) {
+      const list = types.slice(); if (cur && !list.includes(cur)) list.unshift(cur);
+      return '<option value=""></option>' + list.map(t => `<option${t === cur ? ' selected' : ''}>${esc(t)}</option>`).join('');
+    }
+    function tierOptions(cur) {
+      return ['', 1, 2, 3, 4].map(t => `<option value="${t}"${String(t) === String(cur == null ? '' : cur) ? ' selected' : ''}>${t}</option>`).join('');
+    }
+    function rowHtml(r, isNew) {
+      return `<tr data-id="${isNew ? '' : r.id}"${isNew ? ' class="new"' : ''}>
+        <td><input type="text" class="f-id" value="${esc(r.Mockup_ID)}" placeholder="KAN-FVI-01" /></td>
+        <td class="col-type"><select class="f-type">${typeOptions(r.Product_type_ID)}</select></td>
+        <td class="col-tier"><select class="f-tier">${tierOptions(r.tier)}</select></td>
+        <td class="c col-flag"><input type="checkbox" class="f-prd"${r.used_in_tc_prd ? ' checked' : ''} aria-label="Used in TC prd" /></td>
+        <td class="c col-flag"><input type="checkbox" class="f-img"${r.used_in_tc_img ? ' checked' : ''} aria-label="Used in TC img" /></td>
+        <td class="col-del"><button type="button" class="del" aria-label="Delete" data-tip="Delete">&times;</button></td>
+      </tr>`;
+    }
+    function render() {
+      const q = $('search').value.trim().toLowerCase();
+      const list = rows.filter(r => !q || String(r.Mockup_ID || '').toLowerCase().includes(q) || String(r.Product_type_ID || '').toLowerCase().includes(q));
+      $('rows').innerHTML = (adding ? rowHtml({ used_in_tc_prd: false, used_in_tc_img: true }, true) : '') + list.map(r => rowHtml(r)).join('');
+      if (!adding) say(rows.length + ' mockups' + (q ? ', ' + list.length + ' shown' : ''));
+    }
+
+    function readRow(tr) {
+      return {
+        Mockup_ID: tr.querySelector('.f-id').value.trim().toUpperCase(),
+        Product_type_ID: tr.querySelector('.f-type').value,
+        tier: tr.querySelector('.f-tier').value,
+        used_in_tc_prd: tr.querySelector('.f-prd').checked,
+        used_in_tc_img: tr.querySelector('.f-img').checked
+      };
+    }
+
+    async function save(tr) {
+      const id = tr.dataset.id, row = readRow(tr);
+      if (!id && !row.Mockup_ID) return;            // new row stays open until it has an ID
+      tr.classList.add('saving');
+      try {
+        await call(id ? { action: 'update', id: Number(id), row } : { action: 'insert', row });
+        if (!id) adding = false;
+        render(); say(row.Mockup_ID + ' saved.');
+      } catch (e) {
+        tr.classList.remove('saving');
+        if (id) render();                           // put the stored values back
+        say(e.message, true);
+      }
+    }
+
+    $('rows').addEventListener('change', e => { const tr = e.target.closest('tr'); if (tr) save(tr); });
+    $('rows').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('f-id')) e.target.blur(); });
+    $('rows').addEventListener('click', async e => {
+      if (!e.target.classList.contains('del')) return;
+      const tr = e.target.closest('tr'), id = tr.dataset.id;
+      if (!id) { adding = false; render(); return; }
+      const name = tr.querySelector('.f-id').value;
+      if (!confirm('Delete ' + name + '?')) return;
+      tr.classList.add('saving');
+      try { await call({ action: 'delete', id: Number(id) }); render(); say(name + ' deleted.'); }
+      catch (err) { tr.classList.remove('saving'); say(err.message, true); }
+    });
+    $('addBtn').addEventListener('click', () => {
+      adding = true; $('search').value = ''; render();
+      say('Type the mockup ID, then press Enter.');
+      $('rows').querySelector('tr.new .f-id').focus();
+    });
+    $('search').addEventListener('input', render);
+
+    call({ action: 'list' }).then(render).catch(e => say(e.message, true));
+  </script>
+</body>
+</html>

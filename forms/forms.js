@@ -7,7 +7,8 @@
    "img" = the 2 forms of Trang (image source only). The switcher is rendered synchronously, so the card below never jumps.
 
    Also defines the help panel (openGuide / closeGuide, Escape closes it) and the small helpers the
-   forms' own scripts call: escapeHtml, cleanProductUrl, showStatus, extractFolderId. */
+   forms' own scripts call: escapeHtml, cleanProductUrl, showStatus, extractFolderId.
+   Every .field-hint is turned into an info icon after its field label, the hint shows as its tooltip. */
 
 (function () {
   var SWITCHERS = {
@@ -83,6 +84,27 @@
     if (target) a.setAttribute('href', target);
   });
 })();
+
+// ---------- Field hints -> info icon tooltip ----------
+// Each .field-hint becomes an info icon after the label of its field; the hint text shows on hover.
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.field-hint').forEach(function (hint) {
+    let lbl = null;
+    for (let el = hint.parentElement; el && !lbl; el = el.parentElement) {
+      lbl = el.querySelector(':scope > .field-lbl, :scope > label');
+    }
+    if (!lbl) return;
+    const text = hint.textContent.trim();
+    const icon = document.createElement('span');
+    icon.className = 'info-tip';
+    icon.tabIndex = 0;
+    icon.setAttribute('data-tip', text);
+    icon.setAttribute('aria-label', text);
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
+    lbl.appendChild(icon);
+    hint.remove();
+  });
+});
 
 // ---------- Help panel (markup: #guideFab, #guideOverlay, #guidePanel in each form) ----------
 function openGuide() {

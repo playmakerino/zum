@@ -178,3 +178,17 @@ body::before {
   background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
   color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
 }
+
+/* Info icon after a field label (forms.js builds it from .field-hint); tooltip on hover/focus */
+.info-tip{position:relative;display:inline-flex;vertical-align:-2px;margin-left:5px;color:var(--text-muted);cursor:help;outline:none;}
+.info-tip svg{width:13px;height:13px;}
+.info-tip:hover,.info-tip:focus-visible{color:var(--text);}
+.info-tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
+  transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;line-height:1.4;
+  letter-spacing:0;white-space:normal;width:max-content;max-width:240px;padding:6px 10px;border-radius:4px;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
+.info-tip::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
+  transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
+  opacity:0;pointer-events:none;transition:opacity .14s;z-index:30;}
+.info-tip:hover::after,.info-tip:focus-visible::after{opacity:1;transform:translateX(-50%) translateY(0);}
+.info-tip:hover::before,.info-tip:focus-visible::before{opacity:1;}

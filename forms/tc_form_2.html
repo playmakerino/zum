@@ -261,12 +261,11 @@
       <div class="section">
         <div class="field-row">
           <div class="field">
-            <label>Print theme</label>
+            <label data-hint="Theme of all prints below in full words, e.g. Sea turtle or Halloween. Avoid codes like HLW.">Print theme</label>
             <input type="text" id="ad_set_name" placeholder="Sea turtle" />
-            <div class="field-hint">Keep it clear and specific, easy to recognize.</div>
           </div>
           <div class="field">
-            <label>Product type</label>
+            <label data-hint="Product type of every product in the table. Products of another type go in a separate submit.">Product type</label>
             <div class="combo" id="productTypeCombo">
               <input type="text" class="combo-input" id="productTypeSearch"
                      placeholder="Search product type..." autocomplete="off" role="combobox"
@@ -276,18 +275,17 @@
             </div>
           </div>
           <div class="field pos-field">
-            <label>Image positions (shared)</label>
+            <label data-hint="Product page images to use, counted from the first image, e.g. 2, 3, 4. Applies to every row; empty = all images.">Image positions (shared)</label>
             <input type="text" id="image_positions" placeholder="2, 3, 4" />
-            <div class="field-hint">A row can set its own. Both empty = all images.</div>
           </div>
         </div>
       </div>
 
       <div class="section">
         <div class="row row-header">
-          <label class="row-col-label">Print ID</label>
-          <label class="row-col-label">Product URL</label>
-          <label class="row-col-label">Image positions</label>
+          <label class="row-col-label" data-hint="Print code of the print on this product, e.g. ngt20522, as in the design file name.">Print ID</label>
+          <label class="row-col-label" data-hint="Product link on zumbamboo.com, copied from the browser. Ads open this page; links copied from a collection page work too.">Product URL</label>
+          <label class="row-col-label" data-hint="Only for a row that needs other images than the shared box, e.g. 1, 4. Numbers past the last image are skipped.">Image positions</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -365,15 +363,15 @@
       div.className = 'row';
       div.innerHTML = `
         <div class="row-cell row-cell-print">
-          <label class="row-inline-label">Print ID</label>
+          <label class="row-inline-label" data-hint="Print code of the print on this product, e.g. ngt20522, as in the design file name.">Print ID</label>
           <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product URL</label>
+          <label class="row-inline-label" data-hint="Product link on zumbamboo.com, copied from the browser. Ads open this page; links copied from a collection page work too.">Product URL</label>
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label">Image positions</label>
+          <label class="row-inline-label" data-hint="Only for a row that needs other images than the shared box, e.g. 1, 4. Numbers past the last image are skipped.">Image positions</label>
           <input type="text" class="row-pos" placeholder="Same as shared" />
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">

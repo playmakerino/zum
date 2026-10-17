@@ -8,7 +8,7 @@
 
    Also defines the help panel (openGuide / closeGuide, Escape closes it) and the small helpers the
    forms' own scripts call: escapeHtml, cleanProductUrl, showStatus, extractFolderId.
-   Every .field-hint is turned into an info icon after its field label, the hint shows as its tooltip. */
+   A label with data-hint="..." gets an info icon after its text, the hint shows as its tooltip. */
 
 (function () {
   var SWITCHERS = {
@@ -86,24 +86,38 @@
 })();
 
 // ---------- Field hints -> info icon tooltip ----------
-// Each .field-hint becomes an info icon after the label of its field; the hint text shows on hover.
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('.field-hint').forEach(function (hint) {
-    let lbl = null;
-    for (let el = hint.parentElement; el && !lbl; el = el.parentElement) {
-      lbl = el.querySelector(':scope > .field-lbl, :scope > label');
-    }
-    if (!lbl) return;
-    const text = hint.textContent.trim();
+// A label with data-hint="..." gets an info icon after its text; the hint shows on hover.
+// Rows added later (row templates) are picked up by the observer.
+const INFO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
+function addInfoTips(root) {
+  root.querySelectorAll('[data-hint]').forEach(function (lbl) {
+    if (lbl.querySelector(':scope > .info-tip')) return;
     const icon = document.createElement('span');
     icon.className = 'info-tip';
     icon.tabIndex = 0;
-    icon.setAttribute('data-tip', text);
-    icon.setAttribute('aria-label', text);
-    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
+    icon.innerHTML = INFO_SVG + '<span class="info-pop" role="tooltip"></span>';
+    icon.lastChild.textContent = lbl.getAttribute('data-hint');
+    icon.addEventListener('mouseenter', fitInfoPop);
+    icon.addEventListener('focus', fitInfoPop);
     lbl.appendChild(icon);
-    hint.remove();
   });
+}
+// Shift the bubble sideways so it stays 8px inside the window
+function fitInfoPop() {
+  const r = this.querySelector('.info-pop').getBoundingClientRect();
+  const prev = parseFloat(this.dataset.dx || 0), w = document.documentElement.clientWidth;
+  const left = r.left - prev, right = r.right - prev;
+  const dx = left < 8 ? 8 - left : (right > w - 8 ? w - 8 - right : 0);
+  this.dataset.dx = dx;
+  this.style.setProperty('--dx', dx + 'px');
+}
+document.addEventListener('DOMContentLoaded', function () {
+  addInfoTips(document);
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      m.addedNodes.forEach(function (n) { if (n.nodeType === 1) addInfoTips(n.parentNode || n); });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
 });
 
 // ---------- Help panel (markup: #guideFab, #guideOverlay, #guidePanel in each form) ----------

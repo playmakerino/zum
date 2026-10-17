@@ -143,18 +143,18 @@
 
       <div class="field-row">
         <div class="field">
-          <label>Print ID</label>
+          <label data-hint="Print code as in the design file name, e.g. ngt20522. Check the spelling: results are reported under this code.">Print ID</label>
           <input type="text" id="printId" placeholder="NGT1234" />
         </div>
         <div class="field">
-          <label>Product URL</label>
+          <label data-hint="Product link on zumbamboo.com, copied from the browser. Ads open this page, so pick the product that carries this print.">Product URL</label>
           <input type="text" id="productUrl" placeholder="https://zumbamboo.com/products/..." />
         </div>
       </div>
 
       <div class="field-row half">
         <div class="field">
-          <label>Print image</label>
+          <label data-hint="Original design file (JPG or PNG), not a mockup, with drawing, text and details clearly visible. Prints with trademark or copyright risk get no ads.">Print image</label>
           <div class="chooser-field" id="field_print">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -172,10 +172,9 @@
               </svg>
             </button>
           </div>
-          <div class="field-hint">Print design reference.</div>
         </div>
         <div class="field">
-          <label>Ad images</label>
+          <label data-hint="One ad per image, JPG or PNG. Send right after selecting: Dropbox links stop working after 4 hours or when a file is renamed.">Ad images</label>
           <div class="chooser-field" id="field_ads">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>

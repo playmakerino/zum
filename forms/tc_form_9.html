@@ -222,12 +222,11 @@
       <div class="section">
         <div class="print-row">
           <div>
-            <div class="field-lbl">Print ID</div>
+            <div class="field-lbl" data-hint="One print code for all products below, e.g. ngt20522. For another print, send a new submit.">Print ID</div>
             <input type="text" class="full-input" id="printId" placeholder="NGT1234" />
-            <div class="field-hint">One ID for the whole submit.</div>
           </div>
           <div>
-            <div class="field-lbl">Print image</div>
+            <div class="field-lbl" data-hint="Original design file (JPG or PNG), not a mockup, with drawing, text and details clearly visible. Prints with trademark or copyright risk get no ads.">Print image</div>
             <div class="chooser-field" id="field_print_image">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -246,15 +245,14 @@
               </button>
             </div>
             <input type="file" id="print_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" onchange="onPrintFile(this)" />
-            <div class="field-hint">Print design reference.</div>
           </div>
         </div>
       </div>
 
       <div class="section">
         <div class="row row-header">
-          <label class="row-col-label">Product URL</label>
-          <label class="row-col-label">Ad images</label>
+          <label class="row-col-label" data-hint="Link of a product carrying this print on zumbamboo.com. Ads open this page; links copied from a collection page work too.">Product URL</label>
+          <label class="row-col-label" data-hint="Images for this row's product, one ad per image (JPG or PNG). Select again to add more; X clears the box.">Ad images</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -297,11 +295,11 @@
       div.dataset.rid = rid;
       div.innerHTML = `
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product URL</label>
+          <label class="row-inline-label" data-hint="Link of a product carrying this print on zumbamboo.com. Ads open this page; links copied from a collection page work too.">Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label">Ad images</label>
+          <label class="row-inline-label" data-hint="Images for this row's product, one ad per image (JPG or PNG). Select again to add more; X clears the box.">Ad images</label>
           <div class="chooser-field">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>

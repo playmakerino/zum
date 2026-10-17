@@ -194,7 +194,7 @@
       </div>
 
       <div class="field">
-        <label>Submitted by</label>
+        <label data-hint="Your ecomies email name, e.g. thaodp; @ecomies.com is added. Videos you send are recorded under this name.">Submitted by</label>
         <div class="suffix-input" id="submitterWrap">
           <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username"
             oninput="document.getElementById('submitterWrap').classList.toggle('has-at', this.value.includes('@'))" />
@@ -203,7 +203,7 @@
       </div>
 
       <div class="field">
-        <label>Google Drive folder url</label>
+        <label data-hint="One folder per line, shared as Anyone with the link. Name videos [PrintID-TypeID] video ..., e.g. [Ngt20736-TPJ] video 1.mp4; one wrong name stops that folder.">Google Drive folder url</label>
         <div id="rowsContainer"></div>
         <div class="add-row-wrap">
           <button class="add-btn" type="button" onclick="addRow()">+ Add folder</button>

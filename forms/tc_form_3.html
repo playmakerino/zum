@@ -212,19 +212,18 @@
       </div>
 
       <div class="section">
-        <div class="field-lbl">Image positions (shared)</div>
+        <div class="field-lbl" data-hint="Product page images to use, counted from the first image, e.g. 2, 3, 4. Applies to every row; empty = all images.">Image positions (shared)</div>
         <div class="pos-line">
           <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
-          <div class="field-hint">A row can set its own. Both empty = all images.</div>
         </div>
       </div>
 
       <div class="section">
         <div class="row row-header">
-          <label class="row-col-label">Print ID</label>
-          <label class="row-col-label">Product URL</label>
-          <label class="row-col-label">Image positions</label>
-          <label class="row-col-label" style="white-space:nowrap">Print image</label>
+          <label class="row-col-label" data-hint="Print code of the print on this product, e.g. ngt20522, as in the design file name.">Print ID</label>
+          <label class="row-col-label" data-hint="Product link on zumbamboo.com, copied from the browser. Ads open this page; links copied from a collection page work too.">Product URL</label>
+          <label class="row-col-label" data-hint="Only for a row that needs other images than the shared box, e.g. 1, 4. Numbers past the last image are skipped.">Image positions</label>
+          <label class="row-col-label" style="white-space:nowrap" data-hint="Original design file of this row's print (JPG or PNG), not a mockup. Prints with trademark or copyright risk get no ads.">Print image</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -271,19 +270,19 @@
       div.dataset.rid = rid;
       div.innerHTML = `
         <div class="row-cell row-cell-print">
-          <label class="row-inline-label">Print ID</label>
+          <label class="row-inline-label" data-hint="Print code of the print on this product, e.g. ngt20522, as in the design file name.">Print ID</label>
           <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label">Product URL</label>
+          <label class="row-inline-label" data-hint="Product link on zumbamboo.com, copied from the browser. Ads open this page; links copied from a collection page work too.">Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label">Image positions</label>
+          <label class="row-inline-label" data-hint="Only for a row that needs other images than the shared box, e.g. 1, 4. Numbers past the last image are skipped.">Image positions</label>
           <input type="text" class="row-pos" placeholder="Same as shared" />
         </div>
         <div class="row-cell row-cell-img">
-          <label class="row-inline-label">Print image</label>
+          <label class="row-inline-label" data-hint="Original design file of this row's print (JPG or PNG), not a mockup. Prints with trademark or copyright risk get no ads.">Print image</label>
           <div class="row-img" data-rid="${rid}"></div>
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">

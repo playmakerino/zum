@@ -170,8 +170,8 @@
       </div>
 
       <div class="field">
-        <label>Submitted by email</label>
-        <input type="text" id="submitted_by_email" placeholder="thaodp@ecomies.com" autocomplete="email" />
+        <label>Submitted by</label>
+        <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username" />
       </div>
 
       <div class="field">
@@ -250,14 +250,16 @@
         if (!folder_ids.includes(id)) folder_ids.push(id);
       }
 
-      const submitted_by_email = document.getElementById('submitted_by_email').value.trim();
-      if (!submitted_by_email) {
+      // A bare name ("thaodp") becomes thaodp@ecomies.com; a full email is kept as typed
+      const submitter = document.getElementById('submitted_by_email').value.trim().toLowerCase();
+      if (!submitter) {
         document.getElementById('submitted_by_email').focus();
-        return showStatus('error', '⚠️ Please enter your email.');
+        return showStatus('error', '⚠️ Please enter your name.');
       }
+      const submitted_by_email = submitter.includes('@') ? submitter : `${submitter}@ecomies.com`;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) {
         document.getElementById('submitted_by_email').focus();
-        return showStatus('error', '⚠️ Please enter a valid email.');
+        return showStatus('error', '⚠️ Please enter a valid name or email.');
       }
 
       // One webhook call per folder, so each folder runs as a single n8n execution
@@ -337,8 +339,8 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Điền <span class="g-field">Submitted by email</span></h4>
-          <p>Email của bạn, ví dụ <code>thaodp@ecomies.com</code>.</p>
+          <h4>Điền <span class="g-field">Submitted by</span></h4>
+          <p>Tên của bạn, ví dụ <code>thaodp</code> (form tự thêm <code>@ecomies.com</code>).</p>
         </div>
       </div>
 

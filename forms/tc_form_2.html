@@ -283,9 +283,9 @@
 
       <div class="section">
         <div class="row row-header">
-          <label class="row-col-label" data-hint="The code of the print on this product, exactly as in the design file name, e.g. ngt20522.">Print ID</label>
-          <label class="row-col-label" data-hint="Link to the product on zumbamboo.com, copied from the browser. The ads lead to this page. Links copied from a collection page work too.">Product URL</label>
-          <label class="row-col-label" data-hint="Fill in only if this product needs different images from the shared field, e.g. 1, 4. Numbers beyond the last image are ignored.">Image positions</label>
+          <label class="row-col-label">Print ID</label>
+          <label class="row-col-label">Product URL</label>
+          <label class="row-col-label">Image positions</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -363,15 +363,15 @@
       div.className = 'row';
       div.innerHTML = `
         <div class="row-cell row-cell-print">
-          <label class="row-inline-label" data-hint="The code of the print on this product, exactly as in the design file name, e.g. ngt20522.">Print ID</label>
+          <label class="row-inline-label">Print ID</label>
           <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
         </div>
         <div class="row-cell row-cell-url">
-          <label class="row-inline-label" data-hint="Link to the product on zumbamboo.com, copied from the browser. The ads lead to this page. Links copied from a collection page work too.">Product URL</label>
+          <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label" data-hint="Fill in only if this product needs different images from the shared field, e.g. 1, 4. Numbers beyond the last image are ignored.">Image positions</label>
+          <label class="row-inline-label">Image positions</label>
           <input type="text" class="row-pos" placeholder="Same as shared" />
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">

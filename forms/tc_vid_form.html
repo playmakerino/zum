@@ -67,6 +67,29 @@
       box-shadow: 0 0 0 2px var(--text);
     }
 
+    /* fixed domain shown inside the input: the user types only the name */
+    .suffix-input {
+      position: relative;
+    }
+
+    .suffix-input input[type="text"] {
+      padding-right: 128px;
+    }
+
+    .suffix-input .suffix {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .suffix-input.has-at .suffix {
+      display: none;
+    }
+
     .submit-wrap {
       margin-top: 32px;
     }
@@ -171,7 +194,11 @@
 
       <div class="field">
         <label>Submitted by</label>
-        <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username" />
+        <div class="suffix-input" id="submitterWrap">
+          <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username"
+            oninput="document.getElementById('submitterWrap').classList.toggle('has-at', this.value.includes('@'))" />
+          <span class="suffix">@ecomies.com</span>
+        </div>
       </div>
 
       <div class="field">

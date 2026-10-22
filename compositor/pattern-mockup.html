@@ -465,8 +465,9 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // Each garment has a flatlay view and on-model views: mock photo + panel map on the Shopify CDN. The model
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
-// bc (optional) = [nx,ny] the real centre of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
-// Body + rest on a view whose frame crops the body. A cropped body without bc gets only the background colour (bodyMode).
+// bc (optional) = [nx,ny] the chest point of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
+// Body + rest on a view whose frame crops the body. Set it with a square file at Body size BODY_REF_FRAC (0.75): a taller
+// file moves down from there (compose). A cropped body without bc gets only the background colour (bodyMode).
 // br (optional) = this view's own body ratio (body width / pattern width: larger br, larger body print) for Body + rest, for
 // a twisted pose where the garment's br does not hold; empty = the garment's br, measured on its bodyRef flat. Pass null for bc to set br alone.
 const V=(mock,map,r,bc,br)=>({ mock:CDN+mock, map:CDN+map, r, bc, br });

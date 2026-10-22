@@ -1036,6 +1036,17 @@ const DISP_AMP=12;   // max print shift on a fold flank, px. Gradient-driven: a 
                      // diagonally as a whole and only wobbled straight lines; the gradient form compresses the print on fold flanks
 const DISP_BLUR=8;   // box-blur radius of the mock luminance the gradient is read from, px
 const DISP_GREF=3;   // luminance change per px (on the blurred mock) that gives the full DISP_AMP shift; steeper is clamped
+// Dark fabric: a multiply leaves black at 0 whatever the mock's shading, so folds and seams vanish on a black print.
+// A dark print adds three greys, all scaled by the weight (1 - print brightness)^3:
+//  - volume: DARK_LIFT x (mock / fabric white)^DARK_POW, the designer's Photoshop stack for a black zippy (the mock
+//    through Levels, Screen 60%) fitted on 2026-10-22; capped at the fabric white, above it a model photo turns satin
+//  - floor: DARK_BASE x the fold field's local mean of the shading
+//  - lines: DARK_GAIN x the local contrast (mock minus that mean): seams and fold lines stand out on near-black.
+// Brightness above 0.8 (weight under 2/255) is left untouched, so light prints stay exactly as they were.
+const DARK_LIFT=0.06;  // volume on the fabric white for a black print: 15 of 255
+const DARK_POW=29;
+const DARK_BASE=0.03;  // floor for a black print on the fabric white: 8 of 255
+const DARK_GAIN=0.6;   // gain on the local contrast (mock - local mean, both / fabric white) for a black print
 // 2-pass box blur, radius r, of v and m in place over a BW x BH rect: a running sum along every row, then along every
 // column, twice. Each line is copied to a small buffer first, so the sums read the unblurred line while the result is
 // written back: the same sums as a full-size scratch copy, without its memory. Used by the fold field (compose).
@@ -1104,7 +1115,7 @@ function bodyOpt(base,G,spec,br){ const mode=bodyMode(G,spec);
 function compose(G, pat, ratio, trim, opt){
   opt=opt||{};
   const {w:W,h:H,ids,box:[bx0,by0,bx1,by1]}=G; const BW=bx1-bx0+1;
-  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2];
+  const iFr=1/G.Fref[0], iFg=1/G.Fref[1], iFb=1/G.Fref[2], iFl=1/(G.Fref[0]*0.299+G.Fref[1]*0.587+G.Fref[2]*0.114);
   const patW = ratio*W;
   // Perspective homography per panel (cyan dots) replaces axis / PCA / fan for that panel; extents re-measured because the frame changed
   G.H=buildQuads(opt.quads===false ? null : ((opt.quads&&opt.quads[G.key])||G.mapQuads), W, H, G);
@@ -1224,6 +1235,18 @@ function compose(G, pat, ratio, trim, opt){
     }
     if(bA<1){ const t=1-bA; R=bR+t*R; Gc=bG+t*Gc; Bc=bB+t*Bc; }
     }
+    // dark fabric lift: print brightness = its brightest channel (result / mock shading), so a saturated red or blue
+    // counts as bright and keeps its colour; volume + floor + lines, see DARK_LIFT
+    { const Pl=Pr*0.299+Pg*0.587+Pb*0.114;
+      if(Pl>0.02){ let pv=Math.max(Pr>0.02?R/Pr:0, Pg>0.02?Gc/Pg:0, Pb>0.02?Bc/Pb:0)/255; if(pv>1) pv=1;
+        const d=1-pv, w=d*d*d*255;
+        if(w>2){   // brightness above 0.8: untouched (the gain would still move strong edges a few levels)
+          let Pm=Pl;   // local mean of the shading, from the fold field (box only)
+          if(x>=bx0&&x<=bx1&&y>=by0&&y<=by1){ Pm=dl[(y-by0)*BW+(x-bx0)]*iFl; if(Pm>1) Pm=1; }
+          let Pu=(r*0.299+g*0.587+b*0.114)*iFl; if(Pu>1) Pu=1;   // mock / fabric white for the volume term
+          const L=w*(DARK_LIFT*Math.pow(Pu,DARK_POW)+DARK_BASE*Pm+DARK_GAIN*(Pl-Pm));
+          R+=L; Gc+=L; Bc+=L;
+          if(R<0) R=0; else if(R>255) R=255; if(Gc<0) Gc=0; else if(Gc>255) Gc=255; if(Bc<0) Bc=0; else if(Bc>255) Bc=255; } } }
     // soft edge: a partially covered edge pixel keeps the mock for its non-fabric share
     if(a<255){ const f=a/255; R=r+f*(R-r); Gc=g+f*(Gc-g); Bc=b+f*(Bc-b); }
     out[o]=R|0; out[o+1]=Gc|0; out[o+2]=Bc|0;

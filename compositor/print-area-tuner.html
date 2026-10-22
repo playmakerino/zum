@@ -395,7 +395,9 @@ function main(){
       c=bc||A.cent; kind=md;
     } else { wN=r; c=A.cent; kind='tile'; }
     const th=G&&G.cs?Math.atan2(G.sn[1],G.cs[1]):0;
-    return { cx:c[0], cy:c[1], w:wN, h:wN*A.mock.width*ar/A.mock.height, th, kind };
+    // placement: a file taller than the square at BODY_REF_FRAC moves down along the body (engine compose); c0 = bc as set
+    const sh=m==='placement' ? wN*A.mock.width/2*Math.max(0,ar-BODY_REF_FRAC/+$('frac').value) : 0;
+    return { cx:c[0]-Math.sin(th)*sh/A.mock.width, cy:c[1]+Math.cos(th)*sh/A.mock.height, c0:c, w:wN, h:wN*A.mock.width*ar/A.mock.height, th, kind };
   }
 
   // quick preview of the print at display size (multiplied onto the mock): pattern tiled / placed, clipped to the map
@@ -499,7 +501,7 @@ function main(){
       const c=allCells().find(c=>x>=c.P.x&&x<=c.P.x+c.P.w&&y>=c.P.y&&y<=c.P.y+c.P.h); if(c&&c.v!==view) selectView(c.v); return; }
     if(!ready()||!bodyCell()) return; const p=at(e); if(!inCell(p)) return;
     const h=hit(p); cv.focus();
-    if(h) drag={ type:'move', p0:p, bc0:[h.b.cx,h.b.cy] };
+    if(h) drag={ type:'move', p0:p, bc0:[h.b.c0[0],h.b.c0[1]] };
     else { const bc=[fmt(p.nx,3),fmt(p.ny,3)]; setVal({ bc }); drag={ type:'move', p0:p, bc0:bc }; }
     cv.setPointerCapture(e.pointerId); draw();
   });
@@ -518,7 +520,7 @@ function main(){
     const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key]; if(!d) return;
     e.preventDefault(); const b=box(view,'placement'); if(!b||b.none) return;
     const T=fit(st(view).a,bodyCell().E), px=(e.shiftKey?10:1)*(window.devicePixelRatio||1);
-    setVal({ bc:[fmt(b.cx+d[0]*px/T.W,3), fmt(b.cy+d[1]*px/T.H,3)] });
+    setVal({ bc:[fmt(b.c0[0]+d[0]*px/T.W,3), fmt(b.c0[1]+d[1]*px/T.H,3)] });
     clearTimeout(idleT); idleT=setTimeout(afterEdit,600);
   });
 
@@ -567,7 +569,7 @@ function main(){
   const bcIn=()=>{ const x=parseFloat($('bx').value), y=parseFloat($('by').value); if(isFinite(x)&&isFinite(y)){ setVal({bc:[x,y]}); afterEdit(); } };
   $('bx').onchange=bcIn; $('by').onchange=bcIn;
   const nudge=(dx,dy)=>e=>{ if(!ready()) return; const b=box(view,'placement'); if(!b||b.none) return;
-    const s=e.shiftKey?0.02:0.005; setVal({ bc:[fmt(b.cx+dx*s,3), fmt(b.cy+dy*s,3)] }); clearTimeout(idleT); idleT=setTimeout(afterEdit,500); };
+    const s=e.shiftKey?0.02:0.005; setVal({ bc:[fmt(b.c0[0]+dx*s,3), fmt(b.c0[1]+dy*s,3)] }); clearTimeout(idleT); idleT=setTimeout(afterEdit,500); };
   $('bcU').onclick=nudge(0,-1); $('bcD').onclick=nudge(0,1); $('bcL').onclick=nudge(-1,0); $('bcR').onclick=nudge(1,0);
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };

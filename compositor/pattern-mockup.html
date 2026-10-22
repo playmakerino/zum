@@ -466,7 +466,7 @@ const CDN='https://cdn.shopify.com/s/files/1/0704/3321/0621/files/';
 // maps were traced on the photo pixels themselves (SAM + colour threshold, zum-prd/prompt-test/model-map),
 // so they align to the photo exactly; the mock is the original photo.
 // bc (optional) = [nx,ny] the chest point of the body (panel 1, map R 20) as a fraction of the mock, may lie outside it: for
-// Body + rest on a view whose frame crops the body. Set it with a square file at Body size BODY_REF_FRAC (0.75): a taller
+// Body + rest on a view whose frame crops the body. Set it with a square file at Body size BODY_REF_FRAC (1): a taller
 // file moves down from there (compose). A cropped body without bc gets only the background colour (bodyMode).
 // br (optional) = this view's own body ratio (body width / pattern width: larger br, larger body print) for Body + rest, for
 // a twisted pose where the garment's br does not hold; empty = the garment's br, measured on its bodyRef flat. Pass null for bc to set br alone.
@@ -1086,7 +1086,7 @@ function buildQuads(q,W,H,G){
 // trim: [r,g,b] or null (keep the mock's own trim). opt (optional): { quads:false } = ignore the map's cyan perspective dots,
 // { quads:{<map url>:{k:[[nx,ny]x4]}} } overrides them, { showQuad:true } draws them (demo aid). Returns a canvas (W/SS x H/SS).
 const MAIN_PANEL=1;   // placement print (compose opt.rest): the panel that takes the main pattern, map R = 20
-const BODY_REF_FRAC=0.75; // body print: the square file at this Body size (production's) sets the top edge limit, see compose
+const BODY_REF_FRAC=1;    // body print: the square file at this Body size sets the top edge limit, see compose
 const BODY_CUT_FRAC=0.05; // panel-1 pixels on the map border, as a share of the panel's width, that make a cropped body:
                           // a hem tip reaching the frame (kan-wsi-02, ~1%) is not a crop, the cropped photos measured start at ~15%
 // Body print on a view: 'bc' = the view declares the body centre (spec.bc); 'auto' = the body is whole in the frame, so the

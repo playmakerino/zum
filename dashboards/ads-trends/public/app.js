@@ -180,9 +180,9 @@ function renderTable(id, groups) {
     ['CPM', M.cpm, money, 'down'],
     ['CPC', M.cpc, money, 'down'],
   ];
-  const cell = (t, p, [, fn, fmt, good, noDelta]) => `<td>${fmt(fn(t))}${p && !noDelta ? ' ' + deltaHtml(fn(t), fn(p), good) : ''}</td>`;
+  const cell = (t, p, [, fn, fmt, good, noDelta]) => `<td class="td-metric">${fmt(fn(t))}${p && !noDelta ? ' ' + deltaHtml(fn(t), fn(p), good) : ''}</td>`;
   $(id).innerHTML = `<div class="table-scroll"><table><thead><tr><th>Group</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr>
-    <tr class="total-row"><td>Total</td>${cols.map(c => cell(total, totalP, c).replace('<td>', '<td class="td-metric">')).join('')}</tr></thead>
+    <tr class="total-row"><td>Total</td>${cols.map(c => cell(total, totalP, c)).join('')}</tr></thead>
     <tbody>${rows.map(r => `<tr><td><span class="swatch" style="background:${r.color}"></span>${esc(r.name)}</td>${cols.map(c => cell(r.t, r.p, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 

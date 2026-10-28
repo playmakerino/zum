@@ -23,13 +23,10 @@ function rangeLabel(r) {
 }
 
 // "Last N days" = N full days ending yesterday: today is partial in Triple Whale (lags a few hours)
-// and would drag every trend line down at the end (user 2026-10-28). Only "Today" shows today.
+// and would drag every trend line down at the end (user 2026-10-28; Today / Yesterday removed too).
 function currentRange() {
-  const v = $('rangeSelect').value;
-  if (v === 'today') return { start: today, end: today };
   const y = addDays(today, -1);
-  if (v === 'yesterday') return { start: y, end: y };
-  return { start: addDays(y, 1 - Number(v)), end: y };
+  return { start: addDays(y, 1 - Number($('rangeSelect').value)), end: y };
 }
 function compareRange(r) {
   const v = $('compareSelect').value;
@@ -192,7 +189,7 @@ function renderAll() {
   renderTable('t-tc', [['tc', 'TC campaigns'], ['nontc', 'Other campaigns']]);
   renderTable('t-cat', [['cat', 'Catalog ads'], ['rest', 'Other ads']]);
   const unknown = current.cur.catalogUnknown;
-  $('footnote').textContent = 'Data: Triple Whale (Meta Ads, purchase value = Meta omni purchase value). Ranges end yesterday; Today lags a few hours.'
+  $('footnote').textContent = 'Data: Triple Whale (Meta Ads, purchase value = Meta omni purchase value). Ranges end yesterday.'
     + (unknown ? ` ${unknown} creatives could not be read from Meta and are counted as other ads.` : '');
   $('updatedAt').textContent = 'Updated ' + new Date(current.cur.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }

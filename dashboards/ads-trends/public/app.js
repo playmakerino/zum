@@ -22,12 +22,14 @@ function rangeLabel(r) {
   return y0 === y ? `${shortDate(r.start)}–${shortDate(r.end)}, ${y}` : `${shortDate(r.start)}, ${y0}–${shortDate(r.end)}, ${y}`;
 }
 
-// Shopify "Last 30 days" runs from 30 days ago to today (its chart on 2026-10-28 starts Sep 28)
+// "Last N days" = N full days ending yesterday: today is partial in Triple Whale (lags a few hours)
+// and would drag every trend line down at the end (user 2026-10-28). Only "Today" shows today.
 function currentRange() {
   const v = $('rangeSelect').value;
   if (v === 'today') return { start: today, end: today };
-  if (v === 'yesterday') { const y = addDays(today, -1); return { start: y, end: y }; }
-  return { start: addDays(today, -Number(v)), end: today };
+  const y = addDays(today, -1);
+  if (v === 'yesterday') return { start: y, end: y };
+  return { start: addDays(y, 1 - Number(v)), end: y };
 }
 function compareRange(r) {
   const v = $('compareSelect').value;
@@ -190,7 +192,7 @@ function renderAll() {
   renderTable('t-tc', [['tc', 'TC campaigns'], ['nontc', 'Other campaigns']]);
   renderTable('t-cat', [['cat', 'Catalog ads'], ['rest', 'Other ads']]);
   const unknown = current.cur.catalogUnknown;
-  $('footnote').textContent = 'Data: Triple Whale (Meta Ads, purchase value = Meta omni purchase value). Today lags a few hours.'
+  $('footnote').textContent = 'Data: Triple Whale (Meta Ads, purchase value = Meta omni purchase value). Ranges end yesterday; Today lags a few hours.'
     + (unknown ? ` ${unknown} creatives could not be read from Meta and are counted as other ads.` : '');
   $('updatedAt').textContent = 'Updated ' + new Date(current.cur.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }

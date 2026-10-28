@@ -6,7 +6,7 @@
 param([switch]$Check)
 $root = Split-Path $PSScriptRoot -Parent
 $files = [ordered]@{ 'shared.css' = 'public'; 'shared.js' = 'public'; 'meta.js' = '.' }
-$targets = 'vid-thao', 'trang-mockup', 'van-featured-image'
+$targets = 'vid-thao', 'trang-mockup', 'van-featured-image', 'ads-trends'
 $stale = 0
 foreach ($t in $targets) {
   foreach ($f in $files.Keys) {

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Trends</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-title">
+    <span class="logo">Meta Ads</span>
+    <span class="cache-time" id="updatedAt"></span>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-primary" id="refreshBtn" onclick="load(true)" data-tip-title="Refresh" data-tip="Reads the latest numbers from Triple Whale. Today's data lags a few hours."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Refresh</button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="filters">
+    <select id="rangeSelect" data-icon="calendar" onchange="load()">
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <select id="compareSelect" data-icon="compare" onchange="load()">
+      <option value="none" selected>No comparison</option>
+      <option value="period">Previous period</option>
+      <option value="year">Previous year</option>
+    </select>
+  </div>
+
+  <section class="group">
+    <h2 class="group-title">Trends</h2>
+    <div class="grid">
+      <div class="card metric-card" id="c-spend"></div>
+      <div class="card metric-card" id="c-cpm"></div>
+      <div class="card metric-card" id="c-cpc"></div>
+      <div class="card metric-card" id="c-aov"></div>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">TC campaigns vs the rest</h2>
+    <div class="grid">
+      <div class="card metric-card" id="c-tc-spend"></div>
+      <div class="card metric-card" id="c-tc-roas"></div>
+    </div>
+    <div class="card table-card" id="t-tc"></div>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">Catalog ads vs the rest</h2>
+    <div class="grid">
+      <div class="card metric-card" id="c-cat-spend"></div>
+      <div class="card metric-card" id="c-cat-roas"></div>
+    </div>
+    <div class="card table-card" id="t-cat"></div>
+  </section>
+
+  <p class="footnote" id="footnote"></p>
+</main>
+
+<div id="toast"></div>
+<div class="chart-tip" id="chartTip" hidden></div>
+<script src="shared.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

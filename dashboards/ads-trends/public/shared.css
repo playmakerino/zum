@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap'); /* full weight range: 450/600/650 used below; a missing weight is faux-bolded and looks smeared */
+/* Shared Shopify-admin (Polaris) look for vid-thao, trang-mockup, van-featured-image.
+   SOURCE OF TRUTH: dashboards/shared/. Edit here, then run sync-shared.ps1, which
+   copies this file + shared.js into each dashboard's public/ (each is its own
+   Render service and only deploys its own folder).
+   Load order in index.html: style.css → shared.css → responsive.css.
+   Values read from admin.shopify.com Analytics → Reports (2026-10-14):
+   text #101010, borders #ddd / #ebebeb, hover #f7f7f7, selected #ebebeb,
+   cells 13px with 8px 12px padding, numbers right-aligned, sortable header label is
+   a 6px-radius button (transparent, hover rgba(0,0,0,.05)) with an up/down chevron.
+   Layout (user choice 2026-10-14): the page scrolls, not the table. Topbar is sticky
+   (title + updated time left, actions right), table header sticks under it. The table
+   sits in a 20px-radius .card whose first row (.card-head) holds filters/tabs and last
+   row (.card-foot) holds the debug/load log, so header/total rows never touch the
+   rounded corners. */
+
+:root{--topbar-h:52px}
+
+body{background:#fff;color:#101010;font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:13px;line-height:20px;letter-spacing:-.01em;font-feature-settings:normal}
+/* Scrollbars = Polaris html scrollbar: 11px, white track, thumb hidden until the area is
+   hovered, then #8c8c8c (--p-color-scrollbar-thumb-bg-hover), 2px inset, 12px radius */
+::-webkit-scrollbar{width:11px;height:11px;background-color:#fff}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background-color:transparent;border:2px solid transparent;border-radius:12px;background-clip:content-box}
+html:hover::-webkit-scrollbar-thumb,:hover::-webkit-scrollbar-thumb{background-color:#8c8c8c}
+/* pointer on the scrollbar itself is not a :hover on any element, so keep the thumb visible there too */
+::-webkit-scrollbar-thumb:hover,::-webkit-scrollbar-thumb:active{background-color:#8c8c8c}
+/* keyboard focus = --p-color-border-focus */
+:focus-visible{outline:2px solid #5083f0;outline-offset:1px}
+/* links = --p-color-text-link / -hover */
+a,.link-cell{color:#1650d0}
+a:hover,.link-cell:hover{color:#1347b9}
+/* Shopify page-header: transparent with no line at the top of the page; once scrolled
+   (body.scrolled, set by shared.js) it gets a white background and a 1px rgba(0,0,0,.07) line */
+.topbar{position:sticky;top:0;z-index:30;height:var(--topbar-h);padding-left:16px;padding-right:16px;transition:background .15s,box-shadow .15s}
+body.scrolled .topbar{background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.07)}
+.topbar-title{display:flex;align-items:baseline;gap:8px;min-width:0}
+.main{padding:16px}
+.page.active,.sub-page.active{display:block}
+.cache-time{color:#616161;font-size:13px;line-height:20px;font-weight:400}
+.logo{font-size:13px;font-weight:500;line-height:28px;letter-spacing:-.02em;color:#101010;white-space:nowrap}
+
+/* ── Buttons: white, light border, 12px radius (Export / Print in Shopify header) */
+.btn{display:inline-flex;align-items:center;height:28px;padding:4px 12px 4px 6px;gap:2px;border-radius:9999px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;letter-spacing:-.01em;cursor:pointer}
+.btn svg{width:16px;height:16px;margin:2px;flex-shrink:0}
+.btn-primary,.btn-secondary{background:#fff;color:#101010;border:none;font-weight:500;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03),0 8px 60px rgba(0,0,0,.03)}
+.btn-primary:hover,.btn-secondary:hover{background:#f7f7f7}
+.btn-primary:active,.btn-secondary:active{background:#f2f2f2}
+.btn:disabled,.btn:disabled:hover{background:#fff;cursor:default;opacity:.5}
+.btn-show-more{height:28px;padding:0 12px;background:#fff;color:#303030;border:1px solid #e3e3e3;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);font-family:inherit;font-size:13px;font-weight:450;line-height:20px}
+.btn-show-more:hover{background:#f7f7f7;border-color:#d4d4d4}
+
+/* ── Dropdown (shared.js): grey pill + popover menu (Shopify "Last 30 days") */
+.dd{position:relative;display:inline-flex;min-width:0}
+.dd-btn{display:inline-flex;align-items:center;gap:2px;height:28px;max-width:100%;padding:4px 12px 4px 6px;border:none;border-radius:9999px;background:#ebebeb;color:#303030;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer;white-space:nowrap;transition:background .1s}
+.dd-btn:hover{background:#e3e3e3}
+.dd.open .dd-btn{background:#d4d4d4}
+.dd-btn svg{width:16px;height:16px;margin:2px;flex-shrink:0}
+.dd-label{overflow:hidden;text-overflow:ellipsis}
+.dd-btn .dd-chevron{width:12px;height:12px;margin:0 0 0 2px;transition:transform .12s}
+.dd.open .dd-chevron{transform:rotate(180deg)}
+.dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;max-height:320px;overflow:auto;background:#fff;border-radius:16px;padding:6px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);z-index:200}
+.dd-item{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;border:none;background:none;padding:6px 8px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;color:#303030;white-space:nowrap;cursor:pointer}
+.dd-item:hover{background:#f2f2f2}
+.dd-item.selected{background:#ebebeb;font-weight:600;color:#101010}
+.dd-check{width:16px;height:16px;flex-shrink:0}
+
+/* ── Tabs (trang-mockup) */
+.topbar-tabs{display:flex;align-items:center;gap:2px}
+.tab-btn,.sub-tab{padding:6px 12px;border:none;background:none;cursor:pointer;font-size:13px;line-height:16px;border-radius:8px;color:#4a4a4a;font-family:inherit;font-weight:500;letter-spacing:0;transition:background .1s}
+.tab-btn:hover,.sub-tab:hover{background:#f7f7f7;color:#101010}
+.tab-btn.active,.sub-tab.active{background:#ebebeb;color:#101010;font-weight:600}
+
+/* ── Table */
+.card{position:relative;background:#fff;border-radius:20px;box-shadow:0 0 2px rgba(0,0,0,.24),0 2px 12px rgba(0,0,0,.02),0 4px 16px rgba(0,0,0,.02),0 4px 48px rgba(0,0,0,.02)}
+/* Shopify table _TopBar (flat/nested row): 44px = 8px padding + 28px controls; then a 1px #f2f2f2 line */
+.card-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:45px;padding:8px;border-bottom:1px solid #f2f2f2}
+.card-title{font-size:13px;font-weight:600;line-height:20px;padding:4px 4px;color:#101010}
+/* fixed 36px row even before the log/debug text exists (box-sizing is border-box, so min-height includes padding) */
+.card-foot{min-height:37px;display:flex;flex-direction:column;justify-content:center;padding:8px;border-top:1px solid #f2f2f2;text-align:center}
+.card-foot .debug-line,.card-foot .load-log{font-size:13px;line-height:20px;letter-spacing:-.01em;color:#101010}
+.card-foot .log-line.error{color:#8e0b21}
+/* before any load the footer shows the start hint (data-empty) in place of the debug/log line */
+.card-foot:has(> .debug-line:empty,> .load-log:empty)::after{content:attr(data-empty);color:#101010;font-size:13px;line-height:20px}
+.table-wrap{position:relative}
+/* loading popup sits at the vertical middle of the screen while the (possibly long) table is covered */
+.load-overlay{align-items:flex-start}
+.load-overlay .load-popup{position:sticky;top:50vh;margin-top:80px;transform:translateY(-50%)}
+table{width:100%;font-size:12px;line-height:18px;letter-spacing:-.005em}
+thead{position:sticky;top:var(--topbar-h);z-index:3}
+/* narrow screens: let wide tables scroll sideways (header then sticks to the table, not the page).
+   Must come after the thead rule: with top:52px inside the sideways scroller the header and Total
+   row sat 52px down, over the first rows. */
+@media(max-width:1100px){.table-scroll{overflow-x:auto}thead{top:0}}
+thead th{height:37px;background:#fff;color:#101010;font-weight:400;font-size:12px;line-height:18px;letter-spacing:-.005em;padding:7px 8px 8px;box-shadow:inset 0 -1px 0 #f2f2f2}
+thead th.sorted{font-weight:600}
+thead th .th-content{gap:2px}
+/* sortable header label = transparent button, grey on hover (Shopify _Button_2g6xk) */
+thead th[data-sort] .th-content{padding:1px 4px;margin:-1px 0;border-radius:6px;transition:background .08s}
+thead th[data-sort]:hover .th-content{background:rgba(0,0,0,.08)}
+thead th[data-sort]:active .th-content{background:rgba(0,0,0,.13)}
+/* up/down chevron instead of ▴▾ text; visible on hover and on the sorted column */
+thead th .sort-icon{display:inline-block;width:16px;height:16px;margin-left:0;font-size:0;flex-shrink:0;background:currentColor;opacity:0;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat}
+thead th:hover .sort-icon{opacity:1;color:#303030}
+thead th.sorted .sort-icon{opacity:1;color:#101010}
+/* metric columns (those with a filter button): right-aligned like Shopify numbers */
+thead th:has(.col-filter-btn) .th-content{justify-content:flex-end}
+thead th:has(.col-filter-btn) .col-filter-btn{margin-left:0}
+tbody td.td-metric,tbody td.td-prints{text-align:right;padding:8px 12px;font-weight:400}
+
+/* row line drawn as an inset shadow (like Shopify's row ::after) so rows stay exactly 36px */
+tbody td{height:36px;box-shadow:inset 0 -1px 0 #f2f2f2;padding:8px 12px;color:#101010;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+/* thumbnail cells: 24px image + 6px padding keeps the 36px Shopify row height */
+tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){padding-top:6px;padding-bottom:6px}
+/* name column = Shopify dimension column: 1px #f2f2f2 divider on its right */
+tbody td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2,inset 0 -1px 0 #f2f2f2}
+/* last row: no bottom line, the footer's top line is the single separator (Shopify) */
+tbody tr:last-child td{box-shadow:none}
+tbody tr:last-child td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2}
+thead tr:first-child th:not(:has(.col-filter-btn)){box-shadow:inset 0 -1px 0 #f2f2f2,inset -1px 0 0 #f2f2f2}
+.td-name{font-weight:400;color:#101010}
+/* Total row: in <thead> under the column names (Shopify Summary row).
+   Borders as inset shadows: with border-collapse, real borders stay behind when the sticky thead moves and leave a see-through gap */
+thead tr.total-row td{height:37px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px 9px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
+thead tr.total-row td.td-metric{text-align:right}
+.thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px;background:#f2f2f2}
+.thumb-placeholder{color:#8a8a8a}
+
+/* ── Inputs + column filter */
+/* header search field = Shopify "Search dimensions" field (measured): 12px radius, white,
+   1px rgba(0,0,0,.13) ring + soft drop shadow, 16px magnifier on the left, 13px/20px text;
+   focus = #5083f0 ring + light blue glow. 28px tall (user 2026-10-14: 30px nearly touched the
+   row line), centred in the 37px header row: 4px above, 4px + the 1px line below. */
+.th-filter-input{width:180px;height:28px;padding:0 12px 0 32px;border:none;border-radius:12px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%234a4a4a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8.5' cy='8.5' r='5'/%3E%3Cpath d='m12.3 12.3 3.7 3.7'/%3E%3C/svg%3E") 10px center/16px 16px no-repeat;font-family:inherit;font-size:13px;font-weight:400;line-height:20px;letter-spacing:-.01em;color:#101010;outline:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);transition:box-shadow .12s}
+thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
+.th-filter-input::placeholder{color:#4a4a4a}
+.filter-inputs input::placeholder{color:#616161}
+.th-filter-input:hover{box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.2)}
+.th-filter-input:focus{box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 4px 5px -2px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06),inset 0 0 8px 1px rgba(53,115,246,.05)}
+.col-filter-btn{color:#8a8a8a;border-radius:6px;padding:2px}
+.col-filter-btn svg{width:12px;height:12px}
+.col-filter-btn:hover{color:#303030;background:rgba(0,0,0,.08)}
+.col-filter-btn.active{color:#101010}
+
+/* ── Column filter popup = Shopify report "Filters" card (measured 2026-10-14):
+   header 32px #f7f7f7 13px/500; chips 22px, 2px 6px padding, 8px radius, #ddd, 12px/18px;
+   value editor = Shopify value popover: 30px input 13px/20px, 5px 12px padding, blue focus;
+   footer Clear (blue link) + Apply (28px dark). */
+.filter-popup{min-width:248px;border:none;border-radius:12px;box-shadow:0 0 0 1px #ddd,0 4px 16px rgba(0,0,0,.12)}
+.filter-popup .filter-popup-title{height:32px;display:flex;align-items:center;padding:0 8px;background:#f7f7f7;border-radius:12px 12px 0 0;border-bottom:1px solid #ddd;font-size:13px;line-height:20px;font-weight:500;letter-spacing:0;color:#101010}
+.filter-popup .filter-popup-body{padding:6px 8px}
+.filter-chips{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.dd-chip .dd-btn,.filter-value-chip{height:22px;padding:2px 6px;border:none;border-radius:8px;background:#ddd;color:#303030;font-family:inherit;font-size:12px;font-weight:450;line-height:18px;cursor:pointer;transition:background .1s}
+.dd-chip .dd-btn:hover,.filter-value-chip:hover{background:#d0d0d0}
+.dd-chip.open .dd-btn,.filter-popup.editing .filter-value-chip{background:#c4c4c4}
+.filter-value-chip.empty{color:#616161}
+.filter-editor{display:none;border-top:1px solid #ebebeb}
+.filter-popup.editing .filter-editor{display:block}
+.filter-popup .filter-inputs{display:flex;align-items:center;gap:8px;padding:12px}
+.filter-popup .filter-inputs input{flex:1;min-width:0;height:30px;padding:5px 12px;border:1px solid #8a8a8a;border-radius:8px;background:#fff;color:#101010;font-family:inherit;font-size:13px;line-height:20px;outline:none;-moz-appearance:textfield}
+.filter-popup .filter-inputs input:hover{border-color:#616161}
+.filter-popup .filter-inputs input:focus{border-color:#5083f0;background:#f5f9ff;box-shadow:0 0 0 1px #5083f0}
+.filter-popup .filter-inputs input::-webkit-outer-spin-button,.filter-popup .filter-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.filter-and{font-size:13px;color:#616161}
+.filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ebebeb}
+.filter-popup .filter-popup-actions .filter-clear{height:28px;background:none;border:none;border-radius:12px;box-shadow:none;padding:0 6px;color:#1650d0;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer}
+.filter-popup .filter-popup-actions .filter-clear:hover{background:none;color:#1347b9;text-decoration:underline}
+.filter-popup .filter-popup-actions .btn-primary{height:28px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:600;line-height:20px;color:#fff;background:linear-gradient(#3a3a3a,#1a1a1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.3)}
+.filter-popup .filter-popup-actions .btn-primary:hover{background:linear-gradient(#2a2a2a,#101010)}
+
+/* ── Popovers, overlay, toast, tooltip */
+.load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}
+.load-overlay{background:rgba(255,255,255,.8)}
+#toast{background:#1b1b1b;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:500;line-height:20px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#toast.error{background:#8e0b21}
+/* Tooltip (shared.js, data-tip / data-tip-title) = Shopify admin hover card */
+.tip{position:fixed;z-index:1000;max-width:280px;padding:12px;border-radius:12px;background:#1b1b1b;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;font-size:13px;line-height:20px;letter-spacing:-.01em}
+.tip-title{font-weight:600;margin-bottom:2px}
+.tip-body{font-weight:450;color:#e3e3e3}

@@ -1,0 +1,75 @@
+/* ads-trends: Shopify Analytics dashboard (admin.shopify.com/store/…/analytics), measured 2026-10-28:
+   card = shared .card (20px radius, Polaris shadow) with 16px padding; card title 13px/16px 600 with a
+   2px dotted #c0c0c0 underline; big value 20px/20px 600, letter-spacing -.1px; chart 208px tall,
+   line 2px #13acf0, grid lines #eeeeef, axis labels 11px #70707b. Loaded after shared.css. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{-webkit-font-smoothing:antialiased}
+button{line-height:20px}
+.topbar{display:flex;align-items:center;gap:12px}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+.main{max-width:1200px;margin:0 auto}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.group{margin-bottom:24px}
+.group-title{font-size:14px;line-height:20px;font-weight:600;letter-spacing:-.01em;color:#101010;padding:0 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:800px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.metric-card{padding:16px;min-height:300px}
+.metric-head{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.metric-title{align-self:flex-start;font-size:13px;line-height:16px;font-weight:600;letter-spacing:-.01em;color:#101010;border-bottom:2px dotted #c0c0c0;cursor:default}
+.metric-value-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.metric-value{font-size:20px;line-height:20px;font-weight:600;letter-spacing:-.1px;color:#101010;font-variant-numeric:tabular-nums}
+.metric-split{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;line-height:20px;color:#101010;font-variant-numeric:tabular-nums}
+.metric-split b{font-weight:600}
+.metric-split span{display:inline-flex;align-items:center;gap:6px}
+.metric-split i{display:inline-block;width:8px;height:8px;border-radius:2px}
+
+/* change vs comparison: arrow + percent; good = green, bad = red (Shopify) */
+.delta{display:inline-flex;align-items:center;gap:2px;font-size:12px;line-height:16px;font-weight:500;color:#616161;font-variant-numeric:tabular-nums}
+.delta svg{width:12px;height:12px}
+.delta.good{color:#047b5d}
+.delta.bad{color:#8e0b21}
+
+.chart{position:relative;height:208px}
+.chart svg{display:block;width:100%;height:100%;overflow:visible}
+.chart .axis{font-size:11px;fill:#70707b;font-family:inherit}
+.chart .grid-line{stroke:#eeeeef}
+.chart .hover-line{stroke:#c0c0c0;stroke-width:1}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#616161}
+
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;margin-top:8px;font-size:12px;line-height:16px;color:#616161}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:12px;height:2px;border-radius:1px}
+.legend i.dash{height:0;border-top:2px dashed;background:none!important}
+
+/* hover card on charts = Shopify chart tooltip: white, 12px radius, popover shadow */
+.chart-tip{position:fixed;z-index:1000;min-width:180px;padding:8px 12px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);pointer-events:none;font-size:12px;line-height:18px;color:#101010}
+.chart-tip .tip-row{display:flex;align-items:center;justify-content:space-between;gap:16px;font-variant-numeric:tabular-nums}
+.chart-tip .tip-row span{display:inline-flex;align-items:center;gap:6px;color:#616161}
+.chart-tip .tip-row b{font-weight:600}
+.chart-tip i{display:inline-block;width:8px;height:8px;border-radius:2px}
+
+.table-card{margin-top:12px;overflow:hidden}
+.table-card .table-scroll{overflow-x:auto}
+.table-card table{border-collapse:collapse;width:100%}
+.table-card thead th{position:static;text-align:right;white-space:nowrap}
+.table-card thead th:first-child,.table-card tbody td:first-child{text-align:left}
+.table-card tbody td{text-align:right;white-space:nowrap}
+.table-card tbody td:first-child{box-shadow:inset -1px 0 0 #f2f2f2,inset 0 -1px 0 #f2f2f2}
+.table-card tbody tr:last-child td:first-child{box-shadow:inset -1px 0 0 #f2f2f2}
+.table-card .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:8px;vertical-align:1px}
+.table-card .sub{color:#616161;font-weight:400;margin-left:4px}
+
+.loading .metric-card,.loading .table-card{opacity:.5;transition:opacity .15s}
+.footnote{color:#616161;font-size:12px;line-height:18px;padding:0 4px 16px}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:8px 16px;opacity:0;pointer-events:none;transition:.2s;z-index:1100}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:480px){
+  :root{--topbar-h:0px}
+  .topbar{position:static}
+  .main{padding:16px}
+  .metric-card{min-height:0}
+}

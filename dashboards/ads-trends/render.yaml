@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ads-trends-dashboard
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: TRIPLE_WHALE_API_KEY
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: PORT
+        value: 3000

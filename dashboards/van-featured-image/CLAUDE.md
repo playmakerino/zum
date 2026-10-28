@@ -106,7 +106,7 @@ Meta API: GET /act_{id}/adimages?hashes=[...]&fields=hash,url
 | Image | RAM | 24 giờ | `creative_id` | `imageCache` |
 | Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | — |
 
-## Environment Variables (.env)
+## Environment Variables (Render; local nạp từ D:/keys)
 - `META_ACCESS_TOKEN` — Meta API token
 - `META_AD_ACCOUNT_ID` — Ad account ID
 - `PORT` — Server port (default 3000)

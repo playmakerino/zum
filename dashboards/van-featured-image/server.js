@@ -1,4 +1,5 @@
-require('dotenv').config({ path: ['meta-ad-account', 'port'].map(k => require('path').resolve(__dirname, '../../.env.' + k)) });
+// Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
+require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');

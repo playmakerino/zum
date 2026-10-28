@@ -1,4 +1,5 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+// Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
+require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
@@ -222,7 +223,10 @@ function bigQuery() {
   if (_bq) return _bq;
   let key = null;
   if (process.env.BQ_SA_KEY) key = JSON.parse(process.env.BQ_SA_KEY);
-  else if (process.env.BQ_SA_KEY_FILE) key = JSON.parse(require('fs').readFileSync(path.resolve(__dirname, process.env.BQ_SA_KEY_FILE), 'utf8'));
+  else {
+    const file = path.resolve(__dirname, process.env.BQ_SA_KEY_FILE || 'D:/keys/.env.bigquery-sa.json'); // local key file
+    if (require('fs').existsSync(file)) key = JSON.parse(require('fs').readFileSync(file, 'utf8'));
+  }
   if (!key) return null;
   const { BigQuery } = require('@google-cloud/bigquery');
   _bq = new BigQuery({ projectId: key.project_id, credentials: { client_email: key.client_email, private_key: key.private_key } });

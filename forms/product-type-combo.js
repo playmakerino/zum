@@ -35,7 +35,8 @@ function initProductTypeCombo() {
     { value: 'BNB', label: 'Banner' },
     { value: 'Hoop', label: 'Hoop' },
     { value: 'LPL', label: 'Letter Pillow' },
-    { value: 'PNT', label: 'Pennant' }
+    { value: 'PNT', label: 'Pennant' },
+    { value: 'PPD', label: 'Poseable Plush Doll' }
   ].sort((a, b) => a.label.localeCompare(b.label));
   const combo  = document.getElementById('productTypeCombo');
   const input  = document.getElementById('productTypeSearch');

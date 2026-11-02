@@ -9,7 +9,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
   - `public/index.html` — HTML structure
   - `public/style.css` — CSS styles
   - `public/app.js` — JavaScript logic
-- **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchAdRows`, từ 2026-11-02, 12 tháng khoảng 4s); Meta Marketing API v26.0 chỉ còn dùng cho creative và ảnh. Cả hai nằm ở `meta.js`, bản gốc `dashboards/shared/meta.js`
+- **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchAdRows`, từ 2026-11-02, 12 tháng khoảng 4s); creative, ảnh, link cũng từ Triple Whale (`fetchAdMedia`, từ 2026-11-03), không còn gọi Meta. Cả hai nằm ở `meta.js`, bản gốc `dashboards/shared/meta.js`
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process**
@@ -58,29 +58,16 @@ Triple Whale: POST /api/v2/orcabase/api/sql (ads_table, gộp theo ad_id, 1 câu
 - Gom theo `extractGroupKey(ad_name)` (print-type) → chỉ giữ ad có spend cao nhất mỗi nhóm
 - Tính `roas = purchase_value / spend`
 
-### Step 2: Fetch Creative Info (chỉ missing)
+### Step 2: Creative, ảnh, link từ Triple Whale (chỉ ad chưa có trong cache)
 ```
-Meta API: GET /?ids={batch}&fields=id,creative{id,object_type,object_story_spec,asset_feed_spec}
+Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nhất không rỗng)
 ```
-- Batch 50 ads/request, chỉ fetch ad chưa có trong cache, hoặc ad ảnh (SHARE, không catalog) còn thiếu image_hash. Fields chỉ lấy `object_story_spec{link_data{link,image_hash},template_data}` + `asset_feed_spec{images,link_urls}` (bằng 1/4 payload so với lấy cả spec, kết quả như nhau, đo 2026-10-14)
-- Cache: `creativeCache[ad_id] = { creative_id, object_type, is_catalog, link, image_hash, _cachedAt }`
-- `link`: fallback `oss.link_data.link` → `afs.link_urls[0].website_url`
-- `image_hash`: fallback `oss.link_data.image_hash` → `afs.images[0].hash`
-- Advantage+ Creative ads dùng `asset_feed_spec` thay vì `object_story_spec.link_data`
+- Cache: `mediaCache` (RAM, đến restart; link `files.triplewhale.com` không hết hạn)
+- `image_url` = ảnh gốc (1600×2000, tên file = mã ảnh Meta), `link` = `destination_url`
 
 ### Step 2.5: Filter Image Ads
-- **Filter:** `object_type === 'SHARE'` AND `!is_catalog`
-- Chỉ giữ image ads, loại video và catalog/DPA
-
-### Step 3: Fetch Full-res Images via adimages (chỉ missing)
-```
-Meta API: GET /act_{id}/adimages?hashes=[...]&fields=hash,url
-```
-- `hashToCreativeIds`: map hash → **array** of creative_ids (nhiều ads có thể dùng chung 1 image hash)
-- Khi adimages trả URL, gán cho **tất cả** creative_ids cùng hash đó
-- Batch 50 hashes/request
-- **Fallback (Step 3b):** Nếu adimages không trả URL cho 1 số hashes → fetch `thumbnail_url` từ creative endpoint: `GET /?ids={creative_ids}&fields=id,thumbnail_url`
-- Cache: `imageCache[creative_id] = { url, _cachedAt }`
+- **Filter:** Triple Whale `ad_type === 'image'`
+- Loại video, ad catalog và cả ad nhiều phiên bản (`asset_feed_spec`, Advantage+): Triple Whale xếp catalog và nhiều phiên bản chung loại `dynamic`, chỉ có ảnh 500px (đổi 2026-11-03; trước đó ad nhiều phiên bản có ảnh vẫn hiện)
 
 ### Step 4: Build Response
 ```json
@@ -95,18 +82,18 @@ Meta API: GET /act_{id}/adimages?hashes=[...]&fields=hash,url
 
 ---
 
-## Caching (3 server layers + 1 frontend)
+## Caching (2 server layers + 1 frontend)
 
 | Layer | File | TTL | Key | Var |
 |-------|------|-----|-----|-----|
 | Insights | RAM | Đến restart, incremental | — | `insightsCache` |
-| Creative | RAM | Đến restart | `ad_id` | `creativeCache` |
-| Image | RAM | 24 giờ | `creative_id` | `imageCache` |
+| Creative + ảnh + link | RAM | Đến restart | `ad_id` | `mediaCache` |
 | Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | — |
 
 ## Environment Variables (Render; local nạp từ D:/keys)
 - `META_ACCESS_TOKEN` — Meta API token
 - `META_AD_ACCOUNT_ID` — Ad account ID
+- `TRIPLE_WHALE_API_KEY`: Triple Whale API key (số liệu + ảnh)
 - `PORT` — Server port (default 3000)
 
 ## Commands

@@ -3,7 +3,7 @@ require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'trip
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
-const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchAdRows, metaErrorMessage, sseLoad } = require('./meta');
+const { META_BASE_URL, getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, metaErrorMessage, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -11,14 +11,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
 // live in memory only and last as long as the process.
-// Ads cached with creative:null (e.g. video still encoding at fetch time) are
-// retried once this cooldown passes, so a transient null doesn't hide the video.
-const NULL_CREATIVE_RETRY_MS = 60 * 60 * 1000; // 1 hour
+// Creatives and thumbnails come from Triple Whale (fetchAdMedia); Meta is only read by
+// "Fetch from Meta" (/api/ad-thumb), whose thumbnail then wins for 24h.
 const HD_THUMB_TTL = 24 * 60 * 60 * 1000;      // Meta CDN URLs expire
 
-const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog} | null, _cachedAt }
+const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog, video_id, reel_id} | null, _cachedAt }
 const insightsCache = {}; // days → { current: rows }
-const hdThumbCache  = {}; // creative_id → { url, _cachedAt }
+const hdThumbCache  = {}; // creative_id → { url, _cachedAt } from "Fetch from Meta"
+const twThumbCache  = {}; // creative_id → Triple Whale thumbnail URL (does not expire)
+
+// Triple Whale media (fetchAdMedia) → the creative shape groupByVideo reads. An ad is a video when
+// Triple Whale types it 'video' or ad.info has an upload id for it (multi-asset video ads are typed
+// 'dynamic'). Triple Whale names the video by the page's copy (reel id); the upload id comes from
+// ad.info only, so an ad created today has none until the 03:00 sync.
+function creativeFromMedia(m, uploadId) {
+  const isVideo = m.type === 'video' || !!uploadId;
+  return {
+    id:          m.creative_id,
+    object_type: isVideo ? 'VIDEO' : m.type === 'image' ? 'SHARE' : '',
+    is_catalog:  m.type === 'dynamic' && !isVideo,
+    video_id:    null,
+    reel_id:     m.reel_id,
+  };
+}
 
 function slimCreative(ad) {
   const c = ad.creative;
@@ -171,22 +186,10 @@ function indexVideoTable(rows) {
   return { byAd, byVideo, adVideo, adReel };
 }
 
-// Only ads with video plays can be video ads; skipping the rest avoids fetching
+// Only ads with video plays can be video ads; skipping the rest avoids reading
 // creative info for image ads the dashboard never shows.
 function hasVideoPlays(row) {
   return sumActionValue(row.video_play_actions) > 0;
-}
-
-function collectFetchableCreativeIds(allAds) {
-  const ids = new Set();
-  for (const ad of allAds) {
-    const c = ad.creative;
-    if (!c?.id) continue;
-    if (c.is_catalog) continue;
-    if (c.object_type !== 'VIDEO') continue;
-    ids.add(c.id);
-  }
-  return [...ids];
 }
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
@@ -245,49 +248,26 @@ async function loadOrFetchInsights({ days, forceRefresh, current, progress, elap
   return { rows: currRows, source: 'api' };
 }
 
-// force (Load Data) reads every ad again: editing an ad in Ads Manager (e.g. its thumbnail)
-// attaches a new creative, which a cached entry would hide.
-async function ensureCreativeInfo({ adIds, force = false, token, progress, elapsed, stopped }) {
-  const now0 = Date.now();
-  const missingIds = force ? [...adIds] : adIds.filter(id => {
-    const e = creativeCache[id];
-    if (!e) return true;                                                   // never cached
-    if (!e.creative && (now0 - (e._cachedAt || 0)) > NULL_CREATIVE_RETRY_MS) return true; // stale null → retry
-    return false;
-  });
+// Creative + thumbnail of each ad from Triple Whale. force (Load Data) reads every ad again:
+// editing an ad in Ads Manager (e.g. its thumbnail) attaches a new creative, which a cached entry would hide.
+async function ensureCreativeInfo({ adIds, force = false, current, adVideo, progress, elapsed }) {
+  const missingIds = force ? [...adIds] : adIds.filter(id => !creativeCache[id]);
   if (missingIds.length === 0) {
     progress(`All ${adIds.length} ads already cached [${elapsed()}]`);
     return;
   }
-  progress(`Fetching creative info for ${missingIds.length} ads (${force ? 'all, Load Data' : 'new or retried'}) [${elapsed()}]`);
-  const fetched = await fetchByIds(token, missingIds, 'id,creative{id,object_type,video_id,object_story_spec{template_data,video_data{video_id}}}', {}, stopped);
+  progress(`Reading creatives of ${missingIds.length} ads from Triple Whale (${force ? 'all, Load Data' : 'new'}) [${elapsed()}]`);
+  const media = await fetchAdMedia(missingIds, current.since, current.until);
   const now = Date.now();
-  for (const ad of fetched) {
-    creativeCache[ad.id] = slimCreative({ ...ad, _cachedAt: now });
+  for (const [id, m] of media) {
+    const creative = creativeFromMedia(m, adVideo[id]);
+    creativeCache[id] = { id, creative, _cachedAt: now };
+    if (creative.id && m.image_url) twThumbCache[creative.id] = m.image_url;
   }
   for (const id of missingIds) {
     if (!creativeCache[id]) creativeCache[id] = { id, creative: null, _cachedAt: now };
   }
-  progress(`Creative info cached (${fetched.length} ads) [${elapsed()}]`);
-}
-
-async function ensureHdThumbnails({ creativeIds, token, progress, elapsed, stopped }) {
-  const now = Date.now();
-  const missing = creativeIds.filter(cid => !hdThumbCache[cid] || (now - hdThumbCache[cid]._cachedAt) > HD_THUMB_TTL);
-  if (missing.length === 0) {
-    if (creativeIds.length > 0) progress(`All ${creativeIds.length} HD thumbnails cached [${elapsed()}]`);
-    return { attempted: 0, succeeded: 0 };
-  }
-  progress(`Fetching HD thumbnails for ${missing.length} new creatives... [${elapsed()}]`);
-  let succeeded = 0;
-  const thumbs = await fetchByIds(token, missing, 'thumbnail_url', { thumbnail_width: 480, thumbnail_height: 480 }, stopped);
-  for (const t of thumbs) {
-    if (!t.thumbnail_url) continue;
-    hdThumbCache[t.id] = { url: t.thumbnail_url, _cachedAt: Date.now() };
-    succeeded++;
-  }
-  progress(`Fetched HD thumbnails for ${succeeded}/${missing.length} creatives [${elapsed()}]`);
-  return { attempted: missing.length, succeeded };
+  progress(`Creatives read (${media.size} ads) [${elapsed()}]`);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -384,10 +364,10 @@ app.get('/api/dashboard', (req, res) => {
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
   const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
-  sseLoad(res, `days=${days} refresh=${forceRefresh}`, ctx => loadDashboard({ token, accountId, days, forceRefresh, ...ctx }));
+  sseLoad(res, `days=${days} refresh=${forceRefresh}`, ctx => loadDashboard({ accountId, days, forceRefresh, ...ctx }));
 });
 
-async function loadDashboard({ token, accountId, days, forceRefresh, progress, send, elapsed, startTime, stopped }) {
+async function loadDashboard({ accountId, days, forceRefresh, progress, send, elapsed, startTime }) {
   const current = { since: dateStr(days), until: dateStr(0) };
   // The BigQuery video table loads while Triple Whale answers (neither needs the other).
   // loadVideoTable never rejects: errors come back as status 'error'.
@@ -404,18 +384,19 @@ async function loadDashboard({ token, accountId, days, forceRefresh, progress, s
 
   const allAdIds = currRows.map(r => r.ad_id).filter(Boolean);
   const cachedAdsBefore  = forceRefresh ? 0 : allAdIds.filter(id => creativeCache[id]).length;
-  await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, token, progress, elapsed, stopped });
+  await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, current, adVideo: videoTable.adVideo, progress, elapsed });
   const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-  const fetchableHdIds = collectFetchableCreativeIds(allAds);
-  const cachedHdBefore = fetchableHdIds.filter(cid => hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL).length;
-  const hdResult = await ensureHdThumbnails({ creativeIds: fetchableHdIds, token, progress, elapsed, stopped });
-
-  // only the creatives of this load (the cache keeps every creative read since the process started)
+  // only the creatives of this load (the cache keeps every creative read since the process started);
+  // a thumbnail read by "Fetch from Meta" in the last 24h wins over Triple Whale's
   const hdThumbMap = {};
+  let fromMeta = 0;
   for (const ad of allAds) {
     const cid = ad.creative?.id;
-    if (cid && hdThumbCache[cid]) hdThumbMap[cid] = hdThumbCache[cid].url;
+    if (!cid) continue;
+    const meta = hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL ? hdThumbCache[cid].url : null;
+    if (meta) fromMeta++;
+    if (meta || twThumbCache[cid]) hdThumbMap[cid] = meta || twThumbCache[cid];
   }
 
   progress(`Processing data... [${elapsed()}]`);
@@ -437,7 +418,7 @@ async function loadDashboard({ token, accountId, days, forceRefresh, progress, s
     insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length },
     ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
     bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
-    hdThumbs:  { fetchable: fetchableHdIds.length, cached: cachedHdBefore, fetched: hdResult.succeeded, failed: hdResult.attempted - hdResult.succeeded },
+    thumbs:    { total: Object.keys(hdThumbMap).length, fromMeta },
     creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
     elapsedMs: Date.now() - startTime,
   };
@@ -462,6 +443,6 @@ module.exports = {
   aggregateMetrics,
   groupByVideo,
   indexVideoTable,
-  collectFetchableCreativeIds,
+  creativeFromMedia,
   hasVideoPlays,
 };

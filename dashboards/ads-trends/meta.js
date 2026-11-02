@@ -230,6 +230,7 @@ async function runLoad(key, load, run) {
 // Triple Whale column. Key: env TRIPLE_WHALE_API_KEY (local: D:/keys/.env.triplewhale).
 const TW_URL = 'https://api.triplewhale.com/api/v2/orcabase/api/sql';
 const TW_SHOP_ID = process.env.TW_SHOP_ID || '422aa5-ca.myshopify.com';
+const TW_RETRY_MS = [2000, 5000];
 
 function twError(message) {
   const err = new Error(message);
@@ -242,13 +243,18 @@ async function twSql(query, start, end) {
   const key = process.env.TRIPLE_WHALE_API_KEY;
   if (!key) throw twError('Missing TRIPLE_WHALE_API_KEY');
   let res;
-  try {
-    res = await axios.post(TW_URL, { shopId: TW_SHOP_ID, query, period: { startDate: start, endDate: end } },
-      { headers: { 'x-api-key': key }, timeout: 120000 });
-  } catch (err) {
-    const d = err.response?.data;
-    const detail = d?.message || d?.error || err.message;
-    throw twError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+  // 429 (too many requests, e.g. several dashboards loading at once) → wait 2s, then 5s, then give up
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await axios.post(TW_URL, { shopId: TW_SHOP_ID, query, period: { startDate: start, endDate: end } },
+        { headers: { 'x-api-key': key }, timeout: 120000 });
+      break;
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < TW_RETRY_MS.length) { await sleep(TW_RETRY_MS[attempt]); continue; }
+      const d = err.response?.data;
+      const detail = d?.message || d?.error || err.message;
+      throw twError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    }
   }
   const d = res.data;
   return Array.isArray(d) ? d : (d?.data || d?.rows || []);
@@ -284,6 +290,7 @@ ${where(from, to)}`, from, to);
   const statusPending = twSql(`SELECT toString(ad_id) AS ad_id, argMax(ad_effective_status, (event_date, event_hour)) AS status
 ${where(since, until)}
 HAVING sum(spend) > 0 AND status IN (${statuses.filter(s => /^[A-Z_]+$/.test(s)).map(s => `'${s}'`).join(',')})`, since, until);
+  statusPending.catch(() => {}); // a failure while the metrics run would crash Node as unhandled; it is rethrown below
   // Triple Whale refuses a metrics result over 50,000 ads (12 months had 50,180), so ranges over
   // 92 days are read in 92-day pieces, one after another, and summed per ad.
   const byAd = new Map();
@@ -314,8 +321,47 @@ HAVING sum(spend) > 0 AND status IN (${statuses.filter(s => /^[A-Z_]+$/.test(s))
   }));
 }
 
+// Creative media per ad from Triple Whale (latest non-empty value in [since, until]) → Map ad_id →
+// { type, creative_id, image_url, image_key, video_url, reel_id, link }. Files on files.triplewhale.com
+// do not expire. Measured 2026-11-03:
+// - image ads: image_url = the original image (1600x2000), named by its Meta image hash = image_key
+// - video ads: image_url = 500x500 thumbnail; video_url = the mp4; both named by the page's copy of
+//   the video (= ad.info reel_id), NOT the upload id (= ad.info video_id)
+// - dynamic (catalog and multi-asset alike, Triple Whale does not tell them apart) and link ads:
+//   500x500 thumbnail named by ad id
+// 500 ids per query, one query after another.
+async function fetchAdMedia(adIds, since, until) {
+  const ids = [...new Set(adIds.map(String))].filter(id => /^\d+$/.test(id));
+  const out = new Map();
+  const L = '(event_date, event_hour)';
+  const last = col => `argMaxIf(${col}, ${L}, ${col} != '')`;
+  for (let i = 0; i < ids.length; i += 500) {
+    const batch = ids.slice(i, i + 500);
+    const rows = await twSql(`SELECT toString(ad_id) AS ad_id, ${last('ad_type')} AS type,
+  argMaxIf(toString(creative_id), ${L}, creative_id != '') AS cid,
+  ${last('ad_image_url')} AS img, ${last('video_url')} AS vurl, ${last('destination_url')} AS link
+FROM ads_table
+WHERE channel = 'facebook-ads' AND event_date BETWEEN '${since}' AND '${until}' AND spend > 0
+  AND ad_id IN (${batch.map(id => `'${id}'`).join(',')})
+GROUP BY ad_id`, since, until);
+    const fileId = url => (String(url || '').match(/\/([^/]+)\.(?:jpg|mp4)$/) || [])[1] || null;
+    for (const r of rows) {
+      out.set(String(r.ad_id), {
+        type: r.type || '',
+        creative_id: r.cid || null,
+        image_url: r.img || null,
+        image_key: r.type === 'image' ? fileId(r.img) : null,
+        video_url: r.vurl || null,
+        reel_id: fileId(r.vurl),
+        link: r.link || '',
+      });
+    }
+  }
+  return out;
+}
+
 module.exports = {
   META_API_VERSION, META_BASE_URL, BATCH_SIZE, DEFAULT_FILTERING, timing,
   getCredentials, findPurchaseAction, fetchByIds, fetchInsights, metaErrorMessage, sseLoad, LoadStopped,
-  twSql, fetchAdRows,
+  twSql, fetchAdRows, fetchAdMedia,
 };

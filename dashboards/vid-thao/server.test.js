@@ -6,7 +6,7 @@ const {
   aggregateMetrics,
   groupByVideo,
   indexVideoTable,
-  collectFetchableCreativeIds,
+  creativeFromMedia,
   hasVideoPlays,
 } = require('./server');
 
@@ -319,19 +319,19 @@ describe('indexVideoTable', () => {
   });
 });
 
-// ── ID collectors ────────────────────────────────────────────────────────────
+// ── Triple Whale media → creative ────────────────────────────────────────────
 
-describe('collectFetchableCreativeIds', () => {
-  test('only video, non-catalog, with id', () => {
-    const ads = [
-      { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },
-      { creative: { id: 'c2', object_type: 'SHARE', is_catalog: false } },  // image skipped
-      { creative: { id: 'c3', object_type: 'VIDEO', is_catalog: true  } },  // catalog skipped
-      { creative: { id: 'c4', object_type: 'OTHER', is_catalog: false } },  // type skipped
-      { creative: null },                                                    // null skipped
-      { creative: { id: 'c1', object_type: 'VIDEO', is_catalog: false } },  // dup
-    ];
-    expect(collectFetchableCreativeIds(ads).sort()).toEqual(['c1']);
+describe('creativeFromMedia', () => {
+  const m = (type, extra = {}) => ({ type, creative_id: 'c1', reel_id: 'r1', ...extra });
+  test('video ad: VIDEO with the reel id, no upload id', () => {
+    expect(creativeFromMedia(m('video'))).toEqual({ id: 'c1', object_type: 'VIDEO', is_catalog: false, video_id: null, reel_id: 'r1' });
+  });
+  test('dynamic ad with an upload id in ad.info is a video, not catalog', () => {
+    expect(creativeFromMedia(m('dynamic', { reel_id: null }), 'u1')).toMatchObject({ object_type: 'VIDEO', is_catalog: false });
+  });
+  test('dynamic ad without upload id counts as catalog; image ad is SHARE', () => {
+    expect(creativeFromMedia(m('dynamic'))).toMatchObject({ object_type: '', is_catalog: true });
+    expect(creativeFromMedia(m('image'))).toMatchObject({ object_type: 'SHARE', is_catalog: false });
   });
 });
 

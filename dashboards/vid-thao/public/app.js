@@ -116,11 +116,6 @@ function renderDebug(d) {
     d.creatives.carousel && `${d.creatives.carousel} carousel`,
     d.creatives.missing  && `${d.creatives.missing} missing`,
   ].filter(Boolean).join(', ');
-  const hdBreakdown = [
-    `${d.hdThumbs.cached} cached`,
-    `${d.hdThumbs.fetched} fetched`,
-    d.hdThumbs.failed && `${d.hdThumbs.failed} failed`,
-  ].filter(Boolean).join(', ');
   const ins = d.insights;
   const parts = [
     `Loaded in ${sec}s`,
@@ -131,7 +126,7 @@ function renderDebug(d) {
     `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
     `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
     d.bigquery && `BigQuery: ${d.bigquery.status === 'ok' ? d.bigquery.videos + ' videos' : d.bigquery.status}`,
-    `HD thumbnails: ${d.hdThumbs.fetchable} creatives (${hdBreakdown})`,
+    d.thumbs && `Thumbnails: ${d.thumbs.total} (${d.thumbs.total - d.thumbs.fromMeta} Triple Whale, ${d.thumbs.fromMeta} fetched from Meta)`,
   ];
   el.textContent = parts.filter(Boolean).join(' · ');
 }
@@ -459,7 +454,7 @@ function closeVideo() {
   $('videoViewer').classList.remove('open');
   document.body.style.overflow = '';
 }
-const THUMB_SOURCE = { meta: '(Meta)', fetched: '(Fetched from Meta)', drive: '(Google Drive)' };
+const THUMB_SOURCE = { meta: '(Triple Whale)', fetched: '(Fetched from Meta)', drive: '(Google Drive)' };
 function showViewerThumb(url, source) {
   const t = $('viThumb');
   t.dataset.source = url ? source : '';

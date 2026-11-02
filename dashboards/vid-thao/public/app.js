@@ -106,18 +106,21 @@ function renderDebug(d) {
   const el = $('debugLine');
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
-  // what the table shows, which ads it comes from, why rows are hidden (user choice 2026-11-03;
-  // the full telemetry is in the console: showDebug)
-  const ins = d.insights, c = d.creatives;
+  // one part per step, in the order loadDashboard (server.js) runs them, then the table's own
+  // video filter (user choice 2026-11-03; the full telemetry is in the console: showDebug)
+  const ins = d.insights, c = d.creatives, bq = d.bigquery;
   if (ins.formAds == null) { el.textContent = `${c.video} videos shown`; return; } // saved before 2026-10-15
+  const kept = ins.formAds + ins.otherVideoAds;
   const hidden = c.total - c.video;
   const parts = [
-    `${c.video} videos shown`,
-    `from ${ins.formAds + ins.otherVideoAds} ads (${ins.formAds} sent through the form, ${ins.otherVideoAds} others with video plays)`,
-    hidden > 0 && `${hidden} hidden: catalog or image ads`,
-    d.bigquery?.status !== 'ok' && `BigQuery ${d.bigquery?.status}: no submitters`,
+    `${ins.raw} ads with spend from ${ins.source === 'cache' ? 'saved data' : 'Triple Whale'}`,
+    bq?.status === 'ok' ? `${bq.videos} form videos from BigQuery` : `BigQuery ${bq?.status}: no submitters`,
+    `${kept} ads kept (${ins.formAds} sent through the form, ${ins.otherVideoAds} others with video plays)`,
+    `creatives of ${kept} ads (${d.ads.fetched} read, ${d.ads.cached} saved)`,
+    `${c.total} rows after merging ads that share a video`,
+    `${c.video} videos shown` + (hidden > 0 ? `, ${hidden} hidden (catalog or image ads)` : ''),
   ];
-  el.textContent = parts.filter(Boolean).join(' · ');
+  el.textContent = parts.join(' · ');
 }
 
 function showDebug(d) {

@@ -115,7 +115,8 @@ function renderDebug(d) {
   const hidden = c.total - c.video;
   const parts = [
     `${ins.raw} ads`,
-    bq?.status === 'ok' ? `${bq.videos} form videos` : `BigQuery ${bq?.status}`,
+    // every video ever sent through the TC Vid form (media.video_submitter), not only this period
+    bq?.status === 'ok' ? `${bq.videos} form videos (all time)` : `BigQuery ${bq?.status}`,
     `${kept} kept (${ins.formAds} form, ${ins.otherVideoAds} others)`,
     `${c.total} video ids`, // 1 row per video id (groupByVideo)
     `${c.video} shown` + (hidden > 0 ? `, ${hidden} hidden (not video)` : ''),

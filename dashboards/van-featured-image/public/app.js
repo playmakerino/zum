@@ -128,16 +128,12 @@ async function fetchAll(mode = 'all') {
 
     setMode(mode);
     // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all
-    // three dashboards (user choice 2026-11-03)
-    const hidden = data.topAdsCount - data.imageAdsCount;
-    const noImage = data.imageAdsCount - data.adsWithImage, noLink = data.imageAdsCount - data.adsWithLink;
+    // three dashboards (user's wording 2026-11-03)
     addLog([
-      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}ads`,
-      `${data.topAdsCount} kept (top ad per design, over $100)`,
-      `${data.imageAdsCount} shown` + (hidden > 0 ? `, ${hidden} hidden (not image)` : ''),
-      noImage > 0 && `${noImage} without image`,
-      noLink > 0 && `${noLink} without link`,
-    ].filter(Boolean).join(' · '), 'success');
+      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}ads from Triple Whale`,
+      `${data.topAdsCount} top ads per design, each over $100`,
+      `${data.imageAdsCount} actual image ads`,
+    ].join(' · '), 'success');
   } catch (err) {
     clearInterval(timerInterval);
     ov.style.display = 'none';

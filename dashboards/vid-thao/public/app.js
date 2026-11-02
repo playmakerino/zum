@@ -106,22 +106,19 @@ function renderDebug(d) {
   const el = $('debugLine');
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
-  // one part per step, in the order loadDashboard (server.js) runs them, then the table's own
-  // video filter; same pattern on all three dashboards (user choice 2026-11-03; the full
-  // telemetry is in the console: showDebug)
+  // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all three
+  // dashboards (user's wording 2026-11-03; the full telemetry is in the console: showDebug)
   const ins = d.insights, c = d.creatives, bq = d.bigquery;
-  if (ins.formAds == null) { el.textContent = `${c.video} videos shown`; return; } // saved before 2026-10-15
-  const kept = ins.formAds + ins.otherVideoAds;
-  const hidden = c.total - c.video;
+  if (ins.formAds == null) { el.textContent = `${c.video} video ids`; return; } // saved before 2026-10-15
   const parts = [
-    `${ins.raw} ads`,
+    `${ins.raw} ads from Triple Whale`,
     // every video ever sent through the TC Vid form (media.video_submitter), not only this period
-    bq?.status === 'ok' ? `${bq.videos} form videos (all time)` : `BigQuery ${bq?.status}`,
-    `${kept} kept (${ins.formAds} form, ${ins.otherVideoAds} others)`,
-    `${c.total} video ids`, // 1 row per video id (groupByVideo)
-    `${c.video} shown` + (hidden > 0 ? `, ${hidden} hidden (not video)` : ''),
+    bq?.status === 'ok' ? `${bq.videos} video ids from BigQuery` : `BigQuery ${bq?.status}`,
+    `${ins.formAds} ads with BigQuery videos, ${ins.otherVideoAds} ads with video plays`,
+    d.ads?.video != null && `${d.ads.video} actual video ads`, // non-video ads dropped on the server
+    `${c.video} video ids`, // 1 row per video id (groupByVideo)
   ];
-  el.textContent = parts.join(' · ');
+  el.textContent = parts.filter(Boolean).join(' · ');
 }
 
 function showDebug(d) {

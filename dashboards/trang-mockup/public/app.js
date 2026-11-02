@@ -239,12 +239,14 @@ async function fetchAll() {
     const st = data.stats;
     const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
     const fmt = state.creativesValid.current.length, hs = state.creativesSpend.current.length;
-    // one part per step, in the order loadDashboard (server.js) runs them, then the tab split;
-    // same pattern on all three dashboards (user choice 2026-11-03)
-    const kept = st?.kept ? ` (${st.kept.named} named, ${st.kept.highSpend} over $100)` : '';
-    const result = st
-      ? `${st.insights.rows} ads · ${st.qualifiedRows} kept${kept} · ${totalCreatives} image hashes · ${data.mockups.current.length} mockup ids · ${fmt} Full Format, ${hs} High Spend`
-      : `${data.mockups.current.length} mockup ids · ${fmt} Full Format, ${hs} High Spend`;
+    // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all
+    // three dashboards (user's wording 2026-11-03)
+    const result = [
+      st && `${st.insights.rows} ads from Triple Whale`,
+      st?.kept && `${st.kept.named} named ads, ${st.kept.highSpend} ads over $100`,
+      `${totalCreatives} image hashes`,
+      `${data.mockups.current.length} mockup ids`,
+    ].filter(Boolean).join(' · ');
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
     logTo('creativesLoadLog', result, 'success');

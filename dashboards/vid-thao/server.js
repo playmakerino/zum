@@ -1,9 +1,9 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
-require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
+require('dotenv').config({ path: ['meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
-const { META_BASE_URL, getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, metaErrorMessage, sseLoad } = require('./meta');
+const { getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -11,13 +11,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
 // live in memory only and last as long as the process.
-// Creatives and thumbnails come from Triple Whale (fetchAdMedia); Meta is only read by
-// "Fetch from Meta" (/api/ad-thumb), whose thumbnail then wins for 24h.
-const HD_THUMB_TTL = 24 * 60 * 60 * 1000;      // Meta CDN URLs expire
+// Creatives and thumbnails come from Triple Whale (fetchAdMedia); nothing here calls Meta.
 
-const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog, video_id, reel_id} | null, _cachedAt }
+const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog, video_id, reel_id, mp4_url} | null, _cachedAt }
 const insightsCache = {}; // days → { current: rows }
-const hdThumbCache  = {}; // creative_id → { url, _cachedAt } from "Fetch from Meta"
 const twThumbCache  = {}; // creative_id → Triple Whale thumbnail URL (does not expire)
 
 // Triple Whale media (fetchAdMedia) → the creative shape groupByVideo reads. An ad is a video when
@@ -33,24 +30,6 @@ function creativeFromMedia(m, uploadId) {
     video_id:    null,
     reel_id:     m.reel_id,
     mp4_url:     m.video_url, // Triple Whale's copy: a 360x640 preview, the last source of the viewer
-  };
-}
-
-function slimCreative(ad) {
-  const c = ad.creative;
-  if (!c) return { id: ad.id, creative: null, _cachedAt: ad._cachedAt || Date.now() };
-  return {
-    id: ad.id,
-    creative: {
-      id:          c.id,
-      object_type: c.object_type || '',
-      is_catalog:  !!c.object_story_spec?.template_data,
-      // video_id = the uploaded file (ad library id, = ad.info.video_id = media.video_submitter.video_id);
-      // reel_id = creative.video_id, the creative's own copy on the page: plays anonymously at facebook.com/reel/<id>
-      video_id:    c.object_story_spec?.video_data?.video_id || c.video_id || null,
-      reel_id:     c.video_id || null,
-    },
-    _cachedAt: ad._cachedAt || Date.now(),
   };
 }
 
@@ -144,10 +123,8 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
     }
     const g = map[key];
     if (c?.id) g._creatives.add(c.id);
-    // thumb_ad_id = the ad whose current creative gives the row's thumbnail (rows come spend-descending,
-    // so the top ad with a thumbnail); "Fetch from Meta" in the viewer reads that same ad again
-    if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) { g.thumbnail_url = hdThumbMap[c.id]; g.thumb_ad_id = row.ad_id; }
-    if (!g.thumb_ad_id) g.thumb_ad_id = row.ad_id || null;
+    // rows come spend-descending, so the thumbnail is the top ad's that has one
+    if (!g.thumbnail_url && c?.id && hdThumbMap[c.id]) g.thumbnail_url = hdThumbMap[c.id];
     if (!g.drive_file_id && bq?.drive_file_id) {
       g.drive_file_id  = bq.drive_file_id;
       g.drive_thumb_id = bq.drive_file_id;
@@ -278,29 +255,7 @@ async function ensureCreativeInfo({ adIds, force = false, current, adVideo, prog
 app.get('/api/config', (req, res) => {
   res.json({
     hasTripleWhaleKey: !!process.env.TRIPLE_WHALE_API_KEY, // a load reads only Triple Whale (+ BigQuery)
-    hasMetaToken:      !!process.env.META_ACCESS_TOKEN,    // only "Fetch from Meta" needs it
   });
-});
-
-// GET /api/ad-thumb?ad_id= — the ad's real thumbnail now: reads its current creative (editing the ad
-// in Ads Manager attaches a new one), then that creative's 480px thumbnail. 2 Meta calls.
-app.get('/api/ad-thumb', async (req, res) => {
-  const { token } = getCredentials();
-  const adId = String(req.query.ad_id || '');
-  if (!token || !/^\d+$/.test(adId)) return res.status(400).json({ error: 'Missing token or ad id' });
-  try {
-    const ad = (await axios.get(`${META_BASE_URL}/${adId}`, { params: { fields: 'id,creative{id,object_type,video_id,object_story_spec{template_data,video_data{video_id}}}', access_token: token } })).data;
-    creativeCache[adId] = slimCreative({ ...ad, _cachedAt: Date.now() });
-    const cid = ad?.creative?.id;
-    if (!cid) return res.json({ url: null });
-    const th = (await axios.get(`${META_BASE_URL}/${cid}`, { params: { fields: 'thumbnail_url', thumbnail_width: 480, thumbnail_height: 480, access_token: token } })).data;
-    const url = th?.thumbnail_url || null;
-    if (url) hdThumbCache[cid] = { url, _cachedAt: Date.now() };
-    res.json({ url });
-  } catch (err) {
-    const { error, detail } = metaErrorMessage(err);
-    res.status(502).json({ error, detail });
-  }
 });
 
 // GET /api/reel-thumb/:id — the reel's poster frame (what the reel player shows before play).
@@ -389,16 +344,11 @@ async function loadDashboard({ accountId, days, forceRefresh, progress, send, el
   await ensureCreativeInfo({ adIds: allAdIds, force: forceRefresh, current, adVideo: videoTable.adVideo, progress, elapsed });
   const allAds = allAdIds.map(id => creativeCache[id]).filter(Boolean);
 
-  // only the creatives of this load (the cache keeps every creative read since the process started);
-  // a thumbnail read by "Fetch from Meta" in the last 24h wins over Triple Whale's
+  // only the creatives of this load (the cache keeps every creative read since the process started)
   const hdThumbMap = {};
-  let fromMeta = 0;
   for (const ad of allAds) {
     const cid = ad.creative?.id;
-    if (!cid) continue;
-    const meta = hdThumbCache[cid] && (Date.now() - hdThumbCache[cid]._cachedAt) <= HD_THUMB_TTL ? hdThumbCache[cid].url : null;
-    if (meta) fromMeta++;
-    if (meta || twThumbCache[cid]) hdThumbMap[cid] = meta || twThumbCache[cid];
+    if (cid && twThumbCache[cid]) hdThumbMap[cid] = twThumbCache[cid];
   }
 
   progress(`Processing data... [${elapsed()}]`);
@@ -420,7 +370,7 @@ async function loadDashboard({ accountId, days, forceRefresh, progress, send, el
     insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length },
     ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
     bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
-    thumbs:    { total: Object.keys(hdThumbMap).length, fromMeta },
+    thumbs:    { total: Object.keys(hdThumbMap).length },
     creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },
     elapsedMs: Date.now() - startTime,
   };

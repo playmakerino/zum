@@ -74,7 +74,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     } else {
       const cfg = await res.json();
       state.ready = !!cfg.hasTripleWhaleKey;
-      state.hasMetaToken = !!cfg.hasMetaToken;
     }
   } catch (err) {
     logApiError('GET /api/config', err, { url: '/api/config' });
@@ -127,7 +126,7 @@ function renderDebug(d) {
     `Creatives: ${d.ads.cached} cached, ${d.ads.fetched} read`,
     `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
     d.bigquery && `BigQuery: ${d.bigquery.status === 'ok' ? d.bigquery.videos + ' videos' : d.bigquery.status}`,
-    d.thumbs && `Thumbnails: ${d.thumbs.total} (${d.thumbs.total - d.thumbs.fromMeta} Triple Whale, ${d.thumbs.fromMeta} fetched from Meta)`,
+    d.thumbs && `Thumbnails: ${d.thumbs.total} from Triple Whale`,
   ];
   el.textContent = parts.filter(Boolean).join(' · ');
 }
@@ -333,8 +332,8 @@ const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en
 const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 
 // Thumbnail = the ad's thumbnail from Triple Whale (read again on Load Data; a thumbnail changed in
-// Ads Manager shows once Triple Whale syncs, a few hours later) or from "Fetch from Meta". Meta links
-// expire after a few days; a broken thumbnail then falls back to the Drive thumbnail of the original file.
+// Ads Manager shows once Triple Whale syncs, a few hours later). A broken thumbnail falls back to the
+// Drive thumbnail of the original file.
 // drive.google.com/thumbnail loads in browsers; lh3.googleusercontent.com answers 429 to pages that send a Referer
 const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w480`;
 // the original mp4 goes through our server (browsers are refused by drive.usercontent.google.com)
@@ -406,14 +405,11 @@ function openVideo(i) {
   $('viSubmitter').textContent = r.submitted_by || '';
   $('viSubmitterSec').hidden = !r.submitted_by;
   // Thumbnail: the ad's thumbnail from Triple Whale when there is one, else the Drive file's
-  // thumbnail; the label says which. "Fetch from Meta" reads the current one from Meta (2 Meta calls).
+  // thumbnail; the label says which.
   viewer.dataset.row = String(i);
   viewer.dataset.driveThumb = driveThumb;
-  $('viThumbSec').hidden = !(r.thumb_ad_id || driveThumb);
-  $('viThumbFetch').hidden = !r.thumb_ad_id || !state.hasMetaToken;
-  if (r.thumbnail_url) showViewerThumb(r.thumbnail_url, 'meta'); else showViewerThumb(driveThumb, 'drive');
-  $('viThumbFetch').disabled = false;
-  $('viThumbFetch').textContent = 'Fetch from Meta';
+  $('viThumbSec').hidden = !(r.thumbnail_url || driveThumb);
+  if (r.thumbnail_url) showViewerThumb(r.thumbnail_url, 'tw'); else showViewerThumb(driveThumb, 'drive');
   const ads = r.ad_count || 1;
   $('viUsedIn').textContent = `${ads} ${ads === 1 ? 'ad' : 'ads'}`;
 
@@ -454,44 +450,21 @@ function closeVideo() {
   $('videoViewer').classList.remove('open');
   document.body.style.overflow = '';
 }
-const THUMB_SOURCE = { meta: '(Triple Whale)', fetched: '(Fetched from Meta)', drive: '(Google Drive)' };
+const THUMB_SOURCE = { tw: '(Triple Whale)', drive: '(Google Drive)' };
 function showViewerThumb(url, source) {
   const t = $('viThumb');
   t.dataset.source = url ? source : '';
   $('viThumbSource').textContent = url ? THUMB_SOURCE[source] : '';
   if (url) { t.src = url; t.hidden = false; } else { t.removeAttribute('src'); t.hidden = true; }
 }
-// expired Meta link (saved result) → the Drive thumbnail; a broken Drive one → no image
+// a broken thumbnail (e.g. an expired Meta link in a result saved before 2026-11-03) → the Drive
+// thumbnail; a broken Drive one → no image
 function viewerThumbError(img) {
   const drive = $('videoViewer').dataset.driveThumb;
-  if ((img.dataset.source === 'meta' || img.dataset.source === 'fetched') && drive) showViewerThumb(drive, 'drive');
+  if (img.dataset.source !== 'drive' && drive) showViewerThumb(drive, 'drive');
   else showViewerThumb('', '');
 }
 
-async function fetchAdThumb() {
-  const viewer = $('videoViewer');
-  const r = state.rendered?.[+viewer.dataset.row];
-  const btn = $('viThumbFetch');
-  if (!r?.thumb_ad_id) return;
-  const token = viewer.dataset.token;
-  btn.disabled = true;
-  btn.textContent = 'Fetching…';
-  try {
-    const res = await fetch('/api/ad-thumb?ad_id=' + encodeURIComponent(r.thumb_ad_id));
-    const j = await res.json();
-    if (!res.ok) throw new Error(j.error + (j.detail ? ': ' + formatErrorDetail(j.detail) : ''));
-    if (viewer.dataset.token !== token) return;
-    if (!j.url) { toast('Meta returned no thumbnail for this ad', 'error'); return; }
-    r.thumbnail_url = j.url;
-    showViewerThumb(j.url, 'fetched');
-    renderTable('creatives'); // the row's small thumbnail follows
-  } catch (err) {
-    toast('Error: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Fetch from Meta';
-  }
-}
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('videoViewer')?.classList.contains('open')) closeVideo();
 });

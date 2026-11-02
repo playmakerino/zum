@@ -19,7 +19,7 @@ window.onunhandledrejection = function(e) {
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const PAGE_SIZE = 100; // rows per page; "Show more" adds another page
+const PAGE_SIZE = 20; // rows per page; "Show more" adds another page
 const FILTER_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg>';
 const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
 const empty = cols => `<tr><td colspan="${cols}"><div class="state-box">No data</div></td></tr>`;

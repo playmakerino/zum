@@ -49,7 +49,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - SSE streaming cho dashboard load
 - **Giao diện:** kiểu Shopify Analytics, CSS + dropdown + helper bảng (sort/lọc/popup lọc/toast/SSE) dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn (không cuộn riêng bảng); top bar: tiêu đề + Updated bên trái, ô ngày + Load Data bên phải. Bảng trong card: hàng đầu = filter người gửi (từ BigQuery, xem mục Người gửi), hàng cuối = debug line.
 - **Tables:** sortable, text/metric range filters, search
-  - Filter trước → paginate sau (100 rows/page, "Show more" button)
+  - Filter trước → paginate sau (20 rows/page, `PAGE_SIZE` trong shared.js, "Show more" button)
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
 - **Thumbnail** (user chốt 2026-10-15): ảnh vuông 24×24 (crop `cover`) trong ô 36×36, cách 4 phía 6px (kiểu Shopify Files, header cột không có chữ), ảnh hover giữ tỷ lệ gốc của ảnh (cao 240, không crop). Thứ tự nguồn: **poster reel** → thumb Triple Whale → thumb Drive; ảnh lỗi thì thử nguồn kế (`data-fallback` cách nhau bằng dấu cách).
   - Poster reel = `GET /api/reel-thumb/:reelId`: server tải trang plugin `facebook.com/plugins/video.php?href=<reel>` (không token, không tốn call Meta), lấy `<img>` fbcdn `t15.5256-10` đầu tiên (`reelPosterFromPluginHtml`; ảnh `t39.30808-1` là avatar page), cache RAM 24h, 302 sang ảnh; không thấy → 404.

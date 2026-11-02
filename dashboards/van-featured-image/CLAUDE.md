@@ -32,7 +32,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - State management bằng plain object
 - SSE streaming cho dashboard load
 - **Table:** sortable (spend, roas, print_id), text filter (ad_name), metric range filters (spend, roas)
-  - Filter trước → paginate sau (100 rows/page, "Show more")
+  - Filter trước → paginate sau (20 rows/page, `PAGE_SIZE` trong shared.js, "Show more")
 - **Image preview:** hover hiện ảnh 240×240 (position:fixed)
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)

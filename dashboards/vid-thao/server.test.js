@@ -174,27 +174,11 @@ describe('aggregateMetrics', () => {
     expect(r.thruplay_rate).toBe(30);       // 300/1000 * 100
   });
 
-  test('weighted avg play time: Σ(avg × plays) / Σ(plays)', () => {
-    // Row A: 10s avg × 100 plays; Row B: 20s avg × 300 plays
-    // Total time = 1000 + 6000 = 7000; total plays = 400
-    // Weighted avg = 17.5s
-    const r = aggregateMetrics({}, [
-      { impressions: '0', clicks: '0', spend: '0',
-        video_avg_time_watched_actions: [{ value: '10' }],
-        video_play_actions:             [{ value: '100' }] },
-      { impressions: '0', clicks: '0', spend: '0',
-        video_avg_time_watched_actions: [{ value: '20' }],
-        video_play_actions:             [{ value: '300' }] },
-    ]);
-    expect(r.video_avg_time).toBeCloseTo(17.5, 2);
-  });
-
   test('video metrics are 0 when fields absent', () => {
     const r = aggregateMetrics({}, [{ impressions: '100', clicks: '5', spend: '10' }]);
     expect(r.video_3sec_views).toBe(0);
     expect(r.video_thruplays).toBe(0);
     expect(r.video_plays).toBe(0);
-    expect(r.video_avg_time).toBe(0);
     expect(r.video_3sec_rate).toBe(0);
     expect(r.thruplay_rate).toBe(0);
   });

@@ -1,16 +1,13 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
 require('dotenv').config({ path: ['triplewhale', 'meta-token'].map(k => 'D:/keys/.env.' + k) });
 const express = require('express');
-const axios   = require('axios');
 const path    = require('path');
-const { getCredentials, fetchByIds } = require('./meta');
+const { getCredentials, fetchByIds, twSql } = require('./meta');
 
 // Meta Ads trends from Triple Whale (ads_table, hourly rows, one SQL call grouped by day).
 // Catalog ads: Triple Whale has no catalog flag, so the creatives Triple Whale types as
 // 'dynamic' or 'link' are looked up on Meta once (product_set_id set = catalog ad) and cached.
 // Ads typed 'image' / 'video' were never catalog ads in the samples checked (2026-10-28).
-const TW_URL  = 'https://api.triplewhale.com/api/v2/orcabase/api/sql';
-const SHOP_ID = process.env.TW_SHOP_ID || '422aa5-ca.myshopify.com';
 const SHOP_TZ = 'America/New_York'; // Triple Whale event_date is in the shop's time zone
 const CACHE_MS = 10 * 60 * 1000;
 
@@ -32,15 +29,6 @@ function twQuery(start, end) {
 FROM ads_table
 WHERE channel = 'facebook-ads' AND event_date BETWEEN '${start}' AND '${end}'
 GROUP BY d, tc, ck`;
-}
-
-async function fetchTw(start, end) {
-  const key = process.env.TRIPLE_WHALE_API_KEY;
-  if (!key) throw Object.assign(new Error('Missing TRIPLE_WHALE_API_KEY'), { status: 500 });
-  const res = await axios.post(TW_URL, { shopId: SHOP_ID, query: twQuery(start, end), period: { startDate: start, endDate: end } },
-    { headers: { 'x-api-key': key }, timeout: 120000 });
-  const d = res.data;
-  return Array.isArray(d) ? d : (d?.data || d?.rows || []);
 }
 
 // creative ids not in the cache → Meta (50 per batch request). Ids Meta does not return stay
@@ -86,14 +74,13 @@ app.get('/api/data', async (req, res) => {
   const fresh = hit && (end < todayInShop() || Date.now() - hit.at < CACHE_MS);
   if (fresh && req.query.refresh !== '1') return res.json(hit.body);
   try {
-    const rows = await fetchTw(start, end);
+    const rows = await twSql(twQuery(start, end), start, end);
     const catalogUnknown = await resolveCatalog([...new Set(rows.map(r => String(r.ck || '')).filter(Boolean))]);
     const body = { start, end, days: buildDays(rows, start, end), catalogUnknown, updatedAt: new Date().toISOString() };
     rangeCache[key] = { at: Date.now(), body };
     res.json(body);
   } catch (err) {
-    const detail = err.response?.data?.message || err.response?.data?.error || err.message;
-    res.status(err.status || 502).json({ error: 'Triple Whale request failed', detail: typeof detail === 'string' ? detail : JSON.stringify(detail) });
+    res.status(502).json({ error: 'Triple Whale request failed', detail: err.message });
   }
 });
 

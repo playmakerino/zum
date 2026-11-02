@@ -9,7 +9,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
   - `public/index.html` — HTML structure
   - `public/style.css` — CSS styles
   - `public/app.js` — JavaScript logic
-- **API:** Meta Marketing API v26.0 (version + phần gọi Meta dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`)
+- **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchAdRows`, từ 2026-11-02, 12 tháng khoảng 4s); Meta Marketing API v26.0 chỉ còn dùng cho creative và ảnh. Cả hai nằm ở `meta.js`, bản gốc `dashboards/shared/meta.js`
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process**
@@ -18,10 +18,10 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
-- **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
+- **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`, `TRIPLE_WHALE_API_KEY`; local nạp từ `D:/keys`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
 - **GET /api/config** — trả về status config (có token chưa)
 - **GET /api/dashboard** — SSE stream pipeline
-- **Error handling:** detect token expiry (code 190), rate limit (code 4/17); báo cáo async lỗi tự chạy lại sau 5s, 15s, 30s rồi gọi thử đồng bộ để lấy lý do thật (`fetchInsights` trong meta.js)
+- **Error handling:** lỗi Triple Whale hiện "Triple Whale request failed" + lý do; lỗi Meta: token hết hạn (code 190), rate limit (code 4/17)
 - **Một lượt tải mỗi mode:** request thứ hai cùng mode nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). 2 nút Load bị khoá trong lúc tải
 - **Render free:** không có persistent disk → mọi cache server chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle). Sau restart, "Load All" chạy lại full 12 tháng.
 - Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
@@ -44,13 +44,11 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 Response: SSE stream gồm nhiều `progress` events và 1 `result` event cuối cùng.
 
-### Step 1: Fetch Insights (incremental)
+### Step 1: Số liệu ad từ Triple Whale (incremental)
 ```
-Meta API: POST /act_{id}/insights (async report)
-  → Poll GET /{report_id} (max 2 min, poll mỗi 2s)
-  → Fetch GET /{report_id}/insights?limit=500 (paginate)
+Triple Whale: POST /api/v2/orcabase/api/sql (ads_table, gộp theo ad_id, 1 câu)
 ```
-- Fields: `ad_id, ad_name, spend, action_values`
+- Mỗi dòng = 1 ad có spend > 0 trong kỳ, trạng thái hiện tại ACTIVE/PAUSED (Load Active Ads: chỉ ACTIVE), mang `spend` + `action_values` giống insights của Meta. Ad chạy nhưng chưa có chi tiêu trong kỳ không có dòng (dashboard vốn lọc spend > 100)
 - Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), incremental fetch từ `lastUntil`
 - Cache: `insightsCache` (RAM)
 

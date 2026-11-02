@@ -39,7 +39,7 @@ const state = {
 // Table config
 const TABLES = {
   creatives: {
-    cols: 12,
+    cols: 11,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
     row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
@@ -305,8 +305,6 @@ function totals(rows) {
   const v3sec = s('video_3sec_views');
   const vthru = s('video_thruplays');
   const vplays = s('video_plays');
-  // Weighted avg play time: Σ(avg × plays) / Σ(plays)
-  const weightedTime = rows.reduce((a, r) => a + parseFloat(r.video_avg_time || 0) * parseFloat(r.video_plays || 0), 0);
   return {
     spend,
     roas: spend ? pv / spend : 0,
@@ -317,7 +315,6 @@ function totals(rows) {
     cpc:  clicks ? spend / clicks : 0,
     video_3sec_rate: impr   ? v3sec  / impr   * 100 : 0,
     thruplay_rate:   vplays ? vthru  / vplays * 100 : 0,
-    video_avg_time:  vplays ? weightedTime / vplays : 0,
   };
 }
 
@@ -545,15 +542,6 @@ function hideThumbPreview() {
 }
 document.addEventListener('click', hideThumbPreview);
 
-const fmtTime = n => {
-  const v = parseFloat(n || 0);
-  if (v <= 0) return '0s';
-  if (v < 60) return parseFloat(v.toFixed(1)).toString() + 's';
-  const m = Math.floor(v / 60);
-  const s = (v - m * 60).toFixed(0);
-  return `${m}m ${s}s`;
-};
-
 function metrics(row) {
   return [
     [row.spend, fmtMoneyInt],
@@ -565,6 +553,5 @@ function metrics(row) {
     [row.cpc, fmtMoney],
     [row.video_3sec_rate, fmtPctInt],
     [row.thruplay_rate,   fmtPctInt],
-    [row.video_avg_time,  fmtTime],
   ].map(([c, f]) => `<td class="td-metric">${f(c)}</td>`).join('');
 }

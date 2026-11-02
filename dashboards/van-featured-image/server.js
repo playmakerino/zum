@@ -1,9 +1,9 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
-require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port'].map(k => 'D:/keys/.env.' + k) });
+require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
-const { META_BASE_URL, BATCH_SIZE, getCredentials, findPurchaseAction, fetchByIds, fetchInsights, sseLoad } = require('./meta');
+const { META_BASE_URL, BATCH_SIZE, getCredentials, findPurchaseAction, fetchByIds, fetchAdRows, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -90,21 +90,11 @@ app.get('/api/dashboard', (req, res) => {
 
 async function loadDashboard({ token, accountId, mode, progress, send, elapsed, stopped }) {
   const today = todayStr();
-  const base = `${META_BASE_URL}/act_${accountId}`;
-  const statusFilter = statuses => [
-    { field: 'ad.effective_status', operator: 'IN', value: statuses },
-    { field: 'spend', operator: 'GREATER_THAN', value: 0 },
-  ];
-  const defaultFilter = statusFilter(['ACTIVE', 'PAUSED']);
-  const activeFilter = statusFilter(['ACTIVE']);
+  const defaultFilter = ['ACTIVE', 'PAUSED'];
+  const activeFilter = ['ACTIVE'];
 
-  // ── Step 1: Fetch insights (spend + action_values) ──────────────────────
-  const fields = 'ad_id,ad_name,spend,action_values';
-  const insights = (since, filtering) => fetchInsights({
-    base, token, fields, timeRange: { since, until: today }, filtering, stopped,
-    onProgress: p => progress(`Step 1: Polling report ${p}% [${elapsed()}]`),
-    onRetry: msg => progress(`Step 1: ${msg} [${elapsed()}]`),
-  });
+  // ── Step 1: Ad spend + purchase value from Triple Whale (Meta only for creatives and images) ──
+  const insights = (since, statuses) => fetchAdRows({ since, until: today, statuses });
   let allRows;
   let isIncremental = false;
 

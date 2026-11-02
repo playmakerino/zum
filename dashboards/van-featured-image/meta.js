@@ -1,4 +1,4 @@
-// Meta Marketing API helpers shared by the 3 dashboard servers.
+// Meta Marketing API + Triple Whale helpers shared by the dashboard servers.
 // SOURCE OF TRUTH: dashboards/shared/meta.js. sync-shared.ps1 copies it next to each server.js
 // (each dashboard is its own Render service and only deploys its own folder).
 const axios = require('axios');
@@ -148,6 +148,7 @@ async function fetchInsights({ base, token, fields, timeRange, filtering = DEFAU
 
 // { error, detail } for the browser
 function metaErrorMessage(err) {
+  if (err.tripleWhale) return { error: 'Triple Whale request failed', detail: err.message };
   const meta = err.response?.data?.error;
   if (meta) {
     const { code, error_subcode: subcode, message } = meta;
@@ -222,7 +223,70 @@ async function runLoad(key, load, run) {
   }
 }
 
+// ── Triple Whale ─────────────────────────────────────────────────────────────
+// Ad metrics come from Triple Whale SQL (ads_table, about 1s per query, no Meta rate limit); Meta
+// is only asked for creatives and images. Matched Meta per ad on 2026-11-02 (spend, impressions,
+// clicks, purchases, purchase value, 3s views, ThruPlays, plays). Meta's average watch time has no
+// Triple Whale column. Key: env TRIPLE_WHALE_API_KEY (local: D:/keys/.env.triplewhale).
+const TW_URL = 'https://api.triplewhale.com/api/v2/orcabase/api/sql';
+const TW_SHOP_ID = process.env.TW_SHOP_ID || '422aa5-ca.myshopify.com';
+
+function twError(message) {
+  const err = new Error(message);
+  err.tripleWhale = true;
+  return err;
+}
+
+// One SQL query → array of rows. start / end (YYYY-MM-DD) also go in `period`, which Triple Whale requires.
+async function twSql(query, start, end) {
+  const key = process.env.TRIPLE_WHALE_API_KEY;
+  if (!key) throw twError('Missing TRIPLE_WHALE_API_KEY');
+  let res;
+  try {
+    res = await axios.post(TW_URL, { shopId: TW_SHOP_ID, query, period: { startDate: start, endDate: end } },
+      { headers: { 'x-api-key': key }, timeout: 120000 });
+  } catch (err) {
+    const d = err.response?.data;
+    const detail = d?.message || d?.error || err.message;
+    throw twError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+  }
+  const d = res.data;
+  return Array.isArray(d) ? d : (d?.data || d?.rows || []);
+}
+
+// One row per ad with spend in [since, until] whose current status is in `statuses`, spend
+// descending, in the shape of Meta insights rows (actions / action_values / video_*_actions), so
+// code written for fetchInsights reads it unchanged.
+async function fetchAdRows({ since, until, statuses = ['ACTIVE', 'PAUSED'] }) {
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  if (!DATE_RE.test(since) || !DATE_RE.test(until)) throw twError('Bad date range');
+  const st = statuses.filter(s => /^[A-Z_]+$/.test(s)).map(s => `'${s}'`).join(',');
+  const rows = await twSql(`SELECT toString(ad_id) AS ad_id, any(nullIf(ad_name, '')) AS ad_name,
+  argMax(ad_effective_status, (event_date, event_hour)) AS status,
+  sum(spend) AS spend, sum(impressions) AS imp, sum(clicks) AS clk, sum(conversions) AS ord, sum(conversion_value) AS rev,
+  sum(three_second_video_view) AS v3, sum(thruplays) AS tp, sum(total_video_view) AS vp
+FROM ads_table
+WHERE channel = 'facebook-ads' AND event_date BETWEEN '${since}' AND '${until}'
+GROUP BY ad_id
+HAVING spend > 0 AND status IN (${st})
+ORDER BY spend DESC`, since, until);
+  const act = (type, value) => [{ action_type: type, value: String(Number(value) || 0) }];
+  return rows.filter(r => r.ad_id).map(r => ({
+    ad_id: String(r.ad_id),
+    ad_name: r.ad_name || '',
+    status: r.status,
+    spend: String(Number(r.spend) || 0),
+    impressions: String(Number(r.imp) || 0),
+    clicks: String(Number(r.clk) || 0),
+    actions: [...act('omni_purchase', r.ord), ...act('video_view', r.v3)],
+    action_values: act('omni_purchase', r.rev),
+    video_thruplay_watched_actions: act('video_thruplay_watched', r.tp),
+    video_play_actions: act('video_view', r.vp),
+  }));
+}
+
 module.exports = {
   META_API_VERSION, META_BASE_URL, BATCH_SIZE, DEFAULT_FILTERING, timing,
   getCredentials, findPurchaseAction, fetchByIds, fetchInsights, metaErrorMessage, sseLoad, LoadStopped,
+  twSql, fetchAdRows,
 };

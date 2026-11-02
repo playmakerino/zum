@@ -1,8 +1,8 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
-require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port'].map(k => 'D:/keys/.env.' + k) });
+require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const path      = require('path');
-const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchInsights, sseLoad } = require('./meta');
+const { getCredentials, findPurchaseAction, fetchByIds, fetchAdRows, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,8 +34,6 @@ function slimCreative(ad) {
     _cachedAt: ad._cachedAt || Date.now(),
   };
 }
-
-const AD_METRICS = ['impressions', 'clicks', 'spend', 'actions', 'action_values'].join(',');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,14 +161,12 @@ app.get('/api/dashboard', (req, res) => {
   if (!token || !accountId)
     return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
   const forceRefresh = req.query.refresh === '1';
-  sseLoad(res, `refresh=${forceRefresh}`, ctx => loadDashboard({ token, accountId, forceRefresh, ...ctx }));
+  sseLoad(res, `refresh=${forceRefresh}`, ctx => loadDashboard({ token, forceRefresh, ...ctx }));
 });
 
-async function loadDashboard({ token, accountId, forceRefresh, progress, send, elapsed, stopped }) {
+async function loadDashboard({ token, forceRefresh, progress, send, elapsed, stopped }) {
   const current = { since: dateStr(DAYS), until: dateStr(0) };
-  const fields  = `ad_id,ad_name,${AD_METRICS}`;
-  const base    = `${META_BASE_URL}/act_${accountId}`;
-  // 1. Fetch insights (last 30 days)
+  // 1. Ad metrics (last 30 days) from Triple Whale; Meta only for creatives and thumbnails
   const cacheKey = String(DAYS);
   const ic = insightsCache[cacheKey];
   let currRows;
@@ -178,18 +174,13 @@ async function loadDashboard({ token, accountId, forceRefresh, progress, send, e
     currRows = ic.current;
     progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
   } else {
-    progress(`Creating async report... [${elapsed()}]`);
-    currRows = await fetchInsights({
-      base, token, fields, timeRange: current, stopped,
-      onProgress: p => progress(`Polling report: ${p}% [${elapsed()}]`),
-      onRetry: msg => progress(`${msg} [${elapsed()}]`),
-    });
+    progress(`Reading Triple Whale... [${elapsed()}]`);
+    currRows = await fetchAdRows(current);
     insightsCache[cacheKey] = { current: currRows };
     progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
   }
 
   // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.
-  // (Filtering spend at the insights API was tried 2026-10-14: no faster, Meta still computes every ad.)
   const adSpendMap = {};
   const adNameMap = {};
   for (const r of currRows) {

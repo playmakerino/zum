@@ -9,7 +9,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
   - `public/index.html` - HTML structure
   - `public/style.css` - CSS styles
   - `public/app.js` - JavaScript logic
-- **APIs:** Meta Marketing API v26.0 (version + phần gọi Meta dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`)
+- **APIs:** số liệu ad (chi tiêu, đơn, doanh thu, lượt xem video) lấy từ **Triple Whale SQL** (`fetchAdRows`, từ 2026-11-02, khoảng 4s); Meta Marketing API v26.0 chỉ còn dùng cho creative và thumbnail. Cả hai nằm ở `meta.js`, bản gốc `dashboards/shared/meta.js`
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process** - không dùng bundler
@@ -18,18 +18,18 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
-- **Credentials:** chỉ đọc từ `.env` (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`).
-- **Bảng video BigQuery:** mỗi lần load server query thẳng BigQuery (`@google-cloud/bigquery`, service account `n8n-bigquery@zum-media-log`; Render: env `BQ_SA_KEY` = nội dung JSON key; local: `BQ_SA_KEY_FILE=../../.env.bigquery-sa.json` trong .env), không qua n8n; `ad.info` FULL JOIN `media.video_submitter` theo `video_id` (từ 2026-10-15): `ad_id, ad_name, video_id (= ID upload, video trong thư viện ad), reel_id (bản copy của creative), submitted_by (email trước @), drive_file_id, created_at, from_form`. `ad.info` do Cloud Run `meta-ad-media` (`google cloud/meta-ad-media/`, 03:00 hằng ngày) ghi cho **mọi** ad; `media.video_submitter` (TC Vid `aBFwAG7hzokMiwge`, 1 dòng/video upload: video_id, submitter_email, drive_file_id, created_at; bảng 7 cột cũ ở `media.ad_videos_backup_20261015`). Dòng dashboard = 1 **ID upload** (2 creative cùng file = 1 dòng); phát reel bằng `reel_id` của ad (`facebook.com/reel/<reel_id>`). Creative đọc từ Meta có `video_id` (= video_data, ID upload) + `reel_id` (= creative.video_id) nên ad tạo trong ngày (chưa có trong ad.info) vẫn ghép được người gửi và có reel. `indexVideoTable` → `byAd` (ad dùng video form) / `byVideo` (ID upload → dòng form) / `adVideo` + `adReel` (mọi ad). Ad form chưa có delivery mà chưa vào ad.info thì chưa hiện tới lượt 03:00. Người gửi chỉ lấy từ đây, **không** đọc tên campaign.
+- **Credentials:** Render: env var. Local: dòng đầu `server.js` nạp `D:/keys/.env.meta-token`, `.env.meta-ad-account`, `.env.port`, `.env.triplewhale` (không còn `.env` trong folder, từ 2026-10-28).
+- **Bảng video BigQuery:** mỗi lần load server query thẳng BigQuery (`@google-cloud/bigquery`, service account `n8n-bigquery@zum-media-log`; Render: env `BQ_SA_KEY` = nội dung JSON key; local: mặc định đọc `D:/keys/.env.bigquery-sa.json`, đổi được bằng `BQ_SA_KEY_FILE`), không qua n8n; `ad.info` FULL JOIN `media.video_submitter` theo `video_id` (từ 2026-10-15): `ad_id, ad_name, video_id (= ID upload, video trong thư viện ad), reel_id (bản copy của creative), submitted_by (email trước @), drive_file_id, created_at, from_form`. `ad.info` do Cloud Run `meta-ad-media` (`google cloud/meta-ad-media/`, 03:00 hằng ngày) ghi cho **mọi** ad; `media.video_submitter` (TC Vid `aBFwAG7hzokMiwge`, 1 dòng/video upload: video_id, submitter_email, drive_file_id, created_at; bảng 7 cột cũ ở `media.ad_videos_backup_20261015`). Dòng dashboard = 1 **ID upload** (2 creative cùng file = 1 dòng); phát reel bằng `reel_id` của ad (`facebook.com/reel/<reel_id>`). Creative đọc từ Meta có `video_id` (= video_data, ID upload) + `reel_id` (= creative.video_id) nên ad tạo trong ngày (chưa có trong ad.info) vẫn ghép được người gửi và có reel. `indexVideoTable` → `byAd` (ad dùng video form) / `byVideo` (ID upload → dòng form) / `adVideo` + `adReel` (mọi ad). Ad form chưa có delivery mà chưa vào ad.info thì chưa hiện tới lượt 03:00. Người gửi chỉ lấy từ đây, **không** đọc tên campaign.
 - **Dòng nào hiện:** ad từ form (có trong `byAd`) có delivery trong kỳ (spend > 0, mọi mức); **ad chưa chạy không hiện** (user chốt 2026-10-15: ad PAUSED chưa có impression thì post chưa công khai, reel báo "Video Unavailable"; đã bỏ `newAdRows`); video ad khác: spend > 1 và có video play như trước. Ad từ form lấy video_id/Drive/reel/người gửi theo `byAd` (BigQuery thắng video_id trong creative); ad khác tra `byVideo` theo video của creative.
 - **Load Data (`refresh=1`)** đọc lại creative của mọi ad trong kỳ (`ensureCreativeInfo` force): sửa thumbnail trong Ads Manager = creative mới, cache cũ sẽ che mất.
 - **GET /api/config** - trả về `{hasMetaToken, hasAdAccountId}` để frontend biết backend đã configured chưa
-- **GET /api/dashboard** - SSE stream, fetch data từ Meta API (async report → poll → paginate)
+- **GET /api/dashboard** - SSE stream; số liệu ad từ Triple Whale (1 câu SQL gộp theo ad, dòng mang hình dạng giống insights của Meta), creative + thumbnail từ Meta
   - Params: `days` (default 7), `refresh` (force reload)
-  - Pipeline: fetch insights + bảng video BigQuery (chạy song song từ 2026-10-15) → chọn dòng (xem "Dòng nào hiện"; lọc spend/video play ở server, lọc ở API thử 2026-10-14: không nhanh hơn) → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByVideo`: mỗi dòng = 1 video (BigQuery hoặc `object_story_spec.video_data.video_id`, creative không có video_id thì theo creative id) + người gửi, cộng dồn metrics của mọi ad/creative dùng video đó, kèm `drive_file_id`, `drive_thumb_id`, `reel_url`
-  - Meta không lọc được `video_play_actions` ở tầng insights API (thử 2026-10-14: lỗi), nên lọc ở server. Thumbnail lồng trong `creative{thumbnail_url}` chỉ ra 64px dù truyền `thumbnail_width`, nên HD thumb vẫn phải gọi riêng theo creative_id.
+  - Pipeline: số liệu Triple Whale + bảng video BigQuery (chạy song song) → chọn dòng (xem "Dòng nào hiện"; ad có trạng thái hiện tại ACTIVE/PAUSED và spend > 0, như bộ lọc Meta cũ) → fetch creative info (per ad_id) → fetch HD thumbnails (per creative_id, video-only) → `groupByVideo`: mỗi dòng = 1 video (BigQuery hoặc `object_story_spec.video_data.video_id`, creative không có video_id thì theo creative id) + người gửi, cộng dồn metrics của mọi ad/creative dùng video đó, kèm `drive_file_id`, `drive_thumb_id`, `reel_url`
+  - Triple Whale khớp Meta theo từng ad (đo 2026-11-02, 4 ad video): spend, impressions, clicks, đơn, doanh thu, 3s, ThruPlay, lượt phát. Triple Whale trễ vài giờ và không có ad chưa phân phối. **Không có thời gian xem trung bình** nên cột Avg Time đã bỏ (user chốt 2026-11-02). Thumbnail lồng trong `creative{thumbnail_url}` chỉ ra 64px dù truyền `thumbnail_width`, nên HD thumb vẫn phải gọi riêng theo creative_id.
   - SSE events: `progress` (text per stage), `debug` (telemetry), `result` (final), `error`
   - Trả về 1 mảng `creatives.current` (đã bỏ compare giữa 2 kỳ)
-- **Error handling:** detect Meta token expiry (code 190), rate limit (code 4/17) với message rõ ràng; báo cáo async lỗi (Job Failed/Skipped/quá 2 phút) tự chạy lại sau 5s, 15s, 30s rồi gọi thử đồng bộ để lấy lý do thật (`fetchInsights` trong meta.js)
+- **Error handling:** lỗi Triple Whale hiện "Triple Whale request failed" + lý do; lỗi Meta (creative/thumbnail): token hết hạn (code 190), rate limit (code 4/17) với message rõ ràng
 - **Một lượt tải mỗi kỳ:** request thứ hai cùng `days` + `refresh` (tab khác, bấm 2 lần) nhập vào lượt đang chạy thay vì gọi Meta lại; không còn trình duyệt nào chờ thì lượt tải dừng ở lần gọi Meta kế tiếp (`sseLoad`). Nút Load Data bị khoá trong lúc tải
 - Exports utility functions cho testing (`require.main === module` guard)
 
@@ -37,7 +37,7 @@ Dashboard phân tích quảng cáo video Meta (Facebook/Instagram). Chỉ hiển
 Deploy trên **Render free** (không có persistent disk, restart/spin-down là mất file) → cache server chỉ nằm trong **RAM**, sống theo process.
 | Layer | Nơi | TTL | Mục đích |
 |---|---|---|---|
-| Insights | RAM (key theo `days`) | Đến khi force refresh / restart | Insights rows |
+| Insights | RAM (key theo `days`) | Đến khi force refresh / restart | Dòng số liệu từ Triple Whale |
 | Creatives | RAM | Đến restart (creative null retry sau 1h) | id, object_type, is_catalog |
 | HD Thumbs | RAM | 24 giờ | URL thumbnail 480px (Meta CDN URL hết hạn) |
 | Browser | localStorage | Đến khi force refresh | Full result để load ngay |
@@ -50,7 +50,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - **Tables:** sortable, text/metric range filters, search
   - Filter trước → paginate sau (100 rows/page, "Show more" button)
   - Total row nằm trong `<thead>` ngay dưới tên cột (dính cùng header), tính trên ALL filtered rows
-- **Thumbnail** (user chốt 2026-10-15): ảnh vuông 24×24 (crop `cover`) trong ô 36×36, cách 4 phía 6px (kiểu Shopify Files, header cột không có chữ), hover 192×240 (4:5), `object-fit:cover`. Thứ tự nguồn: **poster reel** → thumb Meta → thumb Drive; ảnh lỗi thì thử nguồn kế (`data-fallback` cách nhau bằng dấu cách).
+- **Thumbnail** (user chốt 2026-10-15): ảnh vuông 24×24 (crop `cover`) trong ô 36×36, cách 4 phía 6px (kiểu Shopify Files, header cột không có chữ), ảnh hover giữ tỷ lệ gốc của ảnh (cao 240, không crop). Thứ tự nguồn: **poster reel** → thumb Meta → thumb Drive; ảnh lỗi thì thử nguồn kế (`data-fallback` cách nhau bằng dấu cách).
   - Poster reel = `GET /api/reel-thumb/:reelId`: server tải trang plugin `facebook.com/plugins/video.php?href=<reel>` (không token, không tốn call Meta), lấy `<img>` fbcdn `t15.5256-10` đầu tiên (`reelPosterFromPluginHtml`; ảnh `t39.30808-1` là avatar page), cache RAM 24h, 302 sang ảnh; không thấy → 404.
 - **Thumbnail preview:** hover hiện ảnh HD (position:fixed)
   - HD thumbnails fetched riêng bằng creative ID với `thumbnail_width=480` (thumb hiện tại của ad trên Meta)
@@ -62,18 +62,19 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
   - Thumb Drive dùng `drive.google.com/thumbnail?id=…&sz=w480`; `lh3.googleusercontent.com` trả 429 khi trang gửi Referer. Trang có `<meta name="referrer" content="no-referrer">`.
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
-- Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%, Avg Time; chữ trên giao diện không dùng em dash
+- Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%; chữ trên giao diện không dùng em dash
 - **Mở trang không tự tải** (user chốt 2026-10-14, tránh tự gọi Meta): có kết quả lưu localStorage của kỳ đang chọn thì hiện, không có thì bảng trống + câu nhắc, chỉ nút Load Data mới gọi `/api/dashboard`.
 - **Debug line:** hàng cuối card (trước khi có thì hiện câu nhắc Load Data), hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, HD thumb cached/fetched/failed). Persisted localStorage để survive F5.
 
 ## Key Metrics
 - Raw (fetched): impressions, clicks, spend
 - Derived (server-computed): CTR, CPC, CPM, ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
-- Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays), Avg Time (weighted avg play time)
+- Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays)
 
-## Environment Variables (trong .env)
+## Environment Variables (Render; local nạp từ D:/keys)
 - `META_ACCESS_TOKEN` - Meta API token
 - `META_AD_ACCOUNT_ID` - Ad account ID
+- `TRIPLE_WHALE_API_KEY` - Triple Whale API key (số liệu ad)
 - `PORT` - Server port (default 3000)
 
 ## Commands

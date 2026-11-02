@@ -1,9 +1,9 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
-require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port'].map(k => 'D:/keys/.env.' + k) });
+require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
-const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchInsights, metaErrorMessage, sseLoad } = require('./meta');
+const { META_BASE_URL, getCredentials, findPurchaseAction, fetchByIds, fetchAdRows, metaErrorMessage, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -37,14 +37,6 @@ function slimCreative(ad) {
     _cachedAt: ad._cachedAt || Date.now(),
   };
 }
-
-const AD_METRICS = [
-  'impressions', 'clicks', 'spend',
-  'actions', 'action_values',
-  'video_thruplay_watched_actions',
-  'video_avg_time_watched_actions',
-  'video_play_actions',
-].join(',');
 
 const FORMAT_MAP = { VIDEO: 'Video', SHARE: 'Image', PHOTO: 'Carousel' };
 
@@ -86,13 +78,6 @@ function aggregateMetrics(entry, rows) {
   entry.video_3sec_views = sum(r => sumActionByType(r.actions, 'video_view'));
   entry.video_thruplays  = sum(r => sumActionValue(r.video_thruplay_watched_actions));
   entry.video_plays      = sum(r => sumActionValue(r.video_play_actions));
-  // Weighted avg play time = Σ(avg_time × plays) / Σ(plays)
-  const weightedTime = rows.reduce((s, r) => {
-    const avg   = sumActionValue(r.video_avg_time_watched_actions);
-    const plays = sumActionValue(r.video_play_actions);
-    return s + avg * plays;
-  }, 0);
-  entry.video_avg_time   = entry.video_plays > 0 ? weightedTime / entry.video_plays : 0;
   entry.video_3sec_rate  = entry.impressions  > 0 ? entry.video_3sec_views / entry.impressions * 100 : 0;
   entry.thruplay_rate    = entry.video_plays  > 0 ? entry.video_thruplays  / entry.video_plays  * 100 : 0;
   return entry;
@@ -246,19 +231,15 @@ async function loadVideoTable() {
 
 // ── Pipeline stages ──────────────────────────────────────────────────────────
 
-async function loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed, stopped }) {
+async function loadOrFetchInsights({ days, forceRefresh, current, progress, elapsed }) {
   const cacheKey = String(days);
   const ic = insightsCache[cacheKey];
   if (!forceRefresh && ic) {
     progress(`Using cached insights (${ic.current.length} rows) [${elapsed()}]`);
     return { rows: ic.current, source: 'cache' };
   }
-  progress(`Creating async report... [${elapsed()}]`);
-  const currRows = await fetchInsights({
-    base, token, fields, timeRange: current, stopped,
-    onProgress: p => progress(`Polling report: ${p}% [${elapsed()}]`),
-    onRetry: msg => progress(`${msg} [${elapsed()}]`),
-  });
+  progress(`Reading Triple Whale... [${elapsed()}]`);
+  const currRows = await fetchAdRows(current);
   insightsCache[cacheKey] = { current: currRows };
   progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
   return { rows: currRows, source: 'api' };
@@ -408,12 +389,10 @@ app.get('/api/dashboard', (req, res) => {
 
 async function loadDashboard({ token, accountId, days, forceRefresh, progress, send, elapsed, startTime, stopped }) {
   const current = { since: dateStr(days), until: dateStr(0) };
-  const fields  = `ad_id,ad_name,${AD_METRICS}`;
-  const base    = `${META_BASE_URL}/act_${accountId}`;
-  // The BigQuery video table loads while Meta builds the insights report (neither needs the
-  // other). loadVideoTable never rejects: errors come back as status 'error'.
+  // The BigQuery video table loads while Triple Whale answers (neither needs the other).
+  // loadVideoTable never rejects: errors come back as status 'error'.
   const videoTablePending = loadVideoTable();
-  const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, base, token, fields, current, progress, elapsed, stopped });
+  const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, current, progress, elapsed });
   progress(`Loading videos from BigQuery... [${elapsed()}]`);
   const videoTable = await videoTablePending;
   // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no

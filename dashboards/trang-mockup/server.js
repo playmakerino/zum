@@ -136,10 +136,9 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
     currRows = ic.current;
     progress(`Using cached ad data (${currRows.length} rows) [${elapsed()}]`);
   } else {
-    progress(`Reading Triple Whale... [${elapsed()}]`);
+    progress(`Reading ads from Triple Whale... [${elapsed()}]`);
     currRows = await fetchAdRows(current);
     insightsCache[cacheKey] = { current: currRows };
-    progress(`Ads loaded from Triple Whale:${currRows.length} rows [${elapsed()}]`);
   }
 
   // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.
@@ -158,16 +157,14 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
   const allAdIds = uniqueAdIds.filter(isQualified);
   const validFmtCount = allAdIds.filter(id => hasValidFormat(adNameMap[id])).length;
   const highSpendCount = allAdIds.length - validFmtCount;
-  progress(`${uniqueAdIds.length} unique ads → ${allAdIds.length} qualified (${validFmtCount} valid format spend>$${MIN_SPEND_VALID_FORMAT} + ${highSpendCount} spend>$${MIN_SPEND_ANY_NAME}) [${elapsed()}]`);
 
   // 3. Creative, image and thumbnail per ad from Triple Whale (Load Data reads every ad again:
   // editing an ad in Ads Manager attaches a new creative)
   const missingIds = forceRefresh ? allAdIds : allAdIds.filter(id => !mediaCache.has(id));
   if (missingIds.length > 0) {
-    progress(`Reading creatives of ${missingIds.length}/${allAdIds.length} ads from Triple Whale... [${elapsed()}]`);
+    progress(`Reading creatives of ${missingIds.length} ads... [${elapsed()}]`);
     const media = await fetchAdMedia(missingIds, current.since, current.until);
     for (const [id, m] of media) mediaCache.set(id, m);
-    progress(`Creatives read (${media.size} ads) [${elapsed()}]`);
   } else {
     progress(`All ${allAdIds.length} ads already cached [${elapsed()}]`);
   }
@@ -194,7 +191,6 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
   const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
   // 5. Group and build response
-  progress(`Processing data... [${elapsed()}]`);
   const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
   const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
   const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
@@ -213,7 +209,6 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
       kept: { named: validFmtCount, highSpend: highSpendCount },
     },
   };
-  progress(`Done [${elapsed()}]`);
   send({ result });
 }
 

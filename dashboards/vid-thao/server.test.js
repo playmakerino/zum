@@ -322,9 +322,9 @@ describe('indexVideoTable', () => {
 // ── Triple Whale media → creative ────────────────────────────────────────────
 
 describe('creativeFromMedia', () => {
-  const m = (type, extra = {}) => ({ type, creative_id: 'c1', reel_id: 'r1', ...extra });
-  test('video ad: VIDEO with the reel id, no upload id', () => {
-    expect(creativeFromMedia(m('video'))).toEqual({ id: 'c1', object_type: 'VIDEO', is_catalog: false, video_id: null, reel_id: 'r1' });
+  const m = (type, extra = {}) => ({ type, creative_id: 'c1', reel_id: 'r1', video_url: 'https://tw/r1.mp4', ...extra });
+  test('video ad: VIDEO with the reel id and mp4, no upload id', () => {
+    expect(creativeFromMedia(m('video'))).toEqual({ id: 'c1', object_type: 'VIDEO', is_catalog: false, video_id: null, reel_id: 'r1', mp4_url: 'https://tw/r1.mp4' });
   });
   test('dynamic ad with an upload id in ad.info is a video, not catalog', () => {
     expect(creativeFromMedia(m('dynamic', { reel_id: null }), 'u1')).toMatchObject({ object_type: 'VIDEO', is_catalog: false });

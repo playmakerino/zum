@@ -32,6 +32,7 @@ function creativeFromMedia(m, uploadId) {
     is_catalog:  m.type === 'dynamic' && !isVideo,
     video_id:    null,
     reel_id:     m.reel_id,
+    mp4_url:     m.video_url, // Triple Whale's copy: a 360x640 preview, the last source of the viewer
   };
 }
 
@@ -135,6 +136,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
         drive_file_id:  null,
         drive_thumb_id: null,
         reel_url:       null,
+        mp4_url:        null,
         created_at:     null,
         _creatives:     new Set(),
         _rows:          [],
@@ -151,6 +153,7 @@ function groupByVideo(rows, creativeCache, hdThumbMap, videoTable = {}) {
       g.drive_thumb_id = bq.drive_file_id;
     }
     if (!g.reel_url && reelId) g.reel_url = REEL_URL + reelId;
+    if (!g.mp4_url && c?.mp4_url) g.mp4_url = c.mp4_url;
     if (!g.created_at && bq?.created_at) g.created_at = bq.created_at;
     g._rows.push(row);
   }

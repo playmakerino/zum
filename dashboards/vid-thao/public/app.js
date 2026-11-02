@@ -340,10 +340,9 @@ const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComp
 const DRIVE_MP4 = id => `/api/drive-video/${encodeURIComponent(id)}`;
 const DRIVE_VIEW = id => `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
 const DRIVE_DOWNLOAD = id => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
-const MP4_URL = 'https://playmakerino.app.n8n.cloud/webhook/mp4?id=';
 // the ad's reel through Facebook's video plugin: plays without a Facebook login, no Meta API call
 const REEL_EMBED = (url, w, h) => `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=${w}&height=${h}`;
-const canPlay = r => !!(r.reel_url || r.drive_file_id || r.video_id);
+const canPlay = r => !!(r.reel_url || r.drive_file_id || r.mp4_url);
 
 // the reel's poster frame through our server (read from Facebook's video plugin, no Meta call)
 const REEL_THUMB = url => { const id = String(url || '').match(/\/reel\/(\d+)/)?.[1]; return id ? `/api/reel-thumb/${id}` : ''; };
@@ -365,16 +364,15 @@ function thumbError(img) {
 }
 
 // ── Video viewer = Shopify Content → Files viewer (measured 2026-10-14) ─────────
-// The ad's reel when BigQuery has one; otherwise the original file from Drive (free, no Meta call);
-// a video that is not in BigQuery plays its current mp4 through the n8n webhook (1 execution +
-// 1 Meta call per open).
+// The ad's reel when there is one; otherwise the original file from Drive (free, no Meta call);
+// otherwise Triple Whale's mp4 (a 360x640 preview, link does not expire; Details says so).
 const fmtSize = n => n >= 1e6 ? (n / 1e6).toFixed(2) + ' MB' : (n / 1e3).toFixed(1) + ' kB';
 
 function openVideo(i) {
   const r = state.rendered?.[i];
   if (!r || !canPlay(r)) return;
   hideThumbPreview();
-  const src = r.drive_file_id ? DRIVE_MP4(r.drive_file_id) : MP4_URL + encodeURIComponent(r.video_id);
+  const src = r.drive_file_id ? DRIVE_MP4(r.drive_file_id) : r.mp4_url;
   const driveThumb = r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : '';
   const viewer = $('videoViewer');
   const token = String(Date.now());
@@ -388,7 +386,8 @@ function openVideo(i) {
   // The Drive file is only a backup of the original: its own section, "Google Drive • 5.2 MB", links to Drive.
   const fmt = { size: '', dims: '', dur: '' };
   const showFormat = () => {
-    $('viFormat').textContent = r.reel_url ? '' : ['MP4', fmt.dims, fmt.dur, fmt.size].filter(Boolean).join(' • ');
+    const preview = !r.drive_file_id && 'Triple Whale preview';
+    $('viFormat').textContent = r.reel_url ? '' : ['MP4', fmt.dims, fmt.dur, fmt.size, preview].filter(Boolean).join(' • ');
     $('viFormat').hidden = !!r.reel_url;
     $('viBackup').textContent = ['Google Drive', fmt.size].filter(Boolean).join(' • ');
   };

@@ -69,7 +69,6 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 .viewer-thumb{display:flex;align-items:center;gap:8px;min-height:52px;padding:6px}
 .viewer-thumb img{width:40px;height:40px;flex-shrink:0;object-fit:contain;border-radius:10px}
 /* tertiary button (guide: 28px pill, no fill, 12px/16px 500) on the dark card */
-.viewer-sec .viewer-used{color:#eee}
 .viewer-sec .viewer-link{color:#aaa;text-decoration:underline;text-underline-offset:2px}
 .viewer-sec .viewer-link:hover{color:#fff}
 /* narrow screens: video on top, information card under it */

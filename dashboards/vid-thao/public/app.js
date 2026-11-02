@@ -73,7 +73,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       logApiError('GET /api/config', new Error(`HTTP ${res.status}`), { url: '/api/config', status: res.status, statusText: res.statusText, body });
     } else {
       const cfg = await res.json();
-      state.ready = !!(cfg.hasMetaToken && cfg.hasAdAccountId);
+      state.ready = !!cfg.hasTripleWhaleKey;
+      state.hasMetaToken = !!cfg.hasMetaToken;
     }
   } catch (err) {
     logApiError('GET /api/config', err, { url: '/api/config' });
@@ -169,7 +170,7 @@ function updatePeriodSelectLabels(period) {
 // Fetch
 async function fetchAll() {
   if (!state.ready)
-    return toast('Backend not configured (META_ACCESS_TOKEN / META_AD_ACCOUNT_ID missing)', 'error');
+    return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
   const days = $('periodSelect').value;
 
@@ -409,7 +410,7 @@ function openVideo(i) {
   viewer.dataset.row = String(i);
   viewer.dataset.driveThumb = driveThumb;
   $('viThumbSec').hidden = !(r.thumb_ad_id || driveThumb);
-  $('viThumbFetch').hidden = !r.thumb_ad_id;
+  $('viThumbFetch').hidden = !r.thumb_ad_id || !state.hasMetaToken;
   if (r.thumbnail_url) showViewerThumb(r.thumbnail_url, 'meta'); else showViewerThumb(driveThumb, 'drive');
   $('viThumbFetch').disabled = false;
   $('viThumbFetch').textContent = 'Fetch from Meta';

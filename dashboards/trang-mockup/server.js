@@ -2,7 +2,7 @@
 require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const path      = require('path');
-const { getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
+const { findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -114,17 +114,14 @@ function groupByImage(rows) {
 
 app.get('/api/config', (req, res) => {
   res.json({
-    hasMetaToken:   !!process.env.META_ACCESS_TOKEN,
-    hasAdAccountId: !!process.env.META_AD_ACCOUNT_ID,
+    hasTripleWhaleKey: !!process.env.TRIPLE_WHALE_API_KEY, // a load reads only Triple Whale
   });
 });
 
 // GET /api/dashboard — SSE with progress updates; a second request joins the running load
 // (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
-  const { token, accountId } = getCredentials();
-  if (!token || !accountId)
-    return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
+  if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
   const forceRefresh = req.query.refresh === '1';
   sseLoad(res, `refresh=${forceRefresh}`, ctx => loadDashboard({ forceRefresh, ...ctx }));
 });

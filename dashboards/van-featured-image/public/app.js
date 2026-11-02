@@ -1,6 +1,6 @@
 const COLS = 6;
 const state = {
-  config: {}, // { hasMetaToken, hasAdAccountId } from /api/config
+  config: {}, // { hasTripleWhaleKey } from /api/config
   ads: { data: [], period: null, cached_at: null },
   sort: { ads: { key: 'print_id', dir: -1 } },
   filters: { ads: {} },
@@ -36,7 +36,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     state.config = await res.json();
   } catch {}
 
-  if (state.config.hasAdAccountId) {
+  if (state.config.hasTripleWhaleKey) {
     const cached = loadCacheLocal();
     if (cached) {
       state.ads = cached;
@@ -85,8 +85,8 @@ function clearLog() {
 
 // Fetch
 async function fetchAll(mode = 'all') {
-  if (!state.config.hasMetaToken || !state.config.hasAdAccountId)
-    return toast('Meta Token and Account ID not configured', 'error');
+  if (!state.config.hasTripleWhaleKey)
+    return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
   try { localStorage.removeItem(CACHE_KEY); } catch {}
 
@@ -128,8 +128,7 @@ async function fetchAll(mode = 'all') {
 
     setMode(mode);
     const modeLabel = mode === 'active' ? 'Active' : 'All';
-    const fetchLabel = data.incremental ? 'incremental' : 'full';
-    addLog(`${modeLabel} (${fetchLabel}): ${data.totalRows} insight rows → ${data.topAdsCount} spend>$100 → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');
+    addLog(`${modeLabel}: ${data.totalRows} ads → ${data.topAdsCount} spend>$100 → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');
   } catch (err) {
     clearInterval(timerInterval);
     ov.style.display = 'none';

@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     state.config = await res.json();
   } catch {}
 
-  if (state.config.hasMetaToken && state.config.hasAdAccountId) {
+  if (state.config.hasTripleWhaleKey) {
     let hasLocal = false;
     const mockupsCached = loadCache('mockups');
     if (mockupsCached) { state.mockups = mockupsCached; renderTable('mockups'); hasLocal = true; }
@@ -191,8 +191,8 @@ function showCreativeSub(name) {
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  if (!state.config.hasMetaToken || !state.config.hasAdAccountId)
-    return toast('Meta Token and Account ID not configured', 'error');
+  if (!state.config.hasTripleWhaleKey)
+    return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
   const startTime = performance.now();
 

@@ -1,4 +1,4 @@
-const { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey } = require('./server');
+const { todayStr, findPurchaseAction, pickTopSpendAds, extractGroupKey } = require('./server');
 
 // ── todayStr ────────────────────────────────────────────────────────────────
 
@@ -10,27 +10,6 @@ describe('todayStr', () => {
   test('returns today', () => {
     const today = new Date().toISOString().split('T')[0];
     expect(todayStr()).toBe(today);
-  });
-});
-
-// ── addDays ─────────────────────────────────────────────────────────────────
-
-describe('addDays', () => {
-  test('adds positive days', () => {
-    expect(addDays('2025-01-01', 1)).toBe('2025-01-02');
-    expect(addDays('2025-01-01', 7)).toBe('2025-01-08');
-  });
-
-  test('subtracts with negative days', () => {
-    expect(addDays('2025-01-10', -3)).toBe('2025-01-07');
-  });
-
-  test('crosses month boundary', () => {
-    expect(addDays('2025-01-31', 1)).toBe('2025-02-01');
-  });
-
-  test('crosses year boundary', () => {
-    expect(addDays('2025-12-31', 1)).toBe('2026-01-01');
   });
 });
 

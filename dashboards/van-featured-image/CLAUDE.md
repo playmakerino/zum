@@ -19,12 +19,12 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 ### Backend (server.js)
 - Express server port 3000, serve static `public/`
 - **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`, `TRIPLE_WHALE_API_KEY`; local nạp từ `D:/keys`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
-- **GET /api/config** — trả về status config (có token chưa)
+- **GET /api/config**: `{ hasTripleWhaleKey }`; thiếu key thì nút Load báo lỗi ngay, không gọi server
 - **GET /api/dashboard** — SSE stream pipeline
 - **Error handling:** lỗi Triple Whale hiện "Triple Whale request failed" + lý do; lỗi Meta: token hết hạn (code 190), rate limit (code 4/17)
 - **Một lượt tải mỗi mode:** request thứ hai cùng mode nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). 2 nút Load bị khoá trong lúc tải
-- **Render free:** không có persistent disk → mọi cache server chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle). Sau restart, "Load All" chạy lại full 12 tháng.
-- Exports: `{ todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
+- **Render free:** không có persistent disk, cache server (creative + ảnh) chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle).
+- Exports: `{ todayStr, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
 
 ### Frontend (app.js)
 - 1 page duy nhất: bảng ads (Image, Print ID, Ad Name, Link, Spend, ROAS)
@@ -44,13 +44,12 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 Response: SSE stream gồm nhiều `progress` events và 1 `result` event cuối cùng.
 
-### Step 1: Số liệu ad từ Triple Whale (incremental)
+### Step 1: Số liệu ad từ Triple Whale
 ```
 Triple Whale: POST /api/v2/orcabase/api/sql (ads_table, gộp theo ad_id, 1 câu)
 ```
 - Mỗi dòng = 1 ad có spend > 0 trong kỳ, trạng thái hiện tại ACTIVE/PAUSED (Load Active Ads: chỉ ACTIVE), mang `spend` + `action_values` giống insights của Meta. Ad chạy nhưng chưa có chi tiêu trong kỳ không có dòng (dashboard vốn lọc spend > 100)
-- Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), incremental fetch từ `lastUntil`
-- Cache: `insightsCache` (RAM)
+- Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), **đọc lại đủ 12 tháng mỗi lần bấm** (khoảng 10s, từ 2026-11-03). Cache theo ngày kiểu cũ (giữ kết quả cả ngày, rồi chỉ đọc từ `lastUntil + 1`) làm đóng băng ngày đã đọc dở nên đã bỏ
 
 ### Step 1.5: pickTopSpendAds()
 - Aggregate rows theo `ad_id` → tính tổng spend + purchase_value
@@ -82,11 +81,10 @@ Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nh�
 
 ---
 
-## Caching (2 server layers + 1 frontend)
+## Caching (1 server layer + 1 frontend)
 
 | Layer | File | TTL | Key | Var |
 |-------|------|-----|-----|-----|
-| Insights | RAM | Đến restart, incremental | — | `insightsCache` |
 | Creative + ảnh + link | RAM | Đến restart | `ad_id` | `mediaCache` |
 | Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | — |
 

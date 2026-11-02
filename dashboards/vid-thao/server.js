@@ -277,8 +277,8 @@ async function ensureCreativeInfo({ adIds, force = false, current, adVideo, prog
 
 app.get('/api/config', (req, res) => {
   res.json({
-    hasMetaToken:   !!process.env.META_ACCESS_TOKEN,
-    hasAdAccountId: !!process.env.META_AD_ACCOUNT_ID,
+    hasTripleWhaleKey: !!process.env.TRIPLE_WHALE_API_KEY, // a load reads only Triple Whale (+ BigQuery)
+    hasMetaToken:      !!process.env.META_ACCESS_TOKEN,    // only "Fetch from Meta" needs it
   });
 });
 
@@ -362,9 +362,8 @@ app.get('/api/drive-video/:id', async (req, res) => {
 // GET /api/dashboard?days=7 — SSE with progress updates; a second request for the same period
 // joins the running load (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
-  const { token, accountId } = getCredentials();
-  if (!token || !accountId)
-    return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
+  if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
+  const { accountId } = getCredentials(); // shown in the debug line only
   const days = Number(req.query.days);
   const forceRefresh = req.query.refresh === '1';
   sseLoad(res, `days=${days} refresh=${forceRefresh}`, ctx => loadDashboard({ accountId, days, forceRefresh, ...ctx }));

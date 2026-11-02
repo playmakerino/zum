@@ -2,7 +2,7 @@
 require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const path      = require('path');
-const { getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
+const { findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -10,7 +10,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
 // live in memory only and last as long as the process.
-let insightsCache = null; // { rows, lastUntil, cached_at } — incremental "all" mode
 const mediaCache = new Map(); // ad_id → fetchAdMedia entry (Triple Whale files do not expire)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -25,11 +24,6 @@ function allTimeStart() {
   const d = new Date();
   d.setMonth(d.getMonth() - LOOKBACK_MONTHS);
   return d.toISOString().split('T')[0];
-}
-
-function addDays(dateString, days) {
-  const [y, m, d] = dateString.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().split('T')[0];
 }
 
 // Extract print_id-type_id from ad name, ignoring mockup_id
@@ -68,60 +62,27 @@ function pickTopSpendAds(rows) {
 
 app.get('/api/config', (req, res) => {
   res.json({
-    hasMetaToken:   !!process.env.META_ACCESS_TOKEN,
-    hasAdAccountId: !!process.env.META_AD_ACCOUNT_ID,
+    hasTripleWhaleKey: !!process.env.TRIPLE_WHALE_API_KEY, // a load reads only Triple Whale
   });
 });
 
 // GET /api/dashboard?mode=active|all — SSE with progress updates; a second request with the same
 // mode joins the running load (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
-  const { token, accountId } = getCredentials();
-  if (!token || !accountId)
-    return res.status(400).json({ error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID' });
+  if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
   const mode = req.query.mode || 'all';
   sseLoad(res, `mode=${mode}`, ctx => loadDashboard({ mode, ...ctx }));
 });
 
 async function loadDashboard({ mode, progress, send, elapsed }) {
   const today = todayStr();
-  const defaultFilter = ['ACTIVE', 'PAUSED'];
-  const activeFilter = ['ACTIVE'];
-
-  // ── Step 1: Ad spend + purchase value from Triple Whale ──
-  const insights = (since, statuses) => fetchAdRows({ since, until: today, statuses });
-  let allRows;
-  let isIncremental = false;
-
-  if (mode === 'active') {
-    const since = allTimeStart();
-    progress(`Step 1: Reading active ads from Triple Whale (${since} → ${today})... [${elapsed()}]`);
-    allRows = await insights(since, activeFilter);
-    progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
-  } else {
-    // All mode: incremental cache
-    const cache = insightsCache;
-    if (cache) {
-      if (cache.lastUntil >= today) {
-        allRows = cache.rows;
-        progress(`Step 1: Using cached ad data (${allRows.length} rows) [${elapsed()}]`);
-      } else {
-        isIncremental = true;
-        const since = addDays(cache.lastUntil, 1);
-        progress(`Step 1: Reading new days from Triple Whale (${since} → ${today})... [${elapsed()}]`);
-        const newRows = await insights(since, defaultFilter);
-        allRows = [...cache.rows, ...newRows];
-        progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
-      }
-    } else {
-      const since = allTimeStart();
-      progress(`Step 1: Reading 12 months from Triple Whale (${since} → ${today})... [${elapsed()}]`);
-      allRows = await insights(since, defaultFilter);
-      progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
-    }
-
-    insightsCache = { rows: allRows, lastUntil: today, cached_at: new Date().toISOString() };
-  }
+  // ── Step 1: Ad spend + purchase value from Triple Whale, 12 months read in full on every load
+  // (about 10s; the old per-day cache for Meta's slow reports froze the last day it had read) ──
+  const since = allTimeStart();
+  const statuses = mode === 'active' ? ['ACTIVE'] : ['ACTIVE', 'PAUSED'];
+  progress(`Step 1: Reading ${mode === 'active' ? 'active ads' : '12 months'} from Triple Whale (${since} → ${today})... [${elapsed()}]`);
+  const allRows = await fetchAdRows({ since, until: today, statuses });
+  progress(`Step 1: ${allRows.length} ads loaded [${elapsed()}]`);
 
   // Pick top-spend ad per ad_name
   const topAds = pickTopSpendAds(allRows);
@@ -169,8 +130,7 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
     ads,
     period: { since: allTimeStart(), until: today },
     lookback_months: LOOKBACK_MONTHS,
-    cached_at: insightsCache?.cached_at || new Date().toISOString(),
-    incremental: isIncremental,
+    cached_at: new Date().toISOString(),
     totalRows: allRows.length,
     topAdsCount: topAds.length,
     imageAdsCount: imageAds.length,
@@ -188,4 +148,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Meta Ads Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { todayStr, addDays, findPurchaseAction, pickTopSpendAds, extractGroupKey };
+module.exports = { todayStr, findPurchaseAction, pickTopSpendAds, extractGroupKey };

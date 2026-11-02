@@ -137,12 +137,12 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
   let currRows;
   if (!forceRefresh && ic) {
     currRows = ic.current;
-    progress(`Using cached insights (${currRows.length} rows) [${elapsed()}]`);
+    progress(`Using cached ad data (${currRows.length} rows) [${elapsed()}]`);
   } else {
     progress(`Reading Triple Whale... [${elapsed()}]`);
     currRows = await fetchAdRows(current);
     insightsCache[cacheKey] = { current: currRows };
-    progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
+    progress(`Ads loaded from Triple Whale:${currRows.length} rows [${elapsed()}]`);
   }
 
   // 2. Collect qualified ads: valid format with spend > $1 OR spend > $100.

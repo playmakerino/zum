@@ -108,7 +108,7 @@ function renderDebug(d) {
   if (!d) { el.textContent = ''; return; }
   const sec = (d.elapsedMs / 1000).toFixed(1);
   const insightsSrc = d.insights.source === 'cache' ? ' from cache'
-                    : d.insights.source === 'api'   ? ' from API'
+                    : d.insights.source === 'api'   ? ' from Triple Whale'
                     : '';
   const formatBreakdown = [
     `${d.creatives.video} video`,
@@ -120,10 +120,10 @@ function renderDebug(d) {
   const parts = [
     `Loaded in ${sec}s`,
     ins.formAds != null
-      ? `Insights: ${ins.raw} rows${insightsSrc} → ${ins.formAds} form ads + ${ins.otherVideoAds} other video ads (spend > 1)`
+      ? `Ads: ${ins.raw} rows${insightsSrc} → ${ins.formAds} form ads + ${ins.otherVideoAds} other video ads (spend > 1)`
       : `Insights: ${ins.raw} rows${insightsSrc} → ${ins.afterSpendFilter} with spend > 1`
         + (ins.withVideoPlays != null ? ` → ${ins.withVideoPlays} with video plays` : ''),
-    `Ads: ${d.ads.cached} cached, ${d.ads.fetched} fetched`,
+    `Creatives: ${d.ads.cached} cached, ${d.ads.fetched} read`,
     `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
     d.bigquery && `BigQuery: ${d.bigquery.status === 'ok' ? d.bigquery.videos + ' videos' : d.bigquery.status}`,
     d.thumbs && `Thumbnails: ${d.thumbs.total} (${d.thumbs.total - d.thumbs.fromMeta} Triple Whale, ${d.thumbs.fromMeta} fetched from Meta)`,
@@ -331,9 +331,9 @@ const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimum
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');
 const fmtPctInt = v => Math.round(parseFloat(v || 0)) + '%';
 
-// Thumbnail = the ad's current Meta thumbnail (read again on Load Data, so a thumbnail changed in
-// Ads Manager shows). Meta links expire after a few days; a saved result then falls back to the
-// Drive thumbnail of the original file (permanent).
+// Thumbnail = the ad's thumbnail from Triple Whale (read again on Load Data; a thumbnail changed in
+// Ads Manager shows once Triple Whale syncs, a few hours later) or from "Fetch from Meta". Meta links
+// expire after a few days; a broken thumbnail then falls back to the Drive thumbnail of the original file.
 // drive.google.com/thumbnail loads in browsers; lh3.googleusercontent.com answers 429 to pages that send a Referer
 const DRIVE_THUMB = id => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w480`;
 // the original mp4 goes through our server (browsers are refused by drive.usercontent.google.com)
@@ -348,7 +348,7 @@ const canPlay = r => !!(r.reel_url || r.drive_file_id || r.video_id);
 // the reel's poster frame through our server (read from Facebook's video plugin, no Meta call)
 const REEL_THUMB = url => { const id = String(url || '').match(/\/reel\/(\d+)/)?.[1]; return id ? `/api/reel-thumb/${id}` : ''; };
 
-// Thumbnail order: reel poster → Meta thumbnail → Drive thumbnail; each failure tries the next one
+// Thumbnail order: reel poster → Triple Whale (or Meta) thumbnail → Drive thumbnail; each failure tries the next one
 function thumb(r) {
   const srcs = [REEL_THUMB(r.reel_url), r.thumbnail_url, r.drive_thumb_id ? DRIVE_THUMB(r.drive_thumb_id) : ''].filter(Boolean);
   if (!srcs.length) return `<div class="thumb-placeholder">${PLACEHOLDER_SVG}</div>`;
@@ -405,8 +405,8 @@ function openVideo(i) {
   $('viAdded').hidden = !r.created_at;
   $('viSubmitter').textContent = r.submitted_by || '';
   $('viSubmitterSec').hidden = !r.submitted_by;
-  // Thumbnail: the ad's thumbnail from Meta (current creative) when there is one, else the Drive
-  // file's thumbnail; the label says which. "Fetch from Meta" reads Meta again (2 Meta calls).
+  // Thumbnail: the ad's thumbnail from Triple Whale when there is one, else the Drive file's
+  // thumbnail; the label says which. "Fetch from Meta" reads the current one from Meta (2 Meta calls).
   viewer.dataset.row = String(i);
   viewer.dataset.driveThumb = driveThumb;
   $('viThumbSec').hidden = !(r.thumb_ad_id || driveThumb);

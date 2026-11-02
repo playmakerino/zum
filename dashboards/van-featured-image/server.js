@@ -95,7 +95,7 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
 
   if (mode === 'active') {
     const since = allTimeStart();
-    progress(`Step 1: Fetching active ads (${since} → ${today})... [${elapsed()}]`);
+    progress(`Step 1: Reading active ads from Triple Whale (${since} → ${today})... [${elapsed()}]`);
     allRows = await insights(since, activeFilter);
     progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
   } else {
@@ -104,18 +104,18 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
     if (cache) {
       if (cache.lastUntil >= today) {
         allRows = cache.rows;
-        progress(`Step 1: Using cached insights (${allRows.length} rows) [${elapsed()}]`);
+        progress(`Step 1: Using cached ad data (${allRows.length} rows) [${elapsed()}]`);
       } else {
         isIncremental = true;
         const since = addDays(cache.lastUntil, 1);
-        progress(`Step 1: Incremental fetch (${since} → ${today})... [${elapsed()}]`);
+        progress(`Step 1: Reading new days from Triple Whale (${since} → ${today})... [${elapsed()}]`);
         const newRows = await insights(since, defaultFilter);
         allRows = [...cache.rows, ...newRows];
         progress(`Step 1: +${newRows.length} rows, total ${allRows.length} [${elapsed()}]`);
       }
     } else {
       const since = allTimeStart();
-      progress(`Step 1: Fetching all-time data (${since} → ${today})... [${elapsed()}]`);
+      progress(`Step 1: Reading 12 months from Triple Whale (${since} → ${today})... [${elapsed()}]`);
       allRows = await insights(since, defaultFilter);
       progress(`Step 1: ${allRows.length} rows loaded [${elapsed()}]`);
     }

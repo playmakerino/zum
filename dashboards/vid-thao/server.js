@@ -238,13 +238,13 @@ async function loadOrFetchInsights({ days, forceRefresh, current, progress, elap
   const cacheKey = String(days);
   const ic = insightsCache[cacheKey];
   if (!forceRefresh && ic) {
-    progress(`Using cached insights (${ic.current.length} rows) [${elapsed()}]`);
+    progress(`Using cached ad data (${ic.current.length} rows) [${elapsed()}]`);
     return { rows: ic.current, source: 'cache' };
   }
   progress(`Reading Triple Whale... [${elapsed()}]`);
   const currRows = await fetchAdRows(current);
   insightsCache[cacheKey] = { current: currRows };
-  progress(`Insights loaded: ${currRows.length} rows [${elapsed()}]`);
+  progress(`Ads loaded from Triple Whale:${currRows.length} rows [${elapsed()}]`);
   return { rows: currRows, source: 'api' };
 }
 

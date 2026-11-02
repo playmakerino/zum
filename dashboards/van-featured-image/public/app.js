@@ -127,8 +127,15 @@ async function fetchAll(mode = 'all') {
     ov.style.display = 'none';
 
     setMode(mode);
-    const modeLabel = mode === 'active' ? 'Active' : 'All';
-    addLog(`${modeLabel}: ${data.totalRows} ads → ${data.topAdsCount} spend>$100 → ${data.imageAdsCount} image ads | ${data.adsWithImage} has image · ${data.adsWithLink} has link`, 'success');
+    // same style as trang-mockup's load log: number then noun, from all ads down to the table
+    const noImage = data.imageAdsCount - data.adsWithImage, noLink = data.imageAdsCount - data.adsWithLink;
+    addLog([
+      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}ads`,
+      `${data.topAdsCount} designs over $100`,
+      `${data.imageAdsCount} image ads`,
+      noImage > 0 && `${noImage} without image`,
+      noLink > 0 && `${noLink} without link`,
+    ].filter(Boolean).join(' · '), 'success');
   } catch (err) {
     clearInterval(timerInterval);
     ov.style.display = 'none';

@@ -106,27 +106,17 @@ function renderDebug(d) {
   const el = $('debugLine');
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
-  const sec = (d.elapsedMs / 1000).toFixed(1);
-  const insightsSrc = d.insights.source === 'cache' ? ' from cache'
-                    : d.insights.source === 'api'   ? ' from Triple Whale'
-                    : '';
-  const formatBreakdown = [
-    `${d.creatives.video} video`,
-    d.creatives.image    && `${d.creatives.image} image`,
-    d.creatives.carousel && `${d.creatives.carousel} carousel`,
-    d.creatives.missing  && `${d.creatives.missing} missing`,
-  ].filter(Boolean).join(', ');
-  const ins = d.insights;
+  // same style as trang-mockup's load log: number then noun, from all ads down to what the table
+  // shows (the full telemetry is in the console: showDebug)
+  const ins = d.insights, c = d.creatives;
+  if (ins.formAds == null) { el.textContent = `${ins.raw} ads`; return; } // saved before 2026-10-15
+  const hidden = c.total - c.video;
   const parts = [
-    `Loaded in ${sec}s`,
-    ins.formAds != null
-      ? `Ads: ${ins.raw} rows${insightsSrc} → ${ins.formAds} form ads + ${ins.otherVideoAds} other video ads (spend > 1)`
-      : `Insights: ${ins.raw} rows${insightsSrc} → ${ins.afterSpendFilter} with spend > 1`
-        + (ins.withVideoPlays != null ? ` → ${ins.withVideoPlays} with video plays` : ''),
-    `Creatives: ${d.ads.cached} cached, ${d.ads.fetched} read`,
-    `Rows (1 per video): ${d.creatives.total} (${formatBreakdown})`,
-    d.bigquery && `BigQuery: ${d.bigquery.status === 'ok' ? d.bigquery.videos + ' videos' : d.bigquery.status}`,
-    d.thumbs && `Thumbnails: ${d.thumbs.total} from Triple Whale`,
+    `${ins.raw} ads`,
+    `${ins.formAds + ins.otherVideoAds} video ads (${ins.formAds} form, ${ins.otherVideoAds} other)`,
+    `${c.video} videos`,
+    hidden > 0 && `${hidden} not video`,
+    d.bigquery?.status !== 'ok' && `BigQuery ${d.bigquery?.status}`,
   ];
   el.textContent = parts.filter(Boolean).join(' · ');
 }

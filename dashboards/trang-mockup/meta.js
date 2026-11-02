@@ -254,28 +254,57 @@ async function twSql(query, start, end) {
   return Array.isArray(d) ? d : (d?.data || d?.rows || []);
 }
 
+// [since, until] → [[from, to], ...] of at most `days` days each (YYYY-MM-DD, inclusive)
+function datePieces(since, until, days) {
+  const out = [];
+  const add = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  for (let from = since; from <= until; from = add(from, days)) {
+    const to = add(from, days - 1);
+    out.push([from, to < until ? to : until]);
+  }
+  return out;
+}
+
 // One row per ad with spend in [since, until] whose current status is in `statuses`, spend
 // descending, in the shape of Meta insights rows (actions / action_values / video_*_actions), so
 // code written for fetchInsights reads it unchanged.
 async function fetchAdRows({ since, until, statuses = ['ACTIVE', 'PAUSED'] }) {
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   if (!DATE_RE.test(since) || !DATE_RE.test(until)) throw twError('Bad date range');
-  const st = statuses.filter(s => /^[A-Z_]+$/.test(s)).map(s => `'${s}'`).join(',');
-  const rows = await twSql(`SELECT toString(ad_id) AS ad_id, any(nullIf(ad_name, '')) AS ad_name,
-  argMax(ad_effective_status, (event_date, event_hour)) AS status,
-  sum(spend) AS spend, sum(impressions) AS imp, sum(clicks) AS clk, sum(conversions) AS ord, sum(conversion_value) AS rev,
+  const where = (from, to) => `FROM ads_table
+WHERE channel = 'facebook-ads' AND event_date BETWEEN '${from}' AND '${to}'
+  AND (spend > 0 OR impressions > 0 OR conversions > 0 OR conversion_value > 0)
+GROUP BY ad_id`;
+  const metrics = (from, to) => twSql(`SELECT toString(ad_id) AS ad_id, any(nullIf(ad_name, '')) AS ad_name,
+  sum(spend) AS sp, sum(impressions) AS imp, sum(clicks) AS clk, sum(conversions) AS ord, sum(conversion_value) AS rev,
   sum(three_second_video_view) AS v3, sum(thruplays) AS tp, sum(total_video_view) AS vp
-FROM ads_table
-WHERE channel = 'facebook-ads' AND event_date BETWEEN '${since}' AND '${until}'
-GROUP BY ad_id
-HAVING spend > 0 AND status IN (${st})
-ORDER BY spend DESC`, since, until);
+${where(from, to)}`, from, to);
+  // Status is a separate query: with ad_effective_status in the same SELECT, Triple Whale returns
+  // total_video_view as 0 and slightly different sums (seen 2026-11-03).
+  const statusPending = twSql(`SELECT toString(ad_id) AS ad_id, argMax(ad_effective_status, (event_date, event_hour)) AS status
+${where(since, until)}
+HAVING sum(spend) > 0 AND status IN (${statuses.filter(s => /^[A-Z_]+$/.test(s)).map(s => `'${s}'`).join(',')})`, since, until);
+  // Triple Whale refuses a metrics result over 50,000 ads (12 months had 50,180), so ranges over
+  // 92 days are read in 92-day pieces, one after another, and summed per ad.
+  const byAd = new Map();
+  for (const [from, to] of datePieces(since, until, 92)) {
+    for (const r of await metrics(from, to)) {
+      const id = String(r.ad_id || '');
+      if (!id) continue;
+      const t = byAd.get(id) || { ad_id: id, ad_name: '', sp: 0, imp: 0, clk: 0, ord: 0, rev: 0, v3: 0, tp: 0, vp: 0 };
+      if (!t.ad_name && r.ad_name) t.ad_name = r.ad_name;
+      for (const k of ['sp', 'imp', 'clk', 'ord', 'rev', 'v3', 'tp', 'vp']) t[k] += Number(r[k]) || 0;
+      byAd.set(id, t);
+    }
+  }
+  const statusOf = new Map((await statusPending).map(r => [String(r.ad_id), r.status]));
+  const rows = [...byAd.values()].filter(r => r.sp > 0 && statuses.includes(statusOf.get(r.ad_id))).sort((a, b) => b.sp - a.sp);
   const act = (type, value) => [{ action_type: type, value: String(Number(value) || 0) }];
-  return rows.filter(r => r.ad_id).map(r => ({
+  return rows.map(r => ({
     ad_id: String(r.ad_id),
     ad_name: r.ad_name || '',
-    status: r.status,
-    spend: String(Number(r.spend) || 0),
+    status: statusOf.get(String(r.ad_id)),
+    spend: String(Number(r.sp) || 0),
     impressions: String(Number(r.imp) || 0),
     clicks: String(Number(r.clk) || 0),
     actions: [...act('omni_purchase', r.ord), ...act('video_view', r.v3)],

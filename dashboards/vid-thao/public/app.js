@@ -106,17 +106,16 @@ function renderDebug(d) {
   const el = $('debugLine');
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
-  // same style as trang-mockup's load log: number then noun, from all ads down to what the table
-  // shows (the full telemetry is in the console: showDebug)
+  // what the table shows, which ads it comes from, why rows are hidden (user choice 2026-11-03;
+  // the full telemetry is in the console: showDebug)
   const ins = d.insights, c = d.creatives;
-  if (ins.formAds == null) { el.textContent = `${ins.raw} ads`; return; } // saved before 2026-10-15
+  if (ins.formAds == null) { el.textContent = `${c.video} videos shown`; return; } // saved before 2026-10-15
   const hidden = c.total - c.video;
   const parts = [
-    `${ins.raw} ads`,
-    `${ins.formAds + ins.otherVideoAds} video ads (${ins.formAds} form, ${ins.otherVideoAds} other)`,
-    `${c.video} videos`,
-    hidden > 0 && `${hidden} not video`,
-    d.bigquery?.status !== 'ok' && `BigQuery ${d.bigquery?.status}`,
+    `${c.video} videos shown`,
+    `from ${ins.formAds + ins.otherVideoAds} ads (${ins.formAds} sent through the form, ${ins.otherVideoAds} others with video plays)`,
+    hidden > 0 && `${hidden} hidden: catalog or image ads`,
+    d.bigquery?.status !== 'ok' && `BigQuery ${d.bigquery?.status}: no submitters`,
   ];
   el.textContent = parts.filter(Boolean).join(' · ');
 }

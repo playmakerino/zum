@@ -224,7 +224,7 @@ async function loadOrFetchInsights({ days, forceRefresh, current, progress, elap
   progress(`Reading Triple Whale... [${elapsed()}]`);
   const currRows = await fetchAdRows(current);
   insightsCache[cacheKey] = { current: currRows };
-  progress(`Ads loaded from Triple Whale:${currRows.length} rows [${elapsed()}]`);
+  progress(`Ads loaded from Triple Whale: ${currRows.length} rows [${elapsed()}]`);
   return { rows: currRows, source: 'api' };
 }
 
@@ -351,8 +351,18 @@ async function loadDashboard({ accountId, days, forceRefresh, progress, send, el
     if (cid && twThumbCache[cid]) hdThumbMap[cid] = twThumbCache[cid];
   }
 
+  // only video ads go on (same rule as the Video format in groupByVideo): an ad with video plays can
+  // still be a catalog, image or carousel ad, which the table would only hide
+  const isVideoAd = r => {
+    const c = creativeCache[r.ad_id]?.creative;
+    if (c) return c.object_type === 'VIDEO';
+    const up = videoTable.adVideo?.[r.ad_id];
+    return !!((up && videoTable.byVideo?.[up]) || videoTable.byAd?.[r.ad_id]);
+  };
+  const videoRows = currRows.filter(isVideoAd);
+
   progress(`Processing data... [${elapsed()}]`);
-  const grouped = groupByVideo(currRows, creativeCache, hdThumbMap, videoTable);
+  const grouped = groupByVideo(videoRows, creativeCache, hdThumbMap, videoTable);
   const videoCount    = grouped.filter(c => c.format === 'Video').length;
   const imageCount    = grouped.filter(c => c.format === 'Image').length;
   const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -368,7 +378,7 @@ async function loadDashboard({ accountId, days, forceRefresh, progress, send, el
     days,
     refresh: forceRefresh,
     insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length },
-    ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore },
+    ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore, video: videoRows.length, notVideo: currRows.length - videoRows.length },
     bigquery:  { status: videoTable.status, videos: Object.keys(videoTable.byVideo).length, ads: Object.keys(videoTable.byAd).length },
     thumbs:    { total: Object.keys(hdThumbMap).length },
     creatives: { total: grouped.length, video: videoCount, image: imageCount, carousel: carouselCount, missing: missingCount },

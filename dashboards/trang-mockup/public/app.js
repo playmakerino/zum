@@ -243,8 +243,8 @@ async function fetchAll() {
     // same pattern on all three dashboards (user choice 2026-11-03)
     const kept = st?.kept ? ` (${st.kept.named} named, ${st.kept.highSpend} over $100)` : '';
     const result = st
-      ? `${st.insights.rows} ads · ${st.qualifiedRows} kept${kept} · ${totalCreatives} image rows · ${data.mockups.current.length} mockup rows · ${fmt} Full Format, ${hs} High Spend`
-      : `${data.mockups.current.length} mockup rows · ${fmt} Full Format, ${hs} High Spend`;
+      ? `${st.insights.rows} ads · ${st.qualifiedRows} kept${kept} · ${totalCreatives} image hashes · ${data.mockups.current.length} mockup ids · ${fmt} Full Format, ${hs} High Spend`
+      : `${data.mockups.current.length} mockup ids · ${fmt} Full Format, ${hs} High Spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
     logTo('creativesLoadLog', result, 'success');

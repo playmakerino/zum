@@ -239,9 +239,12 @@ async function fetchAll() {
     const st = data.stats;
     const totalCreatives = state.creativesValid.current.length + state.creativesSpend.current.length;
     const fmt = state.creativesValid.current.length, hs = state.creativesSpend.current.length;
+    // one part per step, in the order loadDashboard (server.js) runs them, then the tab split;
+    // same pattern on all three dashboards (user choice 2026-11-03)
+    const kept = st?.kept ? ` (${st.kept.named} named, ${st.kept.highSpend} over $100)` : '';
     const result = st
-      ? `${st.insights.rows} ads · ${st.qualifiedRows ?? '?'} qualified · ${totalCreatives} creatives (${fmt} full format, ${hs} high spend) · ${data.mockups.current.length} mockups`
-      : `${data.mockups.current.length} mockups · ${fmt} full format · ${hs} high spend`;
+      ? `${st.insights.rows} ads · ${st.qualifiedRows} kept${kept} · ${totalCreatives} image rows · ${data.mockups.current.length} mockup rows · ${fmt} Full Format, ${hs} High Spend`
+      : `${data.mockups.current.length} mockup rows · ${fmt} Full Format, ${hs} High Spend`;
     clearLog();
     logTo('mockupsLoadLog', result, 'success');
     logTo('creativesLoadLog', result, 'success');

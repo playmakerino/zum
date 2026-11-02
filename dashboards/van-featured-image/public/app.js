@@ -127,12 +127,14 @@ async function fetchAll(mode = 'all') {
     ov.style.display = 'none';
 
     setMode(mode);
-    // same style as trang-mockup's load log: number then noun, from all ads down to the table
+    // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all
+    // three dashboards (user choice 2026-11-03)
+    const hidden = data.topAdsCount - data.imageAdsCount;
     const noImage = data.imageAdsCount - data.adsWithImage, noLink = data.imageAdsCount - data.adsWithLink;
     addLog([
       `${data.totalRows} ${mode === 'active' ? 'active ' : ''}ads`,
-      `${data.topAdsCount} designs over $100`,
-      `${data.imageAdsCount} image ads`,
+      `${data.topAdsCount} kept (top ad per design, over $100)`,
+      `${data.imageAdsCount} shown` + (hidden > 0 ? `, ${hidden} hidden (not image)` : ''),
       noImage > 0 && `${noImage} without image`,
       noLink > 0 && `${noLink} without link`,
     ].filter(Boolean).join(' · '), 'success');

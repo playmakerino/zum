@@ -107,7 +107,8 @@ function renderDebug(d) {
   if (!el) return;
   if (!d) { el.textContent = ''; return; }
   // one part per step, in the order loadDashboard (server.js) runs them, then the table's own
-  // video filter (user choice 2026-11-03; the full telemetry is in the console: showDebug)
+  // video filter; same pattern on all three dashboards (user choice 2026-11-03; the full
+  // telemetry is in the console: showDebug)
   const ins = d.insights, c = d.creatives, bq = d.bigquery;
   if (ins.formAds == null) { el.textContent = `${c.video} videos shown`; return; } // saved before 2026-10-15
   const kept = ins.formAds + ins.otherVideoAds;
@@ -117,7 +118,7 @@ function renderDebug(d) {
     bq?.status === 'ok' ? `${bq.videos} form videos` : `BigQuery ${bq?.status}`,
     `${kept} kept (${ins.formAds} form, ${ins.otherVideoAds} others)`,
     `${c.total} rows`,
-    `${c.video} shown` + (hidden > 0 ? `, ${hidden} hidden` : ''),
+    `${c.video} shown` + (hidden > 0 ? `, ${hidden} hidden (not video)` : ''),
   ];
   el.textContent = parts.join(' · ');
 }

@@ -210,6 +210,7 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
     stats: { // read by the load log in public/app.js
       insights: { rows: currRows.length },
       qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
+      kept: { named: validFmtCount, highSpend: highSpendCount },
     },
   };
   progress(`Done [${elapsed()}]`);

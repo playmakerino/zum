@@ -130,9 +130,8 @@ async function fetchAll(mode = 'all') {
     // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all
     // three dashboards (user's wording 2026-11-03)
     addLog([
-      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}ads from Triple Whale`,
-      `${data.topAdsCount} top ads per design, each over $100`,
-      `${data.imageAdsCount} actual image ads`,
+      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}image ads over $100 from Triple Whale`,
+      `${data.topAdsCount} top ads per design`,
     ].join(' · '), 'success');
   } catch (err) {
     clearInterval(timerInterval);

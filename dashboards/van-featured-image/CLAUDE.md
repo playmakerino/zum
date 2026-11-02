@@ -9,7 +9,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
   - `public/index.html` — HTML structure
   - `public/style.css` — CSS styles
   - `public/app.js` — JavaScript logic
-- **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchAdRows`, từ 2026-11-02, 12 tháng khoảng 4s); creative, ảnh, link cũng từ Triple Whale (`fetchAdMedia`, từ 2026-11-03), không còn gọi Meta. Cả hai nằm ở `meta.js`, bản gốc `dashboards/shared/meta.js`
+- **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchImageAdsOver100` trong server.js, từ 2026-11-03: lọc ad ảnh + chi tiêu trên 100 USD ngay trong SQL, 12 tháng 1 câu, cả lượt tải khoảng 2s); ảnh, link cũng từ Triple Whale (`fetchAdMedia`). Không gọi Meta. Hàm Triple Whale dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
 - **No build process**
@@ -44,29 +44,27 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 
 Response: SSE stream gồm nhiều `progress` events và 1 `result` event cuối cùng.
 
-### Step 1: Số liệu ad từ Triple Whale
+### Step 1: Ad ảnh trên 100 USD từ Triple Whale (`fetchImageAdsOver100`)
 ```
-Triple Whale: POST /api/v2/orcabase/api/sql (ads_table, gộp theo ad_id, 1 câu)
+Triple Whale: 2 câu SQL song song trên ads_table, WHERE ad_type = 'image', HAVING chi tiêu > 100
+  1. số liệu: ad_id, ad_name, sum(spend), sum(conversion_value)
+  2. trạng thái: argMax(ad_effective_status) IN (ACTIVE, PAUSED) (Load Active Ads: chỉ ACTIVE)
 ```
-- Mỗi dòng = 1 ad có spend > 0 trong kỳ, trạng thái hiện tại ACTIVE/PAUSED (Load Active Ads: chỉ ACTIVE), mang `spend` + `action_values` giống insights của Meta. Ad chạy nhưng chưa có chi tiêu trong kỳ không có dòng (dashboard vốn lọc spend > 100)
-- Lookback 12 tháng (`LOOKBACK_MONTHS` trong server.js), **đọc lại đủ 12 tháng mỗi lần bấm** (khoảng 10s, từ 2026-11-03). Cache theo ngày kiểu cũ (giữ kết quả cả ngày, rồi chỉ đọc từ `lastUntil + 1`) làm đóng băng ngày đã đọc dở nên đã bỏ
+- Trạng thái là câu riêng: để `ad_effective_status` chung SELECT với số liệu thì Triple Whale cộng sai.
+- Lookback 12 tháng (`LOOKBACK_MONTHS`), đọc lại đủ mỗi lần bấm. Số ad ảnh trên 100 USD nhỏ (đo 2026-11-03: 1201, còn 883 sau lọc trạng thái) nên không chạm giới hạn 50.000 dòng, không phải chia đoạn.
+- **Vì sao lọc trong SQL** (user chốt 2026-11-03): cách cũ đọc mọi ad (29.147, chia 4 đoạn, ~8s), chọn ad đứng đầu mỗi thiết kế rồi mới bỏ ad không phải ảnh, nên thiết kế có ad đứng đầu là video/catalog bị mất dù có ad ảnh trên 100 USD (mất 30/367 thiết kế).
+- Ad nào từng đổi loại creative giữa kỳ thì chỉ tính phần thời gian là ad ảnh (hiếm).
 
-### Step 1.5: pickTopSpendAds()
-- Aggregate rows theo `ad_id` → tính tổng spend + purchase_value
-- **Filter:** `spend <= 100` → bỏ ads có tổng spend <= $100
-- Gom theo `extractGroupKey(ad_name)` (print-type) → chỉ giữ ad có spend cao nhất mỗi nhóm
-- Tính `roas = purchase_value / spend`
+### Step 2: pickTopSpendAds()
+- Gộp theo `extractGroupKey(ad_name)` (print-type), giữ ad chi tiêu cao nhất mỗi nhóm, tính `roas = purchase_value / spend`
 
-### Step 2: Creative, ảnh, link từ Triple Whale (chỉ ad chưa có trong cache)
+### Step 3: Ảnh, link từ Triple Whale (chỉ ad chưa có trong cache)
 ```
 Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nhất không rỗng)
 ```
 - Cache: `mediaCache` (RAM, đến restart; link `files.triplewhale.com` không hết hạn)
 - `image_url` = ảnh gốc (1600×2000, tên file = mã ảnh Meta), `link` = `destination_url`
-
-### Step 2.5: Filter Image Ads
-- **Filter:** Triple Whale `ad_type === 'image'`
-- Loại video, ad catalog và cả ad nhiều phiên bản (`asset_feed_spec`, Advantage+): Triple Whale xếp catalog và nhiều phiên bản chung loại `dynamic`, chỉ có ảnh 500px (đổi 2026-11-03; trước đó ad nhiều phiên bản có ảnh vẫn hiện)
+- Ad catalog và ad nhiều phiên bản (Advantage+) là loại `dynamic` trong Triple Whale, chỉ có ảnh 500px, nên không vào dashboard này
 
 ### Step 4: Build Response
 ```json

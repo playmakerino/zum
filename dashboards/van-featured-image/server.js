@@ -2,7 +2,7 @@
 require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const path      = require('path');
-const { findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
+const { findPurchaseAction, twSql, fetchAdMedia, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -74,40 +74,63 @@ app.get('/api/dashboard', (req, res) => {
   sseLoad(res, `mode=${mode}`, ctx => loadDashboard({ mode, ...ctx }));
 });
 
+// Image ads with more than $100 spend in [since, until] whose current status is in `statuses`,
+// filtered inside Triple Whale (2 queries in parallel, about 4s for 12 months; measured 2026-11-03).
+// Reading every ad and checking the type afterwards took 10s and dropped designs whose top-spend ad
+// was a video or catalog ad even when they had an image ad over $100 (30 of 367 designs).
+// Status is its own query: with ad_effective_status in the metrics SELECT, Triple Whale's sums differ.
+async function fetchImageAdsOver100({ since, until, statuses }) {
+  const where = `FROM ads_table
+WHERE channel = 'facebook-ads' AND event_date BETWEEN '${since}' AND '${until}' AND ad_type = 'image'
+  AND (spend > 0 OR conversion_value > 0)
+GROUP BY ad_id`;
+  const st = statuses.filter(x => /^[A-Z_]+$/.test(x)).map(x => `'${x}'`).join(',');
+  const [rows, statusRows] = await Promise.all([
+    twSql(`SELECT toString(ad_id) AS ad_id, any(nullIf(ad_name, '')) AS ad_name, sum(spend) AS sp, sum(conversion_value) AS rev
+${where}
+HAVING sp > 100`, since, until),
+    twSql(`SELECT toString(ad_id) AS ad_id, argMax(ad_effective_status, (event_date, event_hour)) AS status
+${where}
+HAVING sum(spend) > 100 AND status IN (${st})`, since, until),
+  ]);
+  const keep = new Set(statusRows.map(r => String(r.ad_id)));
+  return rows.filter(r => keep.has(String(r.ad_id))).map(r => ({
+    ad_id: String(r.ad_id),
+    ad_name: r.ad_name || '',
+    spend: String(Number(r.sp) || 0),
+    action_values: [{ action_type: 'omni_purchase', value: String(Number(r.rev) || 0) }],
+  }));
+}
+
 async function loadDashboard({ mode, progress, send, elapsed }) {
   const today = todayStr();
-  // ── Step 1: Ad spend + purchase value from Triple Whale, 12 months read in full on every load
-  // (about 10s; the old per-day cache for Meta's slow reports froze the last day it had read) ──
   const since = allTimeStart();
   const statuses = mode === 'active' ? ['ACTIVE'] : ['ACTIVE', 'PAUSED'];
-  progress(`Step 1: Reading ${mode === 'active' ? 'active ads' : '12 months'} from Triple Whale (${since} → ${today})... [${elapsed()}]`);
-  const allRows = await fetchAdRows({ since, until: today, statuses });
-  progress(`Step 1: ${allRows.length} ads loaded [${elapsed()}]`);
 
-  // Pick top-spend ad per ad_name
+  // ── Step 1: image ads over $100 in 12 months, filtered in Triple Whale ──
+  progress(`Step 1: Reading ${mode === 'active' ? 'active ' : ''}image ads over $100 from Triple Whale (${since} → ${today})... [${elapsed()}]`);
+  const allRows = await fetchImageAdsOver100({ since, until: today, statuses });
+  progress(`Step 1: ${allRows.length} image ads loaded [${elapsed()}]`);
+
+  // ── Step 2: top-spend ad per design (print-type) ──
   const topAds = pickTopSpendAds(allRows);
-  progress(`${topAds.length} unique designs (top spend per print-type) [${elapsed()}]`);
+  progress(`Step 2: ${topAds.length} top ads per design [${elapsed()}]`);
 
-  // ── Step 2: Creative, image and link of the top ads from Triple Whale (only missing) ──
-  const topAdIds = topAds.map(a => a.ad_id);
-  const missingIds = topAdIds.filter(id => !mediaCache.has(id));
+  // ── Step 3: image and link of the top ads from Triple Whale (only missing) ──
+  const missingIds = topAds.map(a => a.ad_id).filter(id => !mediaCache.has(id));
   if (missingIds.length > 0) {
-    progress(`Step 2: Reading creatives of ${missingIds.length} ads from Triple Whale... [${elapsed()}]`);
-    const media = await fetchAdMedia(missingIds, allTimeStart(), today);
+    progress(`Step 3: Reading images of ${missingIds.length} ads from Triple Whale... [${elapsed()}]`);
+    const media = await fetchAdMedia(missingIds, since, today);
     for (const [id, m] of media) mediaCache.set(id, m);
-    progress(`Step 2: Creatives read (${media.size} ads) [${elapsed()}]`);
+    progress(`Step 3: Images read (${media.size} ads) [${elapsed()}]`);
   } else {
-    progress(`Step 2: All creatives cached [${elapsed()}]`);
+    progress(`Step 3: All images cached [${elapsed()}]`);
   }
-
-  // Image ads only: Triple Whale type 'image' carries the original image. Catalog ads and
-  // multi-asset (asset_feed_spec) ads are both 'dynamic' with only a 500px thumbnail, so both are left out.
-  const imageAds = topAds.filter(ad => mediaCache.get(ad.ad_id)?.type === 'image').map(ad => ({
+  const imageAds = topAds.map(ad => ({
     ...ad,
-    image_url: mediaCache.get(ad.ad_id).image_url,
-    link: mediaCache.get(ad.ad_id).link,
+    image_url: mediaCache.get(ad.ad_id)?.image_url || null,
+    link: mediaCache.get(ad.ad_id)?.link || '',
   }));
-  progress(`${imageAds.length} image ads after filter [${elapsed()}]`);
 
   // Build final ads
   const ads = imageAds.map(ad => {

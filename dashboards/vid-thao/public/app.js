@@ -113,12 +113,11 @@ function renderDebug(d) {
   const kept = ins.formAds + ins.otherVideoAds;
   const hidden = c.total - c.video;
   const parts = [
-    `${ins.raw} ads with spend from ${ins.source === 'cache' ? 'saved data' : 'Triple Whale'}`,
-    bq?.status === 'ok' ? `${bq.videos} form videos from BigQuery` : `BigQuery ${bq?.status}: no submitters`,
-    `${kept} ads kept (${ins.formAds} sent through the form, ${ins.otherVideoAds} others with video plays)`,
-    `creatives of ${kept} ads (${d.ads.fetched} read, ${d.ads.cached} saved)`,
-    `${c.total} rows after merging ads that share a video`,
-    `${c.video} videos shown` + (hidden > 0 ? `, ${hidden} hidden (catalog or image ads)` : ''),
+    `${ins.raw} ads`,
+    bq?.status === 'ok' ? `${bq.videos} form videos` : `BigQuery ${bq?.status}`,
+    `${kept} kept (${ins.formAds} form, ${ins.otherVideoAds} others)`,
+    `${c.total} rows`,
+    `${c.video} shown` + (hidden > 0 ? `, ${hidden} hidden` : ''),
   ];
   el.textContent = parts.join(' · ');
 }

@@ -520,6 +520,8 @@
       let parsed = null;
       try { parsed = new URL(product_url); } catch (e) {}
       if (!parsed || !/^https?:$/.test(parsed.protocol)) return fail($('productUrlField'), 'Use the full link, starting with https://');
+      // n8n reads the product type from the /products/<handle> part, so a home or collection page is refused here
+      if (!/\/products\/[^/?#]+/.test(parsed.pathname)) return fail($('productUrlField'), 'Use a product page link, like https://scrubloop.com/products/...');
 
       // Ad text typed here is used as is for every ad (Meta mixes up to 5 of each)
       const texts = listValues($('textRows'));

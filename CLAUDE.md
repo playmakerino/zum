@@ -12,7 +12,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 
 | Thư mục | Việc |
 |---|---|
-| [`compositor/zum-prd/`](compositor/zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo. Production = workflow COMPOSITE form `IwCz50cciKPIjakZ` (webhook `/webhook/zum-prd-form-comp`); `kZvHwfNZ6Gz1L5E4` là đường lùi, Vertex `3t6lDwXAAVlvw75y` là bản dự phòng. Tài liệu: `zum-prd/CLAUDE.md` + `zum-prd/docs/*.md` (tách 2026-10-16). **Folder local-only, gitignore, KHÔNG push** (chuyển vào đây 2026-09-14, chỉ source ~90MB, bỏ ảnh sinh); form ở [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) |
+| [`compositor/zum-prd/`](compositor/zum-prd/CLAUDE.md) | Pattern swatch → product nháp zumbamboo. Workflow COMPOSITE form `IwCz50cciKPIjakZ` (webhook `/webhook/zum-prd-form-comp`); form + workflow **tạm tắt từ 2026-11-03** (mở lại: xoá khối `PAUSED` đầu `<body>` của form + bật workflow). Bản AI Studio `kZvHwfNZ6Gz1L5E4` và Vertex `3t6lDwXAAVlvw75y` đã xoá 2026-11-03. Tài liệu: `zum-prd/CLAUDE.md` + `zum-prd/docs/*.md` (tách 2026-10-16). **Folder local-only, gitignore, KHÔNG push** (chuyển vào đây 2026-09-14, chỉ source ~90MB, bỏ ảnh sinh); form ở [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) |
 
 ## Form TC: code dùng chung (từ 2026-10-12)
 Đường dẫn cũ đã đổi chỗ (tc_form_5, tc_prd_form, form quilt/embroidery, flatlay-composite…) không còn file chuyển hướng riêng: [`404.html`](404.html) ở gốc repo (GitHub Pages trả nó cho mọi đường dẫn không tồn tại) giữ bảng `MOVED` đường dẫn cũ → trang mới, thêm đường dẫn cũ = thêm 1 dòng (từ 2026-10-16).

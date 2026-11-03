@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create ads · Scrubloop</title>
+  <link rel="icon" type="image/jpeg" href="https://scrubloop.com/cdn/shop/files/fav.jpg?crop=center&height=32&v=1780464569&width=32">
+  <link rel="apple-touch-icon" href="https://scrubloop.com/cdn/shop/files/fav.jpg?crop=center&height=180&v=1780464569&width=180">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
+
+  <!-- Polaris look, measured on admin.shopify.com Online Store > URL redirects > Create URL redirect (annotated sections)
+       and guide/SHOPIFY-UI-GUIDE.md. Row lists follow the product Option values list: last row always empty ("Add another ..."),
+       trash icon inside a filled row on hover, a repeated value flagged under its row. -->
+  <style>
+    :root {
+      --text: #101010; --text-sub: #616161; --text-header: #4a4a4a; --placeholder: #4a4a4a;
+      --line: #f2f2f2; --band: #f7f7f7; --t-hover: rgba(0,0,0,.08); --t-active: rgba(0,0,0,.13);
+      --focus: #5083f0; --critical: #8e0b21;
+      --ring: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.13);
+      --ring-focus: 0 2px 3px -1px rgba(0,0,0,.04), 0 3px 4px -1.5px rgba(0,0,0,.04), 0 4px 5px -2px rgba(0,0,0,.04), 0 0 0 1px #5083f0, 0 0 0 3px rgba(53,115,246,.06), 0 4px 20px 2px rgba(53,115,246,.06), inset 0 0 8px 1px rgba(53,115,246,.05);
+      --card-sh: 0 0 2px rgba(0,0,0,.24), 0 2px 12px rgba(0,0,0,.02), 0 4px 16px rgba(0,0,0,.02), 0 4px 48px rgba(0,0,0,.02);
+      --dlg-sh: 0 2px 3px -1px rgba(0,0,0,.06), 0 4px 6px -2px rgba(0,0,0,.06), 0 8px 12px -4px rgba(0,0,0,.06), 0 16px 24px -6px rgba(0,0,0,.06), 0 32px 48px -8px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.08);
+      --pop-sh: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
+      --header-btn-sh: 0 0 0 1px rgba(0,0,0,.07), 0 2px 20px rgba(0,0,0,.03), 0 5px 20px rgba(0,0,0,.03), 0 8px 60px rgba(0,0,0,.03);
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: #fff; color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px; line-height: 20px; letter-spacing: -.01em;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: clip;   /* the full-width top bar band (100vw includes the scrollbar) must not add a sideways scroll */
+    }
+    button, input { font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
+    button { cursor: pointer; }
+    ::placeholder { color: var(--placeholder); opacity: 1; }
+    .page { max-width: 998px; margin: 0 auto; padding: 0 16px 64px; }   /* 64px: room for the store name fixed bottom left */
+
+    /* top bar: title left, actions right */
+    /* sticky like the admin page header: transparent at the top, white + 1px shade once the page scrolls (body.scrolled);
+       the white band spans the whole window, not only the 998px page */
+    .topbar { position: sticky; top: 0; z-index: 50; height: 60px; display: flex; align-items: center; gap: 8px; }
+    .topbar::before { content: ""; position: absolute; inset: 0 calc(50% - 50vw); z-index: -1; background: #fff;
+      box-shadow: 0 1px 0 rgba(0,0,0,.07); opacity: 0; transition: opacity .15s; pointer-events: none; }
+    body.scrolled .topbar::before { opacity: 1; }
+    .topbar h1 { font-size: 13px; line-height: 20px; font-weight: 500; }
+    .topbar .spacer { flex: 1; }
+
+    /* page picker next to the title (Orders "All locations"): white pill + up/down chevron, option list with a check on the left */
+    .picker { position: relative; }
+    .picker-btn { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 4px 6px 4px 12px; border: 0; border-radius: 9999px;
+      background: #fff; box-shadow: var(--header-btn-sh); font-weight: 450; white-space: nowrap; transition: background-color .4s cubic-bezier(.2,.8,0,1); }
+    .picker-btn:hover, .picker-btn.open { background: #f7f7f7; }
+    .picker-btn svg { width: 16px; height: 16px; fill: var(--text-header); }
+    .picker-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    .picker-menu { position: absolute; left: 0; top: 32px; z-index: 300; min-width: 100%; padding: 6px; background: #fff; border-radius: 16px; box-shadow: var(--pop-sh); }
+    .picker-menu[hidden] { display: none; }
+    .picker-menu button { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 6px 12px 6px 8px; border: 0; border-radius: 12px;
+      background: none; text-align: left; white-space: nowrap; font-weight: 450; color: #303030; }
+    .picker-menu button:hover { background: #f2f2f2; }
+    .picker-menu button.sel { background: #ebebeb; font-weight: 600; color: var(--text); }
+    .picker-menu .ck { width: 16px; height: 16px; flex: none; fill: var(--text); visibility: hidden; }
+    .picker-menu button.sel .ck { visibility: visible; }
+
+    /* store, bottom left (admin sidebar store switcher): 20px initials tile + store name */
+    .store { position: fixed; left: 16px; bottom: 16px; z-index: 40; display: flex; align-items: center; gap: 8px; pointer-events: none; }
+    /* store favicon (scrubloop.com), 1px frame like other thumbnails */
+    .store-tile { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; display: block; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+    .store-name { font-weight: 450; color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px;
+      font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap;
+      background: #fff; color: var(--text); box-shadow: var(--header-btn-sh);
+      transition: background-color .4s cubic-bezier(.2,.8,0,1);
+    }
+    .btn:hover:not(:disabled) { background: #f7f7f7; }
+    .btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .btn.primary {
+      background: var(--text); color: #fff; font-weight: 600;
+      box-shadow: 0 1px .5px -.5px rgba(0,0,0,.13), 0 1px 2px -.5px rgba(0,0,0,.13), 0 4px 6px -2px rgba(0,0,0,.13), 0 2px 3px -1.5px rgba(0,0,0,.13), inset 0 0 4px 1px #101010, inset 0 0 4px 2px rgba(255,255,255,.1), inset 0 0 12px -6px rgba(255,255,255,.75);
+    }
+    .btn.primary:hover:not(:disabled) { background: #2a2a2a; }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn:focus-visible, .x:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+    /* annotated sections (URL redirect page): heading + description left (1/3), fields in a white card right (2/3),
+       1px #f2f2f2 between sections; heading and the card's first label sit on the same line */
+    .section { display: flex; padding: 16px 0; }
+    .section + .section { border-top: 1px solid var(--line); }
+    /* measured: annotation flex 1 1 240px + 16px right padding, card flex 2 2 480px, 16px more between them (32px text to card) */
+    .annotation { flex: 1 1 240px; min-width: 0; padding: 16px 16px 0 0; margin-right: 16px; }
+    .annotation h2 { font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -.15px; margin-bottom: 8px; }
+    .annotation p { color: var(--text-header); }
+    .content { flex: 2 2 480px; min-width: 0; align-self: flex-start; padding: 16px; background: #fff; border-radius: 20px; box-shadow: var(--card-sh); }
+
+    /* text field: label 13/20/500 4px above, 30px box, 12px radius, ring shadow */
+    .label { display: block; font-weight: 500; margin-bottom: 4px; }
+    .field {
+      display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px;
+      background: #fff; border-radius: 12px; box-shadow: var(--ring); cursor: text;
+    }
+    .field:focus-within { box-shadow: var(--ring-focus); }
+    .field.invalid { box-shadow: 0 0 0 1px var(--critical); }
+    .field input { flex: 1; min-width: 0; height: 20px; padding: 0; border: 0; outline: none; background: transparent; }
+    .field .suffix { color: var(--text-sub); white-space: nowrap; }
+    .field .suffix[hidden] { display: none; }
+    .label-gap { margin-top: 16px; }
+    /* multiline field (Polaris text field, multiline): same ring, grows with its text */
+    .field.multi { height: auto; min-height: 30px; padding: 5px 12px; align-items: flex-start; }
+    /* height follows the text (autosize() in the script; field-sizing alone is Chrome only) */
+    .field textarea { flex: 1; min-width: 0; min-height: 40px; padding: 0; border: 0; outline: none; background: transparent; resize: none; overflow: hidden;
+      font-family: inherit; font-size: 13px; line-height: 20px; letter-spacing: inherit; color: inherit; }
+    .field.multi .x { margin-top: -2px; }
+    /* duplicate value (Option values "You've already used the option value"): red ring + icon line under the row */
+    .row-err { display: flex; align-items: flex-start; gap: 4px; margin: 4px 0 2px; color: var(--critical); }
+    .row-err svg { flex: none; width: 20px; height: 20px; fill: currentColor; }
+    .row-err[hidden] { display: none; }
+
+    /* row lists (product Option values): fields stacked 4px apart, the last one always empty ("Add another ...");
+       the trash icon sits inside the field, shown on hover / focus of a filled row */
+    .rows { display: grid; gap: 4px; }
+    .x { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 9999px; background: none; display: inline-grid; place-items: center; }
+    .x svg { width: 20px; height: 20px; fill: var(--text-header); }
+    .x:hover { background: var(--t-hover); }
+    .x:active { background: var(--t-active); }
+    .row .field { padding-right: 4px; }
+    .row .x { width: 24px; height: 24px; margin-right: -2px; border-radius: 8px; visibility: hidden; }
+    .row:hover .x, .row:focus-within .x { visibility: visible; }
+    .row.blank .x { visibility: hidden; }
+
+    /* page actions: right-aligned primary button, 16px above and below */
+    .actions { display: flex; justify-content: flex-end; padding: 16px 0; }
+    .sent { padding: 12px; border-radius: 12px; background: var(--band); color: var(--text-sub);
+      font-family: "SF Mono", Consolas, monospace; font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; }
+    .sent[hidden] { display: none; }
+
+    /* toast: bottom centre; errors red and longer */
+    .toast { position: fixed; left: 50%; bottom: 24px; z-index: 360; max-width: calc(100% - 32px);
+      padding: 12px 16px; border-radius: 12px; background: #1b1b1b; color: #fff; font-size: 13px; line-height: 20px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2); transform: translate(-50%, 8px); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.err { background: var(--critical); }
+
+    /* dialogs, measured on the admin Keyboard shortcuts dialog: 24px radius, header 16px 16px 16px 20px,
+       title 15/22/500, transparent 28px close with a 16px icon, body 4px 20px 16px */
+    .scrim { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.5); display: grid; place-items: center; padding: 16px; }
+    .scrim[hidden] { display: none; }
+    .dlg { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: #fff; border-radius: 24px; overflow: hidden; box-shadow: var(--dlg-sh); }
+    .dlg-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 16px 20px; }
+    .dlg-head h2 { flex: 1; font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -.3px; }
+    .dlg-head .x svg { width: 16px; height: 16px; fill: var(--text); }
+    .dlg-body { padding: 4px 20px 16px; overflow-y: auto; }
+    .dlg-body h3 { font-size: 13px; line-height: 20px; font-weight: 600; margin: 16px 0 4px; }
+    .dlg-body h3:first-child { margin-top: 0; }
+    .dlg-body p, .dlg-body li { color: var(--text-header); }
+    .dlg-body ol { padding-left: 20px; display: grid; gap: 8px; }
+    .dlg-body li strong { color: var(--text); font-weight: 500; }
+    .dlg-body code { font-family: inherit; padding: 0 4px; border-radius: 6px; background: rgba(0,0,0,.05); font-size: 12px; color: var(--text); }
+    .dlg-body a { color: #1650d0; text-decoration: none; }
+    .dlg-body a:hover { color: #1347b9; text-decoration: underline; }
+
+    /* auth.js chip + dialog are styled dark for the TC forms; light versions here (same as mockup_table.html) */
+    /* the chip is moved into the top bar, left of Guide, drawn like a header button */
+    body #tcAuthChip { position: static; z-index: auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 4px 12px;
+      border-radius: 9999px; background: #fff; box-shadow: var(--header-btn-sh); font-family: inherit; white-space: nowrap; }
+    body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 16px; color: var(--text-sub); }
+    body #tcAuthChip .tc-link { color: var(--text); font-weight: 500; }
+    body #tcAuthChip .tc-link:hover { color: var(--text); text-decoration: underline; }
+    /* password dialog: same dialog as Guide; footer Cancel (white) + Save (dark), right-aligned, 8px apart */
+    body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }
+    body #tcAuthScrim .tc-card { max-width: 400px; background: #fff; border-radius: 24px; padding: 16px 20px; box-shadow: var(--dlg-sh); }
+    body #tcAuthScrim h2 { color: var(--text); font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -.3px; margin: 3px 36px 4px 0; }
+    body #tcAuthScrim .tc-sub { color: var(--text-sub); font-size: 13px; line-height: 20px; margin: 0 0 12px; }
+    body #tcAuthScrim form { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    body #tcAuthScrim input { flex: 1 1 100%; height: 30px; border: 0; border-radius: 12px; background: #fff; color: var(--text); font-size: 13px; padding: 0 12px; box-shadow: var(--ring); }
+    body #tcAuthScrim input:hover { border: 0; }
+    body #tcAuthScrim input:focus { box-shadow: var(--ring-focus); }
+    body #tcAuthScrim.tc-invalid input { box-shadow: 0 0 0 1px var(--critical); }
+    body #tcAuthScrim .tc-err { flex: 1 1 100%; color: var(--critical); font-size: 13px; line-height: 20px; margin: -4px 0 0; }
+    body #tcAuthScrim .tc-save, body #tcAuthScrim .tc-cancel { width: auto; height: 28px; margin-top: 8px; padding: 6px 12px; border: 0; border-radius: 9999px;
+      font-family: inherit; font-size: 12px; line-height: 16px; transform: none; cursor: pointer; }
+    body #tcAuthScrim .tc-save { background: var(--text); color: #fff; font-weight: 600; }
+    body #tcAuthScrim .tc-save:hover { background: #2a2a2a; transform: none; }
+    body #tcAuthScrim .tc-cancel { background: #fff; color: var(--text); font-weight: 500; box-shadow: var(--header-btn-sh); }
+    body #tcAuthScrim .tc-cancel:hover { background: #f7f7f7; }
+    body #tcAuthScrim .tc-x { top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 9999px; font-size: 0; color: transparent;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23101010' d='M13.97 15.03a.75.75 0 1 0 1.06-1.06L11.06 10l3.97-3.97a.75.75 0 0 0-1.06-1.06L10 8.94 6.03 4.97a.75.75 0 0 0-1.06 1.06L8.94 10l-3.97 3.97a.75.75 0 1 0 1.06 1.06L10 11.06l3.97 3.97Z'/%3E%3C/svg%3E") center / 16px no-repeat; }
+    body #tcAuthScrim .tc-x:hover { background-color: var(--t-hover); }
+    body #tcAuthToast { background: #1b1b1b; border-radius: 12px; font-family: inherit; font-size: 13px; font-weight: 500; }
+
+    /* phones: sections stack, 16px text in fields (iOS zooms into anything smaller) */
+    @media (max-width: 640px) {
+      .page { padding: 0 12px 72px; }
+      /* title + picker on the first line, password + Guide wrap under them */
+      .topbar { height: auto; min-height: 52px; padding: 12px 0; flex-wrap: wrap; row-gap: 8px; }
+      .section { flex-direction: column; }
+      .annotation { flex: none; padding: 0 0 12px; margin-right: 0; }
+      .content { flex: none; align-self: stretch; }
+      .field input, .field textarea { font-size: 16px; }
+    }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <h1>Create ads</h1>
+      <div class="picker">
+        <button class="picker-btn" id="sourceBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <span>Video upload from Google Drive</span>
+          <svg viewBox="0 0 20 20"><path d="M10.53 3.47a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 0 0 1.06 1.06L10 5.06l2.47 2.47a.75.75 0 1 0 1.06-1.06l-3-3Zm-3 9a.75.75 0 0 0-1.06 1.06l3 3a.75.75 0 0 0 1.06 0l3-3a.75.75 0 1 0-1.06-1.06L10 14.94l-2.47-2.47Z"/></svg>
+        </button>
+        <div class="picker-menu" id="sourceMenu" role="listbox" hidden>
+          <button class="sel" type="button" role="option" aria-selected="true">
+            <svg class="ck" viewBox="0 0 20 20"><path d="M15.53 6.47a.75.75 0 0 1 0 1.06l-6.5 6.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.97 2.97 5.97-5.97a.75.75 0 0 1 1.06 0Z"/></svg>
+            Video upload from Google Drive
+          </button>
+        </div>
+      </div>
+      <span class="spacer"></span>
+      <span id="authSlot"></span>
+      <button class="btn" type="button" onclick="openGuide()">
+        <svg viewBox="0 0 20 20"><path d="M10 3.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm8-3.25c-.62 0-1.12.44-1.23 1.02a.75.75 0 1 1-1.47-.28A2.75 2.75 0 1 1 10.75 10.65v.35a.75.75 0 0 1-1.5 0v-1c0-.41.34-.75.75-.75a1.25 1.25 0 0 0 0-2.5ZM10 14.5a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Z"/></svg>
+        Guide
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="annotation">
+        <h2>Submitted by</h2>
+        <p>Just your name, like thaodp. We add @ecomies.com for you.</p>
+      </div>
+      <div class="content">
+        <label class="label" for="submitted_by_email">Submitted by</label>
+        <div class="field" id="submitterField">
+          <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username" />
+          <span class="suffix" id="submitterSuffix">@ecomies.com</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="annotation">
+        <h2>Product URL</h2>
+        <p>The page people land on when they tap one of these ads.</p>
+      </div>
+      <div class="content">
+        <label class="label" for="product_url">Product URL</label>
+        <div class="field" id="productUrlField">
+          <input type="text" id="product_url" placeholder="https://scrubloop.com/products/..." autocomplete="off" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="annotation">
+        <h2>Ad text</h2>
+        <p>Add up to 5 of each, no repeats. Meta shows each viewer the mix that works best.</p>
+      </div>
+      <div class="content">
+        <label class="label">Primary text</label>
+        <div class="rows" id="textRows" data-max="5" data-multiline data-more="Add another primary text" data-unique="primary text"></div>
+        <label class="label label-gap">Headline</label>
+        <div class="rows" id="headlineRows" data-max="5" data-more="Add another headline" data-unique="headline"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="annotation">
+        <h2>Google Drive folder</h2>
+        <p>Share it as Anyone with the link. Each video becomes an ad with the same name. Want a cover? Add an image named like the video.</p>
+      </div>
+      <div class="content">
+        <label class="label" for="folder_url">Google Drive folder url</label>
+        <div class="field" id="folderField">
+          <input type="text" id="folder_url" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off" />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="submitBtn" type="button" onclick="submitForm()">Create ads</button>
+    </div>
+    <div class="sent" id="payloadPreview" hidden></div>
+  </div>
+
+  <div class="store" aria-label="Store"><img class="store-tile" src="https://scrubloop.com/cdn/shop/files/fav.jpg?crop=center&height=40&v=1780464569&width=40" alt=""><span class="store-name">Scrubloop</span></div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ============ Guide ============ -->
+  <div class="scrim" id="guide" hidden onmousedown="if (event.target === this) closeGuide()">
+    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <div class="dlg-head">
+        <h2 id="guideTitle">Hướng dẫn điền form</h2>
+        <button class="x" type="button" aria-label="Đóng" onclick="closeGuide()">
+          <svg viewBox="0 0 20 20"><path d="M13.97 15.03a.75.75 0 1 0 1.06-1.06L11.06 10l3.97-3.97a.75.75 0 0 0-1.06-1.06L10 8.94 6.03 4.97a.75.75 0 0 0-1.06 1.06L8.94 10l-3.97 3.97a.75.75 0 1 0 1.06 1.06L10 11.06l3.97 3.97Z"/></svg>
+        </button>
+      </div>
+      <div class="dlg-body">
+        <p>Mỗi lần gửi là một thư mục, kèm một link và một bộ chữ. Mỗi video trong thư mục sẽ thành một quảng cáo.</p>
+
+        <h3>Các bước</h3>
+        <ol>
+          <li><strong>Chuẩn bị thư mục</strong>: chia sẻ ở chế độ Anyone with the link. Tên file sẽ thành tên quảng cáo. Muốn có ảnh bìa thì thêm ảnh cùng tên với video, ví dụ <code>jogger navy.jpg</code> cho <code>jogger navy.mp4</code>.</li>
+          <li><strong>Điền form</strong>. Primary text và Headline mỗi loại từ 1 đến 5 dòng, không được trùng nhau.</li>
+          <li><strong>Bấm Create ads</strong>. Thấy "Sent successfully" là xong, kết quả xem trên ssshub.</li>
+        </ol>
+
+        <h3>Lưu ý</h3>
+        <p>Thư mục trống hoặc chưa chia sẻ sẽ không lên quảng cáo. Nếu Meta từ chối một video, các video còn lại vẫn lên bình thường.</p>
+        <p style="margin-top:8px">Lần đầu dùng trên trình duyệt này, bấm <strong>Enter</strong> ở ô <strong>Password required</strong> rồi nhập mật khẩu.</p>
+      </div>
+    </div>
+  </div>
+  <!-- ============ /Guide ============ -->
+
+  <script>
+    // ============================================================
+    // ⚙️  CONFIG
+    // ============================================================
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/9955ffab-18b9-4035-8f4c-c66d91411313";
+    // ============================================================
+
+    const $ = id => document.getElementById(id);
+
+    // auth.js builds its chip on DOMContentLoaded (listener added before this one), then it moves into the top bar
+    document.addEventListener('DOMContentLoaded', () => {
+      const chip = $('tcAuthChip');
+      if (chip) $('authSlot').replaceWith(chip);
+    });
+    // auth.js builds the password dialog on first open: give it a Cancel button left of Save (closes like the x)
+    new MutationObserver((_, obs) => {
+      const save = document.querySelector('#tcAuthScrim .tc-save');
+      if (!save) return;
+      obs.disconnect();
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'tc-cancel';
+      cancel.textContent = 'Cancel';
+      cancel.addEventListener('click', () => $('tcAuthX').click());
+      save.before(cancel);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    const TRASH = '<svg viewBox="0 0 20 20"><path d="M11.5 8.25a.75.75 0 0 1 .75.75v4.25a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75ZM9.25 9a.75.75 0 0 0-1.5 0v4.25a.75.75 0 0 0 1.5 0V9Z"/><path fill-rule="evenodd" d="M7.25 5.25a2.75 2.75 0 0 1 5.5 0h3a.75.75 0 0 1 0 1.5H15v8.25a2.75 2.75 0 0 1-2.75 2.75h-4.5A2.75 2.75 0 0 1 5 15V6.75h-.75a.75.75 0 0 1 0-1.5h3Zm1.5 0a1.25 1.25 0 0 1 2.5 0h-2.5ZM6.5 6.75V15c0 .69.56 1.25 1.25 1.25h4.5c.69 0 1.25-.56 1.25-1.25V6.75h-7Z"/></svg>';
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // Google Drive folder ID from a folder link or a bare ID; '' when it is neither (same as forms.js)
+    function extractFolderId(input) {
+      if (!input) return '';
+      const trimmed = input.trim();
+      const patterns = [
+        /\/folders\/([a-zA-Z0-9_-]+)/,
+        /[?&]id=([a-zA-Z0-9_-]+)/,
+        /\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/
+      ];
+      for (const p of patterns) {
+        const m = trimmed.match(p);
+        if (m) return m[1];
+      }
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(trimmed)) return trimmed;
+      return '';
+    }
+
+    let toastTimer;
+    function toast(message, isError) {
+      const el = $('toast');
+      el.textContent = message;
+      el.className = 'toast show' + (isError ? ' err' : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = el.className.replace(' show', ''); }, isError ? 6000 : 4000);
+    }
+
+    // Top bar turns white once the page scrolls
+    const onScroll = () => document.body.classList.toggle('scrolled', window.scrollY > 0);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Ad source picker: one option for now; opens / closes, Escape or a click elsewhere closes it
+    const setPicker = open => { $('sourceMenu').hidden = !open; $('sourceBtn').classList.toggle('open', open); $('sourceBtn').setAttribute('aria-expanded', open); };
+    $('sourceBtn').addEventListener('click', () => setPicker($('sourceMenu').hidden));
+    $('sourceMenu').addEventListener('click', () => setPicker(false));
+    document.addEventListener('click', e => { if (!e.target.closest('.picker')) setPicker(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setPicker(false); });
+
+    function openGuide() { $('guide').hidden = false; }
+    function closeGuide() { $('guide').hidden = true; }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('guide').hidden) closeGuide(); });
+
+    // Submitter: a bare name gets @ecomies.com, the suffix hides once an @ is typed
+    $('submitted_by_email').addEventListener('input', e => {
+      $('submitterSuffix').hidden = e.target.value.includes('@');
+      $('submitterField').classList.remove('invalid');
+    });
+    $('product_url').addEventListener('input', () => $('productUrlField').classList.remove('invalid'));
+    $('folder_url').addEventListener('input', () => $('folderField').classList.remove('invalid'));
+    // A click on a field's padding or suffix puts the cursor in its input (the trash button keeps its own click)
+    document.addEventListener('mousedown', e => {
+      const f = e.target.closest('.field');
+      if (!f || e.target.closest('input, textarea, .x')) return;
+      e.preventDefault();
+      f.querySelector('input, textarea').focus();
+    });
+
+    // Textarea height follows its text in every browser
+    const autosize = t => { t.style.height = 'auto'; t.style.height = Math.max(40, t.scrollHeight) + 'px'; };
+
+    // Row lists (product Option values): the last row is always empty and typing into it adds a new empty row,
+    // up to data-max filled rows. data-multiline = textarea rows
+    const LISTS = [$('textRows'), $('headlineRows')];
+    const valueOf = r => r.querySelector('input, textarea').value.trim();
+
+    function addRow(list, value = '') {
+      const div = document.createElement('div');
+      div.className = 'row';
+      const x = `<button class="x" type="button" aria-label="Remove">${TRASH}</button>`;
+      div.innerHTML = list.hasAttribute('data-multiline')
+        ? `<div class="field multi"><textarea rows="2">${escapeHtml(value)}</textarea>${x}</div>`
+        : `<div class="field"><input type="text" value="${escapeHtml(value)}" />${x}</div>`;
+      list.appendChild(div);
+      return div;
+    }
+
+    // First row shows the list's own placeholder, the empty row after filled ones reads "Add another ..." (Option values)
+    function setPlaceholders(list) {
+      list.querySelectorAll('.row').forEach((r, i) => {
+        r.querySelector('input, textarea').placeholder = i ? list.dataset.more || '' : list.dataset.placeholder || '';
+      });
+    }
+
+    function syncRows(list) {
+      const max = Number(list.dataset.max) || Infinity;
+      const rows = [...list.querySelectorAll('.row')];
+      // keep exactly one empty row, at the end (none once the list is full)
+      rows.filter((r, i) => i < rows.length - 1 && !valueOf(r) && !r.contains(document.activeElement)).forEach(r => r.remove());
+      const now = [...list.querySelectorAll('.row')];
+      const filled = now.filter(valueOf).length;
+      const last = now[now.length - 1];
+      if ((!last || valueOf(last)) && filled < max) addRow(list);
+      list.querySelectorAll('.row').forEach(r => r.classList.toggle('blank', !valueOf(r)));
+      setPlaceholders(list);
+      markDuplicates(list);
+    }
+
+    // data-unique lists: Meta rejects the same text twice, so a repeat (trimmed, any case) is flagged under its row
+    const ALERT = '<svg viewBox="0 0 20 20"><path d="M10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 7.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/><path fill-rule="evenodd" d="M3 10a7 7 0 1 1 14 0 7 7 0 0 1-14 0Zm7-5.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>';
+    function markDuplicates(list) {
+      const noun = list.dataset.unique;
+      if (!noun) return false;
+      const seen = new Set();
+      let any = false;
+      list.querySelectorAll('.row').forEach(r => {
+        const v = valueOf(r);
+        const key = v.toLowerCase().replace(/\s+/g, ' ');
+        const dup = !!v && seen.has(key);
+        if (v) seen.add(key);
+        any = any || dup;
+        r.querySelector('.field').classList.toggle('invalid', dup);
+        let err = r.querySelector('.row-err');
+        if (dup && !err) { err = document.createElement('p'); err.className = 'row-err'; r.appendChild(err); }
+        if (err) {
+          err.hidden = !dup;
+          if (dup) err.innerHTML = ALERT + `<span>You've already used the ${escapeHtml(noun)} "${escapeHtml(v.length > 60 ? v.slice(0, 60) + '…' : v)}"</span>`;
+        }
+      });
+      return any;
+    }
+
+    for (const list of LISTS) {
+      list.addEventListener('input', e => {
+        const f = e.target.closest('.field');
+        if (!f) return;
+        if (e.target.tagName === 'TEXTAREA') autosize(e.target);
+        f.classList.remove('invalid');
+        syncRows(list);
+      });
+      list.addEventListener('focusout', () => setTimeout(() => syncRows(list), 0));
+      list.addEventListener('click', e => {
+        const x = e.target.closest('.x');
+        if (x) { x.closest('.row').remove(); syncRows(list); }
+      });
+      syncRows(list);
+    }
+
+    function fail(field, message) {
+      if (field) { field.classList.add('invalid'); field.querySelector('input, textarea').focus(); }
+      toast(message, true);
+    }
+
+    // Filled values of a row list, in order
+    const listValues = list => [...list.querySelectorAll('.row')].map(valueOf).filter(Boolean);
+
+    async function submitForm() {
+      // One submit = one folder with one link and one set of ad text. Checked in page order: Submitted by, Product URL, Ad text, folder.
+      // A bare name ("thaodp") becomes thaodp@ecomies.com; a full email is kept as typed
+      const submitter = $('submitted_by_email').value.trim().toLowerCase();
+      if (!submitter) return fail($('submitterField'), 'Enter your name first.');
+      const submitted_by_email = submitter.includes('@') ? submitter : `${submitter}@ecomies.com`;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) return fail($('submitterField'), "That doesn't look like a name or email.");
+
+      // Link of every ad in this submit; no store lookup in n8n
+      const product_url = $('product_url').value.trim();
+      if (!product_url) return fail($('productUrlField'), 'Add the product URL.');
+      let parsed = null;
+      try { parsed = new URL(product_url); } catch (e) {}
+      if (!parsed || !/^https?:$/.test(parsed.protocol)) return fail($('productUrlField'), 'Use the full link, starting with https://');
+
+      // Ad text typed here is used as is for every ad (Meta mixes up to 5 of each)
+      const texts = listValues($('textRows'));
+      if (!texts.length) return fail($('textRows').querySelector('.field'), 'Add at least one primary text.');
+      const headlines = listValues($('headlineRows'));
+      if (!headlines.length) return fail($('headlineRows').querySelector('.field'), 'Add at least one headline.');
+      if (markDuplicates($('textRows'))) return fail($('textRows').querySelector('.field.invalid'), 'Two primary texts are the same. Change one of them.');
+      if (markDuplicates($('headlineRows'))) return fail($('headlineRows').querySelector('.field.invalid'), 'Two headlines are the same. Change one of them.');
+
+      const folderRaw = $('folder_url').value.trim();
+      if (!folderRaw) return fail($('folderField'), 'Paste the Google Drive folder link.');
+      const folder_id = extractFolderId(folderRaw);
+      if (!folder_id) return fail($('folderField'), "That isn't a Google Drive folder link.");
+
+      // folder_ids stays an array of one: the workflow (Split folders) expects that shape
+      const payload = { folder_ids: [folder_id], submitted_by_email, product_url, texts, headlines };
+
+      const btn = $('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending';
+
+      try {
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          toast("That password didn't work.", true);
+          TC_AUTH_FAIL();
+          return;
+        }
+
+        if (!res.ok) {
+          const errText = await res.text();
+          toast(`Something went wrong on n8n (${res.status}): ${errText.slice(0, 120)}`, true);
+          return;
+        }
+
+        toast('Sent successfully. Your ads are on the way.');
+        const preview = $('payloadPreview');
+        preview.hidden = false;
+        preview.textContent = 'Payload sent:\n' + JSON.stringify(payload);
+      } catch (err) {
+        toast(`Couldn't reach n8n: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create ads';
+      }
+    }
+  </script>
+</body>
+</html>

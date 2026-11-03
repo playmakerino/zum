@@ -164,10 +164,10 @@
     .dlg-body a:hover { color: #1347b9; text-decoration: underline; }
 
     /* auth.js chip + dialog are styled dark for the TC forms; light versions here (same as mockup_table.html) */
-    /* footer under the page actions, centred, two different admin patterns stacked:
+    /* footer under the page actions, centred on one line, two different admin patterns:
        Guide = tertiary button ("Learn more about blog posts": no fill, grey pill on hover);
        password = footer line ("Learn more about <underlined link>", URL redirect page: 12px/18px #101010) */
-    .foot-help { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 0 0; }
+    .foot-help { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; padding: 16px 0 0; }
     .tertiary { height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px; background: none;
       font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: pointer;
       transition: background-color .4s cubic-bezier(.2,.8,0,1); }

@@ -164,18 +164,22 @@
     .dlg-body a:hover { color: #1347b9; text-decoration: underline; }
 
     /* auth.js chip + dialog are styled dark for the TC forms; light versions here (same as mockup_table.html) */
-    /* footer under the page actions, centred: tertiary buttons like the admin "Learn more about blog posts"
-       (no fill, grey pill on hover); the password chip's link becomes "Enter password" / "Change password" */
-    .foot-help { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 16px 0 0; }
-    .tertiary, body #tcAuthChip .tc-link { height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px; background: none;
+    /* footer under the page actions, centred, two different admin patterns stacked:
+       Guide = tertiary button ("Learn more about blog posts": no fill, grey pill on hover);
+       password = footer line ("Learn more about <underlined link>", URL redirect page: 12px/18px #101010) */
+    .foot-help { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 0 0; }
+    .tertiary { height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px; background: none;
       font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: pointer;
       transition: background-color .4s cubic-bezier(.2,.8,0,1); }
-    .tertiary:hover, body #tcAuthChip .tc-link:hover { background: var(--t-hover); color: var(--text); text-decoration: none; }
-    .tertiary:active, body #tcAuthChip .tc-link:active { background: var(--t-active); }
-    .tertiary:focus-visible, body #tcAuthChip .tc-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-    body #tcAuthChip { position: static; z-index: auto; display: inline-flex; padding: 0; border-radius: 0; background: none; box-shadow: none; font-family: inherit; }
-    body #tcAuthChip .tc-state { display: none; }
-    body #tcAuthChip .tc-link::after { content: " password"; }
+    .tertiary:hover { background: var(--t-hover); }
+    .tertiary:active { background: var(--t-active); }
+    .tertiary:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    body #tcAuthChip { position: static; z-index: auto; display: inline-flex; align-items: baseline; gap: 4px; padding: 0;
+      border-radius: 0; background: none; box-shadow: none; font-family: inherit; white-space: nowrap; }
+    body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 18px; font-weight: 400; color: var(--text); }
+    body #tcAuthChip .tc-link { padding: 0; border: 0; background: none; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    body #tcAuthChip .tc-link:hover { color: var(--text); text-decoration-thickness: 2px; }
+    body #tcAuthChip .tc-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
     /* password dialog: same dialog as Guide; footer Cancel (white) + Save (dark), right-aligned, 8px apart */
     body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }
     body #tcAuthScrim .tc-card { max-width: 400px; background: #fff; border-radius: 24px; padding: 16px 20px; box-shadow: var(--dlg-sh); }
@@ -287,7 +291,7 @@
     </div>
     <div class="sent" id="payloadPreview" hidden></div>
     <div class="foot-help">
-      <button class="tertiary" type="button" onclick="openGuide()">Learn more about creating ads</button>
+      <button class="tertiary" type="button" onclick="openGuide()">Guide</button>
       <span id="authSlot"></span>
     </div>
   </div>
@@ -317,7 +321,7 @@
 
         <h3>Lưu ý</h3>
         <p>Thư mục trống hoặc chưa chia sẻ sẽ không lên quảng cáo. Nếu Meta từ chối một video, các video còn lại vẫn lên bình thường.</p>
-        <p style="margin-top:8px">Lần đầu dùng trên trình duyệt này, bấm <strong>Enter password</strong> ở cuối trang rồi nhập mật khẩu.</p>
+        <p style="margin-top:8px">Lần đầu dùng trên trình duyệt này, bấm <strong>Enter</strong> ở dòng <strong>Password required</strong> cuối trang rồi nhập mật khẩu.</p>
       </div>
     </div>
   </div>

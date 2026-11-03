@@ -47,7 +47,6 @@
       box-shadow: 0 1px 0 rgba(0,0,0,.07); opacity: 0; transition: opacity .15s; pointer-events: none; }
     body.scrolled .topbar::before { opacity: 1; }
     .topbar h1 { font-size: 13px; line-height: 20px; font-weight: 500; }
-    .topbar .spacer { flex: 1; }
 
     /* page picker next to the title (Orders "All locations"): white pill + up/down chevron, option list with a check on the left */
     .picker { position: relative; }
@@ -165,12 +164,18 @@
     .dlg-body a:hover { color: #1347b9; text-decoration: underline; }
 
     /* auth.js chip + dialog are styled dark for the TC forms; light versions here (same as mockup_table.html) */
-    /* the chip is moved into the top bar, left of Guide, drawn like a header button */
-    body #tcAuthChip { position: static; z-index: auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 4px 12px;
-      border-radius: 9999px; background: #fff; box-shadow: var(--header-btn-sh); font-family: inherit; white-space: nowrap; }
-    body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 16px; color: var(--text-sub); }
-    body #tcAuthChip .tc-link { color: var(--text); font-weight: 500; }
-    body #tcAuthChip .tc-link:hover { color: var(--text); text-decoration: underline; }
+    /* footer under the page actions, centred: tertiary buttons like the admin "Learn more about blog posts"
+       (no fill, grey pill on hover); the password chip's link becomes "Enter password" / "Change password" */
+    .foot-help { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 16px 0 0; }
+    .tertiary, body #tcAuthChip .tc-link { height: 28px; padding: 6px 12px; border: 0; border-radius: 9999px; background: none;
+      font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: pointer;
+      transition: background-color .4s cubic-bezier(.2,.8,0,1); }
+    .tertiary:hover, body #tcAuthChip .tc-link:hover { background: var(--t-hover); color: var(--text); text-decoration: none; }
+    .tertiary:active, body #tcAuthChip .tc-link:active { background: var(--t-active); }
+    .tertiary:focus-visible, body #tcAuthChip .tc-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    body #tcAuthChip { position: static; z-index: auto; display: inline-flex; padding: 0; border-radius: 0; background: none; box-shadow: none; font-family: inherit; }
+    body #tcAuthChip .tc-state { display: none; }
+    body #tcAuthChip .tc-link::after { content: " password"; }
     /* password dialog: same dialog as Guide; footer Cancel (white) + Save (dark), right-aligned, 8px apart */
     body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }
     body #tcAuthScrim .tc-card { max-width: 400px; background: #fff; border-radius: 24px; padding: 16px 20px; box-shadow: var(--dlg-sh); }
@@ -196,7 +201,7 @@
     /* phones: sections stack, 16px text in fields (iOS zooms into anything smaller) */
     @media (max-width: 640px) {
       .page { padding: 0 12px 72px; }
-      /* title + picker on the first line, password + Guide wrap under them */
+      /* the picker wraps under the title when the line is full */
       .topbar { height: auto; min-height: 52px; padding: 12px 0; flex-wrap: wrap; row-gap: 8px; }
       .section { flex-direction: column; }
       .annotation { flex: none; padding: 0 0 12px; margin-right: 0; }
@@ -222,12 +227,6 @@
           </button>
         </div>
       </div>
-      <span class="spacer"></span>
-      <span id="authSlot"></span>
-      <button class="btn" type="button" onclick="openGuide()">
-        <svg viewBox="0 0 20 20"><path d="M10 3.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm8-3.25c-.62 0-1.12.44-1.23 1.02a.75.75 0 1 1-1.47-.28A2.75 2.75 0 1 1 10.75 10.65v.35a.75.75 0 0 1-1.5 0v-1c0-.41.34-.75.75-.75a1.25 1.25 0 0 0 0-2.5ZM10 14.5a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Z"/></svg>
-        Guide
-      </button>
     </div>
 
     <div class="section">
@@ -287,6 +286,10 @@
       <button class="btn primary" id="submitBtn" type="button" onclick="submitForm()">Create ads</button>
     </div>
     <div class="sent" id="payloadPreview" hidden></div>
+    <div class="foot-help">
+      <button class="tertiary" type="button" onclick="openGuide()">Learn more about creating ads</button>
+      <span id="authSlot"></span>
+    </div>
   </div>
 
   <div class="store" aria-label="Store"><img class="store-tile" src="https://scrubloop.com/cdn/shop/files/fav.jpg?crop=center&height=40&v=1780464569&width=40" alt=""><span class="store-name">Scrubloop</span></div>
@@ -314,7 +317,7 @@
 
         <h3>Lưu ý</h3>
         <p>Thư mục trống hoặc chưa chia sẻ sẽ không lên quảng cáo. Nếu Meta từ chối một video, các video còn lại vẫn lên bình thường.</p>
-        <p style="margin-top:8px">Lần đầu dùng trên trình duyệt này, bấm <strong>Enter</strong> ở ô <strong>Password required</strong> rồi nhập mật khẩu.</p>
+        <p style="margin-top:8px">Lần đầu dùng trên trình duyệt này, bấm <strong>Enter password</strong> ở cuối trang rồi nhập mật khẩu.</p>
       </div>
     </div>
   </div>
@@ -329,7 +332,7 @@
 
     const $ = id => document.getElementById(id);
 
-    // auth.js builds its chip on DOMContentLoaded (listener added before this one), then it moves into the top bar
+    // auth.js builds its chip on DOMContentLoaded (listener added before this one), then it moves under the page actions
     document.addEventListener('DOMContentLoaded', () => {
       const chip = $('tcAuthChip');
       if (chip) $('authSlot').replaceWith(chip);

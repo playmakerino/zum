@@ -119,6 +119,8 @@
     .row-err { display: flex; align-items: flex-start; gap: 4px; margin: 4px 0 2px; color: var(--critical); }
     .row-err svg { flex: none; width: 20px; height: 20px; fill: currentColor; }
     .row-err[hidden] { display: none; }
+    /* only one primary text and one headline: red ring on the empty row of Primary text, kept while it has focus */
+    .rows.need-more .row:last-child .field { box-shadow: 0 0 0 1px var(--critical); }
 
     /* row lists (product Option values): fields stacked 4px apart, the last one always empty ("Add another ...");
        the trash icon sits inside the field, shown on hover / focus of a filled row */
@@ -317,7 +319,7 @@
         <h3>Các bước</h3>
         <ol>
           <li><strong>Chuẩn bị thư mục</strong>: chia sẻ ở chế độ Anyone with the link. Tên file sẽ thành tên quảng cáo. Muốn có ảnh bìa thì thêm ảnh cùng tên với video, ví dụ <code>jogger navy.jpg</code> cho <code>jogger navy.mp4</code>.</li>
-          <li><strong>Điền form</strong>. Primary text và Headline mỗi loại từ 1 đến 5 dòng, không được trùng nhau.</li>
+          <li><strong>Điền form</strong>. Primary text và Headline mỗi loại từ 1 đến 5 dòng, không được trùng nhau. Ít nhất một trong hai loại phải có từ 2 dòng.</li>
           <li><strong>Bấm Create ads</strong>. Thấy "Sent successfully" là xong, kết quả xem trên ssshub.</li>
         </ol>
 
@@ -482,18 +484,37 @@
       return any;
     }
 
+    // Meta refuses ad text with a single option on both sides. The line sits outside the rows because markDuplicates resets row errors
+    const NEED_MORE = 'Add a second primary text or headline.';
+    function clearNeedMore() {
+      $('textRows').classList.remove('need-more');
+      const err = $('needMoreErr');
+      if (err) err.hidden = true;
+    }
+    function failNeedMore() {
+      const list = $('textRows');
+      let err = $('needMoreErr');
+      if (!err) { err = document.createElement('p'); err.id = 'needMoreErr'; err.className = 'row-err'; list.after(err); }
+      err.innerHTML = ALERT + `<span>${NEED_MORE}</span>`;
+      err.hidden = false;
+      list.classList.add('need-more');
+      list.querySelector('.row:last-child textarea').focus();
+      toast(NEED_MORE, true);
+    }
+
     for (const list of LISTS) {
       list.addEventListener('input', e => {
         const f = e.target.closest('.field');
         if (!f) return;
         if (e.target.tagName === 'TEXTAREA') autosize(e.target);
         f.classList.remove('invalid');
+        clearNeedMore();
         syncRows(list);
       });
       list.addEventListener('focusout', () => setTimeout(() => syncRows(list), 0));
       list.addEventListener('click', e => {
         const x = e.target.closest('.x');
-        if (x) { x.closest('.row').remove(); syncRows(list); }
+        if (x) { x.closest('.row').remove(); clearNeedMore(); syncRows(list); }
       });
       syncRows(list);
     }
@@ -530,6 +551,7 @@
       if (!headlines.length) return fail($('headlineRows').querySelector('.field'), 'Add at least one headline.');
       if (markDuplicates($('textRows'))) return fail($('textRows').querySelector('.field.invalid'), 'Two primary texts are the same. Change one of them.');
       if (markDuplicates($('headlineRows'))) return fail($('headlineRows').querySelector('.field.invalid'), 'Two headlines are the same. Change one of them.');
+      if (texts.length < 2 && headlines.length < 2) return failNeedMore();
 
       const folderRaw = $('folder_url').value.trim();
       if (!folderRaw) return fail($('folderField'), 'Paste the Google Drive folder link.');

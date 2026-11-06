@@ -67,7 +67,7 @@
       + 'color:#fff}'
       + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:13px;color:#b3b3b3}'
       + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
-      + 'border:1px solid transparent;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:16px;'
+      + 'border:1px solid transparent;background:rgba(255,255,255,0.1);color:#fff;font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'

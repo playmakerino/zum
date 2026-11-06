@@ -44,29 +44,34 @@
          so it scrolls away: it is needed once per browser, and a failure announces
          itself with the dialog and the toast rather than waiting to be found. */
       + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
-      + 'display:inline-flex;gap:8px;align-items:baseline;background:#121212;'
-      + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);'
+      + 'display:inline-flex;gap:8px;align-items:center;height:32px;padding:4px 16px 4px 12px;'
+      + 'color:#b3b3b3;cursor:pointer;transition:color .15s cubic-bezier(.3,0,0,1),transform .15s cubic-bezier(.3,0,0,1);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#b3b3b3}'
-      + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-family:inherit;'
-      + 'font-size:14px;font-weight:700;color:#b3b3b3;cursor:pointer;transition:color .1s ease}'
-      + '#tcAuthChip .tc-link:hover{color:#fff;text-decoration:underline}'
+      + '#tcTopBar{position:absolute;top:12px;right:12px;z-index:40;display:flex;align-items:center}'
+      + '#tcTopBar #tcAuthChip{position:relative;top:auto;right:auto}'
+      + '#tcAuthChip svg{width:16px;height:16px;flex-shrink:0;fill:currentColor}'
+      + '#tcAuthChip .tc-state{font-size:14px;font-weight:700;line-height:1.5}'
+      /* the real button covers the whole chip; its own text is not shown here */
+      + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-size:0;cursor:pointer}'
+      + '#tcAuthChip .tc-link::after{content:"";position:absolute;inset:0}'
+      + '#tcAuthChip:hover{color:#fff;transform:scale(1.04)}'
+      + '#tcAuthChip:has(.tc-link:focus-visible){outline:2px solid #fff;outline-offset:2px;border-radius:4px}'
 
       /* dialog: where the credential is actually typed */
       + '#tcAuthScrim{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
-      + 'justify-content:center;padding:24px;background:rgba(0,0,0,0.7);'
+      + 'justify-content:center;padding:24px;background:transparent;'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#121212;'
-      + 'border-radius:8px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.5)}'
-      + '#tcAuthScrim h2{margin:0 0 8px;font-size:24px;line-height:1.2;font-weight:700;'
-      + 'color:#fff;letter-spacing:-0.02em}'
-      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;line-height:1.5;color:#b3b3b3}'
+      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#282828;'
+      + 'border-radius:8px;padding:24px;box-shadow:0 16px 24px rgba(0,0,0,0.3),0 6px 8px rgba(0,0,0,0.2)}'
+      + '#tcAuthScrim h2{margin:0 0 8px;font-size:16px;font-weight:700;'
+      + 'color:#fff}'
+      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;color:#b3b3b3}'
       + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
-      + 'border:1px solid #6a6a6a;background:#000000;color:#fff;font-size:16px;'
+      + 'border:1px solid transparent;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
-      + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#f3727f}'
+      + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#ed2c3f}'
       + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:14px;line-height:1.5;color:#f3727f}'
       + '#tcAuthScrim .tc-save{width:100%;height:48px;margin-top:24px;border:none;'
       + 'border-radius:500px;background:#1ED760;color:#000;font-size:16px;font-weight:700;'
@@ -76,18 +81,18 @@
       + '#tcAuthScrim .tc-save:active{background:#1ED760;transform:scale(1)}'
       + '#tcAuthScrim .tc-x{position:absolute;top:12px;right:12px;width:32px;height:32px;'
       + 'display:flex;align-items:center;justify-content:center;border:none;background:none;'
-      + 'color:#b3b3b3;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;'
+      + 'color:#7c7c7c;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;'
       + 'transition:color .1s ease}'
       + '#tcAuthScrim .tc-x:hover{color:#fff}'
 
       /* toast: the form's submit button is far from the chip, so failures announce
          themselves at the bottom of the viewport instead */
       + '#tcAuthToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
-      + 'z-index:10000;background:#2a2a2a;color:#fff;border-radius:4px;padding:12px 16px;'
-      + 'font-size:14px;line-height:1.5;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,0.5);'
+      + 'z-index:10000;background:#fff;color:#000;border-radius:6px;padding:12px;'
+      + 'font-size:16px;line-height:1.5;font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,0.3);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 
-      + '@media (max-width:560px){#tcAuthChip{top:8px;right:8px}}';
+      + '@media (max-width:560px){#tcAuthChip,#tcTopBar{top:8px;right:8px}}';
     var el = document.createElement('style');
     el.id = 'tcAuthStyle';
     el.textContent = css;
@@ -99,9 +104,20 @@
     chip = document.createElement('div');
     chip.id = 'tcAuthChip';
     chip.innerHTML = ''
+      + '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13"/>'
+      + '<path d="M8 3.8A2.2 2.2 0 0 0 5.8 6v1H5v5h6V7h-.8V6A2.2 2.2 0 0 0 8 3.8M7 6a1 1 0 0 1 2 0v1H7z"/></svg>'
       + '<span class="tc-state" id="tcAuthState"></span>'
       + '<button type="button" class="tc-link" id="tcAuthOpen"></button>';
     document.body.appendChild(chip);
+    /* Forms with a Guide button show it in one row, left of this chip */
+    var guide = document.getElementById('guideFab');
+    if (guide) {
+      var bar = document.createElement('div');
+      bar.id = 'tcTopBar';
+      document.body.appendChild(bar);
+      bar.appendChild(guide);
+      bar.appendChild(chip);
+    }
     chip.querySelector('#tcAuthOpen').addEventListener('click', function () {
       openDialog('');
     });

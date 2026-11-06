@@ -24,11 +24,11 @@
 
     .field label {
       display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
       margin-bottom: 7px;
-      letter-spacing: 0.01em;
+
     }
 
     .field input[type="text"] {
@@ -39,15 +39,15 @@
       border-radius: 4px;
       padding: 0 14px;
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 13.3333px;
       font-weight: 400;
-      color: var(--text);
+      color: var(--input-text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
 
     .field input[type="text"]::placeholder {
-      color: var(--text-sub);
+      color: var(--placeholder);
     }
 
     .field input[type="text"]:hover {
@@ -82,8 +82,6 @@
       cursor: pointer;
       transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
     }
-
-
 
     /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
     @media (max-width: 640px) {
@@ -160,12 +158,10 @@
   </script>
   <!-- ============ Guide (help panel) ============ -->
 
-  <button class="guide-fab" id="guideFab" title="Form guide" aria-label="Form guide" onclick="openGuide()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
+  <button class="guide-fab" id="guideFab" aria-label="Form guide" onclick="openGuide()">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13"/><path d="M8 4a2.5 2.5 0 0 0-2.5 2.5h1.4A1.1 1.1 0 1 1 8 7.6c-.4 0-.7.3-.7.7v1h1.4v-.4A2.5 2.5 0 0 0 8 4M7.2 10.4h1.6V12H7.2z"/></svg>
+    <span>Guide</span>
   </button>
-  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
   <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
     <div class="guide-head">
       <h2>Hướng dẫn điền form</h2>

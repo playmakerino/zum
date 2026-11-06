@@ -29,15 +29,15 @@
       border: none; border-radius: 4px;
       padding: 0 12px;
       font-family: var(--font);
-      font-size: 14px; font-weight: 400;
-      color: var(--text);
+      font-size: 13.3333px; font-weight: 400;
+      color: var(--input-text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .full-input::placeholder { color: var(--text-sub); }
+    .full-input::placeholder { color: var(--placeholder); }
     .full-input:hover { background: var(--surface-hover); }
     .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
-    .field-lbl { font-size: 12px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.01em; }
+    .field-lbl { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
     .pos-line .full-input { max-width: 130px; }
     @media (min-width: 680px) {
       .pos-line { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; }
@@ -53,9 +53,9 @@
     }
     .row-header { margin-bottom: 6px; }
     .row-col-label {
-      font-size: 12px; font-weight: 500;
-      color: var(--text-sub);
-      letter-spacing: 0.01em;
+      font-size: 14px; font-weight: 700;
+      color: var(--text);
+
     }
     .row-cell { min-width: 0; }
     .row-cell input[type="text"] { width: 100%; display: block; }
@@ -63,10 +63,10 @@
        shown on mobile where the shared header is hidden. */
     .row-inline-label {
       display: none;
-      font-size: 12px; font-weight: 500;
-      color: var(--text-sub);
+      font-size: 14px; font-weight: 700;
+      color: var(--text);
       margin-bottom: 6px;
-      letter-spacing: 0.01em;
+
     }
     .row input[type="text"] {
       height: 42px;
@@ -74,12 +74,12 @@
       border: none; border-radius: 4px;
       padding: 0 12px;
       font-family: var(--font);
-      font-size: 14px; font-weight: 400;
-      color: var(--text);
+      font-size: 13.3333px; font-weight: 400;
+      color: var(--input-text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .row input[type="text"]::placeholder { color: var(--text-sub); }
+    .row input[type="text"]::placeholder { color: var(--placeholder); }
     .row input[type="text"]:hover { background: var(--surface-hover); }
     .row input[type="text"]:focus {
       background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
@@ -87,7 +87,7 @@
     .row .remove-btn {
       background: transparent;
       border: 1px solid var(--border-btn);
-      color: var(--text-muted);
+      color: var(--text-sub);
       cursor: pointer;
       width: 36px; height: 36px;
       border-radius: 50%;
@@ -95,20 +95,20 @@
       transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
     .row .remove-btn:hover {
-      color: var(--error); border-color: var(--error); background: var(--error-soft);
+      color: var(--error); border-color: var(--error); background: var(--tint);
     }
 
     /* Per-row print image (design file) */
     .row-img { width: 42px; height: 42px; }
     .row-img .img-add {
       width: 42px; height: 42px;
-      border: 2px dashed var(--text-muted);
+      border: 2px dashed var(--border-btn);
       border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--text-muted);
+      cursor: pointer; color: var(--text-sub);
       transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
-    .row-img .img-add:hover { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.1); }
+    .row-img .img-add:hover { border-color: var(--text); color: var(--text);  }
     .row-img .img-add svg { width: 16px; height: 16px; }
     .row-img .img-thumb { position: relative; width: 42px; height: 42px; border-radius: 4px; overflow: hidden; background: var(--bg); }
     .row-img .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -127,7 +127,7 @@
       margin-top: 6px; flex-wrap: wrap;
     }
     .paste-tip {
-      font-size: 12px; color: var(--text-muted); line-height: 1.4;
+      font-size: 12px; color: var(--text-sub); line-height: 1.4;
     }
 
     .add-btn {
@@ -136,17 +136,16 @@
       border: 1px solid var(--border-btn);
       color: var(--text);
       font-family: var(--font);
-      font-size: 12px; font-weight: 700;
-      padding: 7px 14px;
+      font-size: 14px; font-weight: 700;
+      height: 32px; padding: 4px 16px;
       border-radius: 500px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
-      letter-spacing: 0.01em;
+
       flex-shrink: 0;
     }
     .add-btn:hover {
       border-color: var(--text);
-      background: rgba(255,255,255,0.1);
       transform: scale(1.04);
     }
 
@@ -190,7 +189,7 @@
 
       /* Light divider between products so multiple rows stay readable */
       #rowsContainer .row + .row {
-        border-top: 1px solid var(--divider);
+        border-top: 1px solid var(--tint);
         padding-top: 18px;
       }
     }
@@ -460,12 +459,10 @@
   </script>
   <!-- ============ Guide (help panel) ============ -->
 
-  <button class="guide-fab" id="guideFab" title="Form guide" aria-label="Form guide" onclick="openGuide()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
+  <button class="guide-fab" id="guideFab" aria-label="Form guide" onclick="openGuide()">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13"/><path d="M8 4a2.5 2.5 0 0 0-2.5 2.5h1.4A1.1 1.1 0 1 1 8 7.6c-.4 0-.7.3-.7.7v1h1.4v-.4A2.5 2.5 0 0 0 8 4M7.2 10.4h1.6V12H7.2z"/></svg>
+    <span>Guide</span>
   </button>
-  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
   <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
     <div class="guide-head">
       <h2>Hướng dẫn điền form</h2>

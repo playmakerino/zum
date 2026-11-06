@@ -181,6 +181,9 @@
     body #tcAuthChip .tc-state, body #tcAuthChip .tc-link { font-size: 12px; line-height: 18px; font-weight: 400; color: var(--text); }
     body #tcAuthChip .tc-link { padding: 0; border: 0; background: none; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
     body #tcAuthChip .tc-link:hover { color: var(--text); text-decoration-thickness: 2px; }
+    body #tcAuthChip { height: auto; }
+    body #tcAuthChip svg, body #tcAuthChip .tc-link::after { display: none; }
+    body #tcAuthChip:hover { transform: none; }
     body #tcAuthChip .tc-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
     /* password dialog: same dialog as Guide; footer Cancel (white) + Save (dark), right-aligned, 8px apart */
     body #tcAuthScrim { background: rgba(0,0,0,.5); font-family: inherit; }

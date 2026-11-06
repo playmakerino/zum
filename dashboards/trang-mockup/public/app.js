@@ -16,6 +16,7 @@ const METRIC_COLS = [
   { key: 'roas', label: 'ROAS' },
   { key: 'cpr', label: 'CPR' },
   { key: 'aov', label: 'AOV' },
+  { key: 'cr', label: 'CR', tip: 'Purchases divided by clicks' },
   { key: 'cpm', label: 'CPM' },
   { key: 'ctr', label: 'CTR' },
   { key: 'cpc', label: 'CPC' },
@@ -25,14 +26,14 @@ const creativeRow = r =>
   `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`;
 
 const CREATIVE_TABLE = {
-  cols: 9,
+  cols: 10,
   columns: [null, { key: 'ad_name', type: 'text', label: 'Ad Name' }, ...METRIC_COLS],
   row: creativeRow,
 };
 
 const TABLES = {
   mockups: {
-    cols: 10,
+    cols: 11,
     columns: [
       null,
       { key: 'mockup_id', type: 'text', label: 'Mockup ID' },
@@ -52,7 +53,8 @@ function buildHeaders() {
       if (!col) return '<th>Thumb</th>';
       if (col.type === 'text')
         return `<th><div class="th-content"><input data-table="${type}" data-col="${col.key}" data-type="text" class="th-filter-input" placeholder="Search ${col.label.toLowerCase().replace(/\bid\b/, 'ID')}" oninput="filterTable('${type}')" onclick="event.stopPropagation()"></div></th>`;
-      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content">${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}" onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
+      const tip = col.tip ? ` data-tip-title="${col.label}" data-tip="${col.tip}"` : '';
+      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content"${tip}>${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}" onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
     }).join('');
   }
 }
@@ -268,7 +270,14 @@ async function fetchAll() {
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function enrichRow(row) {
-  return { ...row, roas: parseFloat(row.roas || 0), cpr: parseFloat(row.cpr || 0), aov: parseFloat(row.aov || 0) };
+  const clicks = parseFloat(row.clicks || 0);
+  return {
+    ...row,
+    roas: parseFloat(row.roas || 0),
+    cpr: parseFloat(row.cpr || 0),
+    aov: parseFloat(row.aov || 0),
+    cr: clicks ? parseFloat(row.purchase_count || 0) / clicks * 100 : 0,
+  };
 }
 
 function renderTable(type) {
@@ -345,7 +354,8 @@ function totals(rows) {
     roas: spend ? pv / spend : 0,
     cpr:  pc ? spend / pc : 0,
     aov:  pc ? pv / pc : 0,
-    cpm:  impr ? spend / impr * 1000 : 0,
+    cr:   clicks ? pc / clicks * 100 : 0,
+    cpm: impr ? spend / impr * 1000 : 0,
     ctr:  impr ? clicks / impr * 100 : 0,
     cpc:  clicks ? spend / clicks : 0,
   };
@@ -368,6 +378,7 @@ function metrics(row) {
   return [
     fmtMoneyInt(row.spend), fmtF(row.roas) + 'x',
     fmtMoneyInt(row.cpr), fmtMoneyInt(row.aov),
+    fmtF(row.cr) + '%',
     fmtMoneyInt(row.cpm), fmtF(row.ctr) + '%',
     fmtMoney(row.cpc),
   ].map(v => `<td class="td-metric">${v}</td>`).join('');

@@ -123,7 +123,7 @@ body {
 
 .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:20px 20px 14px;flex-shrink:0}
-.guide-head h2{font-size:16px;font-weight:700;color:var(--text)}
+.guide-head h2{font-size:14px;font-weight:700;color:var(--text)}
 /* Plain icon close, no background circle: like the Spotify panel close */
 .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--border-btn);
   cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
@@ -138,13 +138,13 @@ body {
   border:3px solid transparent;background-clip:padding-box}
 
 .guide-intro{font-size:14px;color:var(--text-sub);margin-bottom:8px}
-.guide-sec{font-size:12px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0;border-top:1px solid var(--tint)}
+.guide-sec{font-size:14px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0;border-top:1px solid var(--tint)}
 .guide-step{display:flex;gap:12px;padding:8px 0}
 /* Step marker = the 48px icon circle of the Create menu */
 .guide-num{flex-shrink:0;width:48px;height:48px;border-radius:50%;background:var(--tint);
-  color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  color:var(--text);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .guide-sb{flex:1;min-width:0}
-.guide-sb h4{font-size:16px;font-weight:700;color:var(--text)}
+.guide-sb h4{font-size:14px;font-weight:700;color:var(--text)}
 .guide-sb p{font-size:14px;color:var(--text-sub)}
 .g-field{display:inline-block;background:var(--tint);color:var(--text);font-weight:500;
   font-size:14px;padding:1px 7px;border-radius:4px;white-space:nowrap}

@@ -40,6 +40,14 @@ function hasValidFormat(adName) {
   return /^\[[^-]+-[^_]+_.+\]/.test(adName || '');
 }
 
+// Catalog ads are left out of the dashboard. Triple Whale has no catalog flag and types catalog ads and
+// multi-asset ads alike as 'dynamic' (one catalog ad as 'link'), so the name decides: our own ads carry
+// a [Print-Type] tag, catalog ads do not. Checked against Meta product_set_id on 2026-11-06:
+// 16 of 16 catalog ads and 9 of 9 other 'dynamic' ads came out right.
+function isCatalogAd(type, adName) {
+  return (type === 'dynamic' || type === 'link') && !/\[[^\]-]+-[^\]]+\]/.test(adName || '');
+}
+
 function computeMetrics(entry, rows) {
   const sum = fn => rows.reduce((s, r) => s + fn(r), 0);
   for (const f of ['impressions', 'clicks', 'spend']) {
@@ -191,7 +199,9 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
   const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
   // 5. Group and build response
-  const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0);
+  const isCatalogRow = r => isCatalogAd(creativeMap[r.ad_id]?.object_type, r.ad_name);
+  const catalogCount = allAdIds.filter(id => isCatalogAd(creativeMap[id]?.object_type, adNameMap[id])).length;
+  const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0 && !isCatalogRow(r));
   const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
   const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
   const result = {
@@ -206,7 +216,7 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
     stats: { // read by the load log in public/app.js
       insights: { rows: currRows.length },
       qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
-      kept: { named: validFmtCount, highSpend: highSpendCount },
+      kept: { named: validFmtCount, highSpend: highSpendCount - catalogCount },
     },
   };
   send({ result });
@@ -217,4 +227,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Mockup Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { dateStr, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, groupByMockup, groupByImage };
+module.exports = { dateStr, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, isCatalogAd, groupByMockup, groupByImage };

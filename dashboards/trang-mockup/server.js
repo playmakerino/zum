@@ -89,7 +89,7 @@ function groupByMockup(rows) {
 }
 
 // "By Image" tab: one row per image (Meta image hash, read from the Triple Whale file name), summing
-// every ad/creative that uses the same image. Creatives without a hash (video, catalog) fall back to creative id.
+// every ad/creative that uses the same image. Creatives without a hash (multi-asset) fall back to creative id.
 function groupByImage(rows) {
   const map = {};
   for (const row of rows) {
@@ -199,9 +199,13 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
   const attachCreative = rows => rows.map(r => ({ ...r, creative: creativeMap[r.ad_id] || null }));
 
   // 5. Group and build response
-  const isCatalogRow = r => isCatalogAd(creativeMap[r.ad_id]?.object_type, r.ad_name);
-  const catalogCount = allAdIds.filter(id => isCatalogAd(creativeMap[id]?.object_type, adNameMap[id])).length;
-  const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0 && !isCatalogRow(r));
+  // Video ads have their own dashboard (vid-thao).
+  const isLeftOut = (id, name) => {
+    const type = creativeMap[id]?.object_type;
+    return type === 'video' || isCatalogAd(type, name);
+  };
+  const leftOutCount = allAdIds.filter(id => isLeftOut(id, adNameMap[id])).length;
+  const spendRows = currRows.filter(r => parseFloat(r.spend || 0) > 0 && !isLeftOut(r.ad_id, r.ad_name));
   const qualifiedRows = spendRows.filter(r => r.ad_id && isQualified(r.ad_id));
   const creativesGrouped = groupByImage(attachCreative(qualifiedRows));
   const result = {
@@ -216,7 +220,7 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
     stats: { // read by the load log in public/app.js
       insights: { rows: currRows.length },
       qualifiedRows: qualifiedRows.length, creativesOut: creativesGrouped.length,
-      kept: { named: validFmtCount, highSpend: highSpendCount - catalogCount },
+      kept: { named: validFmtCount, highSpend: highSpendCount - leftOutCount },
     },
   };
   send({ result });

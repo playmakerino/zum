@@ -59,9 +59,9 @@
 
       /* dialog: where the credential is actually typed */
       + '#tcAuthScrim{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
-      + 'justify-content:center;padding:24px;background:transparent;'
+      + 'justify-content:center;padding:24px;background:rgba(0,0,0,0.7);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#282828;'
+      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#121212;'
       + 'border-radius:8px;padding:24px;box-shadow:0 16px 24px rgba(0,0,0,0.3),0 6px 8px rgba(0,0,0,0.2)}'
       + '#tcAuthScrim h2{margin:0 0 8px;font-size:16px;font-weight:700;'
       + 'color:#fff}'

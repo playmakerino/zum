@@ -120,13 +120,15 @@ document.addEventListener('DOMContentLoaded', function () {
   }).observe(document.body, { childList: true, subtree: true });
 });
 
-// ---------- Help panel (markup: #guideFab, #guidePanel in each form) ----------
+// ---------- Help panel (markup: #guideFab, #guideOverlay, #guidePanel in each form) ----------
 function openGuide() {
   document.getElementById('guidePanel').classList.add('open');
+  document.getElementById('guideOverlay').classList.add('open');
   document.getElementById('guidePanel').setAttribute('aria-hidden', 'false');
 }
 function closeGuide() {
   document.getElementById('guidePanel').classList.remove('open');
+  document.getElementById('guideOverlay').classList.remove('open');
   document.getElementById('guidePanel').setAttribute('aria-hidden', 'true');
 }
 document.addEventListener('keydown', function (e) {

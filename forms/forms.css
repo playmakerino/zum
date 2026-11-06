@@ -110,9 +110,13 @@ body {
 .guide-fab:active{transform:scale(1)}
 .guide-fab svg{width:16px;height:16px;flex-shrink:0}
 
-/* Right panel styled like Spotify's Library "Create" menu: #282828, radius 8, menu shadow */
+.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);opacity:0;visibility:hidden;
+  transition:opacity .3s,visibility .3s;z-index:60}
+.guide-overlay.open{opacity:1;visibility:visible}
+
+/* Right panel: main box colour; text and rows styled like Spotify's Library "Create" menu */
 .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
-  background:var(--surface-menu);border-radius:8px;box-shadow:var(--menu-shadow);
+  background:var(--surface);border-radius:8px;box-shadow:var(--menu-shadow);
   transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
   z-index:70;display:flex;flex-direction:column;overflow:hidden}
 .guide-panel.open{transform:translateX(0)}

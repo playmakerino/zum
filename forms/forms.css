@@ -137,7 +137,7 @@ body {
   border:3px solid transparent;background-clip:padding-box}
 
 .guide-intro{font-size:13px;color:var(--text-sub);margin-bottom:8px}
-.guide-sec{font-size:13px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0;border-top:1px solid var(--tint)}
+.guide-sec{font-size:13px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0}
 .guide-step{display:flex;gap:12px;padding:8px 0}
 /* Step marker = the 48px icon circle of the Create menu */
 .guide-num{flex-shrink:0;width:48px;height:48px;border-radius:50%;background:var(--tint);
@@ -150,7 +150,7 @@ body {
 .guide-eg{display:block;margin-top:5px;font-size:13px;color:var(--text-sub)}
 .guide-eg code,.guide-note code{background:var(--tint);padding:2px 6px;border-radius:4px;
   color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:13px}
-.guide-note{background:var(--tint);border-radius:8px;padding:12px 14px;font-size:13px;
+.guide-note{font-size:13px;
   color:var(--text-sub);margin:18px 0 0}
 .guide-note strong{color:var(--text);font-weight:700}
 .guide-note + .guide-note{margin-top:10px}
@@ -159,7 +159,7 @@ body {
 
 /* Guide panel: file-list example box (shared by forms that show an example folder) */
 .guide-tree {
-  background: var(--tint); border-radius: 8px; padding: 12px 14px;
+  margin-top: 6px;
   font-size: 13px; color: var(--text-sub); line-height: 2; white-space: pre-wrap;
 }
 .guide-tree code {

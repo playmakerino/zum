@@ -4,10 +4,10 @@
 
 :root {
   --bg: #000000;
-  --surface: #222222;
-  --surface-hover: #404040;
-  --surface-elevated: #373737;
-  --chip-hover: #2a2a2a;
+  --surface: #121212;
+  --surface-hover: #333333;
+  --surface-elevated: #2a2a2a;
+  --chip-hover: #1f1f1f;
   --border-btn: #7c7c7c;
   --accent: #1ED760;
   --accent-hover: #3BE477;
@@ -91,11 +91,11 @@ body {
 .form-chip.ghost{opacity:.4;}
 .form-chip.ghost:hover{opacity:1;}
 .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
-  transform:translateX(-50%) translateY(4px);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;
+  transform:translateX(-50%) translateY(4px);background:var(--surface-elevated);color:var(--text);font-size:12px;font-weight:500;
   letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,0.5);
   opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
 .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
-  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bg);
+  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--surface-elevated);
   opacity:0;transition:opacity .14s;z-index:30;}
 .form-chip[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0);}
 .form-chip[data-tip]:hover::before{opacity:1;}
@@ -178,11 +178,11 @@ body {
 .info-tip svg{width:13px;height:13px;}
 .info-tip:hover,.info-tip:focus-visible{color:var(--text);}
 .info-pop{position:absolute;left:50%;bottom:calc(100% + 9px);width:max-content;max-width:240px;
-  transform:translateX(calc(-50% + var(--dx, 0px))) translateY(4px);background:var(--bg);color:var(--text);text-align:left;
+  transform:translateX(calc(-50% + var(--dx, 0px))) translateY(4px);background:var(--surface-elevated);color:var(--text);text-align:left;
   padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,0.5);
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
 .info-tip::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
-  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bg);
+  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--surface-elevated);
   opacity:0;pointer-events:none;transition:opacity .14s;z-index:31;}
 .info-tip:hover .info-pop,.info-tip:focus-visible .info-pop{opacity:1;visibility:visible;transform:translateX(calc(-50% + var(--dx, 0px))) translateY(0);}
 .info-tip:hover::before,.info-tip:focus-visible::before{opacity:1;}

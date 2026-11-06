@@ -23,7 +23,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 - [`forms/product-type-combo.js`](forms/product-type-combo.js): dropdown Product type + mảng `PRODUCT_TYPES` của form 2, 7, 8 (form gọi `initProductTypeCombo()`). Form 1_trang không có dropdown này: product type lấy từ tên file ảnh `[PrintID-TypeID_MockupID]`.
 
 ## Form TC: luật màu và cỡ chữ (user chốt 2026-11-07)
-Mọi màu và cỡ chữ ở form đều lấy từ Spotify, ưu tiên đúng cùng thành phần (box-box, ô nhập-ô nhập, chip-chip...). Đo trên trang thật trước khi đổi, không ước lượng. Bảng số đo: memory `spotify-ui`.
+Mọi màu và cỡ chữ ở form đều lấy từ Spotify, ưu tiên đúng cùng thành phần (box-box, ô nhập-ô nhập, chip-chip...). Đo trên trang thật trước khi đổi, không ước lượng. Bảng số đo: memory `spotify-ui`. Font 13 form: Wix Madefor Text (gần SpotifyMixUI nhất trong nhóm có bộ tiếng Việt); 3 trang Polaris vẫn dùng Inter.
 
 ## Form TC: luật layout (user chốt 2026-10-12, phải giữ đồng thời cả 4)
 1. **Form 9, 10:** mép phải ô Print image thẳng mép phải ô Product URL.

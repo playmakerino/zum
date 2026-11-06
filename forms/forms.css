@@ -19,7 +19,7 @@
   --text-sub: #b3b3b3;
   --success: #1ED760;
   --error: #f3727f;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: 'Wix Madefor Text', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

@@ -46,7 +46,7 @@
       + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
       + 'display:inline-flex;gap:8px;align-items:center;height:32px;padding:4px 16px 4px 12px;'
       + 'color:#b3b3b3;cursor:pointer;transition:color .15s cubic-bezier(.3,0,0,1),transform .15s cubic-bezier(.3,0,0,1);'
-      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcTopBar{position:absolute;top:12px;right:12px;z-index:40;display:flex;align-items:center}'
       + '#tcTopBar #tcAuthChip{position:relative;top:auto;right:auto}'
       + '#tcAuthChip svg{width:16px;height:16px;flex-shrink:0;fill:currentColor}'
@@ -60,7 +60,7 @@
       /* dialog: where the credential is actually typed */
       + '#tcAuthScrim{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
       + 'justify-content:center;padding:24px;background:rgba(0,0,0,0.7);'
-      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#121212;'
       + 'border-radius:8px;padding:24px;box-shadow:0 16px 24px rgba(0,0,0,0.3),0 6px 8px rgba(0,0,0,0.2)}'
       + '#tcAuthScrim h2{margin:0 0 8px;font-size:16px;font-weight:700;'
@@ -90,7 +90,7 @@
       + '#tcAuthToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
       + 'z-index:10000;background:#fff;color:#000;border-radius:6px;padding:12px;'
       + 'font-size:16px;line-height:1.5;font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,0.3);'
-      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 
       + '@media (max-width:560px){#tcAuthChip,#tcTopBar{top:8px;right:8px}}';
     var el = document.createElement('style');

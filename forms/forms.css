@@ -10,7 +10,7 @@
   --chip: #1f1f1f;
   --accent: #1ED760;
   --accent-hover: #3BE477;
-  --accent-soft: rgba(30,215,96,0.12);
+  --accent-soft: rgba(30,215,96,0.10);
   --accent-glow: rgba(30,215,96,0.30);
   --text: #FFFFFF;
   --text-sub: #a7a7a7;
@@ -83,18 +83,18 @@ body {
   background:var(--chip);color:var(--text);border:none;border-radius:500px;
   font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
   text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s,opacity .15s;}
-.form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}
+.form-chip:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.03);}
 .form-chip:active{transform:scale(.98);}
-.form-chip.active{background:var(--text);color:#000;}
-.form-chip.active:hover{background:#fff;transform:none;}
+.form-chip.active{background:var(--text);color:var(--bg);}
+.form-chip.active:hover{background:var(--text);transform:none;}
 .form-chip.ghost{opacity:.4;}
 .form-chip.ghost:hover{opacity:1;}
 .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
-  transform:translateX(-50%) translateY(4px);background:#000;color:#fff;font-size:12px;font-weight:500;
-  letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,.45);
+  transform:translateX(-50%) translateY(4px);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;
+  letter-spacing:0;white-space:nowrap;padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,0.5);
   opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
 .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
-  transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
+  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bg);
   opacity:0;transition:opacity .14s;z-index:30;}
 .form-chip[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0);}
 .form-chip[data-tip]:hover::before{opacity:1;}
@@ -106,19 +106,19 @@ body {
 .guide-fab{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;
   background:var(--surface-elevated);color:var(--text-sub);border:none;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:50;
   transition:transform .15s cubic-bezier(.3,0,0,1),background .15s,color .15s}
 .guide-fab:hover{background:var(--surface-hover);color:var(--text);transform:scale(1.06)}
 .guide-fab:active{transform:scale(1)}
 .guide-fab svg{width:22px;height:22px}
 
-.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;
+.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;visibility:hidden;
   transition:opacity .3s,visibility .3s;z-index:60}
 .guide-overlay.open{opacity:1;visibility:visible}
 
 /* Right panel modelled on Spotify's Now Playing view: floating rounded card with a gap from the edges */
 .guide-panel{position:fixed;top:8px;right:8px;height:calc(100vh - 16px);width:420px;max-width:calc(100vw - 16px);
-  background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);
+  background:var(--surface);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.5);
   transform:translateX(calc(100% + 16px));transition:transform .3s cubic-bezier(.3,0,0,1);
   z-index:70;display:flex;flex-direction:column;overflow:hidden}
 .guide-panel.open{transform:translateX(0)}
@@ -134,16 +134,16 @@ body {
 
 .guide-body{padding:6px 20px 32px;overflow-y:auto;flex:1}
 .guide-body::-webkit-scrollbar{width:12px}
-.guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:8px;
+.guide-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:8px;
   border:3px solid transparent;background-clip:padding-box}
-.guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.5);
+.guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.5);
   border:3px solid transparent;background-clip:padding-box}
 
 .guide-intro{font-size:14px;color:var(--text-sub);line-height:1.6;margin-bottom:8px}
 .guide-sec{font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:.04em;margin:26px 0 14px}
 .guide-step{display:flex;gap:13px;margin-bottom:18px}
 /* Neutral step markers, no green */
-.guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);
+.guide-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.06);
   color:var(--text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .guide-sb{flex:1;min-width:0}
 .guide-sb h4{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.4}
@@ -151,9 +151,9 @@ body {
 .g-field{display:inline-block;background:var(--surface-elevated);color:var(--text);font-weight:500;
   font-size:12px;padding:1px 7px;border-radius:4px;white-space:nowrap}
 .guide-eg{display:block;margin-top:5px;font-size:12px;color:var(--text-muted)}
-.guide-eg code,.guide-note code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;
+.guide-eg code,.guide-note code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;
   color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:12px}
-.guide-note{background:rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;font-size:12px;
+.guide-note{background:rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;font-size:12px;
   color:var(--text-sub);line-height:1.6;margin:18px 0 0}
 .guide-note strong{color:var(--text);font-weight:700}
 .guide-note + .guide-note{margin-top:10px}
@@ -162,7 +162,7 @@ body {
 
 /* Guide panel: file-list example box (shared by forms that show an example folder) */
 .guide-tree {
-  background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px;
+  background: rgba(255,255,255,0.06); border-radius: 8px; padding: 12px 14px;
   font-size: 12px; color: var(--text-muted); line-height: 2; white-space: pre-wrap;
 }
 .guide-tree code {
@@ -177,11 +177,11 @@ body {
 .info-tip svg{width:13px;height:13px;}
 .info-tip:hover,.info-tip:focus-visible{color:var(--text);}
 .info-pop{position:absolute;left:50%;bottom:calc(100% + 9px);width:max-content;max-width:240px;
-  transform:translateX(calc(-50% + var(--dx, 0px))) translateY(4px);background:#000;color:#fff;text-align:left;
-  padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,.45);
+  transform:translateX(calc(-50% + var(--dx, 0px))) translateY(4px);background:var(--bg);color:var(--text);text-align:left;
+  padding:6px 10px;border-radius:4px;box-shadow:0 8px 22px rgba(0,0,0,0.5);
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
 .info-tip::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
-  transform:translateX(-50%);border:5px solid transparent;border-top-color:#000;
+  transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bg);
   opacity:0;pointer-events:none;transition:opacity .14s;z-index:31;}
 .info-tip:hover .info-pop,.info-tip:focus-visible .info-pop{opacity:1;visibility:visible;transform:translateX(calc(-50% + var(--dx, 0px))) translateY(0);}
 .info-tip:hover::before,.info-tip:focus-visible::before{opacity:1;}

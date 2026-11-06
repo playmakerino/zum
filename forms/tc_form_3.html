@@ -35,8 +35,8 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .full-input::placeholder { color: var(--text-muted); }
-    .full-input:hover { background: #404040; }
-    .full-input:focus { background: #404040; box-shadow: 0 0 0 2px var(--text); }
+    .full-input:hover { background: var(--surface-hover); }
+    .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
     .field-lbl { font-size: 12px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.01em; }
     .pos-line .full-input { max-width: 130px; }
     @media (min-width: 680px) {
@@ -80,13 +80,13 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .row input[type="text"]::placeholder { color: var(--text-muted); }
-    .row input[type="text"]:hover { background: #404040; }
+    .row input[type="text"]:hover { background: var(--surface-hover); }
     .row input[type="text"]:focus {
-      background: #404040; box-shadow: 0 0 0 2px var(--text);
+      background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
     }
     .row .remove-btn {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text-muted);
       cursor: pointer;
       width: 36px; height: 36px;
@@ -115,7 +115,7 @@
     .row-img .img-thumb .img-rm {
       position: absolute; top: 1px; right: 1px;
       width: 16px; height: 16px; border: none;
-      background: rgba(0,0,0,0.72); color: #fff;
+      background: rgba(0,0,0,0.7); color: var(--text);
       border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       opacity: 0; transition: opacity 0.15s;
@@ -133,7 +133,7 @@
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -156,7 +156,7 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
       margin: 0 auto;
       background: var(--accent); border: none;
-      color: #000;
+      color: var(--bg);
       font-family: var(--font);
       font-size: 16px; font-weight: 700;
       padding: 16px 24px;

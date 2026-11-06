@@ -45,7 +45,7 @@
          itself with the dialog and the toast rather than waiting to be found. */
       + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
       + 'display:inline-flex;gap:8px;align-items:baseline;background:#1f1f1f;'
-      + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.4);'
+      + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#a7a7a7}'
       + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-family:inherit;'
@@ -56,13 +56,13 @@
       + '#tcAuthScrim{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
       + 'justify-content:center;padding:24px;background:rgba(0,0,0,0.7);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#282828;'
-      + 'border-radius:8px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.6)}'
+      + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#222222;'
+      + 'border-radius:8px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.5)}'
       + '#tcAuthScrim h2{margin:0 0 8px;font-size:24px;line-height:1.2;font-weight:700;'
       + 'color:#fff;letter-spacing:-0.02em}'
       + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;line-height:1.5;color:#a7a7a7}'
       + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
-      + 'border:1px solid #727272;background:#121212;color:#fff;font-size:16px;'
+      + 'border:1px solid #6a6a6a;background:#000000;color:#fff;font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
@@ -83,7 +83,7 @@
       /* toast: the form's submit button is far from the chip, so failures announce
          themselves at the bottom of the viewport instead */
       + '#tcAuthToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
-      + 'z-index:10000;background:#282828;color:#fff;border-radius:4px;padding:12px 16px;'
+      + 'z-index:10000;background:#222222;color:#fff;border-radius:4px;padding:12px 16px;'
       + 'font-size:14px;line-height:1.5;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 

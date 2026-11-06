@@ -50,10 +50,10 @@
 
     .field input[type="text"]::placeholder { color: var(--text-muted); }
     .field input[type="text"]:hover,
-    .field select:hover { background-color: #404040; }
+    .field select:hover { background-color: var(--surface-hover); }
     .field input[type="text"]:focus,
     .field select:focus {
-      background-color: #404040; box-shadow: 0 0 0 2px var(--text);
+      background-color: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
     }
 
     /* Searchable product-type dropdown (custom combobox) */
@@ -74,9 +74,9 @@
       background-position: right 16px center;
     }
     .combo-input::placeholder { color: var(--text-muted); }
-    .combo-input:hover { background-color: #404040; }
+    .combo-input:hover { background-color: var(--surface-hover); }
     .combo.open .combo-input,
-    .combo-input:focus { background-color: #404040; box-shadow: 0 0 0 2px var(--text); }
+    .combo-input:focus { background-color: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
 
     .combo-menu {
       position: absolute; top: calc(100% + 6px); left: 0; width: max(100%, 320px);
@@ -116,7 +116,7 @@
       height: 42px;
       transition: background 0.15s;
     }
-    .chooser-field:hover { background: #404040; }
+    .chooser-field:hover { background: var(--surface-hover); }
     .chooser-field.has-value { background: rgba(30,215,96,0.10); }
     .chooser-field .chooser-path {
       flex: 1; font-size: 13px; font-weight: 400; color: var(--text-muted);
@@ -125,7 +125,7 @@
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
     .chooser-btn {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-      background: transparent; border: 1px solid rgba(255,255,255,0.20); color: var(--text);
+      background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text);
       font-family: var(--font); font-size: 12px; font-weight: 700;
       padding: 6px 12px; border-radius: 500px; cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
@@ -180,13 +180,13 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .row input[type="text"]::placeholder { color: var(--text-muted); }
-    .row input[type="text"]:hover { background: #404040; }
+    .row input[type="text"]:hover { background: var(--surface-hover); }
     .row input[type="text"]:focus {
-      background: #404040; box-shadow: 0 0 0 2px var(--text);
+      background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
     }
     .row .remove-btn {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text-muted);
       cursor: pointer;
       width: 36px; height: 36px;
@@ -209,7 +209,7 @@
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -232,7 +232,7 @@
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto;
       background: var(--accent); border: none;
-      color: #000;
+      color: var(--bg);
       font-family: var(--font);
       font-size: 16px; font-weight: 700;
       padding: 16px 24px;
@@ -337,7 +337,7 @@
         <div class="status" id="statusMsg"></div>
       </div>
 
-      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:#0d0d0d; border-radius:8px; font-size:12px; color:#6A6A6A; line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:var(--bg); border-radius:8px; font-size:12px; color:var(--text-muted); line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>

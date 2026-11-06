@@ -44,8 +44,8 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .full-input::placeholder { color: var(--text-muted); }
-    .full-input:hover { background: #404040; }
-    .full-input:focus { background: #404040; box-shadow: 0 0 0 2px var(--text); }
+    .full-input:hover { background: var(--surface-hover); }
+    .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
     .field-lbl { font-size: 12px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.01em; }
 
     /* Print image chooser */
@@ -57,7 +57,7 @@
       height: 42px;
       transition: background 0.15s;
     }
-    .chooser-field:hover { background: #404040; }
+    .chooser-field:hover { background: var(--surface-hover); }
     .chooser-field.has-value { background: rgba(30,215,96,0.10); }
     .chooser-field .chooser-path {
       flex: 1; font-size: 13px; font-weight: 400; color: var(--text-muted);
@@ -66,7 +66,7 @@
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
     .chooser-btn {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-      background: transparent; border: 1px solid rgba(255,255,255,0.20); color: var(--text);
+      background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text);
       font-family: var(--font); font-size: 12px; font-weight: 700;
       padding: 6px 12px; border-radius: 500px; cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
@@ -117,13 +117,13 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .row input[type="text"]::placeholder { color: var(--text-muted); }
-    .row input[type="text"]:hover { background: #404040; }
+    .row input[type="text"]:hover { background: var(--surface-hover); }
     .row input[type="text"]:focus {
-      background: #404040; box-shadow: 0 0 0 2px var(--text);
+      background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
     }
     .row .remove-btn {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text-muted);
       cursor: pointer;
       width: 36px; height: 36px;
@@ -146,7 +146,7 @@
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -169,7 +169,7 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
       margin: 0 auto;
       background: var(--accent); border: none;
-      color: #000;
+      color: var(--bg);
       font-family: var(--font);
       font-size: 16px; font-weight: 700;
       padding: 16px 24px;

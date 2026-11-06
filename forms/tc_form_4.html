@@ -55,8 +55,8 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .field input[type="text"]::placeholder { color: var(--text-muted); }
-    .field input[type="text"]:hover { background: #404040; }
-    .field input[type="text"]:focus { background: #404040; box-shadow: 0 0 0 2px var(--text); }
+    .field input[type="text"]:hover { background: var(--surface-hover); }
+    .field input[type="text"]:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
 
     /* Chooser field (Dropbox) */
     .chooser-field {
@@ -69,7 +69,7 @@
       transition: background 0.15s;
       height: 42px;
     }
-    .chooser-field:hover { background: #404040; }
+    .chooser-field:hover { background: var(--surface-hover); }
     .chooser-field.has-value { background: rgba(30,215,96,0.10); }
     .chooser-field .chooser-path {
       flex: 1;
@@ -83,7 +83,7 @@
       flex-shrink: 0;
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.20);
+      border: 1px solid rgba(255,255,255,0.2);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -116,7 +116,7 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
       margin: 0 auto;
       background: var(--accent); border: none;
-      color: #000;
+      color: var(--bg);
       font-family: var(--font);
       font-size: 16px; font-weight: 700;
       padding: 14px 24px;

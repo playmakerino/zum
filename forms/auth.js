@@ -44,7 +44,7 @@
          so it scrolls away: it is needed once per browser, and a failure announces
          itself with the dialog and the toast rather than waiting to be found. */
       + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
-      + 'display:inline-flex;gap:8px;align-items:baseline;background:#1f1f1f;'
+      + 'display:inline-flex;gap:8px;align-items:baseline;background:#222222;'
       + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#a7a7a7}'

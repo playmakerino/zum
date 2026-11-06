@@ -46,11 +46,11 @@
       + '#tcAuthChip{position:absolute;top:12px;right:12px;z-index:40;'
       + 'display:inline-flex;gap:8px;align-items:center;height:32px;padding:4px 16px 4px 12px;'
       + 'color:#b3b3b3;cursor:pointer;transition:color .15s cubic-bezier(.3,0,0,1),transform .15s cubic-bezier(.3,0,0,1);'
-      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcTopBar{position:absolute;top:12px;right:12px;z-index:40;display:flex;align-items:center}'
       + '#tcTopBar #tcAuthChip{position:relative;top:auto;right:auto}'
       + '#tcAuthChip svg{width:16px;height:16px;flex-shrink:0;fill:currentColor}'
-      + '#tcAuthChip .tc-state{font-size:14px;font-weight:700;line-height:1.5}'
+      + '#tcAuthChip .tc-state{font-size:13px;font-weight:700;line-height:1.5}'
       /* the real button covers the whole chip; its own text is not shown here */
       + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-size:0;cursor:pointer}'
       + '#tcAuthChip .tc-link::after{content:"";position:absolute;inset:0}'
@@ -60,21 +60,21 @@
       /* dialog: where the credential is actually typed */
       + '#tcAuthScrim{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;'
       + 'justify-content:center;padding:24px;background:rgba(0,0,0,0.7);'
-      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
       + '#tcAuthScrim .tc-card{position:relative;width:100%;max-width:360px;background:#121212;'
       + 'border-radius:8px;padding:24px;box-shadow:0 16px 24px rgba(0,0,0,0.3),0 6px 8px rgba(0,0,0,0.2)}'
-      + '#tcAuthScrim h2{margin:0 0 8px;font-size:16px;font-weight:700;'
+      + '#tcAuthScrim h2{margin:0 0 8px;font-size:15px;font-weight:700;'
       + 'color:#fff}'
-      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;color:#b3b3b3}'
+      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:13px;color:#b3b3b3}'
       + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
       + 'border:1px solid transparent;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
       + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#ed2c3f}'
-      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:14px;line-height:1.5;color:#f3727f}'
+      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:13px;line-height:1.5;color:#f3727f}'
       + '#tcAuthScrim .tc-save{width:100%;height:48px;margin-top:24px;border:none;'
-      + 'border-radius:500px;background:#1ED760;color:#000;font-size:16px;font-weight:700;'
+      + 'border-radius:500px;background:#1ED760;color:#000;font-size:15px;font-weight:700;'
       + 'font-family:inherit;cursor:pointer;'
       + 'transition:background-color .1s ease,transform .1s ease}'
       + '#tcAuthScrim .tc-save:hover{background:#3BE477;transform:scale(1.04)}'
@@ -89,8 +89,8 @@
          themselves at the bottom of the viewport instead */
       + '#tcAuthToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
       + 'z-index:10000;background:#fff;color:#000;border-radius:6px;padding:12px;'
-      + 'font-size:16px;line-height:1.5;font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,0.3);'
-      + "font-family:'Wix Madefor Text','Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
+      + 'font-size:15px;line-height:1.5;font-weight:400;box-shadow:0 4px 12px rgba(0,0,0,0.3);'
+      + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
 
       + '@media (max-width:560px){#tcAuthChip,#tcTopBar{top:8px;right:8px}}';
     var el = document.createElement('style');

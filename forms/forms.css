@@ -19,7 +19,7 @@
   --text-sub: #b3b3b3;
   --success: #1ED760;
   --error: #f3727f;
-  --font: 'Wix Madefor Text', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,7 +37,7 @@ body {
 }
 
 .header { margin-bottom: 24px; text-align: left; }
-.header p { font-size: 14px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
+.header p { font-size: 13px; color: var(--text-sub); line-height: 1.5; font-weight: 400; }
 
 .card { background: var(--surface); border-radius: 8px; padding: 32px 28px; }
 
@@ -52,7 +52,7 @@ body {
 .status {
   margin-top: 14px; padding: 12px 16px;
   border-radius: 8px;
-  font-size: 14px; font-weight: 500;
+  font-size: 13px; font-weight: 500;
   display: none; line-height: 1.5;
 }
 .status.success { display: block; background: var(--tint); color: var(--success); }
@@ -74,12 +74,12 @@ body {
 /* ============ Form switcher ============ */
 .form-switcher{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:24px;}
 .fs-row{display:flex;align-items:flex-start;gap:12px;max-width:100%;}
-.fs-label{flex:0 0 100px;line-height:32px;font-family:var(--font);font-size:14px;font-weight:700;
+.fs-label{flex:0 0 100px;line-height:32px;font-family:var(--font);font-size:13px;font-weight:700;
   color:var(--text);}
 .fs-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:4px 12px;
   background:var(--surface-elevated);color:var(--text);border:none;border-radius:500px;
-  font-family:var(--font);font-size:14px;font-weight:700;white-space:nowrap;
+  font-family:var(--font);font-size:13px;font-weight:700;white-space:nowrap;
   text-decoration:none;cursor:pointer;transition:background .15s,color .15s,opacity .15s;}
 .form-chip:hover{background:var(--surface-hover);color:var(--text);}
 .form-chip.active{background:var(--text);color:var(--bg);}
@@ -87,7 +87,7 @@ body {
 .form-chip.ghost{opacity:.4;}
 .form-chip.ghost:hover{opacity:1;}
 .form-chip[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 9px);
-  transform:translateX(-50%) translateY(4px);background:var(--surface-menu);color:var(--text);font-size:14px;font-weight:400;
+  transform:translateX(-50%) translateY(4px);background:var(--surface-menu);color:var(--text);font-size:13px;font-weight:400;
   letter-spacing:0;white-space:nowrap;padding:4px 8px;border-radius:4px;box-shadow:var(--menu-shadow);
   opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:30;}
 .form-chip[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
@@ -103,7 +103,7 @@ body {
 /* auth.js moves it into #tcTopBar, left of the password chip */
 .guide-fab{height:32px;padding:4px 16px 4px 12px;
   background:none;color:var(--text-sub);border:none;
-  font-family:var(--font);font-size:14px;font-weight:700;
+  font-family:var(--font);font-size:13px;font-weight:700;
   cursor:pointer;display:inline-flex;align-items:center;gap:8px;
   transition:color .15s cubic-bezier(.3,0,0,1),transform .15s cubic-bezier(.3,0,0,1)}
 .guide-fab:hover{color:var(--text);transform:scale(1.04)}
@@ -123,7 +123,7 @@ body {
 
 .guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:20px 20px 14px;flex-shrink:0}
-.guide-head h2{font-size:14px;font-weight:700;color:var(--text)}
+.guide-head h2{font-size:13px;font-weight:700;color:var(--text)}
 /* Plain icon close, no background circle: like the Spotify panel close */
 .guide-close{flex-shrink:0;width:32px;height:32px;background:none;border:none;color:var(--border-btn);
   cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s,transform .15s}
@@ -137,21 +137,21 @@ body {
 .guide-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.5);
   border:3px solid transparent;background-clip:padding-box}
 
-.guide-intro{font-size:14px;color:var(--text-sub);margin-bottom:8px}
-.guide-sec{font-size:14px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0;border-top:1px solid var(--tint)}
+.guide-intro{font-size:13px;color:var(--text-sub);margin-bottom:8px}
+.guide-sec{font-size:13px;font-weight:700;color:var(--placeholder);margin:4px 0;padding:12px 0;border-top:1px solid var(--tint)}
 .guide-step{display:flex;gap:12px;padding:8px 0}
 /* Step marker = the 48px icon circle of the Create menu */
 .guide-num{flex-shrink:0;width:48px;height:48px;border-radius:50%;background:var(--tint);
-  color:var(--text);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  color:var(--text);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .guide-sb{flex:1;min-width:0}
-.guide-sb h4{font-size:14px;font-weight:700;color:var(--text)}
-.guide-sb p{font-size:14px;color:var(--text-sub)}
+.guide-sb h4{font-size:13px;font-weight:700;color:var(--text)}
+.guide-sb p{font-size:13px;color:var(--text-sub)}
 .g-field{display:inline-block;background:var(--tint);color:var(--text);font-weight:500;
-  font-size:14px;padding:1px 7px;border-radius:4px;white-space:nowrap}
-.guide-eg{display:block;margin-top:5px;font-size:14px;color:var(--text-sub)}
+  font-size:13px;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.guide-eg{display:block;margin-top:5px;font-size:13px;color:var(--text-sub)}
 .guide-eg code,.guide-note code{background:var(--tint);padding:2px 6px;border-radius:4px;
-  color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:14px}
-.guide-note{background:var(--tint);border-radius:8px;padding:12px 14px;font-size:14px;
+  color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:13px}
+.guide-note{background:var(--tint);border-radius:8px;padding:12px 14px;font-size:13px;
   color:var(--text-sub);margin:18px 0 0}
 .guide-note strong{color:var(--text);font-weight:700}
 .guide-note + .guide-note{margin-top:10px}
@@ -161,17 +161,17 @@ body {
 /* Guide panel: file-list example box (shared by forms that show an example folder) */
 .guide-tree {
   background: var(--tint); border-radius: 8px; padding: 12px 14px;
-  font-size: 14px; color: var(--text-sub); line-height: 2; white-space: pre-wrap;
+  font-size: 13px; color: var(--text-sub); line-height: 2; white-space: pre-wrap;
 }
 .guide-tree code {
   background: var(--tint); padding: 2px 6px; border-radius: 4px;
-  color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 14px;
+  color: var(--text); font-family: "SF Mono", "Fira Code", monospace; font-size: 13px;
 }
 
 /* Info icon after a field label (forms.js builds it from data-hint); tooltip on hover/focus.
    forms.js sets --dx so the bubble stays inside the window; the arrow stays on the icon. */
 .info-tip{position:relative;display:inline-flex;vertical-align:-2px;margin-left:5px;color:var(--text-sub);outline:none;
-  font-size:14px;font-weight:400;line-height:1.4;letter-spacing:0;white-space:normal;text-transform:none;}
+  font-size:13px;font-weight:400;line-height:1.4;letter-spacing:0;white-space:normal;text-transform:none;}
 .info-tip svg{width:13px;height:13px;}
 .info-tip:hover,.info-tip:focus-visible{color:var(--text);}
 .info-pop{position:absolute;left:50%;bottom:calc(100% + 9px);width:max-content;max-width:240px;

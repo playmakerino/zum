@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="forms.css">
   <style>
@@ -23,7 +23,7 @@
 
     .field { margin-bottom: 16px; }
     .field label {
-      display: block; font-size: 14px; font-weight: 700;
+      display: block; font-size: 13px; font-weight: 700;
       color: var(--text); margin-bottom: 8px;
     }
 
@@ -34,7 +34,7 @@
       border: none; border-radius: 4px;
       padding: 0 16px;
       font-family: var(--font);
-      font-size: 13.3333px; font-weight: 400;
+      font-size: 12.5px; font-weight: 400;
       color: var(--input-text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
@@ -64,7 +64,7 @@
       border: none; border-radius: 4px;
       padding: 0 40px 0 16px;
       font-family: var(--font);
-      font-size: 13.3333px; font-weight: 400;
+      font-size: 12.5px; font-weight: 400;
       color: var(--input-text);
       outline: none;
       cursor: pointer;
@@ -92,13 +92,13 @@
     .combo-opt {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       padding: 8px 8px 8px 12px; border-radius: 2px;
-      font-size: 14px; color: rgba(255,255,255,0.9);
+      font-size: 13px; color: rgba(255,255,255,0.9);
       cursor: pointer;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .combo-opt:hover, .combo-opt.active { background: var(--tint); }
-    .combo-opt .opt-code { flex-shrink: 0; color: var(--text-sub); font-size: 12px; font-weight: 500; }
-    .combo-empty { padding: 10px 12px; font-size: 14px; color: var(--text-sub); }
+    .combo-opt .opt-code { flex-shrink: 0; color: var(--text-sub); font-size: 11px; font-weight: 500; }
+    .combo-empty { padding: 10px 12px; font-size: 13px; color: var(--text-sub); }
 
     .field-row {
       display: grid;
@@ -118,14 +118,14 @@
     }
     .chooser-field:hover { background: var(--surface-hover); }
     .chooser-field .chooser-path {
-      flex: 1; font-size: 14px; font-weight: 400; color: var(--text-sub);
+      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-sub);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
     .chooser-btn {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
       background: transparent; border: 1px solid var(--border-btn); color: var(--text);
-      font-family: var(--font); font-size: 14px; font-weight: 700;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
       height: 32px; padding: 4px 16px; border-radius: 500px; cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
       white-space: nowrap;
@@ -141,7 +141,7 @@
     .clear-btn:hover { color: var(--text); background: var(--tint); }
 
     .row .chooser-field { height: 42px; padding: 0 6px 0 12px; }
-    .row .chooser-path { font-size: 14px; }
+    .row .chooser-path { font-size: 13px; }
 
     .row {
       display: grid;
@@ -152,7 +152,7 @@
     }
     .row-header { margin-bottom: 6px; }
     .row-col-label {
-      font-size: 14px; font-weight: 700;
+      font-size: 13px; font-weight: 700;
       color: var(--text);
 
     }
@@ -162,7 +162,7 @@
        shown on mobile where the shared header is hidden. */
     .row-inline-label {
       display: none;
-      font-size: 14px; font-weight: 700;
+      font-size: 13px; font-weight: 700;
       color: var(--text);
       margin-bottom: 6px;
 
@@ -173,7 +173,7 @@
       border: none; border-radius: 4px;
       padding: 0 12px;
       font-family: var(--font);
-      font-size: 13.3333px; font-weight: 400;
+      font-size: 12.5px; font-weight: 400;
       color: var(--input-text);
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
@@ -202,7 +202,7 @@
       margin-top: 6px; flex-wrap: wrap;
     }
     .paste-tip {
-      font-size: 12px; color: var(--text-sub); line-height: 1.4;
+      font-size: 11px; color: var(--text-sub); line-height: 1.4;
     }
 
     .add-btn {
@@ -211,7 +211,7 @@
       border: 1px solid var(--border-btn);
       color: var(--text);
       font-family: var(--font);
-      font-size: 14px; font-weight: 700;
+      font-size: 13px; font-weight: 700;
       height: 32px; padding: 4px 16px;
       border-radius: 500px;
       cursor: pointer;
@@ -232,7 +232,7 @@
       background: var(--accent); border: none;
       color: var(--bg);
       font-family: var(--font);
-      font-size: 16px; font-weight: 700;
+      font-size: 15px; font-weight: 700;
       padding: 16px 24px;
       border-radius: 500px;
       cursor: pointer;
@@ -241,7 +241,7 @@
 
     #payloadPreview {
       font-family: 'SF Mono', 'Fira Code', monospace !important;
-      font-size: 12px !important;
+      font-size: 11px !important;
     }
 
     @media (max-width: 640px) {
@@ -335,7 +335,7 @@
         <div class="status" id="statusMsg"></div>
       </div>
 
-      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:var(--bg); border-radius:8px; font-size:12px; color:var(--text-sub); line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
+      <div id="payloadPreview" style="display:none; margin-top:14px; padding:14px; background:var(--bg); border-radius:8px; font-size:11px; color:var(--text-sub); line-height:1.7; white-space:pre-wrap; word-break:break-all;"></div>
 
     </div>
   </div>

@@ -23,7 +23,7 @@ Luật chọn server (bảng phân công, UUID connector, bẫy draft/published)
 - [`forms/product-type-combo.js`](forms/product-type-combo.js): dropdown Product type + mảng `PRODUCT_TYPES` của form 2, 7, 8 (form gọi `initProductTypeCombo()`). Form 1_trang không có dropdown này: product type lấy từ tên file ảnh `[PrintID-TypeID_MockupID]`.
 
 ## Form TC: luật màu và cỡ chữ (user chốt 2026-11-07)
-Mọi màu và cỡ chữ ở form đều lấy từ Spotify, ưu tiên đúng cùng thành phần (box-box, ô nhập-ô nhập, chip-chip...). Đo trên trang thật trước khi đổi, không ước lượng. Bảng số đo: memory `spotify-ui`. Font 13 form: Wix Madefor Text (gần SpotifyMixUI nhất trong nhóm có bộ tiếng Việt); 3 trang Polaris vẫn dùng Inter.
+Mọi màu và cỡ chữ ở form đều lấy từ Spotify, ưu tiên đúng cùng thành phần (box-box, ô nhập-ô nhập, chip-chip...). Đo trên trang thật trước khi đổi, không ước lượng. Bảng số đo: memory `spotify-ui`. Font: Inter (user chốt 2026-11-07), cỡ chữ = cỡ đo từ Spotify × 0,93 vì Inter to hơn SpotifyMixUI: 16→15, 14→13, 13,33→12,5, 12→11.
 
 ## Form TC: luật layout (user chốt 2026-10-12, phải giữ đồng thời cả 4)
 1. **Form 9, 10:** mép phải ô Print image thẳng mép phải ô Product URL.
@@ -34,7 +34,7 @@ Mọi màu và cỡ chữ ở form đều lấy từ Spotify, ưu tiên đúng c
 Số hiện tại (desktop, nội dung card 704px = 760 − 2×28): Print ID = Image positions = **130px**. Form 9, 10: Print image = Ad images = **254px**, vì 704 − 254 − 36 (nút xoá) − 2×10 (gap) = 394 = 130 + 10 + 254. Form 1, 4: hai ô ảnh chia đôi (347/347).
 - Đổi Print ID thành P thì phải đổi theo: ô ảnh form 9, 10 = (638 − P) / 2; Image positions form 2, 3, 6 = P; khung căn mép phải `.pos-field` form 2, 6 = P + 10 + 36.
 - Sửa xong phải đo lại bằng `getBoundingClientRect` trên trang thật (desktop 1280px), không tính nhẩm. Các số trên chỉ khớp tuyệt đối khi card đạt bề rộng tối đa (cửa sổ ≥ ~792px).
-- Không cùng nhóm luật nhưng cũng là chuẩn chung: chữ trong ô nhập 13,3333px desktop (đo từ ô tìm kiếm Thư viện của Spotify, 2026-11-07) / 16px ở ≤640px (iPhone tự zoom vào ô dưới 16px), chữ gõ và placeholder cùng trắng 70% (`--input-text`, `--placeholder`).
+- Không cùng nhóm luật nhưng cũng là chuẩn chung: chữ trong ô nhập 12,5px desktop (13,33px của ô tìm kiếm Thư viện Spotify × 0,93) / 16px ở ≤640px (iPhone tự zoom vào ô dưới 16px), chữ gõ và placeholder cùng trắng 70% (`--input-text`, `--placeholder`).
 
 ## Compositor flatlay: 3 file, 1 engine
 [`compositor/pattern-mockup.html`](compositor/pattern-mockup.html) (dev tool), [`compositor/zum_prd_form.html`](compositor/zum_prd_form.html) (form production) và [`compositor/pattern-mockup-v2.html`](compositor/pattern-mockup-v2.html) (trang testing) chứa **cùng một khối engine byte-identical** giữa 2 dòng marker `// ===== SHARED BLOCK` … `// ===== END SHARED BLOCK =====`. Cả 3 vẫn là one-page HTML (khối được nhân bản, không load script chung).

@@ -70,6 +70,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 ## Key Metrics
 - Raw (fetched): impressions, clicks, spend
 - Derived (server-computed): CTR, CPC, CPM, ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
+- Derived (client-computed, `enrichRow` + `totals` trong app.js, nên kết quả lưu localStorage cũng có ngay): CR (purchases/clicks, clicks là mọi lượt click của Triple Whale)
 - Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays)
 
 ## Environment Variables (Render; local nạp từ D:/keys)

@@ -39,7 +39,7 @@ const state = {
 // Table config
 const TABLES = {
   creatives: {
-    cols: 11,
+    cols: 12,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
     row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
   }
@@ -229,7 +229,14 @@ async function fetchAll() {
 
 // Data helpers
 function enrichRow(row) {
-  return { ...row, roas: parseFloat(row.roas || 0), cpr: parseFloat(row.cpr || 0), aov: parseFloat(row.aov || 0) };
+  const clicks = parseFloat(row.clicks || 0);
+  return {
+    ...row,
+    roas: parseFloat(row.roas || 0),
+    cpr: parseFloat(row.cpr || 0),
+    aov: parseFloat(row.aov || 0),
+    cr: clicks ? parseFloat(row.purchase_count || 0) / clicks * 100 : 0,
+  };
 }
 
 // Render
@@ -295,7 +302,8 @@ function totals(rows) {
     roas: spend ? pv / spend : 0,
     cpr:  pc ? spend / pc : 0,
     aov:  pc ? pv / pc : 0,
-    cpm:  impr ? spend / impr * 1000 : 0,
+    cr:   clicks ? pc / clicks * 100 : 0,
+    cpm: impr ? spend / impr * 1000 : 0,
     ctr:  impr ? clicks / impr * 100 : 0,
     cpc:  clicks ? spend / clicks : 0,
     video_3sec_rate: impr   ? v3sec  / impr   * 100 : 0,
@@ -506,6 +514,7 @@ function metrics(row) {
     [row.roas, v => fmtF(v) + 'x'],
     [row.cpr, fmtMoneyInt],
     [row.aov, fmtMoneyInt],
+    [row.cr, v => fmtF(v) + '%'],
     [row.cpm, fmtMoneyInt],
     [row.ctr, v => fmtF(v) + '%'],
     [row.cpc, fmtMoney],

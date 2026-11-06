@@ -47,9 +47,9 @@
       + 'display:inline-flex;gap:8px;align-items:baseline;background:#222222;'
       + 'border-radius:500px;padding:8px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);'
       + "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}"
-      + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#a7a7a7}'
+      + '#tcAuthChip .tc-state{font-size:14px;line-height:1.5;color:#b3b3b3}'
       + '#tcAuthChip .tc-link{border:none;background:none;padding:0;font-family:inherit;'
-      + 'font-size:14px;font-weight:700;color:#a7a7a7;cursor:pointer;transition:color .1s ease}'
+      + 'font-size:14px;font-weight:700;color:#b3b3b3;cursor:pointer;transition:color .1s ease}'
       + '#tcAuthChip .tc-link:hover{color:#fff;text-decoration:underline}'
 
       /* dialog: where the credential is actually typed */
@@ -60,14 +60,14 @@
       + 'border-radius:8px;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.5)}'
       + '#tcAuthScrim h2{margin:0 0 8px;font-size:24px;line-height:1.2;font-weight:700;'
       + 'color:#fff;letter-spacing:-0.02em}'
-      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;line-height:1.5;color:#a7a7a7}'
+      + '#tcAuthScrim .tc-sub{margin:0 0 24px;font-size:14px;line-height:1.5;color:#b3b3b3}'
       + '#tcAuthScrim input{width:100%;height:48px;padding:0 16px;border-radius:4px;'
       + 'border:1px solid #6a6a6a;background:#000000;color:#fff;font-size:16px;'
       + 'font-family:inherit;transition:border-color .1s ease}'
       + '#tcAuthScrim input:hover{border-color:#fff}'
       + '#tcAuthScrim input:focus{outline:none;border-color:#fff;box-shadow:inset 0 0 0 1px #fff}'
-      + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#f15e6c}'
-      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:14px;line-height:1.5;color:#f15e6c}'
+      + '#tcAuthScrim.tc-invalid input,#tcAuthScrim.tc-invalid input:hover{border-color:#f3727f}'
+      + '#tcAuthScrim .tc-err{margin:8px 0 0;font-size:14px;line-height:1.5;color:#f3727f}'
       + '#tcAuthScrim .tc-save{width:100%;height:48px;margin-top:24px;border:none;'
       + 'border-radius:500px;background:#1ED760;color:#000;font-size:16px;font-weight:700;'
       + 'font-family:inherit;cursor:pointer;'
@@ -76,7 +76,7 @@
       + '#tcAuthScrim .tc-save:active{background:#1ED760;transform:scale(1)}'
       + '#tcAuthScrim .tc-x{position:absolute;top:12px;right:12px;width:32px;height:32px;'
       + 'display:flex;align-items:center;justify-content:center;border:none;background:none;'
-      + 'color:#a7a7a7;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;'
+      + 'color:#b3b3b3;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;'
       + 'transition:color .1s ease}'
       + '#tcAuthScrim .tc-x:hover{color:#fff}'
 

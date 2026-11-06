@@ -54,7 +54,7 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .field input[type="text"]::placeholder { color: var(--text-muted); }
+    .field input[type="text"]::placeholder { color: var(--text-sub); }
     .field input[type="text"]:hover { background: var(--surface-hover); }
     .field input[type="text"]:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
 
@@ -74,7 +74,7 @@
     .chooser-field .chooser-path {
       flex: 1;
       font-size: 14px; font-weight: 400;
-      color: var(--text-muted);
+      color: var(--text-sub);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
@@ -83,7 +83,7 @@
       flex-shrink: 0;
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid var(--border-btn);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -94,7 +94,7 @@
       letter-spacing: 0.01em;
       white-space: nowrap;
     }
-    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.06); transform: scale(1.04); }
+    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.1); transform: scale(1.04); }
     .chooser-btn svg { width: 12px; height: 12px; }
 
     .clear-btn {

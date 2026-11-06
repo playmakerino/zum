@@ -43,7 +43,7 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .full-input::placeholder { color: var(--text-muted); }
+    .full-input::placeholder { color: var(--text-sub); }
     .full-input:hover { background: var(--surface-hover); }
     .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
     .field-lbl { font-size: 12px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.01em; }
@@ -60,19 +60,19 @@
     .chooser-field:hover { background: var(--surface-hover); }
     .chooser-field.has-value { background: rgba(30,215,96,0.10); }
     .chooser-field .chooser-path {
-      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-muted);
+      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-sub);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
     .chooser-btn {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-      background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text);
+      background: transparent; border: 1px solid var(--border-btn); color: var(--text);
       font-family: var(--font); font-size: 12px; font-weight: 700;
       padding: 6px 12px; border-radius: 500px; cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.12s;
       letter-spacing: 0.01em; white-space: nowrap;
     }
-    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.06); transform: scale(1.04); }
+    .chooser-btn:hover { border-color: var(--text); background: rgba(255,255,255,0.1); transform: scale(1.04); }
     .chooser-btn svg { width: 12px; height: 12px; }
     .clear-btn {
       flex-shrink: 0; background: none; border: none; color: var(--text-muted);
@@ -116,14 +116,14 @@
       outline: none;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .row input[type="text"]::placeholder { color: var(--text-muted); }
+    .row input[type="text"]::placeholder { color: var(--text-sub); }
     .row input[type="text"]:hover { background: var(--surface-hover); }
     .row input[type="text"]:focus {
       background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
     }
     .row .remove-btn {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid var(--border-btn);
       color: var(--text-muted);
       cursor: pointer;
       width: 36px; height: 36px;
@@ -146,7 +146,7 @@
     .add-btn {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid var(--border-btn);
       color: var(--text);
       font-family: var(--font);
       font-size: 12px; font-weight: 700;
@@ -159,7 +159,7 @@
     }
     .add-btn:hover {
       border-color: var(--text);
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.1);
       transform: scale(1.04);
     }
 

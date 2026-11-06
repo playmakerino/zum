@@ -3,10 +3,11 @@
    Holds: colour tokens + page base, the form switcher (markup rendered by forms.js), the help panel. */
 
 :root {
-  --bg: #121212;
-  --surface: #181818;
-  --surface-hover: #282828;
-  --surface-elevated: #242424;
+  --bg: #000000;
+  --surface: #222222;
+  --surface-hover: #383838;
+  --surface-elevated: #2e2e2e;
+  --chip: #1f1f1f;
   --accent: #1ED760;
   --accent-hover: #3BE477;
   --accent-soft: rgba(30,215,96,0.12);
@@ -34,16 +35,6 @@ body {
   justify-content: center;
   padding: 56px 16px 24px;
   overflow-x: hidden;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 380px;
-  background: linear-gradient(180deg, rgba(30,215,96,0.10) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .header { margin-bottom: 24px; text-align: left; }
@@ -89,7 +80,7 @@ body::before {
   letter-spacing:.01em;color:var(--text-muted);}
 .fs-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 .form-chip{position:relative;flex-shrink:0;display:inline-flex;align-items:center;height:32px;padding:0 16px;
-  background:var(--surface-hover);color:var(--text);border:none;border-radius:500px;
+  background:var(--chip);color:var(--text);border:none;border-radius:500px;
   font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
   text-decoration:none;cursor:pointer;transition:background .15s,color .15s,transform .12s,opacity .15s;}
 .form-chip:hover{background:#3a3a3a;color:var(--text);transform:scale(1.03);}

@@ -93,7 +93,7 @@ If an execution crashes before its last step, no callback is sent. Show "no resu
 
 These forms use the **Dropbox Chooser** (`https://www.dropbox.com/static/api/2/dropins.js` with `data-app-key`). The Chooser only works on domains registered in the Dropbox app.
 
-- Use the same app key as the GitHub Pages forms (it is public, in the `<script id="dropboxjs">` tag of `prd_any_dropbox.html`). The admin adds `ssshub.net` under Chooser/Saver domains in the Dropbox App Console.
+- Use the same app key as the GitHub Pages forms (it is public, in the `<script id="dropboxjs">` tag of `prd_any_dropbox.html`). `ssshub.net` is already registered under Chooser/Saver domains (2026-11-10). If ssshub is also served from another host (for example `www.ssshub.net`), ask the admin to add that host too.
 - Call `Dropbox.choose({ linkType: 'direct', extensions: ['.jpg', '.jpeg', '.png'], ... })` and send the `link` values as shown in section 3.
 - Direct links expire after 4 hours and break if the file is renamed. Tell users to submit right after picking.
 

@@ -19,7 +19,7 @@ function initProductTypeCombo() {
     { value: 'WPS', label: 'Women Pajama Set' },
     { value: 'BLK', label: 'Blanket' },
     { value: 'BHD', label: 'Blanket Hoodie' },
-    { value: 'WBL', label: 'Wearable Blanket' },
+    { value: 'WBL', label: 'Wearable Hooded Blanket' },
     { value: 'PLC', label: 'Pillow Case' },
     { value: 'SBP', label: 'Backpack' },
     { value: 'ACS', label: 'Adult Crewneck Sweatshirt' },

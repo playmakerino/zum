@@ -4,7 +4,7 @@
      <script src="forms.js" data-switcher="tc"></script>   renders the form switcher right there
      <script src="forms.js"></script>                       forms without a switcher
    data-switcher picks the chip set: "tc" = the 9 TC forms (image source x product group),
-   "img" = the 2 forms of Trang (image source only). The switcher is rendered synchronously, so the card below never jumps.
+   "img" = the 2 Mockup images forms (image source only). The switcher is rendered synchronously, so the card below never jumps.
 
    Also defines the help panel (openGuide / closeGuide, Escape closes it) and the small helpers the
    forms' own scripts call: escapeHtml, cleanProductUrl, showStatus, extractFolderId.
@@ -40,8 +40,8 @@
       ],
       // one row only, so the group half of each key is empty
       forms: {
-        'drive|': 'tc_img_form_drive.html',
-        'device|': 'tc_form_1_trang.html'
+        'drive|': 'img_mockup_gdrive.html',
+        'device|': 'img_mockup_device.html'
       }
     }
   };

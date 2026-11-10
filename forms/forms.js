@@ -26,9 +26,9 @@
         ] }
       ],
       forms: {
-        'device|single': 'tc_form_1.html', 'dropbox|single': 'tc_form_4.html', 'shopify|single': 'tc_form_3.html',
-        'shopify|theme': 'tc_form_2.html', 'device|theme': 'tc_form_7.html', 'dropbox|theme': 'tc_form_8.html',
-        'shopify|oneprint': 'tc_form_6.html', 'device|oneprint': 'tc_form_9.html', 'dropbox|oneprint': 'tc_form_10.html'
+        'device|single': 'prd_any_device.html', 'dropbox|single': 'prd_any_dropbox.html', 'shopify|single': 'prd_any_shopify.html',
+        'shopify|theme': 'prd_theme_shopify.html', 'device|theme': 'prd_theme_device.html', 'dropbox|theme': 'prd_theme_dropbox.html',
+        'shopify|oneprint': 'prd_print_shopify.html', 'device|oneprint': 'prd_print_device.html', 'dropbox|oneprint': 'prd_print_dropbox.html'
       }
     },
     img: {

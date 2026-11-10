@@ -6,22 +6,22 @@ This is for the ssshub developer. It covers every ad form that runs on GitHub Pa
 
 | Group | Name on ssshub | Form id (`form` in the callback) | Source file |
 |---|---|---|---|
-| New product test | Any products · Device | `tc_form_1` | [tc_form_1.html](../forms/tc_form_1.html) |
-| | Any products · Dropbox | `tc_form_4` | [tc_form_4.html](../forms/tc_form_4.html) |
-| | Any products · Shopify | `tc_form_3` | [tc_form_3.html](../forms/tc_form_3.html) |
-| | By print theme · Device | `tc_form_7` | [tc_form_7.html](../forms/tc_form_7.html) |
-| | By print theme · Dropbox | `tc_form_8` | [tc_form_8.html](../forms/tc_form_8.html) |
-| | By print theme · Shopify | `tc_form_2` | [tc_form_2.html](../forms/tc_form_2.html) |
-| | By print · Device | `tc_form_9` | [tc_form_9.html](../forms/tc_form_9.html) |
-| | By print · Dropbox | `tc_form_10` | [tc_form_10.html](../forms/tc_form_10.html) |
-| | By print · Shopify | `tc_form_6` | [tc_form_6.html](../forms/tc_form_6.html) |
+| New product test | Any products · Device | `tc_form_1` | [prd_any_device.html](../forms/prd_any_device.html) |
+| | Any products · Dropbox | `tc_form_4` | [prd_any_dropbox.html](../forms/prd_any_dropbox.html) |
+| | Any products · Shopify | `tc_form_3` | [prd_any_shopify.html](../forms/prd_any_shopify.html) |
+| | By print theme · Device | `tc_form_7` | [prd_theme_device.html](../forms/prd_theme_device.html) |
+| | By print theme · Dropbox | `tc_form_8` | [prd_theme_dropbox.html](../forms/prd_theme_dropbox.html) |
+| | By print theme · Shopify | `tc_form_2` | [prd_theme_shopify.html](../forms/prd_theme_shopify.html) |
+| | By print · Device | `tc_form_9` | [prd_print_device.html](../forms/prd_print_device.html) |
+| | By print · Dropbox | `tc_form_10` | [prd_print_dropbox.html](../forms/prd_print_dropbox.html) |
+| | By print · Shopify | `tc_form_6` | [prd_print_shopify.html](../forms/prd_print_shopify.html) |
 | Image test | Mockup images · Google Drive | `img_mockup_gdrive` | [img_mockup_gdrive.html](../forms/img_mockup_gdrive.html) |
 | | Mockup images · Device | `img_mockup_device` | [img_mockup_device.html](../forms/img_mockup_device.html) |
 | | Folder images · Google Drive | `img_folder_gdrive` | [img_folder_gdrive.html](../forms/img_folder_gdrive.html) |
 | Video test | Video · Zumbamboo | `tc_vid_form` (kept for compatibility) | [vid_zumbamboo.html](../forms/vid_zumbamboo.html) |
 | | Video · Scrubloop | see the Scrubloop workflow | [vid_scrubloop.html](../forms/vid_scrubloop.html) |
 
-Do not show people's names in form titles. The image forms used to be called "Trang" and "Thảo"; those names are gone.
+The form id is a stable key: the 9 New product test forms keep their old ids (`tc_form_N`) although their files were renamed to `prd_<group>_<source>.html`, so existing ssshub code keeps working. Do not show people's names in form titles; the image forms used to be called "Trang" and "Thảo", those names are gone.
 
 ## 2. Calling a form
 
@@ -93,7 +93,7 @@ If an execution crashes before its last step, no callback is sent. Show "no resu
 
 These forms use the **Dropbox Chooser** (`https://www.dropbox.com/static/api/2/dropins.js` with `data-app-key`). The Chooser only works on domains registered in the Dropbox app.
 
-- Use the same app key as the GitHub Pages forms (it is public, in the `<script id="dropboxjs">` tag of `tc_form_4.html`). The admin adds `ssshub.net` under Chooser/Saver domains in the Dropbox App Console.
+- Use the same app key as the GitHub Pages forms (it is public, in the `<script id="dropboxjs">` tag of `prd_any_dropbox.html`). The admin adds `ssshub.net` under Chooser/Saver domains in the Dropbox App Console.
 - Call `Dropbox.choose({ linkType: 'direct', extensions: ['.jpg', '.jpeg', '.png'], ... })` and send the `link` values as shown in section 3.
 - Direct links expire after 4 hours and break if the file is renamed. Tell users to submit right after picking.
 

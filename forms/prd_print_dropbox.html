@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>By print · Dropbox</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="forms.css">
+  <style>
+    .container {
+      width: 100%;
+      max-width: 760px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sections stack with breathing room between them */
+    .section + .section { margin-top: 28px; }
+
+    /* Print row: Print ID + Print image on one line */
+    .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 10px; }
+    .print-row > div { min-width: 0; }
+    /* Print ID 130px (same in every form). Print image and Ad images are both 254px so Print image ends where
+       Product URL ends: 704 - 254 - 36 - 2x10 = 394 = 130 + 10 + 254 */
+    @media (min-width: 680px) { .print-row { grid-template-columns: 130px 254px; align-items: start; } }
+
+    /* Single full-width input, used by Print ID */
+    .full-input {
+      width: 100%;
+      height: 42px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 4px;
+      padding: 0 12px;
+      font-family: var(--font);
+      font-size: 12.5px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .full-input::placeholder { color: var(--placeholder); }
+    .full-input:hover { background: var(--surface-hover); }
+    .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
+    .field-lbl { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+
+    /* Print image chooser */
+    .chooser-field {
+      background: var(--surface-elevated);
+      border-radius: 4px;
+      padding: 6px 8px 6px 12px;
+      display: flex; align-items: center; gap: 10px;
+      height: 42px;
+      transition: background 0.15s;
+    }
+    .chooser-field:hover { background: var(--surface-hover); }
+    .chooser-field .chooser-path {
+      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-sub);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
+    .chooser-btn {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid var(--border-btn); color: var(--text);
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      height: 32px; padding: 4px 16px; border-radius: 500px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+      white-space: nowrap;
+    }
+    .chooser-btn:hover { border-color: var(--text); transform: scale(1.04); }
+    .chooser-btn svg { width: 12px; height: 12px; }
+    .clear-btn {
+      flex-shrink: 0; background: none; border: none; color: var(--text-sub);
+      cursor: pointer; padding: 4px; display: none; border-radius: 50%;
+      transition: color 0.15s, background 0.15s;
+    }
+    .chooser-field.has-value .clear-btn { display: flex; }
+    .clear-btn:hover { color: var(--text); background: var(--tint); }
+
+    .row .chooser-field { height: 42px; padding: 0 6px 0 12px; }
+    .row .chooser-path { font-size: 13px; }
+
+    /* Products table */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 254px 36px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .row-header { margin-bottom: 6px; }
+    .row-col-label {
+      font-size: 13px; font-weight: 700;
+      color: var(--text);
+
+    }
+    .row-cell { min-width: 0; }
+    .row-cell input[type="text"] { width: 100%; display: block; }
+    .row-inline-label {
+      display: none;
+      font-size: 13px; font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+
+    }
+    .row input[type="text"] {
+      height: 42px;
+      background: var(--surface-elevated);
+      border: none; border-radius: 4px;
+      padding: 0 12px;
+      font-family: var(--font);
+      font-size: 12.5px; font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .row input[type="text"]::placeholder { color: var(--placeholder); }
+    .row input[type="text"]:hover { background: var(--surface-hover); }
+    .row input[type="text"]:focus {
+      background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text);
+    }
+    .row .remove-btn {
+      background: transparent;
+      border: 1px solid var(--border-btn);
+      color: var(--text-sub);
+      cursor: pointer;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .row .remove-btn:hover {
+      color: var(--error); border-color: var(--error); background: var(--tint);
+    }
+
+    .add-row-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 6px; flex-wrap: wrap;
+    }
+    .paste-tip {
+      font-size: 11px; color: var(--text-sub); line-height: 1.4;
+    }
+
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border-btn);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px; font-weight: 700;
+      height: 32px; padding: 4px 16px;
+      border-radius: 500px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+
+      flex-shrink: 0;
+    }
+    .add-btn:hover {
+      border-color: var(--text);
+      transform: scale(1.04);
+    }
+
+    .submit-wrap { margin-top: 32px; }
+    .submit-btn {
+      width: 100%; max-width: 200px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 auto;
+      background: var(--accent); border: none;
+      color: var(--bg);
+      font-family: var(--font);
+      font-size: 15px; font-weight: 700;
+      padding: 16px 24px;
+      border-radius: 500px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.2s;
+    }
+
+    @media (max-width: 640px) {
+      .row-header { display: none; }
+      .row-inline-label { display: block; }
+
+      .row {
+        grid-template-columns: 1fr 36px;
+        grid-template-areas:
+          "url btn"
+          "pos pos";
+        column-gap: 10px;
+        row-gap: 12px;
+        margin-bottom: 18px;
+        align-items: end;
+      }
+      .row-cell-url { grid-area: url; }
+      .row-cell-pos { grid-area: pos; }
+      .row .remove-btn { grid-area: btn; align-self: end; }
+
+      #rowsContainer .row + .row {
+        border-top: 1px solid var(--tint);
+        padding-top: 18px;
+      }
+    }
+
+    /* Text fields 14px; 16px on phones, where iOS zooms into any field under 16px on focus */
+    @media (max-width: 640px) {
+      .full-input, .row input[type="text"] { font-size: 16px; }
+    }
+  </style>
+  <script type="text/javascript"
+    src="https://www.dropbox.com/static/api/2/dropins.js"
+    id="dropboxjs"
+    data-app-key="omrmsrosehpy3vi">
+  </script>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="container">
+    <script src="forms.js" data-switcher="tc"></script>
+
+    <div class="card">
+      <div class="header">
+        <p>One print across several products. Pick ad images from Dropbox, one ad per image.</p>
+      </div>
+
+      <div class="section">
+        <div class="print-row">
+          <div>
+            <div class="field-lbl">Print ID</div>
+            <input type="text" class="full-input" id="printId" placeholder="NGT1234" />
+          </div>
+          <div>
+            <div class="field-lbl" data-hint="The original design file (JPG or PNG), not a mockup, with the artwork, text and details clearly visible. Prints with a trademark or copyright risk won't get ads.">Print image</div>
+            <div class="chooser-field" id="field_print_image">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span class="chooser-path" id="path_print_image"></span>
+              <button class="chooser-btn" type="button" onclick="choosePrint()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                Select
+              </button>
+              <button class="clear-btn" onclick="clearField('print_image')" title="Clear">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="row row-header">
+          <label class="row-col-label">Product URL</label>
+          <label class="row-col-label" data-hint="Don't rename, move or delete these files until you get the Telegram success message; the ads are still being created. If it fails, admin can retry within 4 hours, until the file links expire.">Ad images</label>
+          <span></span>
+        </div>
+        <div id="rowsContainer"></div>
+        <div class="add-row-wrap">
+          <button class="add-btn" onclick="addRow()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add product
+          </button>
+          <span class="paste-tip">Paste a column of product URLs from Excel to bulk add.</span>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          Create Ads
+        </button>
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    //   CONFIG
+    // ============================================================
+    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-10";
+    // ============================================================
+
+    let rowSeq = 0;
+    let printFile = null;   // one shared print image (design file) from Dropbox: { name, link }
+
+    function addRow(product_url = '') {
+      const container = document.getElementById('rowsContainer');
+      const rid = 'r' + (rowSeq++);
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.dataset.rid = rid;
+      div.innerHTML = `
+        <div class="row-cell row-cell-url">
+          <label class="row-inline-label">Product URL</label>
+          <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
+        </div>
+        <div class="row-cell row-cell-pos">
+          <label class="row-inline-label" data-hint="Don't rename, move or delete these files until you get the Telegram success message; the ads are still being created. If it fails, admin can retry within 4 hours, until the file links expire.">Ad images</label>
+          <div class="chooser-field">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span class="chooser-path"></span>
+            <button class="chooser-btn" type="button" onclick="pickAds(this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Select
+            </button>
+            <button class="clear-btn" type="button" onclick="clearAds(this)" title="Clear">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button class="remove-btn" title="Remove" onclick="removeRow(this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+    }
+
+    function removeRow(btn) {
+      const row = btn.closest('.row');
+      delete rowAds[row.dataset.rid];
+      row.remove();
+    }
+
+    // ---------- Ad images per product row ----------
+    const rowAds = {};   // rid -> [ad image, ...] (1 image = 1 ad)
+
+    function renderRowAds(row) {
+      const list = rowAds[row.dataset.rid] || [];
+      const field = row.querySelector('.chooser-field');
+      field.classList.toggle('has-value', list.length > 0);
+      field.querySelector('.chooser-path').textContent = list.length ? list.length + (list.length === 1 ? ' image' : ' images') : '';
+      field.title = list.map(f => f.name).join('\n');
+    }
+
+    function pickAds(btn) {
+      const row = btn.closest('.row');
+      Dropbox.choose({
+        success(files) {
+          const list = rowAds[row.dataset.rid] || (rowAds[row.dataset.rid] = []);
+          files.forEach(f => { if (!list.some(x => x.link === f.link)) list.push({ name: f.name, link: f.link }); });
+          renderRowAds(row);
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
+    }
+
+    function clearAds(btn) {
+      const row = btn.closest('.row');
+      delete rowAds[row.dataset.rid];
+      renderRowAds(row);
+    }
+
+    // ---------- Shared print image, design file from Dropbox (required) ----------
+    function choosePrint() {
+      Dropbox.choose({
+        success(files) {
+          const f = files[0];
+          printFile = { name: f.name, link: f.link };
+          document.getElementById('field_print_image').classList.add('has-value');
+          document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = f.name;
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: false,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
+    }
+
+    function clearField(key) {
+      if (key !== 'print_image') return;
+      printFile = null;
+      document.getElementById('field_print_image').classList.remove('has-value');
+      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = '';
+    }
+
+    // ---------- Collect + submit ----------
+    function collectRows() {
+      const rows = [];
+      document.querySelectorAll('#rowsContainer .row').forEach(r => {
+        const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
+        const ads = rowAds[r.dataset.rid] || [];
+        if (product_url || ads.length) rows.push({ product_url, ads });
+      });
+      return rows;
+    }
+
+    async function submitForm() {
+      const submitBtn = document.getElementById('submitBtn');
+      const print_id = document.getElementById('printId').value.trim();
+      const rows = collectRows();
+
+      if (!print_id) {
+        return showStatus('error', '&#9888; Please enter a Print ID.');
+      }
+      if (!printFile) {
+        return showStatus('error', '&#9888; Please select a Print image.');
+      }
+      if (rows.length === 0) {
+        return showStatus('error', '&#9888; Need at least one product URL.');
+      }
+      if (rows.some(r => !r.product_url)) {
+        return showStatus('error', '&#9888; Every row with ad images needs a Product URL.');
+      }
+      if (rows.some(r => !r.ads.length)) {
+        return showStatus('error', '&#9888; Every product needs at least one ad image.');
+      }
+      const totalImages = rows.reduce((a, r) => a + r.ads.length, 0);
+
+      // Ad images: Dropbox direct links in meta[].ad_images; workflow uses these instead of the product page images
+      const fd = new FormData();
+      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id, ad_images: row.ads.map(f => f.link) }));
+      fd.append('meta', JSON.stringify(meta));
+      if (printFile) fd.append('print_image_url', printFile.link);
+
+      showStatus('loading', '<span class="spinner"></span> Sending ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '...');
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
+        if (res.status === 401 || res.status === 403) {
+          showStatus('error', '&#10007; Wrong password.');
+          TC_AUTH_FAIL();
+          return;
+        }
+        if (res.ok) {
+          showStatus('success', '&#10003; Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + ', creating ' + totalImages + ' ad' + (totalImages === 1 ? '' : 's') + '.');
+        } else {
+          const errText = await res.text();
+          showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 150));
+        }
+      } catch (err) {
+        showStatus('error', '&#10007; Could not reach n8n: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    // ---------- Paste from Excel (a column of URLs) ----------
+    document.getElementById('rowsContainer').addEventListener('paste', function (e) {
+      const target = e.target;
+      if (!target.classList.contains('row-url')) return;
+
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) return;
+
+      e.preventDefault();
+
+      const container = document.getElementById('rowsContainer');
+      const allRows = Array.from(container.querySelectorAll('.row'));
+      const startIndex = allRows.indexOf(target.closest('.row'));
+
+      lines.forEach((val, i) => {
+        const rowIndex = startIndex + i;
+        if (rowIndex < allRows.length) {
+          allRows[rowIndex].querySelector('.row-url').value = val;
+        } else {
+          addRow(val);
+        }
+      });
+    });
+
+    addRow();
+    addRow();
+  </script>
+  <!-- ============ Guide (help panel) ============ -->
+
+  <button class="guide-fab" id="guideFab" aria-label="Form guide" onclick="openGuide()">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13"/><path d="M8 4a2.5 2.5 0 0 0-2.5 2.5h1.4A1.1 1.1 0 1 1 8 7.6c-.4 0-.7.3-.7.7v1h1.4v-.4A2.5 2.5 0 0 0 8 4M7.2 10.4h1.6V12H7.2z"/></svg>
+    <span>Guide</span>
+  </button>
+  <div class="guide-overlay" id="guideOverlay" onclick="closeGuide()"></div>
+  <aside class="guide-panel" id="guidePanel" aria-hidden="true" aria-label="Hướng dẫn điền form">
+    <div class="guide-head">
+      <h2>Hướng dẫn điền form</h2>
+      <button class="guide-close" onclick="closeGuide()" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Tạo quảng cáo cho 1 print trên nhiều sản phẩm, ảnh quảng cáo chọn từ Dropbox. Mỗi ảnh thành 1 quảng cáo.</p>
+
+      <div class="guide-sec">Các bước</div>
+
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div class="guide-sb">
+          <h4>Điền <span class="g-field">Print ID</span> và chọn <span class="g-field">Print image</span></h4>
+          <p>Một Print ID cho cả lần gửi. Bấm <strong>Select</strong> để chọn ảnh bản in gốc từ Dropbox. Cả hai đều bắt buộc.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div class="guide-sb">
+          <h4>Dán link vào <span class="g-field">Product URL</span></h4>
+          <p>Mỗi dòng 1 sản phẩm trên zumbamboo.com, quảng cáo dẫn về link này. Bấm <strong>Add product</strong> để thêm dòng, dấu <strong>X</strong> cuối dòng để xóa. Dán một cột link từ Excel vào ô URL sẽ tự thêm nhiều dòng.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div class="guide-sb">
+          <h4>Chọn ảnh vào <span class="g-field">Ad images</span></h4>
+          <p>Mỗi dòng bấm <strong>Select</strong> để chọn ảnh từ Dropbox, chọn được nhiều ảnh, bấm lại để thêm. Mỗi dòng cần ít nhất 1 ảnh. Dấu <strong>X</strong> trong ô để chọn lại từ đầu.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Bấm <strong>Create Ads</strong></h4>
+          <p>Chờ dòng chữ xanh báo đã gửi rồi mới đóng tab.</p>
+        </div>
+      </div>
+
+      <div class="guide-sec">Ví dụ</div>
+
+      <div class="guide-note">
+        Print ID <code>Dun19749</code>:<br>
+        Dòng 1: <code>https://zumbamboo.com/products/...</code>, 3 ảnh<br>
+        Dòng 2: <code>https://zumbamboo.com/products/...</code>, 2 ảnh<br>
+        Kết quả: 5 quảng cáo.
+      </div>
+
+      <div class="guide-sec">Lưu ý</div>
+
+      <div class="guide-note">
+        Link Dropbox chỉ dùng được trong 4 giờ, và hỏng nếu đổi tên thư mục hoặc file. Chọn ảnh xong thì gửi luôn, không đổi tên sau khi chọn.
+      </div>
+
+      <div class="guide-note">
+        Lần đầu dùng trên một trình duyệt: bấm <strong>Password required</strong> góc trên bên phải, nhập mật khẩu. Báo <strong>Wrong password</strong> thì nhập lại ở hộp hiện ra.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ /Guide ============ -->
+</body>
+</html>

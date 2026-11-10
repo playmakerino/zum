@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>By print theme from device</title>
+  <title>By print theme · Dropbox</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -278,6 +278,11 @@
       .field input[type="text"], .field select, .combo-input, .row input[type="text"] { font-size: 16px; }
     }
   </style>
+  <script type="text/javascript"
+    src="https://www.dropbox.com/static/api/2/dropins.js"
+    id="dropboxjs"
+    data-app-key="omrmsrosehpy3vi">
+  </script>
   <script src="auth.js"></script>
 </head>
 <body>
@@ -287,7 +292,7 @@
 
     <div class="card">
       <div class="header">
-        <p>One print theme across several products. Upload ad images from your device, one ad per image.</p>
+        <p>One print theme across several products. Pick ad images from Dropbox, one ad per image.</p>
       </div>
 
       <div class="section">
@@ -313,7 +318,7 @@
         <div class="row row-header">
           <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product URL</label>
-          <label class="row-col-label">Ad images</label>
+          <label class="row-col-label" data-hint="Don't rename, move or delete these files until you get the Telegram success message; the ads are still being created. If it fails, admin can retry within 4 hours, until the file links expire.">Ad images</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -345,7 +350,7 @@
     //   CONFIG
     // ============================================================
     // One workflow "TC form 2": all product types post here.
-    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-7";
+    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-8";
 
     function getWebhookUrl() {
       return WEBHOOK_URL;
@@ -408,7 +413,7 @@
           <input type="text" class="row-url" placeholder="${currentUrlPlaceholder()}" value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
-          <label class="row-inline-label">Ad images</label>
+          <label class="row-inline-label" data-hint="Don't rename, move or delete these files until you get the Telegram success message; the ads are still being created. If it fails, admin can retry within 4 hours, until the file links expire.">Ad images</label>
           <div class="chooser-field">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -456,20 +461,18 @@
 
     function pickAds(btn) {
       const row = btn.closest('.row');
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      input.accept = '.jpg,.jpeg,.png,image/jpeg,image/png';
-      input.onchange = () => {
-        const list = rowAds[row.dataset.rid] || (rowAds[row.dataset.rid] = []);
-        for (const f of input.files) {
-          if (!f.type.startsWith('image/')) continue;
-          if (list.some(x => x.name === f.name && x.size === f.size)) continue;
-          list.push(f);
-        }
-        renderRowAds(row);
-      };
-      input.click();
+      Dropbox.choose({
+        success(files) {
+          const list = rowAds[row.dataset.rid] || (rowAds[row.dataset.rid] = []);
+          files.forEach(f => { if (!list.some(x => x.link === f.link)) list.push({ name: f.name, link: f.link }); });
+          renderRowAds(row);
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
     }
 
     function clearAds(btn) {
@@ -503,21 +506,17 @@
       if (rows.some(r => !r.ads.length)) return showStatus('error', '⚠️ Every row needs at least one ad image.');
       const totalImages = rows.reduce((a, r) => a + r.ads.length, 0);
 
-      // Multipart: rows = JSON string, ad images = files img_{row}_{j}; workflow uses them instead of the product page images
-      const fd = new FormData();
-      fd.append('ad_set_name', ad_set_name);
-      fd.append('product_type', product_type);
-      fd.append('rows', JSON.stringify(rows.map(r => ({ Print_ID: r.Print_ID, Product_url: r.Product_url }))));
-      rows.forEach((r, i) => r.ads.forEach((f, j) => fd.append('img_' + i + '_' + j, f, f.name)));
+      // Ad images: Dropbox direct links in rows[].ad_images; workflow uses them instead of the product page images
+      const payload = { ad_set_name, product_type, rows: rows.map(r => ({ Print_ID: r.Print_ID, Product_url: r.Product_url, ad_images: r.ads.map(f => f.link) })) };
 
-      showStatus('loading', '<span class="spinner"></span> Uploading ' + totalImages + ' image' + (totalImages === 1 ? '' : 's') + '...');
+      showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
 
       try {
         const res = await fetch(getWebhookUrl(), {
           method: 'POST',
-          headers: TC_AUTH_HEADERS(),
-          body: fd
+          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
+          body: JSON.stringify(payload)
         });
 
         if (res.status === 401 || res.status === 403) {
@@ -610,7 +609,7 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Tạo quảng cáo cho nhiều sản phẩm cùng một theme in, ảnh quảng cáo tải lên từ máy. Mỗi ảnh thành 1 quảng cáo.</p>
+      <p class="guide-intro">Tạo quảng cáo cho nhiều sản phẩm cùng một theme in, ảnh quảng cáo chọn từ Dropbox. Mỗi ảnh thành 1 quảng cáo.</p>
 
       <div class="guide-sec">Các bước</div>
 
@@ -642,7 +641,7 @@
         <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4>Chọn ảnh ở <span class="g-field">Ad images</span></h4>
-          <p>Bấm <strong>Select</strong> ở từng dòng, chọn ảnh JPG hoặc PNG từ máy. Bấm Select lần nữa để thêm ảnh, bấm <strong>X</strong> trong ô để chọn lại từ đầu.</p>
+          <p>Bấm <strong>Select</strong> ở từng dòng, chọn ảnh JPG hoặc PNG trong Dropbox. Bấm Select lần nữa để thêm ảnh, bấm <strong>X</strong> trong ô để chọn lại từ đầu.</p>
         </div>
       </div>
 
@@ -667,6 +666,10 @@
 
       <div class="guide-note">
         Mỗi dòng phải có đủ <span class="g-field">Print ID</span>, <span class="g-field">Product URL</span> và ít nhất 1 ảnh, thiếu thì form báo lỗi và không gửi.
+      </div>
+
+      <div class="guide-note">
+        Link Dropbox chỉ dùng được trong 4 giờ, và hỏng nếu đổi tên thư mục hoặc file. Chọn ảnh xong thì gửi luôn, không đổi tên sau khi chọn.
       </div>
 
       <div class="guide-note">

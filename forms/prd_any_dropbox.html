@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>From device</title>
+  <title>Any products · Dropbox</title>
+
+  <script type="text/javascript"
+    src="https://www.dropbox.com/static/api/2/dropins.js"
+    id="dropboxjs"
+    data-app-key="omrmsrosehpy3vi">
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +27,7 @@
     .field { margin-bottom: 16px; }
     .field:last-child { margin-bottom: 0; }
 
-    /* Print ID + Product URL, then Print image + Ad images: stacked on mobile, side-by-side on desktop */
+    /* Print ID + Product URL: stacked on mobile, side-by-side on desktop */
     .field-row {
       display: grid;
       grid-template-columns: 1fr;
@@ -52,7 +58,7 @@
     .field input[type="text"]:hover { background: var(--surface-hover); }
     .field input[type="text"]:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
 
-    /* Chooser field (file picker) */
+    /* Chooser field (Dropbox) */
     .chooser-field {
       background: var(--surface-elevated);
       border-radius: 4px;
@@ -102,7 +108,6 @@
     }
     .chooser-field.has-value .clear-btn { display: flex; }
     .clear-btn:hover { color: var(--text); background: var(--tint); }
-    .chooser-field.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
 
     .submit-wrap { margin-top: 24px; }
     .submit-btn {
@@ -132,7 +137,7 @@
 
     <div class="card">
       <div class="header">
-        <p>One product, one print. Upload ad images from your device, one ad per image.</p>
+        <p>One product, one print. Pick ad images from Dropbox, one ad per image.</p>
       </div>
 
       <div class="field-row">
@@ -149,19 +154,18 @@
       <div class="field-row half">
         <div class="field">
           <label data-hint="The original design file (JPG or PNG), not a mockup, with the artwork, text and details clearly visible. Prints with a trademark or copyright risk won't get ads.">Print image</label>
-          <input type="file" id="printFileInput" accept="image/*" style="display:none" />
           <div class="chooser-field" id="field_print">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span class="chooser-path"></span>
-            <button class="chooser-btn" type="button" onclick="document.getElementById('printFileInput').click()">
+            <span class="chooser-path" id="path_print"></span>
+            <button class="chooser-btn" type="button" onclick="choosePrint()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
               Select
             </button>
-            <button class="clear-btn" type="button" onclick="removePrintImage()" title="Clear">
+            <button class="clear-btn" type="button" onclick="clearPrint()" title="Clear">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -169,20 +173,19 @@
           </div>
         </div>
         <div class="field">
-          <label>Ad images</label>
-          <input type="file" id="adFileInput" multiple accept="image/*" style="display:none" />
+          <label data-hint="Don't rename, move or delete these files until you get the Telegram success message; the ads are still being created. If it fails, admin can retry within 4 hours, until the file links expire.">Ad images</label>
           <div class="chooser-field" id="field_ads">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
-            <span class="chooser-path"></span>
-            <button class="chooser-btn" type="button" onclick="document.getElementById('adFileInput').click()">
+            <span class="chooser-path" id="path_ads"></span>
+            <button class="chooser-btn" type="button" onclick="chooseAds()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
               Select
             </button>
-            <button class="clear-btn" type="button" onclick="clearImages()" title="Clear">
+            <button class="clear-btn" type="button" onclick="clearAds()" title="Clear">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -205,50 +208,72 @@
     // ============================================================
     //   CONFIG
     // ============================================================
-    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-embroidery-form-newcamp";
+    const N8N_WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-4-newcamp";
     // ============================================================
 
-    let adFiles = [];      // [File, ...]  ad images (1 image = 1 ad)
-    let printFile = null;  // single print image (design file) | null
+    const state = {
+      print: null,   // { name, link } | null
+      ads: []        // [{ name, link }, ...]
+    };
 
-    // ---------- Ad images ----------
-    function addImages(fileListObj) {
-      for (const f of fileListObj) {
-        if (!f.type.startsWith('image/')) continue;
-        if (adFiles.some(s => s.name === f.name && s.size === f.size)) continue;
-        adFiles.push(f);
+    // ---------- Print image, design file (single) ----------
+    function choosePrint() {
+      Dropbox.choose({
+        success(files) {
+          const f = files[0];
+          state.print = { name: f.name, link: f.link };
+          const field = document.getElementById('field_print');
+          field.classList.add('has-value');
+          document.getElementById('path_print').textContent = document.getElementById('path_print').title = f.name;
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: false,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
+    }
+
+    function clearPrint() {
+      state.print = null;
+      document.getElementById('field_print').classList.remove('has-value');
+      document.getElementById('path_print').textContent = document.getElementById('path_print').title = '';
+    }
+
+    // ---------- Ad images (multi) ----------
+    function chooseAds() {
+      Dropbox.choose({
+        success(files) {
+          files.forEach(f => {
+            if (!state.ads.find(x => x.link === f.link))
+              state.ads.push({ name: f.name, link: f.link });
+          });
+          syncAds();
+        },
+        cancel() {},
+        linkType: 'direct',
+        multiselect: true,
+        extensions: ['.jpg', '.jpeg', '.png'],
+        folderselect: false
+      });
+    }
+
+    function clearAds() {
+      state.ads = [];
+      syncAds();
+    }
+
+    function syncAds() {
+      const field = document.getElementById('field_ads');
+      const pathEl = document.getElementById('path_ads');
+
+      if (state.ads.length > 0) {
+        field.classList.add('has-value');
+        pathEl.textContent = `${state.ads.length} ${state.ads.length === 1 ? 'image' : 'images'}`;
+      } else {
+        field.classList.remove('has-value');
+        pathEl.textContent = '';
       }
-      renderAds();
-    }
-
-    function clearImages() {
-      adFiles = [];
-      renderAds();
-    }
-
-    function renderAds() {
-      const n = adFiles.length;
-      document.getElementById('field_ads').classList.toggle('has-value', n > 0);
-      document.querySelector('#field_ads .chooser-path').textContent = n ? `${n} ${n === 1 ? 'image' : 'images'}` : '';
-    }
-
-    // ---------- Print image reference ----------
-    function setPrintImage(fileListObj) {
-      const f = fileListObj && fileListObj[0];
-      if (!f || !f.type.startsWith('image/')) return;
-      printFile = f;
-      renderPrint();
-    }
-
-    function removePrintImage() {
-      printFile = null;
-      renderPrint();
-    }
-
-    function renderPrint() {
-      document.getElementById('field_print').classList.toggle('has-value', !!printFile);
-      const printPath = document.querySelector('#field_print .chooser-path');
-      printPath.textContent = printPath.title = printFile ? printFile.name : '';
     }
 
     async function submitForm() {
@@ -256,27 +281,29 @@
       const url = cleanProductUrl(document.getElementById('productUrl').value.trim());
       const print_id = document.getElementById('printId').value.trim();
 
-      if (!url || !print_id || adFiles.length === 0) {
+      if (!url || !print_id || state.ads.length === 0) {
         return showStatus('error', '&#9888; Need a Product URL, a Print ID, and at least one ad image.');
       }
-      if (!printFile) {
-        return showStatus('error', '&#9888; Add a print image.');
+      if (!state.print) {
+        return showStatus('error', '&#9888; Choose a print image.');
       }
 
-      const fd = new FormData();
-      const meta = [{ index: 0, product_url: url, print_id }];
-      adFiles.forEach((f, j) => fd.append('img_0_' + j, f, f.name));
-      if (printFile) fd.append('print_0', printFile, printFile.name);
-      fd.append('meta', JSON.stringify(meta));
+      const payload = {
+        meta: [{ index: 0, product_url: url, print_id }],
+        print_images: state.print ? { "0": state.print.link } : {},
+        ad_images: state.ads.map(f => ({ row: 0, url: f.link, file_name: f.name }))
+      };
 
-      const total = adFiles.length;
-      const totalMB = (adFiles.reduce((a, f) => a + f.size, 0) + (printFile ? printFile.size : 0)) / (1024 * 1024);
-
-      showStatus('loading', '<span class="spinner"></span> Uploading ' + total + ' images...');
+      const total = state.ads.length;
+      showStatus('loading', '<span class="spinner"></span> Sending ' + total + ' images to n8n...');
       submitBtn.disabled = true;
 
       try {
-        const res = await fetch(N8N_WEBHOOK_URL, { method: 'POST', body: fd, headers: TC_AUTH_HEADERS() });
+        const res = await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...TC_AUTH_HEADERS() },
+          body: JSON.stringify(payload)
+        });
 
         if (res.status === 401 || res.status === 403) {
           showStatus('error', '&#10007; Wrong password.');
@@ -291,30 +318,12 @@
           showStatus('error', '&#10007; Error (' + res.status + '): ' + errText.slice(0, 150));
         }
       } catch (err) {
-        showStatus('error', '&#10007; Upload failed (' + totalMB.toFixed(1) + ' MB, ' + total + ' files): ' + err.message + '. Likely too large. Try fewer images.');
+        showStatus('error', '&#10007; Cannot connect to n8n: ' + err.message);
       } finally {
         submitBtn.disabled = false;
       }
     }
 
-    // ---------- Wire up the single product block ----------
-    (function init() {
-      const adInput = document.getElementById('adFileInput');
-      const adField = document.getElementById('field_ads');
-      adField.addEventListener('dragover', e => { e.preventDefault(); adField.classList.add('drag-over'); });
-      adField.addEventListener('dragleave', e => { if (!adField.contains(e.relatedTarget)) adField.classList.remove('drag-over'); });
-      adField.addEventListener('drop', e => {
-        e.preventDefault(); adField.classList.remove('drag-over');
-        addImages(e.dataTransfer.files);
-      });
-      adInput.addEventListener('change', () => { addImages(adInput.files); adInput.value = ''; });
-
-      const printInput = document.getElementById('printFileInput');
-      printInput.addEventListener('change', () => { setPrintImage(printInput.files); printInput.value = ''; });
-
-      renderAds();
-      renderPrint();
-    })();
   </script>
   <!-- ============ Guide (help panel) ============ -->
 
@@ -331,7 +340,7 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Tải ảnh quảng cáo của 1 sản phẩm từ máy lên. Mỗi ảnh thành 1 quảng cáo.</p>
+      <p class="guide-intro">Chọn ảnh quảng cáo của 1 sản phẩm từ <strong>Dropbox</strong>. Mỗi ảnh thành 1 quảng cáo.</p>
 
       <div class="guide-sec">Các bước</div>
 
@@ -346,16 +355,16 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Chọn ảnh vào <span class="g-field">Print image</span> (bắt buộc)</h4>
-          <p>1 ảnh bản in gốc (file thiết kế), thấy rõ hình vẽ, chữ, chi tiết personalized hoặc thêu.</p>
+          <h4>Chọn <span class="g-field">Print image</span> (bắt buộc)</h4>
+          <p>Bấm <strong>Select</strong>, chọn 1 ảnh bản in gốc (file thiết kế) trong Dropbox, thấy rõ hình vẽ, chữ, chi tiết personalized hoặc thêu.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4>Chọn ảnh vào <span class="g-field">Ad images</span></h4>
-          <p>Bấm ô dấu cộng hoặc kéo thả, chọn được nhiều ảnh. Chỉ chọn ảnh cần dùng.</p>
+          <h4>Chọn <span class="g-field">Ad images</span></h4>
+          <p>Bấm <strong>Select</strong>, chọn được nhiều ảnh cùng lúc. Chỉ chọn ảnh cần dùng.</p>
         </div>
       </div>
 
@@ -363,27 +372,27 @@
         <div class="guide-num">4</div>
         <div class="guide-sb">
           <h4>Bấm <strong>Create Ads</strong></h4>
-          <p>Chờ dòng chữ xanh báo thành công rồi mới đóng tab. Sản phẩm khác thì đổi thông tin rồi gửi lần nữa.</p>
+          <p>Thấy dòng chữ xanh báo thành công là xong. Sản phẩm khác thì đổi thông tin rồi gửi lần nữa.</p>
         </div>
       </div>
 
       <div class="guide-sec">Ví dụ</div>
 
       <div class="guide-note">
-        <span class="g-field">Print ID</span>: <code>ngt20522</code><br>
+        <span class="g-field">Print ID</span>: <code>Phu20463</code><br>
         <span class="g-field">Product URL</span>: <code>https://zumbamboo.com/products/...</code><br>
-        <span class="g-field">Print image</span>: 1 ảnh bản in. <span class="g-field">Ad images</span>: 3 ảnh.<br>
-        Kết quả: 3 quảng cáo.
+        <span class="g-field">Print image</span>: 1 ảnh bản in. <span class="g-field">Ad images</span>: 4 ảnh.<br>
+        Kết quả: 4 quảng cáo.
       </div>
 
       <div class="guide-sec">Lưu ý</div>
 
       <div class="guide-note">
-        Thiếu Print ID, Product URL, Print image hoặc Ad images thì form báo lỗi và không gửi.
+        Chỉ chọn được ảnh .jpg, .jpeg, .png. Thiếu Print ID, Product URL, Print image hoặc Ad images thì form báo lỗi và không gửi.
       </div>
 
       <div class="guide-note">
-        Báo lỗi "too large": bớt ảnh hoặc dùng ảnh nhẹ hơn rồi gửi lại.
+        Link Dropbox chỉ dùng được trong 4 giờ, và hỏng nếu đổi tên thư mục hoặc file. Chọn ảnh xong thì gửi luôn, không đổi tên sau khi chọn.
       </div>
 
       <div class="guide-note">

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>One print</title>
+  <title>Any products · Shopify</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,16 +21,7 @@
     /* Sections stack with breathing room between them */
     .section + .section { margin-top: 28px; }
 
-    /* Print row: Print ID + Print image + Image positions on one line */
-    .print-row { display: grid; grid-template-columns: 1fr; gap: 16px 10px; }
-    .print-row > div { min-width: 0; }
-    #imagePositions { max-width: 130px; }
-    /* line up with the Image positions column of the rows (starts 130px + 10px gap + 36px remove button from the right edge) */
-    @media (min-width: 680px) { .pos-field { justify-self: end; width: 176px; } .pos-field label, .pos-field .field-lbl { white-space: nowrap; } }
-    /* Print ID as wide as the Image positions fields (130px) */
-    @media (min-width: 680px) { .print-row { grid-template-columns: 130px 240px 1fr; align-items: start; } }
-
-    /* Single full-width input, used by Print ID and Image positions */
+    /* Single full-width input, used by the shared Image positions field */
     .full-input {
       width: 100%;
       height: 42px;
@@ -47,44 +38,15 @@
     .full-input:hover { background: var(--surface-hover); }
     .full-input:focus { background: var(--surface-hover); box-shadow: 0 0 0 2px var(--text); }
     .field-lbl { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-
-    /* Print image chooser */
-    .chooser-field {
-      background: var(--surface-elevated);
-      border-radius: 4px;
-      padding: 6px 8px 6px 12px;
-      display: flex; align-items: center; gap: 10px;
-      height: 42px;
-      transition: background 0.15s;
+    .pos-line .full-input { max-width: 130px; }
+    @media (min-width: 680px) {
+      .pos-line { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; }
     }
-    .chooser-field:hover { background: var(--surface-hover); }
-    .chooser-field .chooser-path {
-      flex: 1; font-size: 13px; font-weight: 400; color: var(--text-sub);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .chooser-field.has-value .chooser-path { color: var(--success); font-weight: 500; }
-    .chooser-btn {
-      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
-      background: transparent; border: 1px solid var(--border-btn); color: var(--text);
-      font-family: var(--font); font-size: 13px; font-weight: 700;
-      height: 32px; padding: 4px 16px; border-radius: 500px; cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.12s;
-      white-space: nowrap;
-    }
-    .chooser-btn:hover { border-color: var(--text); transform: scale(1.04); }
-    .chooser-btn svg { width: 12px; height: 12px; }
-    .clear-btn {
-      flex-shrink: 0; background: none; border: none; color: var(--text-sub);
-      cursor: pointer; padding: 4px; display: none; border-radius: 50%;
-      transition: color 0.15s, background 0.15s;
-    }
-    .chooser-field.has-value .clear-btn { display: flex; }
-    .clear-btn:hover { color: var(--text); background: var(--tint); }
 
     /* Products table */
     .row {
       display: grid;
-      grid-template-columns: 1fr 130px 36px;
+      grid-template-columns: 130px 1fr 130px 42px 36px; /* Print ID 130px: right edge meets the shared Image positions input above */
       gap: 10px;
       align-items: center;
       margin-bottom: 8px;
@@ -97,6 +59,8 @@
     }
     .row-cell { min-width: 0; }
     .row-cell input[type="text"] { width: 100%; display: block; }
+    /* Per-row labels: hidden on desktop (the shared header row provides them),
+       shown on mobile where the shared header is hidden. */
     .row-inline-label {
       display: none;
       font-size: 13px; font-weight: 700;
@@ -133,6 +97,30 @@
     .row .remove-btn:hover {
       color: var(--error); border-color: var(--error); background: var(--tint);
     }
+
+    /* Per-row print image (design file) */
+    .row-img { width: 42px; height: 42px; }
+    .row-img .img-add {
+      width: 42px; height: 42px;
+      border: 2px dashed var(--border-btn);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-sub);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .row-img .img-add:hover { border-color: var(--text); color: var(--text);  }
+    .row-img .img-add svg { width: 16px; height: 16px; }
+    .row-img .img-thumb { position: relative; width: 42px; height: 42px; border-radius: 4px; overflow: hidden; background: var(--bg); }
+    .row-img .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .row-img .img-thumb .img-rm {
+      position: absolute; top: 1px; right: 1px;
+      width: 16px; height: 16px; border: none;
+      background: rgba(0,0,0,0.7); color: var(--text);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .row-img .img-thumb:hover .img-rm { opacity: 1; }
 
     .add-row-wrap {
       display: flex; align-items: center; gap: 14px;
@@ -177,23 +165,29 @@
     }
 
     @media (max-width: 640px) {
+      /* Products: drop the shared column header; each row carries its own labels */
       .row-header { display: none; }
       .row-inline-label { display: block; }
 
       .row {
         grid-template-columns: 1fr 36px;
         grid-template-areas:
-          "url btn"
-          "pos pos";
+          "print btn"
+          "url   url"
+          "pos   pos"
+          "img   img";
         column-gap: 10px;
         row-gap: 12px;
         margin-bottom: 18px;
         align-items: end;
       }
-      .row-cell-url { grid-area: url; }
-      .row-cell-pos { grid-area: pos; }
+      .row-cell-print { grid-area: print; }
+      .row-cell-url   { grid-area: url; }
+      .row-cell-pos   { grid-area: pos; }
+      .row-cell-img   { grid-area: img; }
       .row .remove-btn { grid-area: btn; align-self: end; }
 
+      /* Light divider between products so multiple rows stay readable */
       #rowsContainer .row + .row {
         border-top: 1px solid var(--tint);
         padding-top: 18px;
@@ -213,49 +207,22 @@
 
     <div class="card">
       <div class="header">
-        <p>One print across several products. Ad images from the product page, one ad per image.</p>
+        <p>Several products, one print each. Ad images from the product page, one ad per image.</p>
       </div>
 
       <div class="section">
-        <div class="print-row">
-          <div>
-            <div class="field-lbl">Print ID</div>
-            <input type="text" class="full-input" id="printId" placeholder="NGT1234" />
-          </div>
-          <div>
-            <div class="field-lbl" data-hint="The original design file (JPG or PNG), not a mockup, with the artwork, text and details clearly visible. Prints with a trademark or copyright risk won't get ads.">Print image</div>
-            <div class="chooser-field" id="field_print_image">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-              </svg>
-              <span class="chooser-path" id="path_print_image"></span>
-              <button class="chooser-btn" type="button" onclick="document.getElementById('print_file').click()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                </svg>
-                Select
-              </button>
-              <button class="clear-btn" onclick="clearField('print_image')" title="Clear">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <input type="file" id="print_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" onchange="onPrintFile(this)" />
-          </div>
-          <div class="pos-field">
-            <div class="field-lbl" data-hint="Which product page images to use, counted from the first, e.g. 2, 3, 4. Applies to every row. Leave empty to use all images.">Image positions (shared)</div>
-            <div class="pos-line">
-              <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
-            </div>
-          </div>
+        <div class="field-lbl" data-hint="Which product page images to use, counted from the first, e.g. 2, 3, 4. Applies to every row. Leave empty to use all images.">Image positions (shared)</div>
+        <div class="pos-line">
+          <input type="text" class="full-input" id="imagePositions" placeholder="2, 3, 4" />
         </div>
       </div>
 
       <div class="section">
         <div class="row row-header">
+          <label class="row-col-label">Print ID</label>
           <label class="row-col-label">Product URL</label>
           <label class="row-col-label">Image positions</label>
+          <label class="row-col-label" style="white-space:nowrap" data-hint="The original design file for this product's print (JPG or PNG), not a mockup. Prints with a trademark or copyright risk won't get ads.">Print image</label>
           <span></span>
         </div>
         <div id="rowsContainer"></div>
@@ -266,7 +233,7 @@
             </svg>
             Add product
           </button>
-          <span class="paste-tip">Paste a column of product URLs from Excel to bulk add.</span>
+          <span class="paste-tip">Paste from Excel to bulk add: 1 column into any field, or 2 columns (Print ID + URL) into Print ID.</span>
         </div>
       </div>
 
@@ -280,30 +247,42 @@
     </div>
   </div>
 
+  <!-- shared hidden file input for the per-row print image -->
+  <input type="file" id="rowImgInput" accept="image/*" style="display:none" />
+
   <script>
     // ============================================================
     //   CONFIG
     // ============================================================
-    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-6";
+    const WEBHOOK_URL = "https://playmakerino.app.n8n.cloud/webhook/tc-form-3-newcamp";
     // ============================================================
 
     let rowSeq = 0;
-    let printFile = null;   // one shared print image (design file) for the whole submit
+    const rowFiles = {};   // rid -> File (print image, design file)
+    let activeRid = null;  // rid waiting for the shared file picker
 
-    function addRow(product_url = '', image_positions = '') {
+    function addRow(print_id = '', product_url = '') {
       const container = document.getElementById('rowsContainer');
       const rid = 'r' + (rowSeq++);
       const div = document.createElement('div');
       div.className = 'row';
       div.dataset.rid = rid;
       div.innerHTML = `
+        <div class="row-cell row-cell-print">
+          <label class="row-inline-label">Print ID</label>
+          <input type="text" class="row-print" placeholder="NGT1234" value="${escapeHtml(print_id)}" />
+        </div>
         <div class="row-cell row-cell-url">
           <label class="row-inline-label">Product URL</label>
           <input type="text" class="row-url" placeholder="https://zumbamboo.com/products/..." value="${escapeHtml(product_url)}" />
         </div>
         <div class="row-cell row-cell-pos">
           <label class="row-inline-label">Image positions</label>
-          <input type="text" class="row-pos" placeholder="Same as shared" value="${escapeHtml(image_positions)}" />
+          <input type="text" class="row-pos" placeholder="Same as shared" />
+        </div>
+        <div class="row-cell row-cell-img">
+          <label class="row-inline-label" data-hint="The original design file for this product's print (JPG or PNG), not a mockup. Prints with a trademark or copyright risk won't get ads.">Print image</label>
+          <div class="row-img" data-rid="${rid}"></div>
         </div>
         <button class="remove-btn" title="Remove" onclick="removeRow(this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -312,65 +291,101 @@
         </button>
       `;
       container.appendChild(div);
+      renderRowImg(rid);
     }
 
     function removeRow(btn) {
-      btn.closest('.row').remove();
+      const row = btn.closest('.row');
+      delete rowFiles[row.dataset.rid];
+      row.remove();
     }
 
-    // ---------- Shared print image, design file (required) ----------
-    function onPrintFile(input) {
-      const f = input.files && input.files[0];
-      if (!f) return;
-      printFile = f;
-      document.getElementById('field_print_image').classList.add('has-value');
-      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = f.name;
+    // ---------- Per-row print image ----------
+    function pickRowImg(rid) {
+      activeRid = rid;
+      document.getElementById('rowImgInput').click();
     }
 
-    function clearField(key) {
-      if (key !== 'print_image') return;
-      printFile = null;
-      document.getElementById('print_file').value = '';
-      document.getElementById('field_print_image').classList.remove('has-value');
-      document.getElementById('path_print_image').textContent = document.getElementById('path_print_image').title = '';
+    function removeRowImg(rid) {
+      delete rowFiles[rid];
+      renderRowImg(rid);
     }
+
+    function renderRowImg(rid) {
+      const slot = document.querySelector(`.row-img[data-rid="${rid}"]`);
+      if (!slot) return;
+      slot.innerHTML = '';
+      const f = rowFiles[rid];
+      if (f) {
+        const thumb = document.createElement('div');
+        thumb.className = 'img-thumb';
+        thumb.title = f.name;
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        const rm = document.createElement('button');
+        rm.className = 'img-rm';
+        rm.title = 'Remove image';
+        rm.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+        rm.onclick = () => removeRowImg(rid);
+        thumb.appendChild(img);
+        thumb.appendChild(rm);
+        slot.appendChild(thumb);
+      } else {
+        const add = document.createElement('div');
+        add.className = 'img-add';
+        add.title = 'Add print image';
+        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+        add.onclick = () => pickRowImg(rid);
+        slot.appendChild(add);
+      }
+    }
+
+    document.getElementById('rowImgInput').addEventListener('change', function () {
+      const f = this.files && this.files[0];
+      if (f && f.type.startsWith('image/') && activeRid != null) {
+        rowFiles[activeRid] = f;
+        renderRowImg(activeRid);
+      }
+      this.value = '';
+      activeRid = null;
+    });
 
     // ---------- Collect + submit ----------
     function collectRows() {
       const rows = [];
       document.querySelectorAll('#rowsContainer .row').forEach(r => {
+        const print_id = r.querySelector('.row-print').value.trim();
         const product_url = cleanProductUrl(r.querySelector('.row-url').value.trim());
-        const image_positions = r.querySelector('.row-pos').value.trim();
-        if (product_url) rows.push({ product_url, image_positions });
+        if (print_id && product_url) {
+          const pos = r.querySelector('.row-pos').value.trim();
+          rows.push({ print_id, product_url, pos, file: rowFiles[r.dataset.rid] || null });
+        }
       });
       return rows;
     }
 
     async function submitForm() {
       const submitBtn = document.getElementById('submitBtn');
-      const print_id = document.getElementById('printId').value.trim();
       const rows = collectRows();
 
-      if (!print_id) {
-        return showStatus('error', '&#9888; Please enter a Print ID.');
-      }
-      if (!printFile) {
-        return showStatus('error', '&#9888; Please select a Print image.');
-      }
       if (rows.length === 0) {
-        return showStatus('error', '&#9888; Need at least one product URL.');
+        return showStatus('error', '&#9888; Need at least one row with both a Print ID and a Product URL.');
+      }
+      if (rows.some(r => !r.file)) {
+        return showStatus('error', '&#9888; Every product needs a print image.');
       }
 
-      // Shared positions = default for every product; a row can override with its own
-      const shared_positions = document.getElementById('imagePositions').value.trim();
+      // Shared value; a row's own Image positions overrides it
+      const image_positions = document.getElementById('imagePositions').value.trim();
 
       const fd = new FormData();
-      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id, image_positions: row.image_positions || shared_positions }));
+      const meta = rows.map((row, i) => ({ index: i, product_url: row.product_url, print_id: row.print_id, image_positions: row.pos || image_positions }));
+      rows.forEach((row, i) => { if (row.file) fd.append('print_' + i, row.file, row.file.name); });
       fd.append('meta', JSON.stringify(meta));
-      fd.append('image_positions', shared_positions);
-      if (printFile) fd.append('print_image', printFile, printFile.name);
+      fd.append('image_positions', image_positions);
 
-      showStatus('loading', '<span class="spinner"></span> Sending ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '...');
+      const nImg = rows.filter(r => r.file).length;
+      showStatus('loading', '<span class="spinner"></span> Sending ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + (nImg ? ' (' + nImg + ' image' + (nImg === 1 ? '' : 's') + ')' : '') + '...');
       submitBtn.disabled = true;
 
       try {
@@ -381,7 +396,7 @@
           return;
         }
         if (res.ok) {
-          showStatus('success', '&#10003; Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '. n8n is creating the ads from the product page images.');
+          showStatus('success', '&#10003; Sent ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') + '. n8n is creating ad sets + ads from the product page images.');
         } else {
           const errText = await res.text();
           showStatus('error', '&#10007; Error from n8n (' + res.status + '): ' + errText.slice(0, 150));
@@ -393,32 +408,53 @@
       }
     }
 
-    // ---------- Paste from Excel (a column of URLs) ----------
+    // ---------- Paste from Excel (Print ID / URL columns) ----------
     document.getElementById('rowsContainer').addEventListener('paste', function (e) {
       const target = e.target;
-      if (!target.classList.contains('row-url')) return;
+      const isPrint = target.classList.contains('row-print');
+      const isUrl = target.classList.contains('row-url');
+      if (!isPrint && !isUrl) return;
 
       const text = (e.clipboardData || window.clipboardData).getData('text');
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-      if (lines.length < 2) return;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2 && !lines.some(l => l.includes('\t'))) return;
+
+      const parsed = lines.map(line => line.split('\t'));
+      const isMultiCol = parsed.some(cols => cols.length >= 2);
+
+      if (lines.length < 2 && !isMultiCol) return;
 
       e.preventDefault();
 
-      const container = document.getElementById('rowsContainer');
-      const allRows = Array.from(container.querySelectorAll('.row'));
-      const startIndex = allRows.indexOf(target.closest('.row'));
+      if (isMultiCol) {
+        const currentRow = target.closest('.row');
+        delete rowFiles[currentRow.dataset.rid];
+        currentRow.remove();
+        parsed.forEach(cols => {
+          const printId = (cols[0] || '').trim();
+          const productUrl = (cols[1] || '').trim();
+          if (printId || productUrl) addRow(printId, productUrl);
+        });
+      } else {
+        const container = document.getElementById('rowsContainer');
+        const allRows = Array.from(container.querySelectorAll('.row'));
+        const startIndex = allRows.indexOf(target.closest('.row'));
+        const fieldClass = isPrint ? '.row-print' : '.row-url';
 
-      lines.forEach((val, i) => {
-        const rowIndex = startIndex + i;
-        if (rowIndex < allRows.length) {
-          allRows[rowIndex].querySelector('.row-url').value = val;
-        } else {
-          addRow(val);
-        }
-      });
+        parsed.forEach((cols, i) => {
+          const val = (cols[0] || '').trim();
+          if (!val) return;
+          const rowIndex = startIndex + i;
+          if (rowIndex < allRows.length) {
+            allRows[rowIndex].querySelector(fieldClass).value = val;
+          } else {
+            if (isPrint) addRow(val, '');
+            else addRow('', val);
+          }
+        });
+      }
     });
 
-    addRow();
     addRow();
   </script>
   <!-- ============ Guide (help panel) ============ -->
@@ -436,37 +472,45 @@
       </button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Tạo quảng cáo cho 1 print trên nhiều sản phẩm, dùng ảnh có sẵn trên trang sản phẩm. Không cần tải ảnh quảng cáo lên.</p>
+      <p class="guide-intro">Tạo quảng cáo cho nhiều sản phẩm cùng lúc. Không cần tải ảnh quảng cáo: ảnh lấy từ trang sản phẩm, mỗi ảnh thành 1 quảng cáo.</p>
 
       <div class="guide-sec">Các bước</div>
 
       <div class="guide-step">
         <div class="guide-num">1</div>
         <div class="guide-sb">
-          <h4>Điền <span class="g-field">Print ID</span> và chọn <span class="g-field">Print image</span></h4>
-          <p>Một Print ID cho cả lần gửi. Bấm <strong>Select</strong> để chọn ảnh bản in gốc từ máy. Cả hai đều bắt buộc.</p>
+          <h4>Điền <span class="g-field">Image positions (shared)</span></h4>
+          <p>Vị trí ảnh trên trang sản phẩm cần lên quảng cáo, đếm từ ảnh đầu tiên, ngăn cách bằng dấu phẩy. Áp dụng cho mọi dòng. Để trống thì lấy hết ảnh.</p>
+          <p style="margin-top:7px">Ví dụ: <code>2, 3, 4</code> là ảnh thứ 2, 3 và 4.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Điền <span class="g-field">Image positions (shared)</span></h4>
-          <p>Vị trí ảnh trên trang sản phẩm cần lên quảng cáo, đếm từ ảnh đầu tiên, cách nhau bằng dấu phẩy. Để trống thì lấy hết ảnh.</p>
-          <p style="margin-top:7px">Ví dụ: <code>2, 3, 4</code> là ảnh thứ 2, 3 và 4.</p>
+          <h4>Mỗi dòng điền 1 sản phẩm</h4>
+          <p><span class="g-field">Print ID</span> và <span class="g-field">Product URL</span> (link trên zumbamboo.com). <span class="g-field">Image positions</span> của dòng không bắt buộc, điền thì dòng đó dùng số này thay cho ô chung.</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">3</div>
         <div class="guide-sb">
-          <h4>Dán link vào <span class="g-field">Product URL</span></h4>
-          <p>Mỗi dòng 1 sản phẩm trên zumbamboo.com. Ô <span class="g-field">Image positions</span> của dòng để trống thì dùng ô chung. Bấm <strong>Add product</strong> để thêm dòng, dấu <strong>X</strong> để xóa. Dán một cột link từ Excel vào ô URL sẽ tự thêm nhiều dòng.</p>
+          <h4>Chọn <span class="g-field">Print image</span> cho từng dòng (bắt buộc)</h4>
+          <p>Bấm ô dấu cộng cuối dòng, chọn 1 ảnh bản in gốc (file thiết kế).</p>
         </div>
       </div>
 
       <div class="guide-step">
         <div class="guide-num">4</div>
+        <div class="guide-sb">
+          <h4>Thêm, xóa dòng</h4>
+          <p>Bấm <strong>Add product</strong> để thêm, nút <strong>X</strong> để xóa. Có danh sách trong Excel hoặc Google Sheets thì copy 2 cột (Print ID, URL) dán vào ô Print ID, form tự tách thành nhiều dòng.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">5</div>
         <div class="guide-sb">
           <h4>Bấm <strong>Create Ads</strong></h4>
           <p>Chờ dòng chữ xanh báo đã gửi rồi mới đóng tab.</p>
@@ -476,16 +520,16 @@
       <div class="guide-sec">Ví dụ</div>
 
       <div class="guide-note">
-        Print ID <code>ngt20522</code>, Image positions (shared) <code>2, 3</code>:<br>
-        Dòng 1: <code>https://zumbamboo.com/products/...</code>, Image positions trống<br>
-        Dòng 2: <code>https://zumbamboo.com/products/...</code>, Image positions <code>1, 4, 5</code><br>
+        <span class="g-field">Image positions (shared)</span>: <code>2, 3, 4</code><br>
+        Dòng 1: <code>ngt20522</code>, <code>https://zumbamboo.com/products/...</code>, Image positions trống<br>
+        Dòng 2: <code>Dun19749</code>, <code>https://zumbamboo.com/products/...</code>, Image positions <code>1, 2</code><br>
         Kết quả: 5 quảng cáo.
       </div>
 
       <div class="guide-sec">Lưu ý</div>
 
       <div class="guide-note">
-        Số quảng cáo của mỗi sản phẩm bằng số vị trí đã điền. Để trống cả hai ô thì bằng số ảnh trên trang sản phẩm.
+        Dòng nào cũng cần đủ Print ID, Product URL và Print image, thiếu thì form báo lỗi và không gửi.
       </div>
 
       <div class="guide-note">

@@ -82,12 +82,12 @@ n8n sends `POST https://ssshub.net/api/v1/n8n/ads/status` with header `X-N8n-Web
 Extra fields on some forms:
 
 - Google Drive forms and Video · Zumbamboo: `folder_id`, `folder_name`; `unmatched_files` when the whole folder was rejected.
-- `img_mockup_gdrive` runs **in batches of 10 images, 10 minutes apart**, and sends **one callback per batch**: `batch = {offset, count, total, last, next_batch_failed}`. The submit is finished when `last` is `true`. If `next_batch_failed` is `true`, the rest of the folder was not processed and the user must submit the folder again.
+- `img_mockup_gdrive` and `img_folder_gdrive` run **in batches of 10 images, 10 minutes apart**, and send **one callback per batch**: `batch = {offset, count, total, last, next_batch_failed}`. The submit is finished when `last` is `true`. If `next_batch_failed` is `true`, the rest of the folder was not processed (`img_mockup_gdrive`: the user submits the folder again; `img_folder_gdrive`: an admin resumes it, since a new submit creates a new ad set). The `unmatched_files` rejection of `img_folder_gdrive` is checked on the whole folder at every batch, so it normally arrives before the first batch only.
 - On the image forms, `products` is grouped per print. `product_url` is the collection link (`img_folder_gdrive`), the product link (`img_mockup_device`) or `null` (`img_mockup_gdrive`), and `product_id` is always `null`.
 
 `reason` values: `ip_high`, `no_selected_mockup`, `no_images`, `product_not_found`, `shopify_error`, `positions_out_of_range` / `positions_out`, `no_type`, `unknown_type`, `no_print`, `no_copy_source`, `no_copy`, `campaign_failed`, `adset_failed`, `ads_failed`, `some_ads_failed`, `some_images_ip_high`, `no_ads`. Show `message` to the user; use `reason` only for filters and counts.
 
-If an execution crashes before its last step, no callback is sent. Show "no result yet" after a timeout (about 30 minutes, or 2 hours for `img_mockup_gdrive` with many batches).
+If an execution crashes before its last step, no callback is sent. Show "no result yet" after a timeout (about 30 minutes, or 2 hours for `img_mockup_gdrive` and `img_folder_gdrive` with many batches).
 
 ## 5. Dropbox forms (`tc_form_4`, `tc_form_8`, `tc_form_10`)
 

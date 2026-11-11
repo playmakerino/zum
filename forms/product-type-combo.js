@@ -37,6 +37,7 @@ function initProductTypeCombo() {
     { value: 'BNB', label: 'Banner' },
     { value: 'Hoop', label: 'Hoop' },
     { value: 'LPL', label: 'Letter Pillow' },
+    { value: 'SPL', label: 'Shaped Pillow' },
     { value: 'PNT', label: 'Pennant' },
     { value: 'PPD', label: 'Poseable Plush Doll' }
   ].sort((a, b) => a.label.localeCompare(b.label));

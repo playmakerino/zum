@@ -48,7 +48,7 @@ The form id is a stable key: the 9 New product test forms keep their old ids (`t
 | `tc_form_6` | `tc-form-6` | multipart | `meta` = `[{index, product_url, print_id, image_positions}]`; `image_positions` = shared value; `print_image` |
 | `img_mockup_gdrive` | `tc-img-form-drive-pp` | JSON | `folder_id` (Google Drive folder id) |
 | `img_mockup_device` | `tc-form-1-trang` | multipart | `img_0_<j>` = ad images, all of one print. File names `[PrintID-TypeID_MockupID].jpg` (normalize to NFC) |
-| `img_folder_gdrive` | `tc-img-form-thao` | JSON | `folder_id` |
+| `img_folder_gdrive` | `tc-img-form-thao` | JSON | `folder_id`, `submitted_by_email` (its part before `@` goes into the campaign name) |
 | Video · Zumbamboo | `01de568d-39af-4f07-a19b-085d1568150a` | JSON | `{folder_ids:[<one id>], submitted_by_email}`; send one request per folder |
 | Video · Scrubloop | `9955ffab-18b9-4035-8f4c-c66d91411313` | JSON | `{folder_ids:[<one id>], submitted_by_email, product_url, texts:[...], headlines:[...]}` |
 

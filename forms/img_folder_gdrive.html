@@ -67,6 +67,28 @@
       box-shadow: 0 0 0 2px var(--text);
     }
 
+    .suffix-input {
+      position: relative;
+    }
+
+    .suffix-input input[type="text"] {
+      padding-right: 128px;
+    }
+
+    .suffix-input .suffix {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: var(--text-sub);
+      pointer-events: none;
+    }
+
+    .suffix-input.has-at .suffix {
+      display: none;
+    }
+
     .submit-wrap {
       margin-top: 32px;
     }
@@ -111,6 +133,15 @@
       </div>
 
       <div class="field">
+        <label>Submitted by</label>
+        <div class="suffix-input" id="submitterWrap">
+          <input type="text" id="submitted_by_email" placeholder="thaodp" autocomplete="username"
+            oninput="document.getElementById('submitterWrap').classList.toggle('has-at', this.value.includes('@'))" />
+          <span class="suffix">@ecomies.com</span>
+        </div>
+      </div>
+
+      <div class="field">
         <label data-hint="One folder per submit, containing only images and shared as Anyone with the link. Name each file [PrintID-TypeID] ..., e.g. [ngt20736-TPJ] 1.jpg. One wrongly named file blocks the whole folder.">Google Drive folder url</label>
         <input type="text" id="folder_input" placeholder="https://drive.google.com/drive/folders/..." />
       </div>
@@ -140,7 +171,19 @@
         return showStatus('error', '⚠️ Please enter a valid Google Drive folder link or folder ID.');
       }
 
-      const payload = { folder_id };
+      // A bare name ("thaodp") becomes thaodp@ecomies.com; a full email is kept as typed
+      const submitter = document.getElementById('submitted_by_email').value.trim().toLowerCase();
+      if (!submitter) {
+        document.getElementById('submitted_by_email').focus();
+        return showStatus('error', '⚠️ Please enter your name.');
+      }
+      const submitted_by_email = submitter.includes('@') ? submitter : `${submitter}@ecomies.com`;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitted_by_email)) {
+        document.getElementById('submitted_by_email').focus();
+        return showStatus('error', '⚠️ Please enter a valid name or email.');
+      }
+
+      const payload = { folder_id, submitted_by_email };
 
       showStatus('loading', '<span class="spinner"></span> Sending to n8n...');
       document.getElementById('submitBtn').disabled = true;
@@ -205,8 +248,9 @@
       <div class="guide-step">
         <div class="guide-num">2</div>
         <div class="guide-sb">
-          <h4>Dán link vào <span class="g-field">Google Drive folder url</span></h4>
-          <p>Thư mục chỉ chứa ảnh và phải chia sẻ <strong>Anyone with the link</strong>.</p>
+          <h4>Điền <span class="g-field">Submitted by</span> và dán link vào <span class="g-field">Google Drive folder url</span></h4>
+          <p><span class="g-field">Submitted by</span>: tên của bạn, ví dụ <code>thaodp</code>.</p>
+          <p style="margin-top:7px">Thư mục chỉ chứa ảnh và phải chia sẻ <strong>Anyone with the link</strong>.</p>
         </div>
       </div>
 

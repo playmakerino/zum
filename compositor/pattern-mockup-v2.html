@@ -974,8 +974,9 @@ const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[
 // Body print size slider (testing): the file width as a share of the body width, BODY_FRAC = production's value
 const bodyFrac=()=>+$('bodySize').value||BODY_FRAC;
 function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC, bg }, rest:{ solid:bg } } : PROD_OPT; }
-// Move body print (testing): one offset for every view, in steps of NUDGE_STEP x the body width (br x r x W) in the body's
-// tiling frame, so the print moves the same share of the body on every mock.
+// Move body print (testing): one offset for every view, in the body's tiling frame: x in steps of NUDGE_STEP x the body
+// width (br x r x W), y in steps of NUDGE_STEP x the body height (that width x the garment's body height / width, measured
+// on its bodyRef like br, so a cropped view still gets the whole body's height). The print moves the same share of the body on every mock.
 const NUDGE_STEP=0.05;
 let nudge=[0,0];
 
@@ -1033,8 +1034,8 @@ function buildLive(G, pat, ratio, trim, o){
 function renderLive(L){
   const w=Math.max(2,Math.round(bodyFrac()*L.bW));
   if(L.pbW!==w){ L.PB=rasterWidth(L.pat, w, true); L.pbW=w; }
-  const PB=L.PB, PW=PB.w, PH=PB.h, bd=PB.data, s=NUDGE_STEP*L.bW;
-  const pbx=PW/2-(L.cx+nudge[0]*s), pby=PH/2-(L.cy+Math.max(0,(PH-BODY_REF_FRAC*L.bW)/2)+nudge[1]*s);   // as compose: taller than the square moves down
+  const PB=L.PB, PW=PB.w, PH=PB.h, bd=PB.data, sx=NUDGE_STEP*L.bW, sy=NUDGE_STEP*(L.bH||L.bW);
+  const pbx=PW/2-(L.cx+nudge[0]*sx), pby=PH/2-(L.cy+Math.max(0,(PH-BODY_REF_FRAC*L.bW)/2)+nudge[1]*sy);   // as compose: taller than the square moves down
   const {n,ri,lx,ly,pf,mk,bg}=L, od=L.reg.data;
   for(let m=0;m<n;m++){
     const Pr=pf[m*3], Pg=pf[m*3+1], Pb=pf[m*3+2], bu=lx[m]+pbx, bv=ly[m]+pby;
@@ -1139,6 +1140,7 @@ async function generate(){
     for(const v of g.models) jobs.push([gk,v,true,results.models,'model',v.name||modelName(v)]); }
   $('progress').hidden=false; setBar(0);
   const BRs=new Map();   // garment -> body ratio (body width / pattern width) from the uncropped bodyRef, only for Body + rest
+  const HRs=new Map();   // garment -> body height / body width of panel 1 on the bodyRef: the y step of Move body print
   let done=0, nFail=0;
   try{
     for(const [gk,v,model,bucket,kind,name] of jobs){
@@ -1148,9 +1150,11 @@ async function generate(){
         const g=GARMENTS[gk], o=prodOpt();
         if(!o.body) showShot(bucket, copyCanvas(compose(await analyzeGarment(v, model), pat, v.r, trim, o)), 'all-over-'+kind+'-'+name, name+' · all-over');
         else{
-          if(!v.br && !BRs.has(gk)) BRs.set(gk, g.bodyRef ? bodyBr(await analyzeGarment(g.bodyRef), g.bodyRef.r) : 0);
+          if(g.bodyRef && !HRs.has(gk)){ const R=await analyzeGarment(g.bodyRef), e=R.ext, k=MAIN_PANEL;
+            BRs.set(gk, bodyBr(R, g.bodyRef.r)); HRs.set(gk, e.x1[k]>e.x0[k] ? (e.y1[k]-e.y0[k])/(e.x1[k]-e.x0[k]) : 0); }
           const G=await analyzeGarment(v, model), bo=bodyOpt(o, G, v, v.br||BRs.get(gk)||0);
           const L=bo.body.none ? null : buildLive(G, pat, v.r, trim, bo);
+          if(L) L.bH=L.bW*(HRs.get(gk)||1);
           if(L){ renderLive(L); showShot(bucket, L.out, 'production-'+kind+'-'+name, name+' · production', L); }
           else showShot(bucket, copyCanvas(compose(G, pat, v.r, trim, bo)), 'production-'+kind+'-'+name, name+' · production');
         }

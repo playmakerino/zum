@@ -30,6 +30,7 @@ function initProductTypeCombo() {
     { value: 'STB', label: 'Soft Toy Bunny' },
     { value: 'STRB', label: 'Stories Book' },
     { value: 'ACB', label: 'Activities Book' },
+    { value: 'CLB', label: 'Colorable Book' },
     { value: 'BDS', label: 'Bodysuit' },
     { value: 'BBR', label: 'Bubble Romper' },
     { value: 'BED', label: 'Bedding Set' },

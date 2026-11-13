@@ -986,8 +986,9 @@ const restRgb=()=>{ const h=parseHex($('restHex').value); return h?hexToRgb(h):[
 const bodyFrac=()=>+$('bodySize').value||BODY_FRAC;
 function prodOpt(){ const bg=restRgb(); return layoutV()==='placement' ? { ...PROD_OPT, body:{ frac:BODY_FRAC, bg }, rest:{ solid:bg } } : PROD_OPT; }
 // Move body print (testing): one offset for every view, in the body's tiling frame, from the chest point (bc): x in steps of
-// NUDGE_STEP x the distance from the chest to the body's side edge on that side (left or right), read on the map at the row of
-// the print centre, so x 9 sits the same share of the way to the edge on every mock (an arm covering the side shortens it);
+// NUDGE_STEP x the distance from the chest to the body's side edge on that side (left or right), read on the map over the rows
+// the print covers (90th percentile, so rows where an arm or a knee hides the side do not shorten it), so x 9 sits the same
+// share of the way to the edge on every mock;
 // y in steps of NUDGE_STEP x the body height (body width br x r x W x the garment's body height / width, measured on its
 // bodyRef like br, so a cropped view still gets the whole body's height).
 const NUDGE_STEP=0.05;
@@ -1057,7 +1058,12 @@ function renderLive(L){
   if(L.pbW!==w){ L.PB=rasterWidth(L.pat, w, true); L.pbW=w; }
   const PB=L.PB, PW=PB.w, PH=PB.h, bd=PB.data, sy=NUDGE_STEP*(L.bH||L.bW);
   const yc=L.cy+Math.max(0,(PH-BODY_REF_FRAC*L.bW)/2)+nudge[1]*sy;   // print centre row; as compose: taller than the square moves down
-  const b=Math.min(L.eL.length-1,Math.max(0,Math.floor((yc-L.ely0)/L.ebs))), side=nudge[0]>=0 ? L.eR[b]-L.cx : L.cx-L.eL[b];
+  // side edge = the 90th percentile of the edge distance over the rows the print covers, not the one row of its centre:
+  // where an arm, a knee or the frame hides the body's side on some rows, the rows that show it set the distance
+  const nb=L.eL.length, rb=y=>Math.min(nb-1,Math.max(0,Math.floor((y-L.ely0)/L.ebs))), b0=rb(yc-PH/2), b1=rb(yc+PH/2), ds=[];
+  for(let b=b0;b<=b1;b++) ds.push(nudge[0]>=0 ? L.eR[b]-L.cx : L.cx-L.eL[b]);
+  ds.sort((p,q)=>p-q);
+  const side=ds[Math.min(ds.length-1,Math.floor(ds.length*0.9))];
   const sx=NUDGE_STEP*(side>0 ? side : L.bW/2);
   const pbx=PW/2-(L.cx+nudge[0]*sx), pby=PH/2-yc;   // as compose: taller than the square moves down
   const {n,ri,lx,ly,pf,mk,bg}=L, od=L.reg.data;

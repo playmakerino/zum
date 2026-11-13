@@ -317,9 +317,9 @@ function main(){
     return c;
   }
   const DEF={ allover:testPattern(16,true), placement:testPattern(3,false) };   // numbers only on the all-over checks
-  // the default Body file of a print position, where it differs from the square: Upper chest (collar) is for a landscape
-  // file, 3 checks across x 2 down
-  const DEF_POS={ collar:testPattern(3,false,2) };
+  // the default Body file of a print position, where it differs from the 3 x 3 square: Upper chest (collar) is for a
+  // landscape file, 3 checks across x 2 down; Over heart is a small print, 2 x 2
+  const DEF_POS={ collar:testPattern(3,false,2), heart:testPattern(2,false) };
   const patOf=m=>userPat[m]||(m==='placement'&&DEF_POS[pos])||DEF[m];
   const PAT_LS='printAreaTuner.pattern';
   async function savedPattern(m){ try{ const k=PAT_LS+'.'+m, u=localStorage.getItem(k); if(u) return { img:await loadImg(u), name:localStorage.getItem(k+'.name')||'saved pattern' }; }catch(e){} return null; }

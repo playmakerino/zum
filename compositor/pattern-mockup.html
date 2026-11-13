@@ -1714,9 +1714,14 @@ async function loadPattern2(f){
 $('layout').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; layout=b.dataset.v; store.set('pm-layout',layout); refresh(); });
 $('restKind').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; restKind=b.dataset.v; store.set('pm-rest',restKind); refresh(); });
 for(const [k,p] of Object.entries(POSITIONS)){ const b=document.createElement('button'); b.type='button'; b.setAttribute('role','radio'); b.dataset.v=k; b.textContent=p.label; $('position').appendChild(b); }
-// choosing a position puts the Body print size on the position's own size (when it has one); the slider still moves after that
-$('position').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; position=b.dataset.v; store.set('pm-position',position);
-  const sz=POSITIONS[position].size; if(sz){ $('bodySize').value=String(sz); store.set('pm-body',sz); }
+// choosing a position puts the Body print size on the position's own size (when it has one); the slider still moves after
+// that. Back on a position with no size, the slider returns to where it stood before (pm-body-free: its last value under a
+// position with no size of its own).
+const saveBody=v=>{ store.set('pm-body',v); if(!POSITIONS[position].size) store.set('pm-body-free',v); };
+$('position').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy||b.dataset.v===position) return;
+  if(!POSITIONS[position].size) store.set('pm-body-free', parseFloat($('bodySize').value));
+  position=b.dataset.v; store.set('pm-position',position);
+  const sz=POSITIONS[position].size||store.get('pm-body-free',0.75); $('bodySize').value=String(sz); store.set('pm-body',sz);
   refresh(); });
 for(const id of ['layout','restKind','position']) $(id).addEventListener('keydown', e=>{
   if(!/^Arrow(Left|Right)$/.test(e.key)) return; e.preventDefault();
@@ -1745,8 +1750,8 @@ $('scale').addEventListener('input', ()=>{ store.set('pm-scale', parseFloat($('s
 $('scaleReset').addEventListener('click', ()=>{ $('scale').value='1'; store.set('pm-scale',1); refresh(); });
 $('scale').addEventListener('dblclick', ()=>$('scaleReset').click());
 $('bodySize').value=String(store.get('pm-body',0.75));
-$('bodySize').addEventListener('input', ()=>{ store.set('pm-body', parseFloat($('bodySize').value)); refresh(); });
-$('bodyReset').addEventListener('click', ()=>{ const sz=posSize(); $('bodySize').value=String(sz); store.set('pm-body',sz); refresh(); });
+$('bodySize').addEventListener('input', ()=>{ saveBody(parseFloat($('bodySize').value)); refresh(); });
+$('bodyReset').addEventListener('click', ()=>{ const sz=posSize(); $('bodySize').value=String(sz); saveBody(sz); refresh(); });
 $('bodySize').addEventListener('dblclick', ()=>$('bodyReset').click());
 $('patternId').addEventListener('input', refresh);
 

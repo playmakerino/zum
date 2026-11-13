@@ -632,7 +632,10 @@ function main(){
   for(const [k,p] of Object.entries(POSITIONS)){ const o=document.createElement('option'); o.value=k; o.textContent=p.label+(p.size?' · size '+p.size:''); $('position').appendChild(o); }
   $('position').value=pos;
   // choosing a position puts Body print size on the position's own size (when it has one); the slider still moves after that
-  $('position').onchange=()=>{ pos=$('position').value; const sz=POSITIONS[pos].size; if(sz){ $('frac').value=sz; $('fracV').textContent=$('frac').value; }
+  // back on a position with no size, the slider returns to where it stood before (fracFree)
+  let fracFree=+$('frac').value;
+  $('position').onchange=()=>{ if(!POSITIONS[pos].size) fracFree=+$('frac').value;
+    pos=$('position').value; $('frac').value=POSITIONS[pos].size||fracFree; $('fracV').textContent=$('frac').value;
     paintViews(); syncInputs(); draw(); if(ready()) renderAll(); };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
   $('frac').onchange=()=>renderAll();

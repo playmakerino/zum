@@ -308,16 +308,19 @@ function main(){
 
   // default patterns: all-over = 16 x 16 checks per repeat, so the checks across the chest can be counted on both photos;
   // Body + rest = 3 x 3 checks, printed once on the body.
-  function testPattern(N,numbers){
-    const c=document.createElement('canvas'); c.width=c.height=N*64; const x=c.getContext('2d'), q=64;
-    for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
+  function testPattern(N,numbers,rows){   // rows (optional): fewer rows than columns = a landscape file
+    const M=rows||N, c=document.createElement('canvas'); c.width=N*64; c.height=M*64; const x=c.getContext('2d'), q=64;
+    for(let j=0;j<M;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#f1e6d0':'#2f4b7c'; x.fillRect(i*q,j*q,q,q); }
     // column number in every check (1..N), so the checks across the chest can be read off directly
     x.font='600 '+Math.round(q*(N>9?0.42:0.5))+'px system-ui,sans-serif'; x.textAlign='center'; x.textBaseline='middle';
-    if(numbers) for(let j=0;j<N;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#2f4b7c':'#f1e6d0'; x.fillText(String(i+1),(i+.5)*q,(j+.5)*q+q*0.03); }
+    if(numbers) for(let j=0;j<M;j++) for(let i=0;i<N;i++){ x.fillStyle=(i+j)%2?'#2f4b7c':'#f1e6d0'; x.fillText(String(i+1),(i+.5)*q,(j+.5)*q+q*0.03); }
     return c;
   }
   const DEF={ allover:testPattern(16,true), placement:testPattern(3,false) };   // numbers only on the all-over checks
-  const patOf=m=>userPat[m]||DEF[m];
+  // the default Body file of a print position, where it differs from the square: Upper chest (collar) is for a landscape
+  // file, 3 checks across x 2 down
+  const DEF_POS={ collar:testPattern(3,false,2) };
+  const patOf=m=>userPat[m]||(m==='placement'&&DEF_POS[pos])||DEF[m];
   const PAT_LS='printAreaTuner.pattern';
   async function savedPattern(m){ try{ const k=PAT_LS+'.'+m, u=localStorage.getItem(k); if(u) return { img:await loadImg(u), name:localStorage.getItem(k+'.name')||'saved pattern' }; }catch(e){} return null; }
 
@@ -636,6 +639,7 @@ function main(){
   let fracFree=+$('frac').value;
   $('position').onchange=()=>{ if(!POSITIONS[pos].size) fracFree=+$('frac').value;
     pos=$('position').value; $('frac').value=POSITIONS[pos].size||fracFree; $('fracV').textContent=$('frac').value;
+    if(!userPat.placement) paintPat('placement');   // the default Body file follows the position
     paintViews(); syncInputs(); draw(); if(ready()) renderAll(); };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
   $('frac').onchange=()=>renderAll();
@@ -664,7 +668,7 @@ function main(){
       localStorage.setItem(PAT_LS+'.'+m,u); localStorage.setItem(PAT_LS+'.'+m+'.name',f.name); }catch(e){} }
 
   // ---- real render through the engine (the preview is only an approximation) ----
-  const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value:'',r,m==='placement'?JSON.stringify(bc)+brOf(v):'',patId].join('|'); };
+  const stateKey=(v,m)=>{ const {r,bc}=cur(v); return [vid(v),m,m==='placement'?$('frac').value+(userPat[m]?'':pos):'',r,m==='placement'?JSON.stringify(bc)+brOf(v):'',patId].join('|'); };
   let jobs=0;
   async function render(v,m){
     const s=st(v), key=stateKey(v,m); if(s.img[m]&&s.key[m]===key) return;

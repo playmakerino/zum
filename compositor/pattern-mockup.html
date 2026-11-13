@@ -344,6 +344,12 @@
         <div class="hint" id="layoutHint"></div>
         <div id="restOpts" hidden>
           <div class="ctl">
+            <div class="ctl-head"><label id="positionLabel">Print position</label><span class="hint" id="positionHint"></span></div>
+            <div class="ctl-row col">
+              <div class="radios" id="position" role="radiogroup" aria-labelledby="positionLabel"></div>
+            </div>
+          </div>
+          <div class="ctl">
             <div class="ctl-head"><label for="bodySize">Body print size <em>(% of body width)</em></label><span><span class="val" id="bodyVal">75%</span> <button type="button" class="linkbtn" id="bodyReset" hidden>Reset</button></span></div>
             <div class="ctl-row col">
               <input type="range" id="bodySize" min="0.3" max="1" step="0.05" value="0.75">
@@ -616,6 +622,18 @@ const modelName=m=>m.mock.split('/').pop().replace(/^zum-model-/,'').replace(/\.
 const modelGender=m=>{ const n=modelName(m); return /(^|-)boy(-|$)/.test(n)?'boy':/(^|-)girl(-|$)/.test(n)?'girl':null; };
 // which models to show for the chosen gender: neutral -> all; boy/girl -> that gender + any unisex photo.
 const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return sel==='neutral'||mg===null||mg===sel; });
+// Print positions (Body + rest): a named set of per-photo numbers that replace a photo's own bc (and br, when given) for
+// the body print; a photo with no entry in a set keeps its own (the Default position). size = the Body print size the
+// slider takes when the position is chosen (the slider still moves after that); a position without size leaves the slider.
+// views: { '<view id>': { bc:[nx,ny], br? } }, view id = viewId(v) (mock file name minus zum-flatlay-mock- / zum-model-).
+// Set them in print-area-tuner.html (pick the position there, move the print, Copy) and paste the lines here.
+const POSITIONS={
+  default:{ label:'Default' },
+  collar:{ label:'Near collar', views:{} },     // a landscape file, a little closer to the collar than Default
+  heart:{ label:'Over heart', size:0.4, views:{} },   // a small print over the wearer's heart
+};
+// the view as the body print reads it under a position: its own numbers, replaced by the position's where it has them
+const posView=(v,pos)=>{ const o=POSITIONS[pos]&&POSITIONS[pos].views&&POSITIONS[pos].views[viewId(v)]; return o?{ ...v, ...o }:v; };
 // ===== END GARMENT DATA =====
 
 // ===== SHARED BLOCK: compositor engine - byte-identical in pattern-mockup.html, zum_prd_form.html and pattern-mockup-v2.html =====
@@ -1283,6 +1301,9 @@ let patImg=null, patName='', autoTrim=null, busy=false, stopReq=false;
 // placement print: layout 'allover' | 'placement' (main pattern on the body panel, map R = 20); rest of the garment
 // 'solid' | 'pattern' (second pattern). Layout + rest kind are remembered; the second pattern is not.
 let layout=store.get('pm-layout','allover'), restKind=store.get('pm-rest','solid'), pat2Img=null, pat2Name='';
+// print position (POSITIONS): which set of per-photo bc / br the body print uses; remembered
+let position=POSITIONS[store.get('pm-position','')] ? store.get('pm-position','') : 'default';
+const posSize=()=>POSITIONS[position].size||0.75;   // the Body print size Reset goes back to
 let autoRest=null;   // the pattern's background colour ('#rrggbb'): the Auto value of the rest colour
 // Background colour of a pattern: the most common colour (64x64 nearest-neighbour sample, 16 levels per channel, mean
 // colour of the heaviest bin). Transparent pixels count as white, the colour they print on.
@@ -1311,7 +1332,7 @@ const msg=(m,err)=>{ const el=$('msg'); clearTimeout(msgTimer); if(!m){ el.class
 function setColor(prefix,hex){ $(prefix+'Color').value=hex.toLowerCase(); $(prefix+'Hex').value=hex.toUpperCase(); }
 function setTrim(hex){ setColor('trim',hex); }
 const settingsKey=()=>[patName, patImg?patImg.width+'x'+patImg.height:'', parseHex($('trimHex').value)||'', $('scale').value,
-  lay(), lay()==='placement'?restKind+$('bodySize').value:'', lay()==='placement'?parseHex($('restHex').value)||'':'',
+  lay(), lay()==='placement'?restKind+$('bodySize').value+position:'', lay()==='placement'?parseHex($('restHex').value)||'':'',
   lay()==='placement'&&restKind==='pattern'?pat2Name+(pat2Img?pat2Img.width+'x'+pat2Img.height:''):''].join('|');
 // products with no separate body panel: Body + rest is greyed out and they print all-over (the stored choice is kept)
 const NO_PLACEMENT=new Set(['romper','blanket','zipHoodie']);
@@ -1482,6 +1503,9 @@ function refresh(){
   for(const b of $('layout').children){ b.setAttribute('aria-checked', String(b.dataset.v===lay()));
     if(b.dataset.v==='placement'){ b.disabled=noPl; b.title=noPl?'Not available for this product: no separate body panel':''; } }
   for(const b of $('restKind').children) b.setAttribute('aria-checked', String(b.dataset.v===restKind));
+  for(const b of $('position').children){ b.setAttribute('aria-checked', String(b.dataset.v===position)); b.tabIndex=b.dataset.v===position?0:-1; }
+  { const vs=POSITIONS[position].views, g=GARMENTS[garment], n=vs?[...g.flats, ...g.models].filter(v=>vs[viewId(v)]).length:0;
+    $('positionHint').textContent=position==='default'?'':n?n+' photo'+(n!==1?'s':'')+' set, the rest as Default':'No photo set yet: same as Default'; }
   $('restOpts').hidden=lay()!=='placement';
   $('restPatField').hidden=restKind!=='pattern';
   $('layoutHint').textContent=lay()==='placement'?'Pattern centred on the body':noPl?'Only all-over for this product':'Pattern repeats everywhere';
@@ -1498,7 +1522,7 @@ function refresh(){
   $('scale').disabled=scaleOff; if(scaleOff) $('scaleReset').hidden=true;
   $('scale').title=scaleOff?'The rest is the background color: no motif to scale':'';
   const bs=parseFloat($('bodySize').value);
-  $('bodyVal').textContent=Math.round(bs*100)+'%'; $('bodyReset').hidden=bs===0.75;
+  $('bodyVal').textContent=Math.round(bs*100)+'%'; $('bodyReset').hidden=bs===posSize();
 }
 function clearResults(){
   for(const r of results.values()) URL.revokeObjectURL(r.url);
@@ -1532,8 +1556,9 @@ async function generate(){
         const G=await analyzeGarment(c.view, !c.isFlat);
         let opt=lopt;
         if(lopt.body){
-          if(!c.view.br&&BR===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; BR=f ? bodyBr(await analyzeGarment(f, false), f.r) : 0; }
-          opt=bodyOpt(lopt, G, c.view, c.view.br||BR); }   // the view's own br first, else the garment's   // a cropped body without bc renders with the body in the background colour
+          const pv=posView(c.view, position);   // bc / br of the chosen print position, else the view's own
+          if(!pv.br&&BR===null){ const g=GARMENTS[garment], f=g.flats[g.bodyRef||0]; BR=f ? bodyBr(await analyzeGarment(f, false), f.r) : 0; }
+          opt=bodyOpt(lopt, G, pv, pv.br||BR); }   // the view's own br first, else the garment's   // a cropped body without bc renders with the body in the background colour
         const canvas=compose(G, patImg, scale*c.view.r, trim, opt);   // motif size = the view's own r x the slider
         const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
         if(!blob) throw new Error('PNG encode failed');
@@ -1660,7 +1685,12 @@ async function loadPattern2(f){
 }
 $('layout').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; layout=b.dataset.v; store.set('pm-layout',layout); refresh(); });
 $('restKind').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; restKind=b.dataset.v; store.set('pm-rest',restKind); refresh(); });
-for(const id of ['layout','restKind']) $(id).addEventListener('keydown', e=>{
+for(const [k,p] of Object.entries(POSITIONS)){ const b=document.createElement('button'); b.type='button'; b.setAttribute('role','radio'); b.dataset.v=k; b.textContent=p.label; $('position').appendChild(b); }
+// choosing a position puts the Body print size on the position's own size (when it has one); the slider still moves after that
+$('position').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||busy) return; position=b.dataset.v; store.set('pm-position',position);
+  const sz=POSITIONS[position].size; if(sz){ $('bodySize').value=String(sz); store.set('pm-body',sz); }
+  refresh(); });
+for(const id of ['layout','restKind','position']) $(id).addEventListener('keydown', e=>{
   if(!/^Arrow(Left|Right)$/.test(e.key)) return; e.preventDefault();
   const bs=[...$(id).children], i=bs.findIndex(b=>b.getAttribute('aria-checked')==='true'), n=bs[(i+(e.key==='ArrowRight'?1:bs.length-1))%bs.length];
   n.click(); n.focus(); });
@@ -1688,7 +1718,7 @@ $('scaleReset').addEventListener('click', ()=>{ $('scale').value='1'; store.set(
 $('scale').addEventListener('dblclick', ()=>$('scaleReset').click());
 $('bodySize').value=String(store.get('pm-body',0.75));
 $('bodySize').addEventListener('input', ()=>{ store.set('pm-body', parseFloat($('bodySize').value)); refresh(); });
-$('bodyReset').addEventListener('click', ()=>{ $('bodySize').value='0.75'; store.set('pm-body',0.75); refresh(); });
+$('bodyReset').addEventListener('click', ()=>{ const sz=posSize(); $('bodySize').value=String(sz); store.set('pm-body',sz); refresh(); });
 $('bodySize').addEventListener('dblclick', ()=>$('bodyReset').click());
 $('patternId').addEventListener('input', refresh);
 

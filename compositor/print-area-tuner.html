@@ -178,6 +178,10 @@ button:disabled,input:disabled{ cursor:default; opacity:.45; }
     <section class="sec">
       <div class="whorow"><span class="who" id="who"></span><span class="sub" id="whoSub"></span></div>
     </section>
+    <section class="sec" id="posGrp">
+      <div class="h">Print position <span class="sub" id="posSub"></span></div>
+      <select id="position"></select>
+    </section>
     <section class="sec" id="rGrp">
       <div class="h">Ratio (r) <span class="sub" id="r0"></span></div>
       <div class="row"><input type="range" id="rRange" min="0" max="1" step="0.001"><input type="number" id="r" step="0.01" class="num"></div>
@@ -269,7 +273,26 @@ function main(){
   const vid=v=>v.vid||flatName(v);
   const keyOf=v=>(GOF.get(v)||garment)+'/'+vid(v);
   const allViews=g=>[...GARMENTS[g].flats.map(v=>({v,flat:true})), ...GARMENTS[g].models.map(v=>({v,flat:false})), ...(uploaded[g]||[])];
-  const cur=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, br:v.br||null }; };
+  const base=v=>{ const e=edits[keyOf(v)]; return e?{ ...e }:{ r:v.r, bc:v.bc||null, br:v.br||null }; };   // the photo's own numbers (the Default position)
+  // Print position (POSITIONS in pattern-mockup.html): a named set of per-photo bc / br for the body print. Under a position
+  // other than default, bc / br shown and edited here belong to that position (posEdits, kept in this browser like edits);
+  // r stays the photo's one r. A photo the position has no numbers for shows its own.
+  const POS_LS='printAreaTuner.posEdits';
+  let pos='default', posEdits={};
+  const posOn=v=>pos!=='default'&&!v.vid;
+  // what position p gives a photo before any edit made here: the file's entry over the photo's own numbers
+  const posFileOf=(p,v)=>{ const b=base(v), o=POSITIONS[p].views&&POSITIONS[p].views[flatName(v)]; return { bc:o&&'bc' in o?o.bc:b.bc, br:o&&o.br?o.br:b.br }; };
+  const sameNum=(a,b)=>JSON.stringify(a.bc||null)===JSON.stringify(b.bc||null)&&(a.br||null)===(b.br||null);
+  const posEd=v=>posOn(v)&&posEdits[pos]&&posEdits[pos][keyOf(v)]||null;
+  const cur=v=>{ const b=base(v); return posOn(v)?{ r:b.r, ...(posEd(v)||posFileOf(pos,v)) }:b; };
+  { let saved={}; try{ saved=JSON.parse(localStorage.getItem(POS_LS)||'{}')||{}; }catch(e){}
+    const byKey=new Map(); for(const [v,g] of GOF) byKey.set(g+'/'+flatName(v),v);
+    for(const [p,m] of Object.entries(saved)){ if(p==='default'||!POSITIONS[p]||!m) continue;
+      for(const [k,e] of Object.entries(m)){ const v=byKey.get(k); if(!v||!e) continue;
+        const n={ bc:e.bc||null, br:e.br||null }; if(sameNum(n,posFileOf(p,v))) continue;   // already pasted into the file
+        (posEdits[p]=posEdits[p]||{})[k]=n; } } }
+  const savePos=()=>{ try{ localStorage.setItem(POS_LS,JSON.stringify(posEdits)); }catch(e){} };
+  const posCount=()=>Object.values(posEdits).reduce((s,m)=>s+Object.keys(m).length,0);
   const isFlat=v=>v.vid?!!v.isFlat:allViews(GOF.get(v)||garment).some(o=>o.v===v&&o.flat);
   const refFlat=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // left column: the garment's reference flatlay (bodyRef, the one br comes from)
   const refView=()=>{ const g=GARMENTS[garment]; return g.flats[g.bodyRef||0]; };   // br reference (Body + rest)
@@ -308,13 +331,13 @@ function main(){
   function paintViews(){
     const box=$('views'); box.innerHTML='';
     for(const {v,flat} of allMode?allItems().map(v=>({v,flat:isFlat(v)})):allViews(garment)){
-      const d=document.createElement('div'); d.className='v'+(v===view?' on':'')+(edits[keyOf(v)]?' edited':'');
+      const d=document.createElement('div'); d.className='v'+(v===view?' on':'')+(edits[keyOf(v)]||posEd(v)?' edited':'');
       const im=document.createElement('img'); im.loading='lazy'; im.src=v.thumb||(v.mock+(v.mock.includes('?')?'&':'?')+'width=200'); d.appendChild(im);
       const t=document.createElement('div'); t.className='tag'; t.textContent=(allMode?(GOF.get(v)||'new · '+vid(v).replace(/^new-/,'')):(flat?'F · ':'')+(MOC[vid(v)]||vid(v))).replace(/([a-z])([A-Z])/g,'$1\u200b$2'); d.appendChild(t);   // zero-width space: a long camelCase name wraps at its word joint (men|Pajama)
       d.title=vid(v); d.onclick=()=>selectView(v); box.appendChild(d);
     }
     // Copy all carries the number of changed photos (every product + uploads)
-    const n=Object.keys(edits).length+Object.values(uploaded).reduce((s,l)=>s+l.length,0);
+    const n=Object.keys(edits).length+posCount()+Object.values(uploaded).reduce((s,l)=>s+l.length,0);
     $('copyAll').textContent='Copy all ('+n+')'; $('copyAll').title=n+' edited photo'+(n!==1?'s':'');
   }
 
@@ -526,7 +549,16 @@ function main(){
 
   // write r / bc / k for the current view (an edit equal to the loaded value is dropped)
   function setVal(p){
-    const key=keyOf(view), n={ ...cur(view), ...p };
+    if(posOn(view)){   // bc / br go to the position's set, r to the photo itself
+      if('bc' in p||'br' in p){
+        const c=cur(view), n={ bc:'bc' in p?p.bc:c.bc, br:'br' in p?p.br:c.br }, m=posEdits[pos]=posEdits[pos]||{};
+        if(sameNum(n,posFileOf(pos,view))) delete m[keyOf(view)]; else m[keyOf(view)]=n;
+        if(!Object.keys(m).length) delete posEdits[pos];
+        savePos(); }
+      if(!('r' in p)){ syncInputs(); draw(); return; }
+      p={ r:p.r };
+    }
+    const key=keyOf(view), n={ ...base(view), ...p };
     const same=n.r===view.r && JSON.stringify(n.bc)===JSON.stringify(view.bc||null) && (n.br||null)===(view.br||null);
     if(view.vid){ view.r=n.r; view.bc=n.bc; view.br=n.br; }   // uploaded views carry their own values
     else if(same) delete edits[key]; else edits[key]=n;
@@ -540,7 +572,10 @@ function main(){
   }
   const RMIN=0.4, RMAX=2.5;   // r slider: 0.4x .. 2.5x the original r, log scale
   function syncInputs(){
-    if(!view) return; const {r,bc,br}=cur(view), r0=view.origR!==undefined?view.origR:view.r, b0=view.vid?null:(view.bc||null), br0=view.vid?null:(view.br||null);
+    if(!view) return; const {r,bc,br}=cur(view), r0=view.origR!==undefined?view.origR:view.r, pf=posOn(view)?posFileOf(pos,view):null;
+    const b0=view.vid?null:pf?pf.bc:(view.bc||null), br0=view.vid?null:pf?pf.br:(view.br||null);
+    { const o=POSITIONS[pos].views&&POSITIONS[pos].views[flatName(view)];   // whose numbers bc / br below are
+      $('posSub').textContent=pos==='default'?'':view.vid?'new upload: its own numbers':posEd(view)?'edited here':o?'set in the file':'not set: shows Default'; }
     $('r').value=r; $('bx').value=bc?bc[0]:''; $('by').value=bc?bc[1]:'';
     $('br').value=br||''; $('br').placeholder=BR?String(fmt(BR,3)):'';
     $('rRange').value=Math.log(r/(r0*RMIN))/Math.log(RMAX/RMIN);
@@ -574,11 +609,14 @@ function main(){
   $('bcAuto').onclick=()=>{ setVal({bc:null}); afterEdit(); };
   $('bcNone').onclick=()=>{ setVal({bc:[10,10]}); afterEdit(); };
   $('br').onchange=()=>{ const v=parseFloat($('br').value); setVal({ br:v>0?v:null }); afterEdit(); };   // empty = the garment's br
-  $('reset').onclick=()=>{ if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
+  $('reset').onclick=()=>{ if(posOn(view)){ if(posEdits[pos]){ delete posEdits[pos][keyOf(view)]; if(!Object.keys(posEdits[pos]).length) delete posEdits[pos]; } savePos(); syncInputs(); afterEdit(); return; }
+    if(view.vid){ view.r=view.origR; view.bc=null; view.br=null; } delete edits[keyOf(view)]; saveEdits(); syncInputs(); afterEdit(); };
   // "<mockup id> r= bc=" (+ br= only when the view has its own)
   const lineOf=v=>{ const {r,bc,br}=cur(v); return (MOC[vid(v)]||vid(v))+' r='+fmt(r,4)+' bc='+(bc?bc.map(x=>fmt(x,3)).join(','):'auto')+(br?' br='+fmt(br,4):''); };
   const copyText=async(s,note)=>{ try{ await navigator.clipboard.writeText(s); busy(note); setTimeout(()=>busy(''),1500); }catch(e){ prompt('Copy:',s); } };
-  $('copy').onclick=()=>{ if(view){ const s=lineOf(view); copyText(s,'Copied: '+s); } };
+  // a position's line: "<view id> bc= (br=)", the view id being the key of POSITIONS[...].views
+  const posNums=e=>' bc='+(e.bc?e.bc.map(x=>fmt(x,3)).join(','):'auto')+(e.br?' br='+fmt(e.br,4):'');
+  $('copy').onclick=()=>{ if(view){ const s=posOn(view)?'position='+pos+' '+flatName(view)+posNums(cur(view)):lineOf(view); copyText(s,'Copied: '+s); } };
   // every photo changed on this page (all products), one line each, grouped by product
   $('copyAll').onclick=()=>{
     const L=[];
@@ -587,9 +625,15 @@ function main(){
       if(vs.length) L.push('# '+g, ...vs.map(lineOf));
     }
     if(uploaded.__all&&uploaded.__all.length) L.push('# new (added on All)', ...uploaded.__all.map(o=>lineOf(o.v)));
+    for(const [p,m] of Object.entries(posEdits)) if(Object.keys(m).length) L.push('# position '+p, ...Object.entries(m).map(([k,e])=>k.split('/')[1]+posNums(e)));
     if(!L.length){ busy('Nothing changed yet'); setTimeout(()=>busy(''),1500); return; }
     copyText(L.join(String.fromCharCode(10)),'Copied '+L.filter(l=>l[0]!=='#').length+' photos');
   };
+  for(const [k,p] of Object.entries(POSITIONS)){ const o=document.createElement('option'); o.value=k; o.textContent=p.label+(p.size?' · size '+p.size:''); $('position').appendChild(o); }
+  $('position').value=pos;
+  // choosing a position puts Body print size on the position's own size (when it has one); the slider still moves after that
+  $('position').onchange=()=>{ pos=$('position').value; const sz=POSITIONS[pos].size; if(sz){ $('frac').value=sz; $('fracV').textContent=$('frac').value; }
+    paintViews(); syncInputs(); draw(); if(ready()) renderAll(); };
   $('frac').oninput=()=>{ $('fracV').textContent=$('frac').value; draw(); };
   $('frac').onchange=()=>renderAll();
 
@@ -674,8 +718,8 @@ function main(){
   for(const el of document.querySelectorAll('input[name=upKind]')) el.onchange=()=>{ if(!upEntry) return; upEntry.flat=upEntry.v.isFlat=kindFlat();
     const s=st(upEntry.v); s.G=null; s.img={}; s.key={}; if(view===upEntry.v) selectView(view); };
 
-  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / br from pattern-mockup.html?')) return;
-    edits={}; saveEdits(); syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
+  $('clearAll').onclick=()=>{ if(!confirm('Put every photo back to its r / bc / br from pattern-mockup.html, in every print position?')) return;
+    edits={}; saveEdits(); posEdits={}; savePos(); syncInputs(); paintViews(); updateBr().then(()=>{ syncInputs(); draw(); renderAll(); }); };
 
   // ---- start ----
   selectView(allMode?refOf(garment):allViews(garment)[0].v);

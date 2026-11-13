@@ -629,8 +629,36 @@ const modelsFor=(g,sel)=>g.models.filter(m=>{ const mg=modelGender(m); return se
 // Set them in print-area-tuner.html (pick the position there, move the print, Copy) and paste the lines here.
 const POSITIONS={
   default:{ label:'Default' },
-  collar:{ label:'Near collar', views:{} },     // a landscape file, a little closer to the collar than Default
-  heart:{ label:'Over heart', size:0.4, views:{} },   // a small print over the wearer's heart
+  // Seeded 2026-11-13 by formula from each photo's own bc, moved in the body frame by a share of the body width
+  // (collar: up 0.12; heart: 0.20 to the image right = the wearer's left, up 0.25): a starting point, tune by eye in the tuner.
+  // a landscape file, a little closer to the collar than Default
+  collar:{ label:'Near collar', views:{
+    'pajama':{bc:[0.442,0.282]}, 'pajama-long':{bc:[0.316,0.282]}, 'pajama-boy-1':{bc:[0.442,0.279]}, 'pajama-boy-2':{bc:[0.448,0.251]},
+    'pajama-boy-3':{bc:[0.602,0.319]}, 'pajama-girl-1':{bc:[0.437,0.379]}, 'pajama-girl-2':{bc:[0.474,0.253]}, 'pajama-girl-3':{bc:[0.542,0.337]},
+    'pajama-girl-5':{bc:[0.506,0.443]}, 'pajama-girl-6':{bc:[0.476,0.36]}, 'pajama-men-1':{bc:[0.473,0.325]}, 'men-pajama':{bc:[0.319,0.232]},
+    'men-pajama-top':{bc:[0.498,0.369]}, 'pajama-men-2':{bc:[0.51,0.279]}, 'pajama-men-3':{bc:[0.582,0.489]}, 'pajama-men-4':{bc:[0.544,0.579]},
+    'pajama-men-5':{bc:[0.551,0.502]}, 'pajama-men-6':{bc:[0.517,0.564]}, 'pajama-men-7':{bc:[0.544,0.549]}, 'pajama-women-1':{bc:[0.385,0.341]},
+    'women-pajama':{bc:[0.304,0.256]}, 'women-pajama-top':{bc:[0.512,0.438]}, 'pajama-women-2':{bc:[0.484,0.316]}, 'pajama-women-3':{bc:[0.445,0.51]},
+    'pajama-women-4':{bc:[0.498,0.596]}, 'pajama-women-5':{bc:[0.457,0.466]}, 'pajama-women-6':{bc:[0.507,0.567]}, 'pajama-women-7':{bc:[0.334,0.442]},
+    'pajama-women-8':{bc:[0.845,0.258]}, 'pajama-women-11':{bc:[0.548,-0.271]}, 'pajama-women-12':{bc:[0.09,0.736]}, 'sleepbag':{bc:[0.489,0.518]},
+    'sleepbag-1':{bc:[0.518,0.691]}, 'sleepbag-2':{bc:[0.502,0.895]}, 'sleepbag-3':{bc:[0.057,0.754]}, 'sleepbag-4':{bc:[0.522,0.607]},
+    'blanket-hoodie-flat':{bc:[0.5,0.599]}, 'blanket-hoodie-1':{bc:[0.512,0.552]}, 'blanket-hoodie-2':{bc:[0.508,0.567]}, 'blanket-hoodie-3':{bc:[0.491,0.414]},
+    'blanket-hoodie-4':{bc:[0.469,0.899]}, 'sweatshirt-flat':{bc:[0.497,0.429]}, 'sweatshirt-1':{bc:[0.498,0.67]}, 'sweatshirt-2':{bc:[0.52,0.611]},
+    'sweatshirt-3':{bc:[0.406,0.448]} } },
+  // a small print over the wearer's heart
+  heart:{ label:'Over heart', size:0.4, views:{
+    'pajama':{bc:[0.503,0.25]}, 'pajama-long':{bc:[0.376,0.25]}, 'pajama-boy-1':{bc:[0.556,0.224]}, 'pajama-boy-2':{bc:[0.551,0.189]},
+    'pajama-boy-3':{bc:[0.734,0.301]}, 'pajama-girl-1':{bc:[0.562,0.302]}, 'pajama-girl-2':{bc:[0.573,0.199]}, 'pajama-girl-3':{bc:[0.653,0.291]},
+    'pajama-girl-5':{bc:[0.623,0.379]}, 'pajama-girl-6':{bc:[0.588,0.294]}, 'pajama-men-1':{bc:[0.574,0.271]}, 'men-pajama':{bc:[0.385,0.198]},
+    'men-pajama-top':{bc:[0.599,0.316]}, 'pajama-men-2':{bc:[0.57,0.25]}, 'pajama-men-3':{bc:[0.67,0.446]}, 'pajama-men-4':{bc:[0.664,0.502]},
+    'pajama-men-5':{bc:[0.663,0.456]}, 'pajama-men-6':{bc:[0.634,0.522]}, 'pajama-men-7':{bc:[0.666,0.511]}, 'pajama-women-1':{bc:[0.466,0.297]},
+    'women-pajama':{bc:[0.366,0.223]}, 'women-pajama-top':{bc:[0.614,0.385]}, 'pajama-women-2':{bc:[0.532,0.292]}, 'pajama-women-3':{bc:[0.525,0.47]},
+    'pajama-women-4':{bc:[0.626,0.515]}, 'pajama-women-5':{bc:[0.537,0.426]}, 'pajama-women-6':{bc:[0.591,0.531]}, 'pajama-women-7':{bc:[0.425,0.378]},
+    'pajama-women-8':{bc:[0.973,0.234]}, 'pajama-women-11':{bc:[0.719,-0.32]}, 'pajama-women-12':{bc:[0.321,0.628]}, 'sleepbag':{bc:[0.591,0.465]},
+    'sleepbag-1':{bc:[0.615,0.64]}, 'sleepbag-2':{bc:[0.633,0.822]}, 'sleepbag-3':{bc:[0.206,0.784]}, 'sleepbag-4':{bc:[0.607,0.551]},
+    'blanket-hoodie-flat':{bc:[0.612,0.541]}, 'blanket-hoodie-1':{bc:[0.633,0.522]}, 'blanket-hoodie-2':{bc:[0.676,0.479]}, 'blanket-hoodie-3':{bc:[0.648,0.399]},
+    'blanket-hoodie-4':{bc:[0.679,0.825]}, 'sweatshirt-flat':{bc:[0.6,0.376]}, 'sweatshirt-1':{bc:[0.612,0.63]}, 'sweatshirt-2':{bc:[0.621,0.56]},
+    'sweatshirt-3':{bc:[0.537,0.388]} } },
 };
 // the view as the body print reads it under a position: its own numbers, replaced by the position's where it has them
 const posView=(v,pos)=>{ const o=POSITIONS[pos]&&POSITIONS[pos].views&&POSITIONS[pos].views[viewId(v)]; return o?{ ...v, ...o }:v; };

@@ -22,6 +22,12 @@ const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 const PAGE_SIZE = 20; // rows per page; "Show more" adds another page
 const FILTER_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg>';
 const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+// Date columns keep the day as a number (YYYYMMDD) so sort and the column filter treat it like a metric.
+const dateNum = iso => /^\d{4}-\d{2}-\d{2}/.test(iso || '') ? Number(iso.slice(0, 10).replace(/-/g, '')) : 0;
+const numIso = n => { const s = String(n); return s.length === 8 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : ''; };
+const fmtDay = n => n ? new Date(numIso(n) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const OP_TEXT = { num: { gt: 'greater than', lt: 'less than', between: 'between', notBetween: 'not between' },
+                  date: { gt: 'after', lt: 'before', between: 'between', notBetween: 'not between' } };
 const empty = cols => `<tr><td colspan="${cols}"><div class="state-box">No data</div></td></tr>`;
 
 let toastTimer;
@@ -125,11 +131,16 @@ let _fpState = { type: null, col: null, btn: null };
 
 function openFilterPopup(type, col, btn) {
   const popup = $('filterPopup');
-  _fpState = { type, col, btn };
+  const isDate = btn.dataset.kind === 'date'; // header button of a date column (value YYYYMMDD)
+  _fpState = { type, col, btn, isDate };
+  popup.dataset.kind = isDate ? 'date' : '';
+  for (const o of $('filterOp').options) o.textContent = OP_TEXT[isDate ? 'date' : 'num'][o.value] || o.textContent;
+  for (const id of ['filterVal1', 'filterVal2']) $(id).type = isDate ? 'date' : 'number';
   const existing = state.filters[type][col];
+  const show = v => v == null ? '' : isDate ? numIso(v) : v;
   $('filterOp').value = existing?.op || 'gt';
-  $('filterVal1').value = existing?.val1 ?? '';
-  $('filterVal2').value = existing?.val2 ?? '';
+  $('filterVal1').value = show(existing?.val1);
+  $('filterVal2').value = show(existing?.val2);
   $('filterPopupTitle').textContent = (btn.closest('th')?.textContent || col).replace(/[▴▾]/g, '').trim(); // column label as shown in the header
   onFilterOpChange();
   // below the button, above it when there is no room; always inside the viewport
@@ -155,13 +166,14 @@ function onFilterOpChange() {
 }
 
 function applyFilter() {
-  const { type, col } = _fpState;
+  const { type, col, isDate } = _fpState;
   const op = $('filterOp').value;
-  const val1 = parseFloat($('filterVal1').value);
+  const read = id => isDate ? (dateNum($(id).value) || NaN) : parseFloat($(id).value);
+  const val1 = read('filterVal1');
   if (isNaN(val1)) { cancelFilter(); return; }
   const filter = { op, val1 };
   if (op === 'between' || op === 'notBetween') {
-    const val2 = parseFloat($('filterVal2').value);
+    const val2 = read('filterVal2');
     if (isNaN(val2)) { cancelFilter(); return; }
     filter.val2 = val2;
   }
@@ -191,7 +203,8 @@ function updateFilterBtns(type) {
     const f = state.filters[type][btn.dataset.col];
     btn.classList.toggle('active', !!f);
     if (!f) { btn.innerHTML = FILTER_SVG; return; }
-    const valStr = f.op === 'between' || f.op === 'notBetween' ? `${f.val1}–${f.val2}` : `${opLabels[f.op]}${f.val1}`;
+    const v = n => btn.dataset.kind === 'date' ? fmtDay(n).replace(/, \d{4}$/, '') : n; // "Nov 11"
+    const valStr = f.op === 'between' || f.op === 'notBetween' ? `${v(f.val1)}–${v(f.val2)}` : `${opLabels[f.op]}${v(f.val1)}`;
     btn.innerHTML = `${FILTER_SVG} ${valStr}`;
   });
 }
@@ -301,7 +314,8 @@ function updateFilterBtns(type) {
   const op = document.getElementById('filterOp');
   const between = () => op.value === 'between' || op.value === 'notBetween';
   const label = () => {
-    const a = v1.value.trim(), b = v2.value.trim();
+    const show = v => popup.dataset.kind === 'date' ? fmtDay(dateNum(v)) : v; // date column: "Nov 11, 2026"
+    const a = show(v1.value.trim()), b = show(v2.value.trim());
     const txt = !a ? '' : between() ? a + ' and ' + (b || '…') : a;
     chip.textContent = txt || 'Add value';
     chip.classList.toggle('empty', !txt);

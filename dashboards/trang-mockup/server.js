@@ -2,7 +2,7 @@
 require('dotenv').config({ path: ['meta-token', 'meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const path      = require('path');
-const { findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
+const { findPurchaseAction, fetchAdRows, fetchAdMedia, twSql, sseLoad } = require('./meta');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
@@ -48,6 +48,22 @@ function isCatalogAd(type, adName) {
   return (type === 'dynamic' || type === 'link') && !/\[[^\]-]+-[^\]]+\]/.test(adName || '');
 }
 
+// "Created" column: Triple Whale has no ad creation date, so this is the campaign's creation date
+// (user's choice 2026-11-16; right for TC ads, one campaign per submit, early for ads added to an
+// old campaign). YYYY-MM-DD per ad id.
+async function fetchCreatedDates({ since, until }) {
+  const rows = await twSql(`SELECT toString(ad_id) AS ad_id, min(campaign_created_at) AS c
+FROM ads_table
+WHERE channel = 'facebook-ads' AND event_date BETWEEN '${since}' AND '${until}' AND spend > 0
+GROUP BY ad_id`, since, until);
+  return new Map(rows.filter(r => r.c).map(r => [String(r.ad_id), String(r.c).slice(0, 10)]));
+}
+
+// Earliest creation date among a group's ads ('' when none is known)
+function earliestCreated(rows) {
+  return rows.map(r => r.created || '').filter(Boolean).sort()[0] || '';
+}
+
 function computeMetrics(entry, rows) {
   const sum = fn => rows.reduce((s, r) => s + fn(r), 0);
   for (const f of ['impressions', 'clicks', 'spend']) {
@@ -83,6 +99,7 @@ function groupByMockup(rows) {
     const topAd = pickFrom.reduce((best, r) => parseFloat(r.spend || 0) > parseFloat(best.spend || 0) ? r : best, pickFrom[0]);
     entry.thumbnail_url = topAd?.thumbnail_url || null;
     entry.is_catalog = !!topAd?.is_catalog;
+    entry.created = earliestCreated(_rows);
     computeMetrics(entry, _rows);
     return entry;
   });
@@ -113,6 +130,7 @@ function groupByImage(rows) {
   }
   return Object.values(map).map(({ _rows, _creatives, ...entry }) => {
     entry.creative_count = _creatives.size;
+    entry.created = earliestCreated(_rows);
     computeMetrics(entry, _rows);
     return entry;
   });
@@ -145,7 +163,8 @@ async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
     progress(`Using cached ad data (${currRows.length} rows) [${elapsed()}]`);
   } else {
     progress(`Reading ads from Triple Whale... [${elapsed()}]`);
-    currRows = await fetchAdRows(current);
+    const [rows, created] = await Promise.all([fetchAdRows(current), fetchCreatedDates(current)]);
+    currRows = rows.map(r => ({ ...r, created: created.get(r.ad_id) || '' }));
     insightsCache[cacheKey] = { current: currRows };
   }
 
@@ -231,4 +250,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Mockup Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { dateStr, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, isCatalogAd, groupByMockup, groupByImage };
+module.exports = { dateStr, earliestCreated, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, isCatalogAd, groupByMockup, groupByImage };

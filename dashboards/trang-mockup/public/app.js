@@ -22,25 +22,30 @@ const METRIC_COLS = [
   { key: 'cpc', label: 'CPC' },
 ].map(c => ({ ...c, type: 'metric' }));
 
+// Campaign creation date (Triple Whale has none per ad); a grouped row shows its earliest ad
+const CREATED_COL = { key: 'created_on', type: 'date', label: 'Created', tip: 'Creation date of the campaign. A row that groups several ads shows the earliest one.' };
+const createdCell = r => `<td class="td-metric">${r.created_on ? fmtDay(r.created_on) : '–'}</td>`;
+
 const creativeRow = r =>
-  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`;
+  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`;
 
 const CREATIVE_TABLE = {
-  cols: 10,
-  columns: [null, { key: 'ad_name', type: 'text', label: 'Ad Name' }, ...METRIC_COLS],
+  cols: 11,
+  columns: [null, { key: 'ad_name', type: 'text', label: 'Ad Name' }, CREATED_COL, ...METRIC_COLS],
   row: creativeRow,
 };
 
 const TABLES = {
   mockups: {
-    cols: 11,
+    cols: 12,
     columns: [
       null,
       { key: 'mockup_id', type: 'text', label: 'Mockup ID' },
+      CREATED_COL,
       { key: 'print_count', type: 'metric', label: 'Prints' },
       ...METRIC_COLS,
     ],
-    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td><td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
+    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td>${createdCell(r)}<td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
   },
   creativesValid: CREATIVE_TABLE,
   creativesSpend: CREATIVE_TABLE,
@@ -54,7 +59,8 @@ function buildHeaders() {
       if (col.type === 'text')
         return `<th><div class="th-content"><input data-table="${type}" data-col="${col.key}" data-type="text" class="th-filter-input" placeholder="Search ${col.label.toLowerCase().replace(/\bid\b/, 'ID')}" oninput="filterTable('${type}')" onclick="event.stopPropagation()"></div></th>`;
       const tip = col.tip ? ` data-tip-title="${col.label}" data-tip="${col.tip}"` : '';
-      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content"${tip}>${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}" onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
+      const kind = col.type === 'date' ? ' data-kind="date"' : '';
+      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content"${tip}>${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}"${kind} onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
     }).join('');
   }
 }
@@ -277,6 +283,7 @@ function enrichRow(row) {
     cpr: parseFloat(row.cpr || 0),
     aov: parseFloat(row.aov || 0),
     cr: clicks ? parseFloat(row.purchase_count || 0) / clicks * 100 : 0,
+    created_on: dateNum(row.created),
   };
 }
 
@@ -370,7 +377,7 @@ function buildTotalRow(type, filtered) {
   const tr = document.createElement('tr');
   tr.className = 'total-row';
   const printsTd = type === 'mockups' ? '<td></td>' : '';
-  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${printsTd}${metrics(totals(filtered))}`;
+  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td><td class="td-metric"></td>${printsTd}${metrics(totals(filtered))}`;
   thead.appendChild(tr);
 }
 

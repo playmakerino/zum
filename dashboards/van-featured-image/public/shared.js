@@ -26,8 +26,8 @@ const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="n
 const dateNum = iso => /^\d{4}-\d{2}-\d{2}/.test(iso || '') ? Number(iso.slice(0, 10).replace(/-/g, '')) : 0;
 const numIso = n => { const s = String(n); return s.length === 8 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : ''; };
 const fmtDay = n => n ? new Date(numIso(n) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-const OP_TEXT = { num: { gt: 'greater than', lt: 'less than', between: 'between', notBetween: 'not between' },
-                  date: { gt: 'after', lt: 'before', between: 'between', notBetween: 'not between' } };
+// Operators of a date column: the ones Shopify's report filter offers on a date dimension (measured 2026-11-16)
+const DATE_OPS = [['gt', 'after'], ['lt', 'before'], ['gte', 'after or on'], ['lte', 'before or on']];
 const empty = cols => `<tr><td colspan="${cols}"><div class="state-box">No data</div></td></tr>`;
 
 let toastTimer;
@@ -117,6 +117,9 @@ function applyFilters(type, rows) {
     for (const [col, v] of textFilters) if (!String(row[col] || '').toLowerCase().includes(v)) return false;
     for (const [col, f] of metricFilters) {
       const v = parseFloat(row[col] || 0);
+      if (f.kind === 'date' && !v) return false; // no date: never matches a date filter
+      if (f.op === 'gte' && !(v >= f.val1)) return false;
+      if (f.op === 'lte' && !(v <= f.val1)) return false;
       if (f.op === 'gt' && !(v > f.val1)) return false;
       if (f.op === 'lt' && !(v < f.val1)) return false;
       if (f.op === 'between' && !(v >= f.val1 && v <= f.val2)) return false;
@@ -134,8 +137,13 @@ function openFilterPopup(type, col, btn) {
   const isDate = btn.dataset.kind === 'date'; // header button of a date column (value YYYYMMDD)
   _fpState = { type, col, btn, isDate };
   popup.dataset.kind = isDate ? 'date' : '';
-  for (const o of $('filterOp').options) o.textContent = OP_TEXT[isDate ? 'date' : 'num'][o.value] || o.textContent;
-  for (const id of ['filterVal1', 'filterVal2']) $(id).type = isDate ? 'date' : 'number';
+  // a date column swaps the operator list and keeps the day (YYYY-MM-DD) in the hidden #filterVal1,
+  // picked on the calendar (section 3); number columns get the page's own options back
+  const opSel = $('filterOp');
+  opSel.dataset.numOps ??= opSel.innerHTML;
+  const opsHtml = isDate ? DATE_OPS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('') : opSel.dataset.numOps;
+  if (opSel.innerHTML !== opsHtml) opSel.innerHTML = opsHtml;
+  for (const id of ['filterVal1', 'filterVal2']) $(id).type = isDate ? 'text' : 'number';
   const existing = state.filters[type][col];
   const show = v => v == null ? '' : isDate ? numIso(v) : v;
   $('filterOp').value = existing?.op || 'gt';
@@ -172,6 +180,7 @@ function applyFilter() {
   const val1 = read('filterVal1');
   if (isNaN(val1)) { cancelFilter(); return; }
   const filter = { op, val1 };
+  if (isDate) filter.kind = 'date';
   if (op === 'between' || op === 'notBetween') {
     const val2 = read('filterVal2');
     if (isNaN(val2)) { cancelFilter(); return; }
@@ -198,7 +207,7 @@ function cancelFilter() {
 
 // Header filter buttons show the active filter ("> 200", "10–50")
 function updateFilterBtns(type) {
-  const opLabels = { gt: '>', lt: '<', between: '', notBetween: '!' };
+  const opLabels = { gt: '>', lt: '<', gte: '≥', lte: '≤', between: '', notBetween: '!' };
   $$(`#${type}Table .col-filter-btn`).forEach(btn => {
     const f = state.filters[type][btn.dataset.col];
     btn.classList.toggle('active', !!f);
@@ -304,7 +313,7 @@ function updateFilterBtns(type) {
 })();
 
 // 3) Column filter popup chips (Shopify report Filters): the value chip shows the current
-//    value(s) or "Add value"; clicking it opens the editor (input + Clear/Apply). The app's
+//    value(s) or "Add value" ("Select value" on a date column); clicking it opens the editor (input + Clear/Apply). The app's
 //    own openFilterPopup/applyFilter keep working on #filterOp/#filterVal1/#filterVal2.
 (() => {
   const popup = document.getElementById('filterPopup');
@@ -313,14 +322,50 @@ function updateFilterBtns(type) {
   const v1 = document.getElementById('filterVal1'), v2 = document.getElementById('filterVal2');
   const op = document.getElementById('filterOp');
   const between = () => op.value === 'between' || op.value === 'notBetween';
+  const isDate = () => popup.dataset.kind === 'date';
   const label = () => {
-    const show = v => popup.dataset.kind === 'date' ? fmtDay(dateNum(v)) : v; // date column: "Nov 11, 2026"
+    const show = v => isDate() ? fmtDay(dateNum(v)) : v; // date column: "Nov 10, 2026" (Shopify chip)
     const a = show(v1.value.trim()), b = show(v2.value.trim());
     const txt = !a ? '' : between() ? a + ' and ' + (b || '…') : a;
-    chip.textContent = txt || 'Add value';
+    chip.textContent = txt || (isDate() ? 'Select value' : 'Add value');
     chip.classList.toggle('empty', !txt);
   };
-  const edit = on => { popup.classList.toggle('editing', on); if (on) setTimeout(() => v1.focus(), 0); };
+  // the editor (and the calendar) opens after openFilterPopup placed the popup: keep its bottom on screen
+  const fit = () => { const r = popup.getBoundingClientRect(); if (r.bottom > window.innerHeight - 8) popup.style.top = Math.max(4, window.innerHeight - r.height - 8) + 'px'; };
+  const edit = on => { popup.classList.toggle('editing', on); fit(); if (on && !isDate()) setTimeout(() => v1.focus(), 0); };
+
+  // Date column: one-month calendar in the editor, copied from Shopify's report filter on a date
+  // dimension (s-date-picker, measured 2026-11-16): arrows + "November  2026", weekday row, day grid,
+  // today outlined, picked day black. Picking a day writes YYYY-MM-DD into #filterVal1.
+  const cal = document.createElement('div');
+  cal.className = 'fcal';
+  popup.querySelector('.filter-editor')?.insertBefore(cal, popup.querySelector('.filter-popup-actions'));
+  const pad = n => String(n).padStart(2, '0');
+  const isoOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const ARROW = d => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  let view = null; // first day of the month shown
+  const renderCal = () => {
+    const y = view.getFullYear(), m = view.getMonth();
+    const now = new Date(), today = isoOf(now.getFullYear(), now.getMonth(), now.getDate());
+    const lead = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+    // a grid of divs, not a <table>: the dashboards' table rules (sticky header, row lines) would hit it
+    const cells = Array(lead).fill('<span></span>');
+    for (let d = 1; d <= days; d++) {
+      const iso = isoOf(y, m, d);
+      const cls = ['fcal-day', iso === today && 'is-today', iso === v1.value && 'selected'].filter(Boolean).join(' ');
+      cells.push(`<button type="button" class="${cls}" data-iso="${iso}">${d}</button>`);
+    }
+    const month = view.toLocaleDateString('en-US', { month: 'long' });
+    cal.innerHTML = `<div class="fcal-head"><button type="button" class="fcal-nav" data-step="-1" aria-label="Previous month">${ARROW('m12 5-5 5 5 5')}</button>`
+      + `<span class="fcal-title"><span>${month}</span><span>${y}</span></span>`
+      + `<button type="button" class="fcal-nav" data-step="1" aria-label="Next month">${ARROW('m8 5 5 5-5 5')}</button></div>`
+      + `<div class="fcal-grid">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span class="fcal-wd">${d}</span>`).join('')}${cells.join('')}</div>`;
+  };
+  cal.addEventListener('click', e => {
+    const nav = e.target.closest('.fcal-nav'), day = e.target.closest('.fcal-day');
+    if (nav) { view = new Date(view.getFullYear(), view.getMonth() + Number(nav.dataset.step), 1); renderCal(); }
+    if (day) { v1.value = day.dataset.iso; label(); renderCal(); }
+  });
   chip.addEventListener('click', () => edit(!popup.classList.contains('editing')));
   [v1, v2].forEach(i => i.addEventListener('input', label));
   op.addEventListener('change', label);
@@ -330,6 +375,7 @@ function updateFilterBtns(type) {
     if (popup.dataset.shown) return;
     popup.dataset.shown = '1';
     label();
+    if (isDate()) { const d = v1.value ? new Date(v1.value + 'T00:00:00') : new Date(); view = new Date(d.getFullYear(), d.getMonth(), 1); renderCal(); }
     edit(!v1.value.trim());
   }).observe(popup, { attributes: true, attributeFilter: ['style'] });
 })();

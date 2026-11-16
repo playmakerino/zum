@@ -164,6 +164,24 @@ thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
 .filter-popup .filter-inputs input:focus{border-color:#5083f0;background:#f5f9ff;box-shadow:0 0 0 1px #5083f0}
 .filter-popup .filter-inputs input::-webkit-outer-spin-button,.filter-popup .filter-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .filter-and{font-size:13px;color:#616161}
+/* date column: calendar instead of the inputs (Shopify report filter on a date dimension, s-date-picker measured 2026-11-16) */
+.fcal{display:none;padding:12px 0}
+.filter-popup[data-kind="date"] .fcal{display:block}
+.filter-popup[data-kind="date"] .filter-inputs{display:none}
+.fcal-head{display:grid;grid-template-columns:repeat(7,1fr);align-items:center;padding:0 12px 6px;font-size:13px;line-height:20px;font-weight:500;color:#101010}
+.fcal-head .fcal-nav:first-child{grid-column:1;justify-self:center}
+.fcal-head .fcal-title{grid-column:2/7;display:flex;justify-content:center;gap:8px;font-weight:600}
+.fcal-head .fcal-nav:last-child{grid-column:7;justify-self:center}
+.fcal-nav{width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:9999px;background:transparent;color:#606060;cursor:pointer}
+.fcal-nav:hover{background:#f2f2f2;color:#303030}
+.fcal-nav svg{width:20px;height:20px}
+.fcal-grid{display:grid;grid-template-columns:repeat(7,minmax(32px,1fr));grid-auto-rows:32px;padding:0 12px;text-align:center;font-variant-numeric:tabular-nums}
+.fcal-wd{display:flex;align-items:center;justify-content:center;font-size:11px;line-height:14px;font-weight:400;color:#4a4a4a}
+.fcal-day{width:100%;height:32px;padding:0;border:none;border-radius:10px;background:transparent;color:#101010;font-family:inherit;font-size:13px;line-height:20px;font-weight:400;cursor:pointer;transition:background-color .1s,color .1s}
+.fcal-day:hover{background:#f7f7f7}
+.fcal-day:active{background:#f2f2f2}
+.fcal-day.is-today{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.fcal-day.selected,.fcal-day.selected:hover{background:#101010;color:#fff;font-weight:600}
 .filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ebebeb}
 .filter-popup .filter-popup-actions .filter-clear{height:28px;background:none;border:none;border-radius:12px;box-shadow:none;padding:0 6px;color:#1650d0;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer}
 .filter-popup .filter-popup-actions .filter-clear:hover{background:none;color:#1347b9;text-decoration:underline}

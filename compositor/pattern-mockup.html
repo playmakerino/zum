@@ -567,8 +567,8 @@ const GARMENTS={
                models:[ V('zum-model-sweatshirt-1.jpg?v=1791364754','zum-flatlay-model-map-sweatshirt-1.png?v=1791364758',1.082,[0.488,0.719]),
                         V('zum-model-sweatshirt-2.jpg?v=1791364768','zum-flatlay-model-map-sweatshirt-2.png?v=1791364772',1.04,[0.519,0.659]),
                         V('zum-model-sweatshirt-3.jpg?v=1791364776','zum-flatlay-model-map-sweatshirt-3.png?v=1791364781',1.318,[0.402,0.508]),
-                        V('zum-model-sweatshirt-4.jpg?v=1794907200','zum-flatlay-model-map-sweatshirt-4.png?v=1794907214',0.77,[0.603,0.428]),
-                        V('zum-model-sweatshirt-5.jpg?v=1794907221','zum-flatlay-model-map-sweatshirt-5.png?v=1794907227',1.07,[0.513,0.516]) ] },
+                        V('zum-model-sweatshirt-4.jpg?v=1794907200','zum-flatlay-model-map-sweatshirt-4.png?v=1794907214',0.77,[0.581,0.527]),
+                        V('zum-model-sweatshirt-5.jpg?v=1794907221','zum-flatlay-model-map-sweatshirt-5.png?v=1794907227',1.07,[0.511,0.62]) ] },
   // zip hoodie (kids): one flatlay product shot, then on-model photos; all-over only (NO_PLACEMENT). Mock file carries -flat
   // because the plain name is held by an older unrelated upload.
   zipHoodie:{ flats:[ V('zum-flatlay-mock-zip-hoodie-flat.jpg?v=1791452918','zum-flatlay-map-zip-hoodie.png?v=1791456122',1.08,[0.593,0.7]) ],
@@ -646,7 +646,7 @@ const POSITIONS={
     'sleepbag-1':{bc:[0.518,0.691]}, 'sleepbag-2':{bc:[0.502,0.895]}, 'sleepbag-3':{bc:[0.057,0.754]}, 'sleepbag-4':{bc:[0.522,0.607]},
     'blanket-hoodie-flat':{bc:[0.5,0.599]}, 'blanket-hoodie-1':{bc:[0.512,0.552]}, 'blanket-hoodie-2':{bc:[0.508,0.567]}, 'blanket-hoodie-3':{bc:[0.491,0.414]},
     'blanket-hoodie-4':{bc:[0.469,0.899]}, 'sweatshirt-flat':{bc:[0.497,0.429]}, 'sweatshirt-1':{bc:[0.498,0.67]}, 'sweatshirt-2':{bc:[0.52,0.611]},
-    'sweatshirt-3':{bc:[0.406,0.448]} } },
+    'sweatshirt-3':{bc:[0.406,0.448]}, 'sweatshirt-4':{bc:[0.581,0.527]}, 'sweatshirt-5':{bc:[0.511,0.62]} } },
   // a small print over the wearer's heart
   heart:{ label:'Over heart', size:0.4, views:{
     'pajama':{bc:[0.503,0.25]}, 'pajama-long':{bc:[0.376,0.25]}, 'pajama-boy-1':{bc:[0.556,0.224]}, 'pajama-boy-2':{bc:[0.551,0.189]},
@@ -660,7 +660,7 @@ const POSITIONS={
     'sleepbag-1':{bc:[0.615,0.64]}, 'sleepbag-2':{bc:[0.633,0.822]}, 'sleepbag-3':{bc:[0.206,0.784]}, 'sleepbag-4':{bc:[0.607,0.551]},
     'blanket-hoodie-flat':{bc:[0.612,0.541]}, 'blanket-hoodie-1':{bc:[0.633,0.522]}, 'blanket-hoodie-2':{bc:[0.676,0.479]}, 'blanket-hoodie-3':{bc:[0.648,0.399]},
     'blanket-hoodie-4':{bc:[0.679,0.825]}, 'sweatshirt-flat':{bc:[0.6,0.376]}, 'sweatshirt-1':{bc:[0.612,0.63]}, 'sweatshirt-2':{bc:[0.621,0.56]},
-    'sweatshirt-3':{bc:[0.537,0.388]} } },
+    'sweatshirt-3':{bc:[0.537,0.388]}, 'sweatshirt-4':{bc:[0.649,0.48]}, 'sweatshirt-5':{bc:[0.634,0.583]} } },
 };
 // the view as the body print reads it under a position: its own numbers, replaced by the position's where it has them
 const posView=(v,pos)=>{ const o=POSITIONS[pos]&&POSITIONS[pos].views&&POSITIONS[pos].views[viewId(v)]; return o?{ ...v, ...o }:v; };

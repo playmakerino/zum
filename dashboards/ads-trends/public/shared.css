@@ -101,10 +101,15 @@ thead th .th-content{gap:2px}
 thead th[data-sort] .th-content{padding:1px 4px;margin:-1px 0;border-radius:6px;transition:background .08s}
 thead th[data-sort]:hover .th-content{background:rgba(0,0,0,.08)}
 thead th[data-sort]:active .th-content{background:rgba(0,0,0,.13)}
-/* up/down chevron instead of ▴▾ text; visible on hover and on the sorted column */
-thead th .sort-icon{display:inline-block;width:16px;height:16px;margin-left:0;font-size:0;flex-shrink:0;background:currentColor;opacity:0;
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat;
-          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 8 3-3 3 3M7 12l3 3 3-3'/%3E%3C/svg%3E") center/16px no-repeat}
+/* sort icon measured on a Shopify report header 2026-11-19: 20px box, 16px glyph, 2 chevrons with stroke 1.5;
+   the order in use is solid, the other at 33% (highest to lowest = down solid, lowest to highest = up solid);
+   visible on hover and on the sorted column */
+thead th .sort-icon{display:inline-block;width:20px;height:20px;margin-left:0;font-size:0;flex-shrink:0;background:currentColor;opacity:0;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5 8 2.75l3 2.75' stroke-opacity='.33'/%3E%3Cpath d='m11 10.5-3 2.748-3-2.748'/%3E%3C/svg%3E") center/16px no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5 8 2.75l3 2.75' stroke-opacity='.33'/%3E%3Cpath d='m11 10.5-3 2.748-3-2.748'/%3E%3C/svg%3E") center/16px no-repeat}
+thead th.sorted.asc .sort-icon{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5 8 2.75l3 2.75'/%3E%3Cpath d='m11 10.5-3 2.748-3-2.748' stroke-opacity='.33'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5 8 2.75l3 2.75'/%3E%3Cpath d='m11 10.5-3 2.748-3-2.748' stroke-opacity='.33'/%3E%3C/svg%3E")}
 thead th:hover .sort-icon{opacity:1;color:#303030}
 thead th.sorted .sort-icon{opacity:1;color:#101010}
 /* metric columns (those with a filter button): right-aligned like Shopify numbers */

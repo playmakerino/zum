@@ -354,6 +354,7 @@ function renderTable(type) {
 
   $$(`#${type}Table thead th`).forEach(th => {
     th.classList.toggle('sorted', th.dataset.sort === key);
+    th.classList.toggle('asc', th.dataset.sort === key && dir === -1);
   });
 }
 

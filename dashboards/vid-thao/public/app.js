@@ -39,30 +39,75 @@ const state = {
 // Table config
 const TABLES = {
   creatives: {
-    cols: 12,
+    cols: 13,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
-    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${metrics(r)}</tr>`
+    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`
   }
 };
 
 const isVideo = r => (r.format || '').toLowerCase() === 'video';
 
-// Cache
+// Cache: one saved result per date range ('since_until')
 const cacheKey = (t, d) => `meta_cache_${t}_${d}`;
 const saveCache = (t, d, v) => { try { localStorage.setItem(cacheKey(t, d), JSON.stringify(v)); } catch {} };
 const loadCache = (t, d) => { try { return JSON.parse(localStorage.getItem(cacheKey(t, d))); } catch { return null; } };
 
-// Show the result saved in this browser for the period; false when there is none.
-function showSaved(days) {
-  const cached = loadCache('creatives', days);
+// Show the result saved in this browser for the range; false when there is none.
+function showSaved(key) {
+  const cached = loadCache('creatives', key);
   if (!cached) return false;
   state.creatives = { ...cached, current: (cached.current || []).filter(isVideo) };
   renderTable('creatives');
   showCacheTime(cached.cached_at);
-  updatePeriodSelectLabels(cached.period);
-  renderDebug(loadCache('debug', days));
+  renderDebug(loadCache('debug', key));
   return true;
 }
+
+// Date range picker (shared.js DateRange, Shopify Analytics picker); the choice is kept in this browser
+// its footer button is Load Data while the chosen range has no saved result (or is the one on screen)
+const dateRange = DateRange.mount($('dateRange'), {
+  storageKey: 'vidthao_range', onChange: onPeriodChange,
+  isLoaded: r => !!loadCache('creatives', r.key), onLoad: () => fetchAll(),
+  tip: ['Load Data', 'Reloads spend, sales, video views and creatives from Triple Whale in a few seconds. Triple Whale runs a few hours behind Ads Manager.'],
+});
+const rangeKey = () => dateRange.get().key;
+
+// Metrics in the side panel: unticked = column hidden (kept in this browser).
+// pos = the column's 1-based position in the header row.
+// column descriptions: the ⓘ of the column in the Controls panel (Shopify shows none on the column name)
+const COL_TIPS = {
+  created_on: 'Date the video was added, from BigQuery. A row that groups several ads shows the earliest.',
+  cr: 'Purchases divided by clicks',
+  video_3sec_rate: '3-second video plays divided by impressions',
+  thruplay_rate: 'ThruPlays divided by video plays',
+};
+// fmt = how a filter value is typed: money "$", pct "%", ratio "x" (Shopify filter fields)
+const METRIC_COLS = [
+  ['created_on', 'Created', 'date'], ['spend', 'Spend', 'money'], ['roas', 'ROAS', 'ratio'], ['cpr', 'CPR', 'money'],
+  ['aov', 'AOV', 'money'], ['cr', 'CR', 'pct'], ['cpm', 'CPM', 'money'], ['ctr', 'CTR', 'pct'], ['cpc', 'CPC', 'money'],
+  ['video_3sec_rate', '3s/Impr', 'pct'], ['thruplay_rate', 'ThruPlay%', 'pct'],
+].map(([key, label, fmt], i) => ({ key, label, kind: fmt === 'date' ? 'date' : 'number', fmt, pos: i + 3, tip: COL_TIPS[key] }));
+let hiddenCols = (() => { try { return JSON.parse(localStorage.getItem('vidthao_hidden_cols')) || []; } catch { return []; } })();
+function renderMetricPanel() {
+  ReportPanel.section($('metricSec'), {
+    title: 'Metrics', options: METRIC_COLS,
+    value: new Set(METRIC_COLS.filter(c => !hiddenCols.includes(c.key)).map(c => c.key)),
+    onChange: shown => {
+      hiddenCols = METRIC_COLS.filter(c => !shown.has(c.key)).map(c => c.key);
+      try { localStorage.setItem('vidthao_hidden_cols', JSON.stringify(hiddenCols)); } catch {}
+      renderMetricPanel();
+    },
+  });
+  hideColumns('creativesTable', METRIC_COLS.filter(c => hiddenCols.includes(c.key)).map(c => c.pos));
+}
+renderMetricPanel();
+// Filters (Controls panel): ad name contains, created date, every metric
+ReportPanel.filters($('filterSec'), { type: 'creatives', fields: [
+  { key: 'ad_name', label: 'Ad name', kind: 'text' },
+  { key: 'submitted_by', label: 'Submitted by', kind: 'select', options: submitterOptions },
+  ...METRIC_COLS,
+] });
+ReportPanel.toggle($('controlsBtn'), $('reportLayout'), 'vidthao_controls');
 
 // Init
 window.addEventListener('DOMContentLoaded', async () => {
@@ -78,28 +123,26 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     logApiError('GET /api/config', err, { url: '/api/config' });
   }
-  updatePeriodSelectLabels();
   // Opening the page never calls Meta: show the result saved in this browser, else an empty
   // table with the "Load Data" hint (user choice 2026-10-14)
-  if (state.ready) showSaved($('periodSelect').value);
+  if (state.ready) showSaved(rangeKey());
 });
 
-// Swap to the saved result of the chosen period, or clear the table when there is none.
+// Swap to the saved result of the chosen range, or clear the table when there is none.
 function onPeriodChange() {
-  if (showSaved($('periodSelect').value)) return;
+  if (showSaved(rangeKey())) return;
   state.creatives = { current: [], period: null };
   state.pageLimit.creatives = PAGE_SIZE;
   $('creativesBody').innerHTML = ''; // hint shows in the card footer (data-empty)
   showCacheTime(null);
-  updatePeriodSelectLabels();
+  buildTotalRow('creatives', []);
   renderDebug(null);
 }
 
 function showCacheTime(iso) {
   const el = $('cachedAt');
   if (!iso) { el.textContent = ''; return; }
-  const d = new Date(iso);
-  el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
+  el.textContent = refreshedText(iso);
 }
 
 function renderDebug(d) {
@@ -124,36 +167,11 @@ function renderDebug(d) {
 function showDebug(d) {
   console.log('[dashboard]', d);
   renderDebug(d);
-  saveCache('debug', $('periodSelect').value, d);
+  saveCache('debug', rangeKey(), d);
 }
 
 function fmtDateLabel(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function parseIsoDate(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function updatePeriodSelectLabels(period) {
-  const sel = $('periodSelect');
-  if (!sel) return;
-  for (const opt of sel.options) {
-    const days = parseInt(opt.value, 10);
-    let since, until;
-    if (period && parseInt(sel.value, 10) === days) {
-      since = fmtDateLabel(parseIsoDate(period.current.since));
-      until = fmtDateLabel(parseIsoDate(period.current.until));
-    } else {
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(start.getDate() - days);
-      since = fmtDateLabel(start);
-      until = fmtDateLabel(today);
-    }
-    opt.textContent = `Last ${days} days: ${since} – ${until}`;
-  }
 }
 
 // Fetch
@@ -161,7 +179,7 @@ async function fetchAll() {
   if (!state.ready)
     return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
-  const days = $('periodSelect').value;
+  const range = dateRange.get();
 
   // Show loading overlay
   const wrap = $('creativesTable').closest('.table-wrap');
@@ -173,7 +191,7 @@ async function fetchAll() {
   lockLoadButtons(true);
 
   const startTime = performance.now();
-  const url = `/api/dashboard?days=${days}&refresh=1`;
+  const url = `/api/dashboard?since=${range.since}&until=${range.until}&refresh=1`;
   try {
     const res = await fetch(url);
     if (!res.ok) throw await httpError(res);
@@ -196,12 +214,11 @@ async function fetchAll() {
     if (!data) throw new Error('No data received');
 
     const fullCreatives = { current: data.creatives.current, period: data.period, cached_at: data.cached_at };
-    saveCache('creatives', days, fullCreatives);
+    saveCache('creatives', range.key, fullCreatives);
     state.creatives = { ...fullCreatives, current: fullCreatives.current.filter(isVideo) };
 
     renderTable('creatives');
     showCacheTime(data.cached_at);
-    updatePeriodSelectLabels(data.period);
 
     stopLoadTimer();
     $$('.load-overlay').forEach(el => el.style.display = 'none');
@@ -236,17 +253,17 @@ function enrichRow(row) {
     cpr: parseFloat(row.cpr || 0),
     aov: parseFloat(row.aov || 0),
     cr: clicks ? parseFloat(row.purchase_count || 0) / clicks * 100 : 0,
+    created_on: localDay(row.created_at),
   };
 }
 
 // Render
 function renderTable(type) {
-  if (type === 'creatives') refreshSubmitterOptions();
   const cfg = TABLES[type];
   const { key, dir } = state.sort[type];
   const sorted = state[type].current.map(enrichRow).sort((a, b) => (parseFloat(b[key] || 0) - parseFloat(a[key] || 0)) * dir);
 
-  const filtered = applyFilters(type, bySubmitter(sorted));
+  const filtered = applyFilters(type, sorted);
   const limit = state.pageLimit[type];
   const page = filtered.slice(0, limit);
 
@@ -263,31 +280,11 @@ function renderTable(type) {
   buildTotalRow(type, filtered);
 }
 
-// Submitter filter (card head): values from BigQuery (who sent the video through the form)
-const NO_SUBMITTER = '__none__';
-function storedSubmitter() { try { return localStorage.getItem('vidthao_submitter') || ''; } catch { return ''; } }
-
-function refreshSubmitterOptions() {
-  const sel = $('submitterSelect');
-  if (!sel) return;
+// Submitted by = a list filter in the Controls panel (who sent the video through the form, from BigQuery)
+function submitterOptions() {
   const rows = state.creatives?.current || [];
   const names = [...new Set(rows.map(r => r.submitted_by).filter(Boolean))].sort();
-  const hasNone = rows.some(r => !r.submitted_by);
-  const want = sel.value || storedSubmitter();
-  sel.innerHTML = '<option value="">All submitters</option>'
-    + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')
-    + (hasNone ? `<option value="${NO_SUBMITTER}">(no email)</option>` : '');
-  sel.value = [...sel.options].some(o => o.value === want) ? want : '';
-}
-
-function onSubmitterChange() {
-  try { localStorage.setItem('vidthao_submitter', $('submitterSelect').value); } catch {}
-  filterTable('creatives');
-}
-
-function bySubmitter(rows) {
-  const submitter = $('submitterSelect')?.value || '';
-  return submitter ? rows.filter(r => submitter === NO_SUBMITTER ? !r.submitted_by : r.submitted_by === submitter) : rows;
+  return [...names.map(n => ({ key: n, label: n })), ...(rows.some(r => !r.submitted_by) ? [{ key: '__none__', label: '(no email)' }] : [])];
 }
 
 function totals(rows) {
@@ -319,11 +316,14 @@ function buildTotalRow(type, filtered) {
   if (filtered.length === 0) return;
   const tr = document.createElement('tr');
   tr.className = 'total-row';
-  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td>${metrics(totals(filtered))}`;
+  tr.innerHTML = `<td colspan="2">Summary</td><td class="td-metric"></td>${metrics(totals(filtered))}`;
   thead.appendChild(tr);
 }
 
 // Helpers
+// Created = the video's date from BigQuery (form submit, else ad.info), shown as the local day
+const localDay = iso => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() : 0; };
+const createdCell = r => `<td class="td-metric">${r.created_on ? fmtDay(r.created_on) : '–'}</td>`;
 const fmtF = n => parseFloat(parseFloat(n || 0).toFixed(2)).toString();
 const fmtMoney = n => '$' + parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en-US');

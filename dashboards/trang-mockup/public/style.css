@@ -10,13 +10,11 @@ body{-webkit-font-smoothing:antialiased}
 
 .topbar{display:flex;align-items:center;gap:16px}
 .topbar-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
-.period-label{font-size:13px;font-weight:510;color:var(--t2);letter-spacing:-.1px}
 
 .btn{transition:all .12s}
 
 .page{display:none}
 
-.tab-sep{width:1px;height:16px;background:var(--b2);margin:0 6px;flex-shrink:0}
 .sub-page{display:none}
 table{border-collapse:collapse}
 /* Column widths — Thumb */
@@ -27,19 +25,18 @@ th:nth-child(1),tbody td:nth-child(1){width:40px;min-width:40px}
 /* Column widths — Creatives: Ad Name */
 #creativesValidTable th:nth-child(2),#creativesValidTable tbody td:nth-child(2),
 #creativesSpendTable th:nth-child(2),#creativesSpendTable tbody td:nth-child(2){min-width:160px}
+/* the name column takes the width the other columns leave (long names end in …), so the tables
+   fit next to the 280px Controls panel */
+tbody td.td-name{max-width:0;width:100%}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 thead th:first-child{position:sticky;left:0;z-index:3}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s)}
 .td-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .td-metric{white-space:nowrap}
-.thumb{object-fit:cover;cursor:pointer}
+.thumb{display:block;object-fit:cover;cursor:pointer} /* block: an inline image sits on the text baseline and made rows 41px instead of 36px */
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
 
 thead th .th-content{display:flex;align-items:center;white-space:nowrap}
-.col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;transition:.12s;flex-shrink:0}
-.filter-popup{position:fixed;background:var(--s);z-index:100;display:none}
-.filter-inputs input{transition:.12s}
-.filter-popup-actions button{transition:.12s}
 
 .state-box{padding:40px 16px;text-align:center;color:var(--t3);font-size:13px}
 .show-more-row td{text-align:center;padding:10px}

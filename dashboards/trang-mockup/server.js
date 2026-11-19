@@ -15,7 +15,7 @@ const MIN_SPEND_ANY_NAME     = 100; // other ads qualify only above this spend
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
 // live in memory only and last as long as the process.
 const mediaCache    = new Map(); // ad_id → fetchAdMedia entry (Triple Whale files do not expire)
-const insightsCache = {}; // days → { current: rows }
+const insightsCache = {}; // 'since_until' → { current: rows }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,14 +148,23 @@ app.get('/api/config', (req, res) => {
 // (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
   if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
+  const current = periodFromQuery(req.query);
+  if (!current) return res.status(400).json({ error: 'Bad date range' });
   const forceRefresh = req.query.refresh === '1';
-  sseLoad(res, `refresh=${forceRefresh}`, ctx => loadDashboard({ forceRefresh, ...ctx }));
+  sseLoad(res, `${current.since}_${current.until} refresh=${forceRefresh}`, ctx => loadDashboard({ current, forceRefresh, ...ctx }));
 });
 
-async function loadDashboard({ forceRefresh, progress, send, elapsed }) {
-  const current = { since: dateStr(DAYS), until: dateStr(0) };
-  // 1. Ad metrics (last 30 days) from Triple Whale
-  const cacheKey = String(DAYS);
+// since/until from the date picker (?since=YYYY-MM-DD&until=YYYY-MM-DD), else the last DAYS days.
+// null when the dates are bad.
+function periodFromQuery(q) {
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  if (q.since || q.until) return re.test(q.since) && re.test(q.until) && q.since <= q.until ? { since: q.since, until: q.until } : null;
+  return { since: dateStr(DAYS), until: dateStr(0) };
+}
+
+async function loadDashboard({ current, forceRefresh, progress, send, elapsed }) {
+  // 1. Ad metrics for the chosen range from Triple Whale
+  const cacheKey = `${current.since}_${current.until}`;
   const ic = insightsCache[cacheKey];
   let currRows;
   if (!forceRefresh && ic) {
@@ -250,4 +259,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Mockup Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { dateStr, earliestCreated, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, isCatalogAd, groupByMockup, groupByImage };
+module.exports = { dateStr, periodFromQuery, earliestCreated, findPurchaseAction, extractPrintId, extractMockupId, hasValidFormat, isCatalogAd, groupByMockup, groupByImage };

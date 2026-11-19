@@ -11,15 +11,16 @@ const state = {
 };
 
 // ── Table Config ─────────────────────────────────────────────────────────────
+// fmt = how a filter value is typed: money "$", pct "%", ratio "x" (Shopify filter fields)
 const METRIC_COLS = [
-  { key: 'spend', label: 'Spend' },
-  { key: 'roas', label: 'ROAS' },
-  { key: 'cpr', label: 'CPR' },
-  { key: 'aov', label: 'AOV' },
-  { key: 'cr', label: 'CR', tip: 'Purchases divided by clicks' },
-  { key: 'cpm', label: 'CPM' },
-  { key: 'ctr', label: 'CTR' },
-  { key: 'cpc', label: 'CPC' },
+  { key: 'spend', label: 'Spend', fmt: 'money' },
+  { key: 'roas', label: 'ROAS', fmt: 'ratio' },
+  { key: 'cpr', label: 'CPR', fmt: 'money' },
+  { key: 'aov', label: 'AOV', fmt: 'money' },
+  { key: 'cr', label: 'CR', tip: 'Purchases divided by clicks', fmt: 'pct' },
+  { key: 'cpm', label: 'CPM', fmt: 'money' },
+  { key: 'ctr', label: 'CTR', fmt: 'pct' },
+  { key: 'cpc', label: 'CPC', fmt: 'money' },
 ].map(c => ({ ...c, type: 'metric' }));
 
 // Campaign creation date (Triple Whale has none per ad); a grouped row shows its earliest ad
@@ -55,12 +56,11 @@ function buildHeaders() {
   for (const [type, cfg] of Object.entries(TABLES)) {
     const tr = document.querySelector(`#${type}Table thead tr`);
     tr.innerHTML = cfg.columns.map(col => {
-      if (!col) return '<th>Thumb</th>';
-      if (col.type === 'text')
-        return `<th><div class="th-content"><input data-table="${type}" data-col="${col.key}" data-type="text" class="th-filter-input" placeholder="Search ${col.label.toLowerCase().replace(/\bid\b/, 'ID')}" oninput="filterTable('${type}')" onclick="event.stopPropagation()"></div></th>`;
-      const tip = col.tip ? ` data-tip-title="${col.label}" data-tip="${col.tip}"` : '';
-      const kind = col.type === 'date' ? ' data-kind="date"' : '';
-      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content"${tip}>${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="${type}" data-col="${col.key}"${kind} onclick="event.stopPropagation();openFilterPopup('${type}','${col.key}',this)">${FILTER_SVG}</button></div></th>`;
+      if (!col) return '<th aria-label="Thumbnail"></th>'; // image column has no title (Shopify)
+      // filters live in the Controls panel (Shopify report), so headers hold only the name + sort
+      if (col.type === 'text') return `<th><div class="th-content">${col.label}</div></th>`;
+      // the column description sits on the ⓘ in the Controls panel; the name shows the sort hint
+      return `<th data-sort="${col.key}" onclick="sortTable('${type}','${col.key}')"><div class="th-content">${col.label} <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>`;
     }).join('');
   }
 }
@@ -82,15 +82,23 @@ function splitCreatives() {
   };
 }
 
-// ── Cache ────────────────────────────────────────────────────────────────────
-const cacheKey = t => `trang_mockup_${t}`;
+// ── Date range + cache ───────────────────────────────────────────────────────
+// Date range picker (shared.js DateRange, Shopify Analytics picker); one saved result per range
+// its footer button is Load Data while the chosen range has no saved result (or is the one on screen)
+const dateRange = DateRange.mount($('dateRange'), {
+  storageKey: 'trang_mockup_range', onChange: onPeriodChange,
+  isLoaded: r => { try { return !!localStorage.getItem(`trang_mockup_mockups_${r.key}`); } catch { return false; } },
+  onLoad: () => fetchAll(),
+  tip: ['Load Data', 'Reloads spend, sales and creatives from Triple Whale in a few seconds. Triple Whale runs a few hours behind Ads Manager.'],
+});
+const cacheKey = t => `trang_mockup_${t}_${dateRange.get().key}`;
 const saveCache = (t, v) => { try { localStorage.setItem(cacheKey(t), JSON.stringify(v)); } catch {} };
 const loadCache = t => { try { return JSON.parse(localStorage.getItem(cacheKey(t))); } catch { return null; } };
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   buildHeaders();
-  updatePeriodLabel();
+  renderPanel();
   restoreLogs();
 
   try {
@@ -98,35 +106,81 @@ window.addEventListener('DOMContentLoaded', async () => {
     state.config = await res.json();
   } catch {}
 
-  if (state.config.hasTripleWhaleKey) {
-    let hasLocal = false;
-    const mockupsCached = loadCache('mockups');
-    if (mockupsCached) { state.mockups = mockupsCached; renderTable('mockups'); hasLocal = true; }
-    const creativesCached = loadCache('creatives');
-    if (creativesCached) { state.creatives = creativesCached; splitCreatives(); renderTable('creativesValid'); renderTable('creativesSpend'); hasLocal = true; }
-    if (hasLocal) showCacheTime(state.mockups.cached_at || state.creatives.cached_at);
-  }
+  if (state.config.hasTripleWhaleKey) showSaved();
 });
+
+// Show the result saved in this browser for the chosen range; empty tables when there is none.
+function showSaved() {
+  const m = loadCache('mockups'), c = loadCache('creatives');
+  const blank = { current: [], period: null, cached_at: null };
+  state.mockups = m || blank;
+  state.creatives = c || blank;
+  splitCreatives();
+  for (const t of ['mockups', 'creativesValid', 'creativesSpend']) state.pageLimit[t] = PAGE_SIZE;
+  if (m || c) {
+    renderTable('mockups'); renderTable('creativesValid'); renderTable('creativesSpend');
+  } else {
+    for (const t of ['mockups', 'creativesValid', 'creativesSpend']) { $(t + 'Body').innerHTML = ''; buildTotalRow(t, []); }
+    clearLog();
+  }
+  showCacheTime(state.mockups.cached_at || state.creatives.cached_at);
+}
+function onPeriodChange() { if (state.config.hasTripleWhaleKey) showSaved(); }
+
+// ── Side panel (Shopify report editor): Dimensions = which table, Metrics = visible columns ──
+const DIMENSIONS = [
+  { key: 'mockups', label: 'Mockup' },
+  { key: 'creativesValid', label: 'Image (full format)' },
+  { key: 'creativesSpend', label: 'Image (high spend)' },
+];
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const stored = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+let dimension = stored('trang_mockup_dimension', 'mockups');
+let hiddenCols = stored('trang_mockup_hidden_cols', []);
+
+function renderPanel() {
+  if (!DIMENSIONS.some(d => d.key === dimension)) dimension = 'mockups';
+  ReportPanel.section($('dimSec'), {
+    title: 'Dimensions', options: DIMENSIONS, value: new Set([dimension]), multi: false,
+    onChange: sel => { dimension = [...sel][0]; store('trang_mockup_dimension', dimension); renderPanel(); },
+  });
+  showDimension();
+  renderMetricList();
+  // Filters for the shown table: its name column (contains), Created (date) and the numbers
+  const fields = TABLES[dimension].columns.filter(Boolean).map(c => ({ key: c.key, label: c.label, kind: c.type === 'metric' ? 'number' : c.type, fmt: c.fmt }));
+  ReportPanel.filters($('filterSec'), { type: dimension, fields });
+}
+ReportPanel.toggle($('controlsBtn'), $('reportLayout'), 'trang_mockup_controls');
+
+// columns of a table that can be hidden (all but thumbnail and name), with their header position
+const hideable = type => TABLES[type].columns.map((c, i) => c && c.type !== 'text' ? { ...c, pos: i + 1 } : null).filter(Boolean);
+function renderMetricList() {
+  const cols = hideable(dimension);
+  ReportPanel.section($('metricSec'), {
+    title: 'Metrics', options: cols,
+    value: new Set(cols.filter(c => !hiddenCols.includes(c.key)).map(c => c.key)),
+    onChange: shown => {
+      // keep the hidden state of columns this table does not have (Prints is only on Mockup)
+      hiddenCols = [...hiddenCols.filter(k => !cols.some(c => c.key === k)), ...cols.filter(c => !shown.has(c.key)).map(c => c.key)];
+      store('trang_mockup_hidden_cols', hiddenCols);
+      renderMetricList();
+    },
+  });
+  applyHidden();
+}
+function applyHidden() {
+  for (const type of Object.keys(TABLES)) hideColumns(type + 'Table', hideable(type).filter(c => hiddenCols.includes(c.key)).map(c => c.pos));
+}
+function showDimension() {
+  if (dimension === 'mockups') showPage('mockups');
+  else { showPage('creatives'); showCreativeSub(dimension); }
+}
 
 // ── UI Helpers ───────────────────────────────────────────────────────────────
 function showCacheTime(iso) {
   const el = $('headerCachedAt');
   if (!el || !iso) { if (el) el.textContent = ''; return; }
-  const d = new Date(iso);
-  el.textContent = `Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
-}
-
-function formatPeriodDate(d) {
-  if (typeof d === 'string') d = new Date(d + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function updatePeriodLabel() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const since = new Date(today);
-  since.setDate(since.getDate() - 30);
-  $('periodLabel').textContent = `Last 30 days: ${formatPeriodDate(since)} – ${formatPeriodDate(today)}`;
+  el.textContent = refreshedText(iso);
 }
 
 // ── Load Log ─────────────────────────────────────────────────────────────────
@@ -179,21 +233,13 @@ function clearLog() {
 // ── Navigation ───────────────────────────────────────────────────────────────
 function showPage(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
-  $$('.tab-btn').forEach(b => b.classList.remove('active'));
   $('page-' + name).classList.add('active');
-  const tab = document.querySelector(`.tab-btn[data-page="${name}"]`);
-  if (tab) tab.classList.add('active');
-  const showSubs = name === 'creatives';
-  $$('.topbar-tabs .sub-tab').forEach(b => b.style.display = showSubs ? '' : 'none');
-  $('subTabSep').style.display = showSubs ? '' : 'none';
   hideThumbPreview();
 }
 
 function showCreativeSub(name) {
   $$('#page-creatives .sub-page').forEach(p => p.classList.remove('active'));
-  $$('.sub-tab').forEach(b => b.classList.remove('active'));
   $('sub-' + name).classList.add('active');
-  document.querySelector(`.sub-tab[data-sub="${name}"]`).classList.add('active');
   hideThumbPreview();
 }
 
@@ -203,6 +249,7 @@ async function fetchAll() {
     return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
   const startTime = performance.now();
+  const range = dateRange.get();
 
   for (const t of ['mockups', 'creativesValid', 'creativesSpend']) {
     const wrap = $(t + 'Table').closest('.table-wrap');
@@ -219,7 +266,7 @@ async function fetchAll() {
   lockLoadButtons(true);
 
   try {
-    const res = await fetch('/api/dashboard?refresh=1');
+    const res = await fetch(`/api/dashboard?since=${range.since}&until=${range.until}&refresh=1`);
     if (!res.ok) throw await httpError(res);
     let data = null;
     await readSSE(res, j => {
@@ -240,7 +287,6 @@ async function fetchAll() {
     renderTable('creativesValid');
     renderTable('creativesSpend');
     showCacheTime(data.cached_at);
-    updatePeriodLabel();
 
     $$('.load-overlay').forEach(el => el.style.display = 'none');
 
@@ -377,7 +423,7 @@ function buildTotalRow(type, filtered) {
   const tr = document.createElement('tr');
   tr.className = 'total-row';
   const printsTd = type === 'mockups' ? '<td></td>' : '';
-  tr.innerHTML = `<td colspan="2"><b>Total (${filtered.length})</b></td><td class="td-metric"></td>${printsTd}${metrics(totals(filtered))}`;
+  tr.innerHTML = `<td colspan="2">Summary</td><td class="td-metric"></td>${printsTd}${metrics(totals(filtered))}`;
   thead.appendChild(tr);
 }
 

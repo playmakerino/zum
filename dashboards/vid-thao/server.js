@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Creatives and thumbnails come from Triple Whale (fetchAdMedia); nothing here calls Meta.
 
 const creativeCache = {}; // ad_id → { id, creative: {id, object_type, is_catalog, video_id, reel_id, mp4_url} | null, _cachedAt }
-const insightsCache = {}; // days → { current: rows }
+const insightsCache = {}; // 'since_until' → { current: rows }
 const twThumbCache  = {}; // creative_id → Triple Whale thumbnail URL (does not expire)
 
 // Triple Whale media (fetchAdMedia) → the creative shape groupByVideo reads. An ad is a video when
@@ -214,8 +214,8 @@ async function loadVideoTable() {
 
 // ── Pipeline stages ──────────────────────────────────────────────────────────
 
-async function loadOrFetchInsights({ days, forceRefresh, current, progress, elapsed }) {
-  const cacheKey = String(days);
+async function loadOrFetchInsights({ forceRefresh, current, progress, elapsed }) {
+  const cacheKey = `${current.since}_${current.until}`;
   const ic = insightsCache[cacheKey];
   if (!forceRefresh && ic) {
     progress(`Using cached ad data (${ic.current.length} rows) [${elapsed()}]`);
@@ -314,22 +314,30 @@ app.get('/api/drive-video/:id', async (req, res) => {
   }
 });
 
-// GET /api/dashboard?days=7 — SSE with progress updates; a second request for the same period
-// joins the running load (see sseLoad in meta.js)
+// GET /api/dashboard?since=YYYY-MM-DD&until=YYYY-MM-DD (date picker; days=N still works): SSE with
+// progress updates; a second request for the same period joins the running load (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
   if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
   const { accountId } = getCredentials(); // shown in the debug line only
-  const days = Number(req.query.days);
+  const current = periodFromQuery(req.query);
+  if (!current) return res.status(400).json({ error: 'Bad date range' });
   const forceRefresh = req.query.refresh === '1';
-  sseLoad(res, `days=${days} refresh=${forceRefresh}`, ctx => loadDashboard({ accountId, days, forceRefresh, ...ctx }));
+  sseLoad(res, `${current.since}_${current.until} refresh=${forceRefresh}`, ctx => loadDashboard({ accountId, current, forceRefresh, ...ctx }));
 });
 
-async function loadDashboard({ accountId, days, forceRefresh, progress, send, elapsed, startTime }) {
-  const current = { since: dateStr(days), until: dateStr(0) };
+// since/until from the date picker, else the last `days` days (old clients). null when the dates are bad.
+function periodFromQuery(q) {
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  if (q.since || q.until) return re.test(q.since) && re.test(q.until) && q.since <= q.until ? { since: q.since, until: q.until } : null;
+  const days = Number(q.days) || 7;
+  return { since: dateStr(days), until: dateStr(0) };
+}
+
+async function loadDashboard({ accountId, current, forceRefresh, progress, send, elapsed, startTime }) {
   // The BigQuery video table loads while Triple Whale answers (neither needs the other).
   // loadVideoTable never rejects: errors come back as status 'error'.
   const videoTablePending = loadVideoTable();
-  const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ days, forceRefresh, current, progress, elapsed });
+  const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ forceRefresh, current, progress, elapsed });
   progress(`Loading videos from BigQuery... [${elapsed()}]`);
   const videoTable = await videoTablePending;
   // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
@@ -375,7 +383,7 @@ async function loadDashboard({ accountId, days, forceRefresh, progress, send, el
   progress(`Done [${elapsed()}]`);
   const debug = {
     account: accountId,
-    days,
+    period: current,
     refresh: forceRefresh,
     insights:  { source: insightsSource, raw: rawRows.length, formAds: formRows.length, otherVideoAds: otherRows.length },
     ads:       { cached: cachedAdsBefore, fetched: allAdIds.length - cachedAdsBefore, video: videoRows.length, notVideo: currRows.length - videoRows.length },
@@ -399,6 +407,7 @@ if (require.main === module) {
 module.exports = {
   reelPosterFromPluginHtml,
   dateStr,
+  periodFromQuery,
   findPurchaseAction,
   sumActionValue,
   sumActionByType,

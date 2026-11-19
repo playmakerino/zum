@@ -1,22 +1,18 @@
-/* vid-thao breakpoints — loaded after shared.css so these win on small screens */
-/* Tablet & mobile (≤768px) — single-row topbar */
+/* vid-thao breakpoints: loaded after shared.css so these win on small screens */
+/* Tablet & mobile (≤768px): single-row topbar */
 @media(max-width:768px){
   .main{padding:14px}
   .topbar{padding:0 12px;gap:8px}
   .topbar-actions{gap:6px}
   #cachedAt{display:none}
-  .dd-submitterSelect{max-width:140px}
-  .col-filter-btn{padding:5px 4px}
   .load-popup{min-width:0;width:calc(100% - 32px)}
 }
 
-/* Phone (≤480px) — stack period+button below logo so the dropdown can breathe */
+/* Phone (≤480px): date picker + Controls go below the title so the picker can breathe */
 @media(max-width:480px){
   :root{--topbar-h:0px}
   .topbar{position:static;flex-wrap:wrap;height:auto;padding:8px 12px;gap:6px}
   .topbar-actions{flex-basis:100%;margin-left:0;gap:8px}
-  .dd-periodSelect{flex:1}
-  .dd-periodSelect .dd-btn{width:100%}
-  .dd-submitterSelect{flex-basis:100%;max-width:none}
-  .filter-popup{min-width:240px;max-width:calc(100vw - 16px)}
+  .drp{flex:1}
+  .drp-btn{width:100%}
 }

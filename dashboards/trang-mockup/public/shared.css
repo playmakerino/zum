@@ -106,24 +106,25 @@ thead th .sort-icon{display:inline-block;width:16px;height:16px;margin-left:0;fo
 thead th:hover .sort-icon{opacity:1;color:#303030}
 thead th.sorted .sort-icon{opacity:1;color:#101010}
 /* metric columns (those with a filter button): right-aligned like Shopify numbers */
-thead th:has(.col-filter-btn) .th-content{justify-content:flex-end}
-thead th:has(.col-filter-btn) .col-filter-btn{margin-left:0}
+thead th[data-sort] .th-content{justify-content:flex-end}
+
 tbody td.td-metric,tbody td.td-prints{text-align:right;padding:8px 12px;font-weight:400}
 
-/* row line drawn as an inset shadow (like Shopify's row ::after) so rows stay exactly 36px */
-tbody td{height:36px;box-shadow:inset 0 -1px 0 #f2f2f2;padding:8px 12px;color:#101010;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
-/* thumbnail cells: 24px image + 6px padding keeps the 36px Shopify row height */
-tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){padding-top:6px;padding-bottom:6px}
+/* row line drawn as an inset shadow (like Shopify's row ::after) so rows stay exactly 42px
+   (Shopify report rows with a 24px image, measured 2026-11-19) */
+tbody td{height:42px;box-shadow:inset 0 -1px 0 #f2f2f2;padding:8px 12px;color:#101010;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+/* thumbnail cells: 24px image + 9px padding keeps the 42px Shopify row height */
+tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){padding-top:9px;padding-bottom:9px}
 /* name column = Shopify dimension column: 1px #f2f2f2 divider on its right */
 tbody td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2,inset 0 -1px 0 #f2f2f2}
 /* last row: no bottom line, the footer's top line is the single separator (Shopify) */
 tbody tr:last-child td{box-shadow:none}
 tbody tr:last-child td:not(.td-metric):not(.td-prints):not([colspan]){box-shadow:inset -1px 0 0 #f2f2f2}
-thead tr:first-child th:not(:has(.col-filter-btn)){box-shadow:inset 0 -1px 0 #f2f2f2,inset -1px 0 0 #f2f2f2}
+thead tr:first-child th:not([data-sort]){box-shadow:inset 0 -1px 0 #f2f2f2,inset -1px 0 0 #f2f2f2}
 .td-name{font-weight:400;color:#101010}
 /* Total row: in <thead> under the column names (Shopify Summary row).
    Borders as inset shadows: with border-collapse, real borders stay behind when the sticky thead moves and leave a see-through gap */
-thead tr.total-row td{height:37px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px 9px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
+thead tr.total-row td{height:34px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
 thead tr.total-row td.td-metric{text-align:right}
 .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px;background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
@@ -197,3 +198,146 @@ thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
 .tip{position:fixed;z-index:1000;max-width:280px;padding:12px;border-radius:12px;background:#1b1b1b;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;font-size:13px;line-height:20px;letter-spacing:-.01em}
 .tip-title{font-weight:600;margin-bottom:2px}
 .tip-body{font-weight:450;color:#e3e3e3}
+
+/* ── Date range picker (shared.js DateRange) = Shopify Analytics date picker, measured 2026-11-19:
+   sidebar 170px #f7f7f7, options 12px/20px with 2px 6px padding and 8px radius (chosen: #ebebeb, 600);
+   main 16px padding; inputs/selects 30px, white, 12px radius; days 32px, 10px radius, range #f2f2f2,
+   ends #101010 white 600; month title 13px/20px 600; weekdays 11px/14px #4a4a4a. */
+.drp{position:relative;display:inline-flex}
+.drp.open .drp-btn{background:#d4d4d4}
+.drp.open .dd-chevron{transform:rotate(180deg)}
+.drp-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:200;display:flex;width:700px;max-width:calc(100vw - 16px);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1)}
+.drp-pop[hidden]{display:none}
+.drp-side{width:170px;flex-shrink:0;background:#f7f7f7;padding:2px 0}
+.drp-side ul{list-style:none;padding:8px}
+.drp-side hr{border:none;border-top:1px solid #e3e3e3;margin:0}
+.drp-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:2px 6px;border:none;border-radius:8px;background:none;color:#101010;font-family:inherit;font-size:12px;line-height:20px;font-weight:400;text-align:left;cursor:pointer}
+.drp-opt:hover{background:#ebebeb}
+.drp-opt.on{background:#ebebeb;font-weight:600}
+.drp-check{width:16px;height:16px;flex-shrink:0}
+.drp-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.drp-body{flex:1;padding:16px 16px 0}
+.drp-controls{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;line-height:20px}
+.drp-controls[hidden]{display:none}
+.drp-input,.drp-select{height:30px;padding:5px 12px;border:none;border-radius:12px;background:#fff;color:#101010;font-family:inherit;font-size:13px;line-height:20px;outline:none;box-shadow:0 0 0 1px rgba(0,0,0,.13),0 2px 3px -1px rgba(0,0,0,.04)}
+.drp-input:focus,.drp-select:focus{box-shadow:0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.08)}
+.drp-n{width:128px}
+.drp-select{min-width:128px;padding-right:8px;cursor:pointer}
+.drp-date{width:150px}
+.drp-arrow{display:inline-flex;color:#616161}.drp-arrow svg{width:16px;height:16px}
+.drp-cb{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.drp-cb input{position:absolute;opacity:0;pointer-events:none}
+.drp-month{flex:1;min-width:0}
+.drp-cal{display:flex;gap:24px}
+.drp-mhead{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;height:34px;padding:0 6px}
+.drp-mtitle{display:flex;justify-content:center;gap:8px;font-size:13px;line-height:20px;font-weight:600}
+.drp-nav{width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:9999px;background:transparent;color:#606060;cursor:pointer}
+.drp-nav:hover{background:#f2f2f2;color:#303030}
+.drp-nav svg{width:20px;height:20px}
+.drp-grid{display:grid;grid-template-columns:repeat(7,32px);grid-auto-rows:32px;justify-content:center}
+.drp-wd{display:flex;align-items:center;justify-content:center;font-size:11px;line-height:14px;color:#4a4a4a}
+.drp-cell.in{background:#f2f2f2}
+.drp-cell.start{border-radius:10px 0 0 10px}
+.drp-cell.end{border-radius:0 10px 10px 0}
+.drp-cell.start.end{border-radius:10px}
+.drp-day{width:32px;height:32px;padding:0;border:none;border-radius:10px;background:transparent;color:#101010;font-family:inherit;font-size:13px;line-height:20px;cursor:pointer;font-variant-numeric:tabular-nums}
+.drp-day:hover{background:#e3e3e3}
+.drp-day.sel,.drp-day.sel:hover{background:#101010;color:#fff;font-weight:600}
+.drp-day:disabled{color:#b5b5b5;cursor:default;background:transparent}
+.drp-foot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid #ebebeb;font-size:13px;line-height:20px}
+.drp-sp{flex:1}
+.drp-cancel,.drp-apply{height:28px;padding:0 12px;border:none;border-radius:9999px;font-family:inherit;font-size:13px;line-height:20px;font-weight:550;cursor:pointer}
+.drp-cancel{background:#fff;color:#303030;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.08)}
+.drp-cancel:hover{background:#f7f7f7}
+.drp-apply{background:#303030;color:#fff;box-shadow:inset 0 -1px 0 #000,inset 0 1px 0 rgba(255,255,255,.2)}
+.drp-apply:hover{background:#1a1a1a}
+.drp-apply:disabled{background:#e3e3e3;color:#b5b5b5;box-shadow:none;cursor:default}
+@media(max-width:720px){.drp-pop{flex-direction:column}.drp-side{width:auto}.drp-cal .drp-month:first-child{display:none}}
+
+/* sort hint on a column name (Shopify: "Highest to lowest"): small dark label above the header */
+.tip.tip-sm{max-width:none;padding:4px 8px;border-radius:8px;font-weight:450;color:#eee;white-space:nowrap}
+
+/* ── Report layout = Shopify report page (measured 2026-11-19): sticky title bar holding the date
+   picker (it also loads) and the "Controls" press button; the Controls panel is a 280px card on the
+   right, sticky 8px under the title bar, scrolling inside. */
+.press-btn{display:inline-flex;align-items:center;gap:2px;height:28px;padding:4px 12px 4px 6px;border:none;border-radius:9999px;background:#ebebeb;color:#303030;font-family:inherit;font-size:13px;line-height:20px;font-weight:450;cursor:pointer;transition:background .1s}
+.press-btn svg{width:16px;height:16px;margin:2px}
+.press-btn:hover{background:#e3e3e3}
+.press-btn[aria-pressed="true"]{background:#d4d4d4;color:#101010;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+.report-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+.report-layout.panel-off{grid-template-columns:minmax(0,1fr)}
+.report-layout.panel-off .report-panel{display:none}
+.report-panel{position:sticky;top:calc(var(--topbar-h) + 8px);max-height:calc(100vh - var(--topbar-h) - 24px);overflow-y:auto;padding:4px 20px 12px}
+.rp-sec{padding:4px 0 8px}
+.rp-sec+.rp-sec{border-top:1px solid #ebebeb;padding-top:8px}
+.rp-head{display:flex;align-items:center;justify-content:space-between;height:32px;font-size:13px;line-height:20px;font-weight:450;color:#616161}
+.rp-row{display:flex;align-items:center;gap:4px;min-height:28px;padding:4px 0;font-size:13px;line-height:20px;color:#101010}
+.rp-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-empty{padding:4px 0;color:#8a8a8a}
+.rp-icon{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;margin:-4px -6px -4px 0;border:none;border-radius:9999px;background:transparent;color:#4a4a4a;cursor:pointer}
+.rp-icon svg{width:16px;height:16px}
+.rp-icon:hover{background:#f2f2f2;color:#101010}
+.rp-del{visibility:hidden;width:24px;height:24px}
+.rp-row:hover .rp-del,.rp-del:focus-visible{visibility:visible}
+.rp-sec .dd{margin:2px 0 4px}
+/* "+" popover */
+.rp-pop{position:fixed;z-index:300;width:280px;max-height:420px;display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1)}
+.rp-search{display:flex;align-items:center;gap:6px;margin:8px;height:30px;padding:0 10px;border-radius:12px;box-shadow:0 0 0 1px rgba(0,0,0,.13),0 2px 3px -1px rgba(0,0,0,.04);color:#4a4a4a}
+.rp-search:focus-within{box-shadow:0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.08)}
+.rp-search svg{width:16px;height:16px;flex-shrink:0}
+.rp-search input{flex:1;min-width:0;border:none;outline:none;background:none;font-family:inherit;font-size:13px;line-height:20px;color:#101010}
+.rp-pop-list{flex:1;overflow-y:auto;padding:4px 8px 8px}
+.rp-pop-head{padding:4px 6px;font-size:12px;line-height:16px;font-weight:500;color:#616161}
+.rp-check{position:relative;display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;font-size:13px;line-height:20px;color:#101010;cursor:pointer;user-select:none}
+.rp-check:hover{background:#f7f7f7}
+.rp-check input{position:absolute;opacity:0;pointer-events:none}
+.rp-none{padding:8px 6px;color:#8a8a8a}
+.rp-pop-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ebebeb}
+.rp-clear{height:28px;padding:0 6px;border:none;background:none;color:#1650d0;font-family:inherit;font-size:13px;font-weight:450;cursor:pointer}
+.rp-clear:hover{color:#1347b9;text-decoration:underline}
+.rp-apply{height:28px;padding:0 12px;border:none;border-radius:9999px;background:#303030;color:#fff;font-family:inherit;font-size:13px;line-height:20px;font-weight:550;cursor:pointer;box-shadow:inset 0 -1px 0 #000,inset 0 1px 0 rgba(255,255,255,.2)}
+.rp-apply:hover{background:#1a1a1a}
+.rp-box{width:16px;height:16px;flex-shrink:0;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px #8a8a8a;display:inline-flex;align-items:center;justify-content:center}
+input:checked+.rp-box{background:#101010;box-shadow:none}
+input[type=checkbox]:checked+.rp-box::after{content:'';width:8px;height:4px;border:solid #fff;border-width:0 0 1.6px 1.6px;transform:translateY(-1px) rotate(-45deg)}
+input[type=radio]+.rp-box{border-radius:50%}
+input[type=radio]:checked+.rp-box::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
+@media(max-width:1100px){.report-layout{grid-template-columns:1fr}.report-panel{position:static;max-height:none;order:-1}}
+/* the card has no head row any more: the column names are its first row, so the card clips to its
+   20px corners (a square white header hid them). overflow:clip is not a scroll box, so the header
+   still sticks under the title bar; rounding the header cells instead showed rows behind them once stuck */
+.report-layout>.card{overflow:clip}
+/* Filters in the Controls panel (Shopify: "Line type" then chips "is" "Product", 12px/18px grey chips) */
+.rp-filter{padding:2px 0 6px}
+.rp-filter .rp-row{padding-bottom:2px}
+.rp-chips{display:flex;flex-wrap:wrap;gap:4px}
+.rp-chip{height:22px;max-width:100%;padding:2px 6px;border:none;border-radius:8px;background:#ebebeb;color:#303030;font-family:inherit;font-size:12px;line-height:18px;font-weight:450;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-chip:hover{background:#e3e3e3}
+.rp-chip.empty{color:#616161}
+.rp-filter:hover .rp-del{visibility:visible}
+/* value editor of a filter (Shopify: "$ 0.00" field, Clear / Apply) */
+.rp-valpop{width:auto;min-width:240px}
+.rp-val-inputs{display:flex;align-items:center;gap:8px;padding:8px}
+.rp-input{flex:1;min-width:0;display:flex;align-items:center;gap:4px;height:32px;padding:0 10px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.13),0 2px 3px -1px rgba(0,0,0,.04);color:#4a4a4a;font-size:13px;line-height:20px}
+.rp-input:focus-within{box-shadow:0 0 0 2px #303030}
+.rp-input input{flex:1;min-width:0;width:90px;border:none;outline:none;background:none;font-family:inherit;font-size:13px;line-height:20px;color:#101010;-moz-appearance:textfield}
+.rp-input input::-webkit-outer-spin-button,.rp-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rp-and{color:#616161}
+/* "None" row + calendar inside the filter value editor */
+.rp-valpop .fcal{display:block;padding:8px 0 4px}
+.rp-none-row{margin:0 8px 4px}
+.rp-valpop.is-none .rp-input{opacity:.5}
+.rp-row:hover .rp-info{visibility:visible}
+.rp-info{visibility:hidden;width:24px;height:24px;cursor:default}
+.drp-btn:disabled{opacity:.5;cursor:default}
+/* image + name read as one cell, like Shopify's dimension cell: 24px image 12px from the edge,
+   name 6px after it, a single line after the name column */
+.report-layout>.card thead tr:first-child th:first-child{width:36px;min-width:36px;padding:0;box-shadow:inset 0 -1px 0 #f2f2f2}
+.report-layout>.card tbody td:first-child:not([colspan]){width:36px;min-width:36px;max-width:36px;padding:9px 0 9px 12px;box-shadow:inset 0 -1px 0 #f2f2f2}
+.report-layout>.card tbody tr:last-child td:first-child:not([colspan]){box-shadow:none}
+.report-layout>.card thead tr:first-child th:nth-child(2),.report-layout>.card tbody td:nth-child(2):not(.td-metric){padding-left:6px}
+.report-layout>.card img.thumb,.report-layout>.card div.thumb-placeholder{margin:0}
+/* the name column's title starts over the image, 12px from the edge (Shopify "Product title") */
+.report-layout>.card thead tr:first-child th:nth-child(2){z-index:4} /* above the sticky image header, which would hide the title start */
+.report-layout>.card thead tr:first-child th:nth-child(2) .th-content{margin-left:-30px}

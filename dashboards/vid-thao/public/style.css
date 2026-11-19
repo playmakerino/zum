@@ -14,20 +14,22 @@ body{-webkit-font-smoothing:antialiased}
 
 .debug-line:empty{display:none}
 table{border-collapse:collapse}
-#creativesTable th:nth-child(2){min-width:200px}
-#creativesTable th:nth-child(n+3){min-width:90px}
+#creativesTable th:nth-child(2){min-width:120px}
+#creativesTable th:nth-child(n+3){min-width:80px}
+/* the name column takes the width the metric columns leave (long names end in …), so the table
+   fits next to the 280px Controls panel */
+#creativesTable tbody td.td-name{max-width:0;width:100%}
+#creativesTable .td-metric{white-space:nowrap}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2;transition:color .08s}
 thead th:first-child{position:sticky;left:0;z-index:3;min-width:36px}
 thead th .sort-icon{color:var(--t4);transition:opacity .08s}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s);min-width:36px}
 .td-name{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
-/* square thumbnail cell like Shopify Files: 36×36, 6px around the 24px image on every side; header has no label */
-thead th.th-thumb{width:36px;padding:0}
-tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){width:36px;min-width:36px;max-width:36px;padding:6px;vertical-align:middle}
+/* thumbnail cell: size and padding in shared.css (image + name read as one cell); header has no label */
+tbody td:has(> .thumb),tbody td:has(> .thumb-placeholder){vertical-align:middle}
 /* block, not inline: an inline img sits on the text baseline and gets pushed down by the line box */
-img.thumb{display:block;margin:0 auto}
-div.thumb-placeholder{margin:0 auto}
+img.thumb{display:block}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}
 /* rows with a video open the viewer; hover = Shopify Files list row (#f7f7f7, 12px rounded ends) */
 tbody tr.row-play{cursor:pointer}
@@ -79,11 +81,6 @@ tbody tr.row-play:hover td:last-child{border-radius:0 12px 12px 0}
 }
 
 thead th .th-content{display:flex;align-items:center;white-space:nowrap}
-.col-filter-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;transition:.1s;flex-shrink:0;gap:3px;font:500 11px/1 'Inter',-apple-system,system-ui,sans-serif}
-
-.filter-popup{position:fixed;background:var(--s);z-index:100;display:none}
-.filter-inputs input{transition:.1s;font-variant-numeric:tabular-nums}
-.filter-popup-actions button{transition:.1s}
 
 .state-box{padding:48px 16px;text-align:center;color:var(--t4);font-size:12.5px;font-weight:450}
 .show-more-row td{text-align:center;padding:12px}

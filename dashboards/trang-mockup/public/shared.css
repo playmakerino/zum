@@ -114,8 +114,12 @@ thead th:hover .sort-icon{opacity:1;color:#303030}
 thead th.sorted .sort-icon{opacity:1;color:#101010}
 /* metric columns (those with a filter button): right-aligned like Shopify numbers */
 thead th[data-sort] .th-content{justify-content:flex-end}
+/* Shopify report: numbers line up with the header text 28px from the cell edge, the 20px sort icon sits
+   in that gutter (header button ends 6px from the edge, no right padding) */
+thead th[data-sort]{padding-right:6px}
+thead th[data-sort] .th-content{padding-right:0}
 
-tbody td.td-metric,tbody td.td-prints{text-align:right;padding:8px 12px;font-weight:400}
+tbody td.td-metric,tbody td.td-prints{text-align:right;padding:8px 28px 8px 12px;font-weight:400}
 
 /* row line drawn as an inset shadow (like Shopify's row ::after) so rows stay exactly 42px
    (Shopify report rows with a 24px image, measured 2026-11-19) */
@@ -132,7 +136,7 @@ thead tr:first-child th:not([data-sort]){box-shadow:inset 0 -1px 0 #f2f2f2,inset
 /* Total row: in <thead> under the column names (Shopify Summary row).
    Borders as inset shadows: with border-collapse, real borders stay behind when the sticky thead moves and leave a see-through gap */
 thead tr.total-row td{height:34px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
-thead tr.total-row td.td-metric{text-align:right}
+thead tr.total-row td.td-metric{text-align:right;padding-right:28px}
 .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px;background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
 

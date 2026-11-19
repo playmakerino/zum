@@ -31,6 +31,7 @@ function initProductTypeCombo() {
     { value: 'STRB', label: 'Stories Book' },
     { value: 'ACB', label: 'Activities Book' },
     { value: 'CLB', label: 'Colorable Book' },
+    { value: 'ADC', label: 'Advent Calendar' },
     { value: 'BDS', label: 'Bodysuit' },
     { value: 'BBR', label: 'Bubble Romper' },
     { value: 'BED', label: 'Bedding Set' },

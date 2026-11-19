@@ -22,16 +22,17 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - **GET /api/config**: `{ hasTripleWhaleKey }`; thiếu key thì nút Load báo lỗi ngay, không gọi server
 - **GET /api/dashboard** — SSE stream pipeline
 - **Error handling:** lỗi Triple Whale hiện "Triple Whale request failed" + lý do; lỗi Meta: token hết hạn (code 190), rate limit (code 4/17)
-- **Một lượt tải mỗi mode:** request thứ hai cùng mode nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). 2 nút Load bị khoá trong lúc tải
+- **Một lượt tải:** luôn đọc cả ad đang chạy lẫn tạm dừng (bỏ `mode` từ 2026-11-19); request thứ hai nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). Nút Load Data bị khoá trong lúc tải
 - **Render free:** không có persistent disk, cache server (creative + ảnh) chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle).
-- Exports: `{ todayStr, findPurchaseAction, pickTopSpendAds, extractGroupKey }`
+- Exports: `{ todayStr, findPurchaseAction, summarizeAds, extractGroupKey }`
 
 ### Frontend (app.js)
-- 1 page duy nhất: bảng ads (Image, Print ID, Ad Name, Link, Spend, ROAS)
-- **Giao diện:** kiểu Shopify Analytics, CSS + dropdown + helper bảng (sort/lọc/popup lọc/toast/SSE) dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Trang cuộn; top bar: tiêu đề + Updated trái, 2 nút Load Active Ads / Load All phải. Bảng trong card: hàng đầu = tiêu đề "Active ads"/"All ads" theo dữ liệu đang hiện, hàng cuối = load log (trước khi có thì hiện câu nhắc).
+- 1 page duy nhất: bảng ads (ảnh, Print ID, Ad name, Link, Spend, ROAS)
+- **Giao diện (từ 2026-11-19, như vid-thao / trang-mockup):** kiểu trang báo cáo Shopify, CSS + helper bảng dùng chung ở `dashboards/shared/` (xem git/CLAUDE.md). Top bar: tiêu đề + "Last 12 months · Refreshed ..." trái; nút Load Data + nút Controls phải (giữ 12 tháng cố định, không có ô chọn ngày: user chốt 2026-11-19). Bảng điều khiển Controls (`ReportPanel`): Filters (Status is / is one of Active, Paused; Print ID, Ad name chứa chữ; Spend, ROAS) và Metrics (ẩn/hiện Spend, ROAS). Không có dòng Summary (user chốt). Cột số rộng 140px như cột số trên báo cáo Shopify.
+- **Status thay 2 nút Load Active Ads / Load All:** mở trang là "Status is Active" (như nút chính cũ), bỏ filter = Load All cũ. Server trả **mọi** ad ảnh trên 100 USD kèm `status` + `group`; trang lọc Status trên mọi ad trước rồi mới chọn ad chi tiêu cao nhất mỗi thiết kế (`topPerDesign`), nên "Active" ra ad đang chạy đứng đầu thiết kế y như cách cũ, kể cả khi ad đứng đầu chung là ad tạm dừng. Kết quả lưu trước 2026-11-19 (không có `status`) bị bỏ qua, phải Load Data lại.
 - State management bằng plain object
 - SSE streaming cho dashboard load
-- **Table:** sortable (spend, roas, print_id), text filter (ad_name), metric range filters (spend, roas)
+- **Table:** sortable (spend, roas, print_id); lọc ở Controls
   - Filter trước → paginate sau (20 rows/page, `PAGE_SIZE` trong shared.js, "Show more")
 - **Image preview:** hover hiện ảnh 240×240 (position:fixed)
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
@@ -48,17 +49,18 @@ Response: SSE stream gồm nhiều `progress` events và 1 `result` event cuối
 ```
 Triple Whale: 2 câu SQL song song trên ads_table, WHERE ad_type = 'image', HAVING chi tiêu > 100
   1. số liệu: ad_id, ad_name, sum(spend), sum(conversion_value)
-  2. trạng thái: argMax(ad_effective_status) IN (ACTIVE, PAUSED) (Load Active Ads: chỉ ACTIVE)
+  2. trạng thái: argMax(ad_effective_status) IN (ACTIVE, PAUSED), gắn vào từng ad
 ```
 - Trạng thái là câu riêng: để `ad_effective_status` chung SELECT với số liệu thì Triple Whale cộng sai.
 - Lookback 12 tháng (`LOOKBACK_MONTHS`), đọc lại đủ mỗi lần bấm. Số ad ảnh trên 100 USD nhỏ (đo 2026-11-03: 1201, còn 883 sau lọc trạng thái) nên không chạm giới hạn 50.000 dòng, không phải chia đoạn.
 - **Vì sao lọc trong SQL** (user chốt 2026-11-03): cách cũ đọc mọi ad (29.147, chia 4 đoạn, ~8s), chọn ad đứng đầu mỗi thiết kế rồi mới bỏ ad không phải ảnh, nên thiết kế có ad đứng đầu là video/catalog bị mất dù có ad ảnh trên 100 USD (mất 30/367 thiết kế).
 - Ad nào từng đổi loại creative giữa kỳ thì chỉ tính phần thời gian là ad ảnh (hiếm).
 
-### Step 2: pickTopSpendAds()
-- Gộp theo `extractGroupKey(ad_name)` (print-type), giữ ad chi tiêu cao nhất mỗi nhóm, tính `roas = purchase_value / spend`
+### Step 2: summarizeAds()
+- Gộp theo `ad_id`, giữ ad trên 100 USD, gắn `group = extractGroupKey(ad_name)` (print-type) và tính `roas = purchase_value / spend`. Chọn ad đứng đầu mỗi thiết kế làm ở trang (`topPerDesign` trong app.js), sau filter Status
+- Đo 2026-11-19: 999 ad (80 đang chạy, 919 tạm dừng), 416 thiết kế; lần tải đầu sau khi server khởi động khoảng 9s (đọc ảnh của cả 999 ad), các lần sau ảnh có sẵn trong RAM
 
-### Step 3: Ảnh, link từ Triple Whale (chỉ ad chưa có trong cache)
+### Step 3: Ảnh, link từ Triple Whale (mọi ad, chỉ ad chưa có trong cache)
 ```
 Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nhất không rỗng)
 ```
@@ -70,7 +72,8 @@ Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nh�
 ```json
 {
   "result": {
-    "ads": [{ "ad_name", "print_id", "spend", "purchase_value", "roas", "image_url", "link" }],
+    "ads": [{ "ad_name", "print_id", "group", "status", "spend", "purchase_value", "roas", "image_url", "link" }],
+    "totalRows", "designCount",
     "period": { "since", "until" },
     "cached_at": "ISO string"
   }

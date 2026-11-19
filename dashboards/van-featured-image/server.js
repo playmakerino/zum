@@ -33,27 +33,22 @@ function extractGroupKey(adName) {
   return m ? `${m[1]}-${m[2]}` : adName;
 }
 
-// Aggregate by ad_id, then pick top-spend ad per print_id-type_id
-function pickTopSpendAds(rows) {
+// Aggregate by ad_id, keep ads over $100 and tag each with its design (print_id-type_id).
+// The top-spend ad per design is picked in the page (app.js topPerDesign) after the Status filter,
+// so "Status is Active" gives the top active ad of a design as the old Load Active Ads did.
+function summarizeAds(rows) {
   const byAdId = {};
   for (const row of rows) {
     if (!row.ad_id) continue;
     if (!byAdId[row.ad_id]) {
-      byAdId[row.ad_id] = { ad_id: row.ad_id, ad_name: row.ad_name || 'unknown', spend: 0, purchase_value: 0 };
+      byAdId[row.ad_id] = { ad_id: row.ad_id, ad_name: row.ad_name || 'unknown', status: row.status || '', spend: 0, purchase_value: 0 };
     }
     byAdId[row.ad_id].spend += parseFloat(row.spend || 0);
     byAdId[row.ad_id].purchase_value += parseFloat(findPurchaseAction(row.action_values)?.value || 0);
   }
-  const byGroup = {};
-  for (const ad of Object.values(byAdId)) {
-    if (ad.spend <= 100) continue;
-    const key = extractGroupKey(ad.ad_name);
-    if (!byGroup[key] || ad.spend > byGroup[key].spend) {
-      byGroup[key] = ad;
-    }
-  }
-  return Object.values(byGroup).map(ad => ({
+  return Object.values(byAdId).filter(ad => ad.spend > 100).map(ad => ({
     ...ad,
+    group: extractGroupKey(ad.ad_name),
     roas: ad.spend > 0 && ad.purchase_value > 0 ? ad.purchase_value / ad.spend : 0,
   }));
 }
@@ -66,12 +61,11 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// GET /api/dashboard?mode=active|all — SSE with progress updates; a second request with the same
-// mode joins the running load (see sseLoad in meta.js)
+// GET /api/dashboard: SSE with progress updates; active and paused ads together (the page filters
+// Status); a second request joins the running load (see sseLoad in meta.js)
 app.get('/api/dashboard', (req, res) => {
   if (!process.env.TRIPLE_WHALE_API_KEY) return res.status(400).json({ error: 'Missing TRIPLE_WHALE_API_KEY' });
-  const mode = req.query.mode || 'all';
-  sseLoad(res, `mode=${mode}`, ctx => loadDashboard({ mode, ...ctx }));
+  sseLoad(res, 'all', ctx => loadDashboard(ctx));
 });
 
 // Image ads with more than $100 spend in [since, until] whose current status is in `statuses`,
@@ -93,31 +87,32 @@ HAVING sp > 100`, since, until),
 ${where}
 HAVING sum(spend) > 100 AND status IN (${st})`, since, until),
   ]);
-  const keep = new Set(statusRows.map(r => String(r.ad_id)));
-  return rows.filter(r => keep.has(String(r.ad_id))).map(r => ({
+  const statusOf = new Map(statusRows.map(r => [String(r.ad_id), r.status]));
+  return rows.filter(r => statusOf.has(String(r.ad_id))).map(r => ({
     ad_id: String(r.ad_id),
     ad_name: r.ad_name || '',
+    status: statusOf.get(String(r.ad_id)),
     spend: String(Number(r.sp) || 0),
     action_values: [{ action_type: 'omni_purchase', value: String(Number(r.rev) || 0) }],
   }));
 }
 
-async function loadDashboard({ mode, progress, send, elapsed }) {
+async function loadDashboard({ progress, send, elapsed }) {
   const today = todayStr();
   const since = allTimeStart();
-  const statuses = mode === 'active' ? ['ACTIVE'] : ['ACTIVE', 'PAUSED'];
 
-  // ── Step 1: image ads over $100 in 12 months, filtered in Triple Whale ──
-  progress(`Step 1: Reading ${mode === 'active' ? 'active ' : ''}image ads over $100 from Triple Whale (${since} → ${today})... [${elapsed()}]`);
-  const allRows = await fetchImageAdsOver100({ since, until: today, statuses });
+  // ── Step 1: active and paused image ads over $100 in 12 months, filtered in Triple Whale ──
+  progress(`Step 1: Reading image ads over $100 from Triple Whale (${since} → ${today})... [${elapsed()}]`);
+  const allRows = await fetchImageAdsOver100({ since, until: today, statuses: ['ACTIVE', 'PAUSED'] });
   progress(`Step 1: ${allRows.length} image ads loaded [${elapsed()}]`);
 
-  // ── Step 2: top-spend ad per design (print-type) ──
-  const topAds = pickTopSpendAds(allRows);
-  progress(`Step 2: ${topAds.length} top ads per design [${elapsed()}]`);
+  // ── Step 2: one row per ad with its design; the page picks the top ad per design ──
+  const adRows = summarizeAds(allRows);
+  const designs = new Set(adRows.map(a => a.group)).size;
+  progress(`Step 2: ${adRows.length} ads in ${designs} designs [${elapsed()}]`);
 
-  // ── Step 3: image and link of the top ads from Triple Whale (only missing) ──
-  const missingIds = topAds.map(a => a.ad_id).filter(id => !mediaCache.has(id));
+  // ── Step 3: image and link of every ad from Triple Whale (only missing) ──
+  const missingIds = adRows.map(a => a.ad_id).filter(id => !mediaCache.has(id));
   if (missingIds.length > 0) {
     progress(`Step 3: Reading images of ${missingIds.length} ads from Triple Whale... [${elapsed()}]`);
     const media = await fetchAdMedia(missingIds, since, today);
@@ -126,7 +121,7 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
   } else {
     progress(`Step 3: All images cached [${elapsed()}]`);
   }
-  const imageAds = topAds.map(ad => ({
+  const imageAds = adRows.map(ad => ({
     ...ad,
     image_url: mediaCache.get(ad.ad_id)?.image_url || null,
     link: mediaCache.get(ad.ad_id)?.link || '',
@@ -138,6 +133,8 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
     return {
       ad_name: ad.ad_name,
       print_id: m ? m[1] : '',
+      group: ad.group,
+      status: ad.status,
       spend: ad.spend,
       purchase_value: ad.purchase_value,
       roas: ad.roas,
@@ -155,7 +152,7 @@ async function loadDashboard({ mode, progress, send, elapsed }) {
     lookback_months: LOOKBACK_MONTHS,
     cached_at: new Date().toISOString(),
     totalRows: allRows.length,
-    topAdsCount: topAds.length,
+    designCount: designs,
     imageAdsCount: imageAds.length,
     adsWithImage,
     adsWithLink,
@@ -171,4 +168,4 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Meta Ads Dashboard running on http://localhost:${PORT}`));
 }
 
-module.exports = { todayStr, findPurchaseAction, pickTopSpendAds, extractGroupKey };
+module.exports = { todayStr, findPurchaseAction, summarizeAds, extractGroupKey };

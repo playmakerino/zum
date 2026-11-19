@@ -16,61 +16,38 @@
       <span class="cache-time" id="headerCachedAt"></span>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-primary" onclick="fetchAll('active')" data-tip-title="Load Active Ads" data-tip="Top-spend image ad per design, from ads that are active now. Loads in a few seconds."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Active Ads</button>
-      <button class="btn btn-secondary" data-tip-title="Load All" data-tip="Same, including paused ads. Loads in about 10 seconds." onclick="fetchAll('all')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load All</button>
+      <button class="btn btn-primary" onclick="fetchAll()" data-tip-title="Load Data" data-tip="Reads active and paused image ads over $100 in the last 12 months from Triple Whale, in a few seconds. Pick active or paused with the Status filter."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 8A6 6 0 0 0 4.7 6.5M4.5 12a6 6 0 0 0 10.8 1.5"/><path d="M4.5 3.5v3h3M15.5 16.5v-3h-3"/></svg>Load Data</button>
+      <button type="button" class="press-btn" id="controlsBtn" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 6.5h5M12.5 6.5h4M3.5 13.5h2M9.5 13.5h7"/><circle cx="10.5" cy="6.5" r="2"/><circle cx="7.5" cy="13.5" r="2"/></svg>Controls</button>
     </div>
   </header>
 
   <main class="main">
+    <div class="report-layout" id="reportLayout">
     <div class="card">
-    <div class="card-head">
-      <span class="card-title" id="modeTitle"></span>
-    </div>
     <div id="page-ads" class="page active">
       <div class="table-wrap">
         <div class="table-scroll">
-          <table id="adsTable"><colgroup><col class="col-img"><col class="col-pid"><col class="col-name"><col class="col-link"><col class="col-spend"><col class="col-roas"></colgroup><thead><tr>
-            <th>Image</th>
-            <th data-sort="print_id" onclick="sortTable('ads','print_id')"><div class="th-content">Print ID <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
-            <th><div class="th-content"><input data-table="ads" data-col="ad_name" data-type="text" class="th-filter-input" placeholder="Search ad name" oninput="filterTable('ads')" onclick="event.stopPropagation()"></div></th>
-            <th>Link</th>
-            <th data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="spend" onclick="event.stopPropagation();openFilterPopup('ads','spend',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
-            <th data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span><button class="col-filter-btn" data-table="ads" data-col="roas" onclick="event.stopPropagation();openFilterPopup('ads','roas',this)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg></button></div></th>
+          <table id="adsTable"><thead><tr>
+            <th class="th-thumb" aria-label="Thumbnail"></th>
+            <th class="th-pid" data-sort="print_id" onclick="sortTable('ads','print_id')"><div class="th-content">Print ID <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
+            <th><div class="th-content">Ad name</div></th>
+            <th><div class="th-content">Link</div></th>
+            <th class="th-num" data-sort="spend" onclick="sortTable('ads','spend')"><div class="th-content">Spend <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
+            <th class="th-num" data-sort="roas" onclick="sortTable('ads','roas')"><div class="th-content">ROAS <span class="sort-icon">&#x25B4;&#x25BE;</span></div></th>
           </tr></thead><tbody id="adsBody"></tbody></table>
         </div>
       </div>
-      <div class="card-foot" data-empty='Click "Load Active Ads" or "Load All" to start'><div class="load-log" id="adsLoadLog"></div></div>
+      <div class="card-foot" data-empty='Click "Load Data" to start'><div class="load-log" id="adsLoadLog"></div></div>
     </div>
+    </div>
+    <aside class="card report-panel">
+      <div id="filterSec"></div>
+      <div id="metricSec"></div>
+    </aside>
     </div>
   </main>
 </div>
 <div id="toast"></div>
-<div id="filterPopup" class="filter-popup">
-  <div class="filter-popup-title" id="filterPopupTitle"></div>
-  <div class="filter-popup-body">
-    <div class="filter-chips">
-      <select id="filterOp" data-dd="chip" onchange="onFilterOpChange()">
-        <option value="gt">greater than</option>
-        <option value="lt">less than</option>
-        <option value="between">between</option>
-        <option value="notBetween">not between</option>
-      </select>
-      <button type="button" class="filter-value-chip" id="filterValueChip">Add value</button>
-    </div>
-  </div>
-  <div class="filter-editor">
-    <div class="filter-inputs">
-      <input type="number" id="filterVal1" step="any" placeholder="0" onkeydown="if(event.key==='Enter')applyFilter()">
-      <span id="filterAnd" class="filter-and" style="display:none">and</span>
-      <input type="number" id="filterVal2" step="any" placeholder="0" style="display:none" onkeydown="if(event.key==='Enter')applyFilter()">
-    </div>
-    <div class="filter-popup-actions">
-      <button class="filter-clear" onclick="clearCurrentFilter()">Clear</button>
-      <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
-    </div>
-  </div>
-</div>
-
 <script src="shared.js"></script>
 <script src="app.js"></script>
 </body>

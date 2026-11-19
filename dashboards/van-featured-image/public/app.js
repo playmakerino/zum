@@ -1,23 +1,57 @@
 const COLS = 6;
+// The page starts on "Status is Active", as the old main button Load Active Ads did
+// (the old Load All = remove the filter, or pick both statuses)
+const ACTIVE_ONLY = { status: { kind: 'select', op: 'is', val1: 'ACTIVE' } };
 const state = {
   config: {}, // { hasTripleWhaleKey } from /api/config
   ads: { data: [], period: null, cached_at: null },
   sort: { ads: { key: 'print_id', dir: -1 } },
-  filters: { ads: {} },
+  // adsStatus = only the Status filter, applied to every ad before the top ad per design is picked
+  filters: { ads: { ...ACTIVE_ONLY }, adsStatus: {} },
   pageLimit: { ads: PAGE_SIZE },
-  mode: (() => { try { return localStorage.getItem('van_mode') === 'all' ? 'all' : 'active'; } catch { return 'active'; } })(),
 };
 
-// Card title shows which mode the table currently holds ("Active ads" / "All ads").
-function setMode(mode) {
-  state.mode = mode;
-  try { localStorage.setItem('van_mode', mode); } catch {}
-  $('modeTitle').textContent = mode === 'all' ? 'All ads' : 'Active ads';
+// ── Controls panel (Shopify report): Filters + Metrics, like vid-thao / trang-mockup ──
+const STATUS_OPTIONS = [{ key: 'ACTIVE', label: 'Active' }, { key: 'PAUSED', label: 'Paused' }];
+const METRIC_COLS = [
+  { key: 'spend', label: 'Spend', kind: 'number', fmt: 'money', pos: 5, tip: 'Amount spent on this ad in the last 12 months' },
+  { key: 'roas', label: 'ROAS', kind: 'number', fmt: 'ratio', pos: 6, tip: 'Purchase value divided by spend' },
+];
+let hiddenCols = (() => { try { return JSON.parse(localStorage.getItem('van_hidden_cols')) || []; } catch { return []; } })();
+function renderMetricPanel() {
+  ReportPanel.section($('metricSec'), {
+    title: 'Metrics', options: METRIC_COLS,
+    value: new Set(METRIC_COLS.filter(c => !hiddenCols.includes(c.key)).map(c => c.key)),
+    onChange: shown => {
+      hiddenCols = METRIC_COLS.filter(c => !shown.has(c.key)).map(c => c.key);
+      try { localStorage.setItem('van_hidden_cols', JSON.stringify(hiddenCols)); } catch {}
+      renderMetricPanel();
+    },
+  });
+  hideColumns('adsTable', METRIC_COLS.filter(c => hiddenCols.includes(c.key)).map(c => c.pos));
+}
+renderMetricPanel();
+ReportPanel.filters($('filterSec'), { type: 'ads', fields: [
+  { key: 'status', label: 'Status', kind: 'select', options: () => STATUS_OPTIONS },
+  { key: 'print_id', label: 'Print ID', kind: 'text' },
+  { key: 'ad_name', label: 'Ad name', kind: 'text' },
+  ...METRIC_COLS,
+] });
+ReportPanel.toggle($('controlsBtn'), $('reportLayout'), 'van_controls');
+
+// Highest-spend ad of each design (print-type) among the ads the Status filter keeps
+function topPerDesign(rows) {
+  const best = new Map();
+  for (const r of rows) {
+    const k = r.group || r.ad_name;
+    if (!best.has(k) || parseFloat(r.spend) > parseFloat(best.get(k).spend)) best.set(k, r);
+  }
+  return [...best.values()];
 }
 
 const TABLES = {
   ads: {
-    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td>${linkCell(r.link)}</td><td class="td-metric">${fmtMoneyInt(r.spend)}</td><td class="td-metric">${fmtF(r.roas)}x</td></tr>`
+    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td class="td-link">${linkCell(r.link)}</td><td class="td-metric">${fmtMoneyInt(r.spend)}</td><td class="td-metric">${fmtF(r.roas)}x</td></tr>`
   },
 };
 
@@ -28,7 +62,6 @@ const loadCacheLocal = () => { try { return JSON.parse(localStorage.getItem(CACH
 
 // Init
 window.addEventListener('DOMContentLoaded', async () => {
-  setMode(state.mode);
   restoreLogs();
 
   try {
@@ -37,8 +70,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch {}
 
   if (state.config.hasTripleWhaleKey) {
+    // results saved before 2026-11-19 hold only the top ad per design, without status: load again
     const cached = loadCacheLocal();
-    if (cached) {
+    if (cached && cached.data?.[0]?.status !== undefined) {
       state.ads = cached;
       renderTable('ads');
       showCacheTime(cached.cached_at);
@@ -49,11 +83,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 function showCacheTime(iso) {
   const el = $('headerCachedAt');
   if (!el || !iso) { if (el) el.textContent = ''; return; }
-  const d = new Date(iso);
   const months = state.ads.lookback_months;
-  const range = months ? `Last ${months} months · ` : '';
   el.title = state.ads.period ? `${state.ads.period.since} → ${state.ads.period.until}` : '';
-  el.textContent = `${range}Updated ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('en-US')}`;
+  el.textContent = `${months ? `Last ${months} months · ` : ''}${refreshedText(iso)}`;
 }
 
 // Load log
@@ -84,7 +116,7 @@ function clearLog() {
 }
 
 // Fetch
-async function fetchAll(mode = 'all') {
+async function fetchAll() {
   if (!state.config.hasTripleWhaleKey)
     return toast('Backend not configured (TRIPLE_WHALE_API_KEY missing)', 'error');
 
@@ -106,7 +138,7 @@ async function fetchAll(mode = 'all') {
   clearLog();
   lockLoadButtons(true);
   try {
-    const res = await fetch(`/api/dashboard?mode=${mode}`);
+    const res = await fetch('/api/dashboard');
     if (!res.ok) throw await httpError(res);
     let data = null;
     await readSSE(res, j => {
@@ -126,12 +158,11 @@ async function fetchAll(mode = 'all') {
     showCacheTime(data.cached_at);
     ov.style.display = 'none';
 
-    setMode(mode);
     // one part per step, in the order loadDashboard (server.js) runs them; same pattern on all
     // three dashboards (user's wording 2026-11-03)
     addLog([
-      `${data.totalRows} ${mode === 'active' ? 'active ' : ''}image ads over $100 from Triple Whale`,
-      `${data.topAdsCount} top ads per design`,
+      `${data.totalRows} image ads over $100 from Triple Whale`,
+      `${data.designCount} designs`,
     ].join(' · '), 'success');
   } catch (err) {
     clearInterval(timerInterval);
@@ -148,9 +179,11 @@ async function fetchAll(mode = 'all') {
 // Render
 function renderTable(type) {
   const cfg = TABLES[type];
-  const data = state[type].data || [];
   const { key, dir } = state.sort[type];
-  const sorted = [...data].sort((a, b) => {
+  // Status first (on every ad), then the top ad per design, then the other filters on those rows
+  state.filters.adsStatus = state.filters.ads.status ? { status: state.filters.ads.status } : {};
+  const data = topPerDesign(applyFilters('adsStatus', state[type].data || []));
+  const sorted = data.sort((a, b) => {
     if (key === 'print_id') return ((a[key] || '').localeCompare(b[key] || '')) * dir;
     return (parseFloat(b[key] || 0) - parseFloat(a[key] || 0)) * dir;
   });

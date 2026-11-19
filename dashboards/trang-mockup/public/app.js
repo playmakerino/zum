@@ -13,14 +13,14 @@ const state = {
 // ── Table Config ─────────────────────────────────────────────────────────────
 // fmt = how a filter value is typed: money "$", pct "%", ratio "x" (Shopify filter fields)
 const METRIC_COLS = [
-  { key: 'spend', label: 'Spend', fmt: 'money' },
-  { key: 'roas', label: 'ROAS', fmt: 'ratio' },
-  { key: 'cpr', label: 'CPR', fmt: 'money' },
-  { key: 'aov', label: 'AOV', fmt: 'money' },
+  { key: 'spend', label: 'Spend', fmt: 'money', tip: 'Amount spent on the ads in this row' },
+  { key: 'roas', label: 'ROAS', fmt: 'ratio', tip: 'Purchase value divided by spend' },
+  { key: 'cpr', label: 'CPR', fmt: 'money', tip: 'Spend divided by purchases' },
+  { key: 'aov', label: 'AOV', fmt: 'money', tip: 'Purchase value divided by purchases' },
   { key: 'cr', label: 'CR', tip: 'Purchases divided by clicks', fmt: 'pct' },
-  { key: 'cpm', label: 'CPM', fmt: 'money' },
-  { key: 'ctr', label: 'CTR', fmt: 'pct' },
-  { key: 'cpc', label: 'CPC', fmt: 'money' },
+  { key: 'cpm', label: 'CPM', fmt: 'money', tip: 'Spend per 1,000 impressions' },
+  { key: 'ctr', label: 'CTR', fmt: 'pct', tip: 'Clicks divided by impressions' },
+  { key: 'cpc', label: 'CPC', fmt: 'money', tip: 'Spend divided by clicks' },
 ].map(c => ({ ...c, type: 'metric' }));
 
 // Campaign creation date (Triple Whale has none per ad); a grouped row shows its earliest ad
@@ -32,7 +32,7 @@ const creativeRow = r =>
 
 const CREATIVE_TABLE = {
   cols: 11,
-  columns: [null, { key: 'ad_name', type: 'text', label: 'Ad Name' }, CREATED_COL, ...METRIC_COLS],
+  columns: [null, { key: 'ad_name', type: 'text', label: 'Image' }, CREATED_COL, ...METRIC_COLS], // one row per image; the name shown = the ad with the most spend
   row: creativeRow,
 };
 
@@ -43,7 +43,7 @@ const TABLES = {
       null,
       { key: 'mockup_id', type: 'text', label: 'Mockup ID' },
       CREATED_COL,
-      { key: 'print_count', type: 'metric', label: 'Prints' },
+      { key: 'print_count', type: 'metric', label: 'Prints', tip: 'Number of different print IDs (from the ad names) that use this mockup' },
       ...METRIC_COLS,
     ],
     row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td>${createdCell(r)}<td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
@@ -129,9 +129,9 @@ function onPeriodChange() { if (state.config.hasTripleWhaleKey) showSaved(); }
 
 // ── Side panel (Shopify report editor): Dimensions = which table, Metrics = visible columns ──
 const DIMENSIONS = [
-  { key: 'mockups', label: 'Mockup' },
-  { key: 'creativesValid', label: 'Image (full format)' },
-  { key: 'creativesSpend', label: 'Image (high spend)' },
+  { key: 'mockups', label: 'Mockup', tip: 'One row per mockup ID from the ad name: every ad with it is added up.' },
+  { key: 'creativesValid', label: 'Image (full format)', tip: 'One row per image, ads named [Print-Type_Mockup]: every ad that uses it is added up. The name shown is the ad with the most spend.' },
+  { key: 'creativesSpend', label: 'Image (high spend)', tip: 'One row per image, other ads over $100: every ad that uses it is added up. The name shown is the ad with the most spend.' },
 ];
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const stored = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };

@@ -77,7 +77,14 @@ const rangeKey = () => dateRange.get().key;
 // column descriptions: the ⓘ of the column in the Controls panel (Shopify shows none on the column name)
 const COL_TIPS = {
   created_on: 'Date the video was added, from BigQuery. A row that groups several ads shows the earliest.',
+  spend: 'Amount spent on the ads that use this video',
+  roas: 'Purchase value divided by spend',
+  cpr: 'Spend divided by purchases',
+  aov: 'Purchase value divided by purchases',
   cr: 'Purchases divided by clicks',
+  cpm: 'Spend per 1,000 impressions',
+  ctr: 'Clicks divided by impressions',
+  cpc: 'Spend divided by clicks',
   video_3sec_rate: '3-second video plays divided by impressions',
   thruplay_rate: 'ThruPlays divided by video plays',
 };
@@ -103,7 +110,7 @@ function renderMetricPanel() {
 renderMetricPanel();
 // Filters (Controls panel): ad name contains, created date, every metric
 ReportPanel.filters($('filterSec'), { type: 'creatives', fields: [
-  { key: 'ad_name', label: 'Ad name', kind: 'text' },
+  { key: 'ad_name', label: 'Video', kind: 'text' }, // the name shown = the ad with the most spend
   { key: 'submitted_by', label: 'Submitted by', kind: 'select', options: submitterOptions },
   ...METRIC_COLS,
 ] });

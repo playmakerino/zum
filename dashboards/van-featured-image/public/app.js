@@ -203,6 +203,7 @@ function renderTable(type) {
     // Print ID sorts A to Z with dir 1, numbers sort highest first with dir 1
     th.classList.toggle('asc', th.dataset.sort === key && dir === (key === 'print_id' ? 1 : -1));
   });
+  equalizeMetricCols();
 }
 
 // Helpers

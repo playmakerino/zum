@@ -953,4 +953,20 @@ function hideColumns(tableId, positions) {
   let st = document.getElementById(id);
   if (!st) { st = document.createElement('style'); st.id = id; document.head.appendChild(st); }
   st.textContent = positions.map(p => `#${tableId} thead tr:first-child>:nth-child(${p}),#${tableId} tbody tr>td:not([colspan]):nth-child(${p}),#${tableId} tr.total-row>:nth-child(${p - 1}){display:none}`).join('\n');
+  equalizeMetricCols();
 }
+
+// Metric columns (sortable, right-aligned header) all get the width of the widest one; every column
+// otherwise takes its content and the name column the rest. Runs after each table render, page switch
+// and column hide; a table on a hidden page is skipped and measured when it is shown.
+function equalizeMetricCols() {
+  for (const table of document.querySelectorAll('table')) {
+    if (!table.offsetParent) continue;
+    const ths = [...table.querySelectorAll('thead tr:first-child th[data-sort]')]
+      .filter(th => getComputedStyle(th.querySelector('.th-content') || th).justifyContent === 'flex-end');
+    ths.forEach(th => { th.style.width = ''; });
+    const w = Math.max(0, ...ths.map(th => th.offsetWidth)); // hidden columns measure 0
+    if (w) ths.forEach(th => { th.style.width = w + 'px'; });
+  }
+}
+document.fonts?.ready.then(equalizeMetricCols);

@@ -17,21 +17,14 @@ body{-webkit-font-smoothing:antialiased}
 
 .sub-page{display:none}
 table{border-collapse:collapse}
-/* Column widths — Thumb */
-th:nth-child(1),tbody td:nth-child(1){width:40px;min-width:40px}
-/* Column widths — Mockups */
-#mockupsTable th:nth-child(2),#mockupsTable tbody td:nth-child(2){min-width:110px}
-#mockupsTable th:nth-child(3),#mockupsTable tbody td:nth-child(3){width:55px}
-/* Column widths — Creatives: Ad Name */
-#creativesValidTable th:nth-child(2),#creativesValidTable tbody td:nth-child(2),
-#creativesSpendTable th:nth-child(2),#creativesSpendTable tbody td:nth-child(2){min-width:160px}
-/* the name column takes the width the other columns leave (long names end in …), so the tables
-   fit next to the 280px Controls panel */
+/* column widths: every column takes its content, the metric columns are then made equal (shared.js
+   equalizeMetricCols) and the name column takes the rest (max-width:0 = its text does not count,
+   long names end in …) */
 tbody td.td-name{max-width:0;width:100%}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 thead th:first-child{position:sticky;left:0;z-index:3}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s)}
-.td-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .td-metric{white-space:nowrap}
 .thumb{display:block;object-fit:cover;cursor:pointer} /* block: an inline image sits on the text baseline and made rows 41px instead of 36px */
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}

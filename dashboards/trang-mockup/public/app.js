@@ -235,12 +235,14 @@ function showPage(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
   $('page-' + name).classList.add('active');
   hideThumbPreview();
+  equalizeMetricCols();
 }
 
 function showCreativeSub(name) {
   $$('#page-creatives .sub-page').forEach(p => p.classList.remove('active'));
   $('sub-' + name).classList.add('active');
   hideThumbPreview();
+  equalizeMetricCols();
 }
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
@@ -356,6 +358,7 @@ function renderTable(type) {
     th.classList.toggle('sorted', th.dataset.sort === key);
     th.classList.toggle('asc', th.dataset.sort === key && dir === -1);
   });
+  equalizeMetricCols();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

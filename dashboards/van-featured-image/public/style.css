@@ -19,6 +19,8 @@ col.col-pid{width:110px}
 col.col-spend{width:120px}
 col.col-roas{width:110px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
+/* Print ID is sortable but holds text: header left like its cells (shared.css right-aligns every th[data-sort]) */
+thead tr th[data-sort="print_id"] .th-content{justify-content:flex-start}
 .td-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thumb{object-fit:cover;cursor:pointer}
 .thumb-placeholder{display:flex;align-items:center;justify-content:center;font-size:13px}

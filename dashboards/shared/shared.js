@@ -2,7 +2,7 @@
 // Loaded before app.js. Section 0 defines globals every app.js uses; the app supplies `state`
 // (sort / filters / pageLimit per table type) and renderTable(type).
 
-// 0) App helpers: error boundary, toast, SSE reader, sort / paging / filters, column filter popup
+// 0) App helpers: error boundary, toast, SSE reader, sort / paging / filters
 window.onerror = function(msg, src, line, col, err) {
   const el = document.getElementById('toast');
   if (el) { el.textContent = 'Error: ' + msg; el.className = 'show error'; setTimeout(() => el.className = '', 5000); }
@@ -20,7 +20,6 @@ const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const PAGE_SIZE = 20; // rows per page; "Show more" adds another page
-const FILTER_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5h13L9 8v5l-2 1.5V8z"/></svg>';
 const PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
 // Date columns keep the day as a number (YYYYMMDD) so sort and the column filter treat it like a metric.
 const dateNum = iso => /^\d{4}-\d{2}-\d{2}/.test(iso || '') ? Number(iso.slice(0, 10).replace(/-/g, '')) : 0;
@@ -111,27 +110,18 @@ function showMore(type) {
   renderTable(type);
 }
 
-// Re-filter + re-render (called from the header search fields and the filter popup)
+// Re-filter + re-render (called from the Filters in the Controls panel)
 function filterTable(type) {
   state.pageLimit[type] = PAGE_SIZE;
   renderTable(type);
 }
 
-// Rows matching every header search field (substring, any case) and column filter (state.filters[type])
+// Rows matching every filter of the Controls panel (state.filters[type])
 function applyFilters(type, rows) {
-  const metricFilters = Object.entries(state.filters[type]);
-  const textFilters = [...$$(`#${type}Table thead input[data-col]`)]
-    .map(el => [el.dataset.col, el.value.trim().toLowerCase()])
-    .filter(([, v]) => v);
-  if (!textFilters.length && !metricFilters.length) return rows;
+  const filters = Object.entries(state.filters[type]);
+  if (!filters.length) return rows;
   return rows.filter(row => {
-    for (const [col, v] of textFilters) if (!String(row[col] || '').toLowerCase().includes(v)) return false;
-    for (const [col, f] of metricFilters) {
-      if (f.none) { // "None" (Shopify): no value; 0 counts as none on numbers and dates
-        const v = row[col], empty = v == null || v === '' || (f.kind !== 'text' && !parseFloat(v));
-        if (/^(ne|notContains)$/.test(f.op) ? empty : !empty) return false;
-        continue;
-      }
+    for (const [col, f] of filters) {
       if (f.kind === 'select') { // value(s) of a list ('__none__' = empty); is / is one of, is not / is not one of
         const isIn = [].concat(f.val1).includes(String(row[col] || '__none__'));
         if (f.op === 'is' || f.op === 'isOneOf' ? !isIn : isIn) return false;
@@ -156,99 +146,6 @@ function applyFilters(type, rows) {
       if (f.op === 'notBetween' && !(v < f.val1 || v > f.val2)) return false;
     }
     return true;
-  });
-}
-
-// Column filter popup (#filterPopup), opened from a filter in the Controls panel (ReportPanel.filters).
-// btn.dataset.kind: 'date' (value YYYYMMDD), 'text' (contains) or a number column; btn.dataset.label = title.
-let _fpState = { type: null, col: null, btn: null };
-
-function openFilterPopup(type, col, btn, op) {
-  const popup = $('filterPopup');
-  const kind = btn.dataset.kind || 'number', isDate = kind === 'date';
-  _fpState = { type, col, btn, isDate, kind };
-  popup.dataset.kind = isDate ? 'date' : kind === 'text' ? 'text' : '';
-  // the operator list follows the column kind; a date keeps the day (YYYY-MM-DD) in #filterVal1,
-  // picked on the calendar (section 3)
-  const opSel = $('filterOp');
-  const ops = isDate ? DATE_OPS : kind === 'text' ? TEXT_OPS : NUM_OPS;
-  const opsHtml = ops.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
-  if (opSel.innerHTML !== opsHtml) opSel.innerHTML = opsHtml;
-  for (const id of ['filterVal1', 'filterVal2']) $(id).type = kind === 'number' ? 'number' : 'text';
-  const existing = state.filters[type][col];
-  const show = v => v == null ? '' : isDate ? numIso(v) : v;
-  $('filterOp').value = op || existing?.op || ops[0][0];
-  $('filterVal1').value = show(existing?.val1);
-  $('filterVal2').value = show(existing?.val2);
-  $('filterPopupTitle').textContent = btn.dataset.label || col;
-  onFilterOpChange();
-  // below the button, above it when there is no room; always inside the viewport
-  const rect = btn.getBoundingClientRect();
-  popup.style.display = 'block';
-  const popH = popup.offsetHeight;
-  const popW = popup.offsetWidth;
-  const top = rect.bottom + 4 + popH > window.innerHeight ? rect.top - popH - 4 : rect.bottom + 4;
-  popup.style.top = Math.max(4, top) + 'px';
-  popup.style.left = Math.max(8, Math.min(rect.left, document.documentElement.clientWidth - popW - 8)) + 'px';
-  setTimeout(() => document.addEventListener('mousedown', _fpOutsideClick), 0);
-}
-
-function _fpOutsideClick(e) {
-  if (!$('filterPopup').contains(e.target) && e.target !== _fpState.btn) cancelFilter();
-}
-
-function onFilterOpChange() {
-  const op = $('filterOp').value;
-  const isBetween = op === 'between' || op === 'notBetween';
-  $('filterAnd').style.display = isBetween ? '' : 'none';
-  $('filterVal2').style.display = isBetween ? '' : 'none';
-}
-
-function applyFilter() {
-  const { type, col, isDate, kind } = _fpState;
-  const op = $('filterOp').value;
-  const read = id => isDate ? (dateNum($(id).value) || NaN) : kind === 'text' ? ($(id).value.trim() || NaN) : parseFloat($(id).value);
-  const val1 = read('filterVal1');
-  if (typeof val1 === 'number' && isNaN(val1)) { cancelFilter(); return; }
-  const filter = { op, val1 };
-  if (isDate) filter.kind = 'date';
-  if (kind === 'text') filter.kind = 'text';
-  if (op === 'between' || op === 'notBetween') {
-    const val2 = read('filterVal2');
-    if (isNaN(val2)) { cancelFilter(); return; }
-    filter.val2 = val2;
-  }
-  state.filters[type][col] = filter;
-  cancelFilter();
-  filterTable(type);
-  updateFilterBtns(type);
-  document.dispatchEvent(new CustomEvent('filterschange', { detail: { type } }));
-}
-
-function clearCurrentFilter() {
-  const { type, col } = _fpState;
-  delete state.filters[type][col];
-  cancelFilter();
-  filterTable(type);
-  updateFilterBtns(type);
-  document.dispatchEvent(new CustomEvent('filterschange', { detail: { type } }));
-}
-
-function cancelFilter() {
-  $('filterPopup').style.display = 'none';
-  document.removeEventListener('mousedown', _fpOutsideClick);
-}
-
-// Header filter buttons show the active filter ("> 200", "10–50")
-function updateFilterBtns(type) {
-  const opLabels = { gt: '>', lt: '<', gte: '≥', lte: '≤', between: '', notBetween: '!' };
-  $$(`#${type}Table .col-filter-btn`).forEach(btn => {
-    const f = state.filters[type][btn.dataset.col];
-    btn.classList.toggle('active', !!f);
-    if (!f) { btn.innerHTML = FILTER_SVG; return; }
-    const v = n => btn.dataset.kind === 'date' ? fmtDay(n).replace(/, \d{4}$/, '') : n; // "Nov 11"
-    const valStr = f.op === 'between' || f.op === 'notBetween' ? `${v(f.val1)}–${v(f.val2)}` : `${opLabels[f.op]}${v(f.val1)}`;
-    btn.innerHTML = `${FILTER_SVG} ${valStr}`;
   });
 }
 
@@ -299,7 +196,7 @@ function updateFilterBtns(type) {
     const render = () => {
       const cur = sel.options[sel.selectedIndex];
       const icon = ICONS[sel.dataset.icon] || '';
-      btn.innerHTML = `${icon}<span class="dd-label"></span>${sel.dataset.dd === 'chip' ? '' : CHEVRON}`;
+      btn.innerHTML = `${icon}<span class="dd-label"></span>${CHEVRON}`;
       btn.querySelector('.dd-label').textContent = cur ? cur.textContent : '';
       menu.innerHTML = '';
       for (const opt of sel.options) {
@@ -346,79 +243,7 @@ function updateFilterBtns(type) {
   document.querySelectorAll('select').forEach(enhance);
 })();
 
-// 3) Column filter popup chips (Shopify report Filters): the value chip shows the current
-//    value(s) or "Add value" ("Select value" on a date column); clicking it opens the editor (input + Clear/Apply). The app's
-//    own openFilterPopup/applyFilter keep working on #filterOp/#filterVal1/#filterVal2.
-(() => {
-  const popup = document.getElementById('filterPopup');
-  const chip = document.getElementById('filterValueChip');
-  if (!popup || !chip) return;
-  const v1 = document.getElementById('filterVal1'), v2 = document.getElementById('filterVal2');
-  const op = document.getElementById('filterOp');
-  const between = () => op.value === 'between' || op.value === 'notBetween';
-  const isDate = () => popup.dataset.kind === 'date';
-  const label = () => {
-    const show = v => isDate() ? fmtDay(dateNum(v)) : v; // date column: "Nov 10, 2026" (Shopify chip)
-    const a = show(v1.value.trim()), b = show(v2.value.trim());
-    const txt = !a ? '' : between() ? a + ' and ' + (b || '…') : a;
-    chip.textContent = txt || (isDate() ? 'Select value' : 'Add value');
-    chip.classList.toggle('empty', !txt);
-  };
-  // the editor (and the calendar) opens after openFilterPopup placed the popup: keep its bottom on screen
-  const fit = () => {
-    const r = popup.getBoundingClientRect(), vw = document.documentElement.clientWidth;
-    if (r.bottom > window.innerHeight - 8) popup.style.top = Math.max(4, window.innerHeight - r.height - 8) + 'px';
-    if (r.right > vw - 8) popup.style.left = Math.max(8, vw - r.width - 8) + 'px'; // the calendar widens it
-  };
-  const edit = on => { popup.classList.toggle('editing', on); fit(); if (on && !isDate()) setTimeout(() => v1.focus(), 0); };
-
-  // Date column: one-month calendar in the editor, copied from Shopify's report filter on a date
-  // dimension (s-date-picker, measured 2026-11-16): arrows + "November  2026", weekday row, day grid,
-  // today outlined, picked day black. Picking a day writes YYYY-MM-DD into #filterVal1.
-  const cal = document.createElement('div');
-  cal.className = 'fcal';
-  popup.querySelector('.filter-editor')?.insertBefore(cal, popup.querySelector('.filter-popup-actions'));
-  const pad = n => String(n).padStart(2, '0');
-  const isoOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
-  const ARROW = d => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-  let view = null; // first day of the month shown
-  const renderCal = () => {
-    const y = view.getFullYear(), m = view.getMonth();
-    const now = new Date(), today = isoOf(now.getFullYear(), now.getMonth(), now.getDate());
-    const lead = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-    // a grid of divs, not a <table>: the dashboards' table rules (sticky header, row lines) would hit it
-    const cells = Array(lead).fill('<span></span>');
-    for (let d = 1; d <= days; d++) {
-      const iso = isoOf(y, m, d);
-      const cls = ['fcal-day', iso === today && 'is-today', iso === v1.value && 'selected'].filter(Boolean).join(' ');
-      cells.push(`<button type="button" class="${cls}" data-iso="${iso}">${d}</button>`);
-    }
-    const month = view.toLocaleDateString('en-US', { month: 'long' });
-    cal.innerHTML = `<div class="fcal-head"><button type="button" class="fcal-nav" data-step="-1" aria-label="Previous month">${ARROW('m12 5-5 5 5 5')}</button>`
-      + `<span class="fcal-title"><span>${month}</span><span>${y}</span></span>`
-      + `<button type="button" class="fcal-nav" data-step="1" aria-label="Next month">${ARROW('m8 5 5 5-5 5')}</button></div>`
-      + `<div class="fcal-grid">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span class="fcal-wd">${d}</span>`).join('')}${cells.join('')}</div>`;
-  };
-  cal.addEventListener('click', e => {
-    const nav = e.target.closest('.fcal-nav'), day = e.target.closest('.fcal-day');
-    if (nav) { view = new Date(view.getFullYear(), view.getMonth() + Number(nav.dataset.step), 1); renderCal(); }
-    if (day) { v1.value = day.dataset.iso; label(); renderCal(); }
-  });
-  chip.addEventListener('click', () => edit(!popup.classList.contains('editing')));
-  [v1, v2].forEach(i => i.addEventListener('input', label));
-  op.addEventListener('change', label);
-  // popup opened by app code (style.display = 'block'): refresh chip, open editor if no value yet
-  new MutationObserver(() => {
-    if (popup.style.display !== 'block') { delete popup.dataset.shown; return; }
-    if (popup.dataset.shown) return;
-    popup.dataset.shown = '1';
-    label();
-    if (isDate()) { const d = v1.value ? new Date(v1.value + 'T00:00:00') : new Date(); view = new Date(d.getFullYear(), d.getMonth(), 1); renderCal(); }
-    edit(!v1.value.trim());
-  }).observe(popup, { attributes: true, attributeFilter: ['style'] });
-})();
-
-// 4) Tooltips like Shopify admin: dark card, bold title + description, below the element
+// 3) Tooltips like Shopify admin: dark card, bold title + description, below the element
 //    (above when there is no room). Any element with data-tip (and optional data-tip-title).
 (() => {
   const tip = document.createElement('div');
@@ -464,7 +289,7 @@ function updateFilterBtns(type) {
   document.addEventListener('mousedown', hide);
 })();
 
-// 5) Date range picker = Shopify Analytics date picker (measured 2026-11-19): grey pill button;
+// 4) Date range picker = Shopify Analytics date picker (measured 2026-11-19): grey pill button;
 //    popover with a #f7f7f7 sidebar (Today, Yesterday | Last, Period to date | Quarters | Custom range;
 //    Shopify's Black Friday / Cyber Monday left out, user 2026-11-19), the chosen option's controls
 //    ("Last [30] [Days] [x] Include today"), two months, and a footer with the dates + Cancel / Apply.
@@ -689,7 +514,7 @@ const DateRange = (() => {
   return { mount, resolve };
 })();
 
-// 6) Report controls panel = Shopify report "Controls" panel (measured 2026-11-19 on Reports → Total
+// 5) Report controls panel = Shopify report "Controls" panel (measured 2026-11-19 on Reports → Total
 //    sales by product variant): sticky card on the right, sections with a grey title and a "+" button,
 //    items as 28px text rows; hovering an item shows × (remove). "+" opens a popover with a search
 //    field, a check list and Clear / Apply. The "Controls" button in the action bar shows / hides it.
@@ -772,7 +597,7 @@ const ReportPanel = (() => {
   //   number  input with "$" before (money) or "%" / "x" after (fmt), two inputs for "between"
   //   text    input ("contains" / "is" ...)
   //   select  list with search, one value ("is") or several ("is one of")
-  //   date    the calendar of #filterPopup
+  //   date    a one-month calendar
   // Hover shows × (remove). A picked column with no value yet stays listed and filters nothing.
   // fields [{key,label,kind:'number'|'date'|'text'|'select',fmt?,options?}]; filters in state.filters[type].
   const pending = {}; // type → Map column → operator, for columns added without a value
@@ -782,7 +607,7 @@ const ReportPanel = (() => {
   const numText = (f, n) => { const [pre, suf] = AFFIX[f.fmt] || ['', '']; return pre + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) + suf; };
 
   // small value editor: number / text inputs, or a one-month calendar for a date (Shopify s-date-picker,
-  // measured 2026-11-16), then "None" (rows with no value) and Clear / Apply
+  // measured 2026-11-16), then Clear / Apply (no "None" row: user removed it 2026-11-19)
   const CAL_ARROW = d => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
   function valuePopover(anchor, f, op, x, onApply) {
     closePop();
@@ -791,12 +616,11 @@ const ReportPanel = (() => {
     const input = (v, i) => `<label class="rp-input">${pre ? `<span class="rp-affix">${pre}</span>` : ''}<input type="${f.kind === 'number' ? 'number' : 'text'}" step="any" data-i="${i}" value="${esc(v ?? '')}" placeholder="${f.kind === 'number' ? '0' : ''}">${suf ? `<span class="rp-affix">${suf}</span>` : ''}</label>`;
     const pop = document.createElement('div');
     pop.className = 'rp-pop rp-valpop';
-    pop.innerHTML = (isDate ? '<div class="fcal"></div>' : `<div class="rp-val-inputs">${input(x?.none ? '' : x?.val1, 1)}${two ? `<span class="rp-and">and</span>${input(x?.none ? '' : x?.val2, 2)}` : ''}</div>`)
-      + `<label class="rp-check rp-none-row"><input type="checkbox" class="rp-none"${x?.none ? ' checked' : ''}><span class="rp-box"></span><span>None</span></label>`
+    pop.innerHTML = (isDate ? '<div class="fcal"></div>' : `<div class="rp-val-inputs">${input(x?.val1, 1)}${two ? `<span class="rp-and">and</span>${input(x?.val2, 2)}` : ''}</div>`)
       + '<div class="rp-pop-foot"><button type="button" class="rp-clear">Clear</button><button type="button" class="rp-apply">Apply</button></div>';
-    const ins = [...pop.querySelectorAll('.rp-input input')], none = pop.querySelector('.rp-none');
+    const ins = [...pop.querySelectorAll('.rp-input input')];
     // calendar (dates): arrows + "November 2026", weekdays, days; today outlined, picked day black
-    let day = isDate && x && !x.none ? numIso(x.val1) : '';
+    let day = isDate && x ? numIso(x.val1) : '';
     const cal = pop.querySelector('.fcal');
     let view = (() => { const d = day ? new Date(day + 'T00:00:00') : new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
     const pad = n => String(n).padStart(2, '0');
@@ -817,14 +641,11 @@ const ReportPanel = (() => {
     cal?.addEventListener('click', e => {
       const nav = e.target.closest('.fcal-nav'), d = e.target.closest('.fcal-day');
       if (nav) view = new Date(view.getFullYear(), view.getMonth() + Number(nav.dataset.step), 1);
-      if (d) { day = d.dataset.iso; none.checked = false; sync(); }
+      if (d) day = d.dataset.iso;
       drawCal();
     });
-    const sync = () => { ins.forEach(i => { i.disabled = none.checked; }); pop.classList.toggle('is-none', none.checked); };
-    none.addEventListener('change', () => { if (none.checked) day = ''; sync(); drawCal(); });
     const apply = () => {
       closePop();
-      if (none.checked) return onApply({ none: true });
       if (isDate) return onApply(day ? { val1: dateNum(day) } : null);
       const read = el => f.kind === 'number' ? parseFloat(el.value) : el.value.trim();
       const v1 = read(ins[0]), v2 = ins[1] ? read(ins[1]) : undefined;
@@ -832,17 +653,17 @@ const ReportPanel = (() => {
       if (bad(v1) || (two && bad(v2))) return onApply(null);
       onApply(two ? { val1: Math.min(v1, v2), val2: Math.max(v1, v2) } : { val1: v1 });
     };
-    pop.querySelector('.rp-clear').addEventListener('click', () => { ins.forEach(i => { i.value = ''; }); day = ''; none.checked = false; sync(); drawCal(); });
+    pop.querySelector('.rp-clear').addEventListener('click', () => { ins.forEach(i => { i.value = ''; }); day = ''; drawCal(); });
     pop.querySelector('.rp-apply').addEventListener('click', apply);
     ins.forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); }));
     pop.addEventListener('click', e => e.stopPropagation());
-    drawCal(); sync();
+    drawCal();
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect(), w = pop.offsetWidth;
     pop.style.top = Math.max(8, Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 8)) + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w - 8)) + 'px';
     openPop = pop;
-    if (ins[0] && !none.checked) setTimeout(() => ins[0].focus(), 0);
+    if (ins[0]) setTimeout(() => ins[0].focus(), 0);
   }
 
   function filters(host, { type, fields }) {
@@ -851,7 +672,6 @@ const ReportPanel = (() => {
     for (const k of Object.keys(cur)) pend.delete(k);
     const list = fields.filter(f => cur[f.key] || pend.has(f.key));
     const valText = (f, x) => {
-      if (x.none) return 'None';
       if (f.kind === 'select') return [].concat(x.val1).map(k => (f.options().find(o => o.key === k) || { label: k }).label).join(', ');
       const v = n => f.kind === 'date' ? fmtDay(n) : f.kind === 'number' ? numText(f, n) : n;
       return x.op === 'between' || x.op === 'notBetween' ? `${v(x.val1)} and ${v(x.val2)}` : v(x.val1);
@@ -940,9 +760,6 @@ const ReportPanel = (() => {
       redraw();
     }));
   }
-  document.addEventListener('filterschange', () => {
-    document.querySelectorAll('.rp-sec').forEach(h => { if (h._rpFilters) filters(h, h._rpFilters); });
-  });
   return { section, toggle, filters };
 })();
 

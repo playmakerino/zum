@@ -140,46 +140,7 @@ thead tr.total-row td.td-metric{text-align:right;padding-right:28px}
 .thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px;background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
 
-/* ── Inputs + column filter */
-/* header search field = Shopify "Search dimensions" field (measured): 12px radius, white,
-   1px rgba(0,0,0,.13) ring + soft drop shadow, 16px magnifier on the left, 13px/20px text;
-   focus = #5083f0 ring + light blue glow. 28px tall (user 2026-10-14: 30px nearly touched the
-   row line), centred in the 37px header row: 4px above, 4px + the 1px line below. */
-.th-filter-input{width:180px;height:28px;padding:0 12px 0 32px;border:none;border-radius:12px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%234a4a4a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8.5' cy='8.5' r='5'/%3E%3Cpath d='m12.3 12.3 3.7 3.7'/%3E%3C/svg%3E") 10px center/16px 16px no-repeat;font-family:inherit;font-size:13px;font-weight:400;line-height:20px;letter-spacing:-.01em;color:#101010;outline:none;box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.13);transition:box-shadow .12s}
-thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
-.th-filter-input::placeholder{color:#4a4a4a}
-.filter-inputs input::placeholder{color:#616161}
-.th-filter-input:hover{box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.2)}
-.th-filter-input:focus{box-shadow:0 2px 3px -1px rgba(0,0,0,.04),0 3px 4px -1.5px rgba(0,0,0,.04),0 4px 5px -2px rgba(0,0,0,.04),0 0 0 1px #5083f0,0 0 0 3px rgba(53,115,246,.06),0 4px 20px 2px rgba(53,115,246,.06),inset 0 0 8px 1px rgba(53,115,246,.05)}
-.col-filter-btn{color:#8a8a8a;border-radius:6px;padding:2px}
-.col-filter-btn svg{width:12px;height:12px}
-.col-filter-btn:hover{color:#303030;background:rgba(0,0,0,.08)}
-.col-filter-btn.active{color:#101010}
-
-/* ── Column filter popup = Shopify report "Filters" card (measured 2026-10-14):
-   header 32px #f7f7f7 13px/500; chips 22px, 2px 6px padding, 8px radius, #ddd, 12px/18px;
-   value editor = Shopify value popover: 30px input 13px/20px, 5px 12px padding, blue focus;
-   footer Clear (blue link) + Apply (28px dark). */
-.filter-popup{min-width:248px;border:none;border-radius:12px;box-shadow:0 0 0 1px #ddd,0 4px 16px rgba(0,0,0,.12)}
-.filter-popup .filter-popup-title{height:32px;display:flex;align-items:center;padding:0 8px;background:#f7f7f7;border-radius:12px 12px 0 0;border-bottom:1px solid #ddd;font-size:13px;line-height:20px;font-weight:500;letter-spacing:0;color:#101010}
-.filter-popup .filter-popup-body{padding:6px 8px}
-.filter-chips{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
-.dd-chip .dd-btn,.filter-value-chip{height:22px;padding:2px 6px;border:none;border-radius:8px;background:#ddd;color:#303030;font-family:inherit;font-size:12px;font-weight:450;line-height:18px;cursor:pointer;transition:background .1s}
-.dd-chip .dd-btn:hover,.filter-value-chip:hover{background:#d0d0d0}
-.dd-chip.open .dd-btn,.filter-popup.editing .filter-value-chip{background:#c4c4c4}
-.filter-value-chip.empty{color:#616161}
-.filter-editor{display:none;border-top:1px solid #ebebeb}
-.filter-popup.editing .filter-editor{display:block}
-.filter-popup .filter-inputs{display:flex;align-items:center;gap:8px;padding:12px}
-.filter-popup .filter-inputs input{flex:1;min-width:0;height:30px;padding:5px 12px;border:1px solid #8a8a8a;border-radius:8px;background:#fff;color:#101010;font-family:inherit;font-size:13px;line-height:20px;outline:none;-moz-appearance:textfield}
-.filter-popup .filter-inputs input:hover{border-color:#616161}
-.filter-popup .filter-inputs input:focus{border-color:#5083f0;background:#f5f9ff;box-shadow:0 0 0 1px #5083f0}
-.filter-popup .filter-inputs input::-webkit-outer-spin-button,.filter-popup .filter-inputs input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.filter-and{font-size:13px;color:#616161}
-/* date column: calendar instead of the inputs (Shopify report filter on a date dimension, s-date-picker measured 2026-11-16) */
-.fcal{display:none;padding:12px 0}
-.filter-popup[data-kind="date"] .fcal{display:block}
-.filter-popup[data-kind="date"] .filter-inputs{display:none}
+/* one-month calendar of a date filter (Shopify report filter on a date dimension, s-date-picker measured 2026-11-16) */
 .fcal-head{display:grid;grid-template-columns:repeat(7,1fr);align-items:center;padding:0 12px 6px;font-size:13px;line-height:20px;font-weight:500;color:#101010}
 .fcal-head .fcal-nav:first-child{grid-column:1;justify-self:center}
 .fcal-head .fcal-title{grid-column:2/7;display:flex;justify-content:center;gap:8px;font-weight:600}
@@ -194,11 +155,6 @@ thead th:has(.th-filter-input){padding-top:4px;padding-bottom:5px}
 .fcal-day:active{background:#f2f2f2}
 .fcal-day.is-today{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .fcal-day.selected,.fcal-day.selected:hover{background:#101010;color:#fff;font-weight:600}
-.filter-popup .filter-popup-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ebebeb}
-.filter-popup .filter-popup-actions .filter-clear{height:28px;background:none;border:none;border-radius:12px;box-shadow:none;padding:0 6px;color:#1650d0;font-family:inherit;font-size:13px;font-weight:450;line-height:20px;cursor:pointer}
-.filter-popup .filter-popup-actions .filter-clear:hover{background:none;color:#1347b9;text-decoration:underline}
-.filter-popup .filter-popup-actions .btn-primary{height:28px;padding:0 12px;border:none;border-radius:12px;font-size:13px;font-weight:600;line-height:20px;color:#fff;background:linear-gradient(#3a3a3a,#1a1a1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.3)}
-.filter-popup .filter-popup-actions .btn-primary:hover{background:linear-gradient(#2a2a2a,#101010)}
 
 /* ── Popovers, overlay, toast, tooltip */
 .load-popup{border:none;border-radius:16px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.08)}
@@ -335,10 +291,8 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
 .rp-input input{flex:1;min-width:0;width:90px;border:none;outline:none;background:none;font-family:inherit;font-size:13px;line-height:20px;color:#101010;-moz-appearance:textfield}
 .rp-input input::-webkit-outer-spin-button,.rp-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .rp-and{color:#616161}
-/* "None" row + calendar inside the filter value editor */
+/* calendar inside the filter value editor */
 .rp-valpop .fcal{display:block;padding:8px 0 4px}
-.rp-none-row{margin:0 8px 4px}
-.rp-valpop.is-none .rp-input{opacity:.5}
 .rp-row:hover .rp-info{visibility:visible}
 .rp-info{visibility:hidden;width:24px;height:24px;cursor:default}
 .drp-btn:disabled{opacity:.5;cursor:default}

@@ -14,11 +14,10 @@ body{-webkit-font-smoothing:antialiased}
 .page{display:none}
 .page.active{display:block}
 table{border-collapse:collapse}
-/* column widths: every column takes its content, the metric columns are then made equal (shared.js
-   equalizeMetricCols) and Ad name + Link share the rest (max-width:0 = their text does not count,
-   long text ends in …) */
-tbody td.td-name{max-width:0;width:60%}
-tbody td.td-link{max-width:0;width:40%}
+/* column widths: every column takes its content (Ad name too: the longest of 1,004 ads was 322px,
+   measured 2026-11-20), the metric columns are then made equal (shared.js equalizeMetricCols) and Link
+   takes the rest (max-width:0 = its text does not count, a long link ends in …) */
+tbody td.td-link{max-width:0;width:100%}
 /* Print ID is a dimension that can be sorted: header left like its cells (shared.css right-aligns every
    sortable header), which also keeps it out of equalizeMetricCols */
 #adsTable thead th.th-pid .th-content{justify-content:flex-start}

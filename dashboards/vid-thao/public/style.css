@@ -93,7 +93,11 @@ thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 #toast.show{opacity:1;transform:translateY(0)}
 
 /* Login (one password per submitter, server.js): full page over the dashboard, card like the Controls panel */
-.user-chip{display:inline-flex;align-items:center;gap:8px;color:#616161}
+.user-menu[hidden]{display:none}
+.user-menu .dd-btn{padding:4px 8px 4px 12px}
+.user-menu .dd-menu{left:auto;right:0;min-width:160px}
+.user-menu .dd-item{justify-content:flex-start;gap:8px}
+.user-menu .dd-item svg{width:20px;height:20px;flex-shrink:0}
 .login-view{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:#f1f1f1}
 .login-view[hidden]{display:none}
 .login-card{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03)}

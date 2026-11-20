@@ -19,7 +19,12 @@
     <div class="topbar-actions">
       <div id="dateRange"></div>
       <button type="button" class="press-btn" id="controlsBtn" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 6.5h5M12.5 6.5h4M3.5 13.5h2M9.5 13.5h7"/><circle cx="10.5" cy="6.5" r="2"/><circle cx="7.5" cy="13.5" r="2"/></svg>Controls</button>
-      <span class="user-chip" id="userChip" hidden><span id="userName"></span><button type="button" class="press-btn" onclick="logout()">Log out</button></span>
+      <div class="dd user-menu" id="userChip" hidden>
+        <button type="button" class="dd-btn" id="userBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleUserMenu(event)"><span class="dd-label" id="userName"></span><svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 8 4 4 4-4"/></svg></button>
+        <div class="dd-menu" id="userMenu" role="menu" hidden>
+          <button type="button" class="dd-item" role="menuitem" onclick="logout()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5.5A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/><path d="M12.5 6.5 16 10l-3.5 3.5M16 10H8"/></svg>Log out</button>
+        </div>
+      </div>
     </div>
   </header>
 

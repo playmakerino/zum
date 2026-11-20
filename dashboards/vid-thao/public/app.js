@@ -152,7 +152,21 @@ async function login(e) {
     btn.disabled = false;
   }
 }
+// user name button: opens a menu with Log out (like Shopify "More actions")
+function setUserMenu(open) {
+  $('userChip').classList.toggle('open', open);
+  $('userMenu').hidden = !open;
+  $('userBtn').setAttribute('aria-expanded', open);
+}
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  setUserMenu($('userMenu').hidden);
+}
+document.addEventListener('click', e => { if (!e.target.closest('#userChip')) setUserMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setUserMenu(false); });
+
 async function logout() {
+  setUserMenu(false);
   await fetch('/api/logout', { method: 'POST' }).catch(() => {});
   clearSavedResults();
   onPeriodChange();

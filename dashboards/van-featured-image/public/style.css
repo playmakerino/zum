@@ -16,7 +16,7 @@ body{-webkit-font-smoothing:antialiased}
 table{border-collapse:collapse}
 /* column widths (user, 2026-11-20; Polaris report, see shared.css): the dimensions are fixed, longer
    text ends in …: Print ID 96px, Ad name 280px (most names 63-127px, the longest of 1,004 ads 322px),
-   Link 320px (half the links under 280px, 90% under 384px); Spend + ROAS 120px (shared.css) */
+   Link 320px (half the links under 280px, 90% under 384px); Spend + ROAS 92px (shared.css) */
 #adsTable thead tr:first-child th:nth-child(2){width:96px;min-width:96px;max-width:96px}
 #adsTable tbody td:nth-child(2):not([colspan]){width:96px;min-width:96px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tbody td.td-name{width:280px;min-width:280px;max-width:280px}

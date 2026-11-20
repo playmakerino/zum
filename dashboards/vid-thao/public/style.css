@@ -15,8 +15,8 @@ body{-webkit-font-smoothing:antialiased}
 .debug-line:empty{display:none}
 table{border-collapse:collapse}
 /* column widths (user, 2026-11-20; Polaris report, see shared.css): the Video dimension is fixed (a
-   longer name ends in …), metric columns and Created 120px in shared.css */
-#creativesTable tbody td.td-name{width:320px;min-width:320px;max-width:320px}
+   longer name ends in …), metric columns 92px and Created 120px in shared.css */
+#creativesTable tbody td.td-name{width:300px;min-width:300px;max-width:300px}
 #creativesTable .td-metric{white-space:nowrap}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2;transition:color .08s}
 thead th:first-child{position:sticky;left:0;z-index:3}

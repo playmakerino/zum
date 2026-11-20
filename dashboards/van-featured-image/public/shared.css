@@ -313,17 +313,22 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
    sales by product variant: every column fixed, dimensions 200px and metrics 140px there; the table as
    wide as its columns, blank space on the right when narrower than the card; when wider it scrolls
    sideways with a scrollbar of its own stuck to the bottom of the screen, the header stays stuck under
-   the top bar and the first dimension column stays put). Here (user, 2026-11-20): metric columns
-   (Created too) 120px, the widest number needs 89px; dimension widths in each dashboard's style.css.
+   the top bar and the first dimension column stays put). Here (user, 2026-11-20): metric columns 92px
+   (the widest number needs 89px; with the Controls panel off no table scrolls at a 1440px window),
+   Created 120px (its date needs 118px); dimension widths in each dashboard's style.css.
    A longer column name ends in … and its tooltip gives the full name (Shopify "Net sales without…").
    The scroll is a translateX driven by that scrollbar (HScroll in shared.js) because a real sideways
    scroller would unstick the header. */
 .report-layout>.card table{width:auto}
-.report-layout>.card thead tr:first-child th[data-sort]{width:120px;min-width:120px;max-width:120px}
+.report-layout>.card thead tr:first-child th[data-sort]{width:92px;min-width:92px;max-width:92px}
+.report-layout>.card thead tr:first-child th[data-sort="created_on"]{width:120px;min-width:120px;max-width:120px}
 .report-layout>.card thead th[data-sort] .th-content{max-width:100%}
 .th-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hscroll{position:sticky;bottom:0;z-index:5;height:11px;overflow-x:auto;overflow-y:hidden;background:#fff}
 .hscroll>div{height:1px}
+/* its thumb is hidden until hovered like every Polaris scrollbar (top of this file); hovering the
+   table shows it too, else an 11px bar is never found */
+.report-layout>.card:hover .hscroll::-webkit-scrollbar-thumb{background-color:#8c8c8c}
 @media(min-width:1101px){
   .report-layout>.card .table-scroll{overflow-x:clip}
   .report-layout>.card table{transform:translateX(calc(-1 * var(--sx,0px)))}

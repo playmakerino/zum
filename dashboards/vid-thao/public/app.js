@@ -366,8 +366,8 @@ function renderTable(type) {
     th.classList.toggle('sorted', th.dataset.sort === key);
     th.classList.toggle('asc', th.dataset.sort === key && dir === -1);
   });
-  equalizeMetricCols();
   buildTotalRow(type, filtered);
+  equalizeMetricCols(); // after the Summary row: its totals can be wider than the headers
 }
 
 // Submitted by = a list filter in the Controls panel (who sent the video through the form, from BigQuery)

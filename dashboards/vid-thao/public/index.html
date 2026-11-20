@@ -19,6 +19,7 @@
     <div class="topbar-actions">
       <div id="dateRange"></div>
       <button type="button" class="press-btn" id="controlsBtn" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 6.5h5M12.5 6.5h4M3.5 13.5h2M9.5 13.5h7"/><circle cx="10.5" cy="6.5" r="2"/><circle cx="7.5" cy="13.5" r="2"/></svg>Controls</button>
+      <span class="user-chip" id="userChip" hidden><span id="userName"></span><button type="button" class="press-btn" onclick="logout()">Log out</button></span>
     </div>
   </header>
 
@@ -58,6 +59,16 @@
   </main>
 </div>
 <div id="toast"></div>
+<div id="loginView" class="login-view" hidden>
+  <form class="login-card" id="loginForm" onsubmit="login(event)">
+    <h2>Video Creative Performance</h2>
+    <p class="login-hint">Log in to see the videos you sent.</p>
+    <label>Name<input id="loginName" name="name" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label>
+    <p class="login-error" id="loginError" hidden></p>
+    <button type="submit" class="login-btn" id="loginBtn">Log in</button>
+  </form>
+</div>
 <div id="videoViewer" class="viewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle">
   <div class="viewer-bar">
     <button class="viewer-btn" id="viewerExit" type="button" onclick="closeVideo()" aria-label="Exit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4H14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 14 16h-2.5"/><path d="M8 6.5 4.5 10 8 13.5M4.5 10H12"/></svg></button>

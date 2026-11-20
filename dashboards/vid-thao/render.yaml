@@ -11,5 +11,9 @@ services:
         sync: false
       - key: BQ_SA_KEY
         sync: false
+      - key: SUBMITTER_PASSWORDS
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: PORT
         value: 3000

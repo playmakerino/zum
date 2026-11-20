@@ -108,16 +108,58 @@ function renderMetricPanel() {
   hideColumns('creativesTable', METRIC_COLS.filter(c => hiddenCols.includes(c.key)).map(c => c.pos));
 }
 renderMetricPanel();
-// Filters (Controls panel): ad name contains, created date, every metric
-ReportPanel.filters($('filterSec'), { type: 'creatives', fields: [
-  { key: 'ad_name', label: 'Video', kind: 'text' }, // the name shown = the ad with the most spend
-  { key: 'submitted_by', label: 'Submitted by', kind: 'select', options: submitterOptions },
-  ...METRIC_COLS,
-] });
+// Filters (Controls panel): ad name contains, created date, every metric; Submitted by only for
+// admin (a submitter's table holds only their own videos)
+function mountFilters(admin) {
+  ReportPanel.filters($('filterSec'), { type: 'creatives', fields: [
+    { key: 'ad_name', label: 'Video', kind: 'text' }, // the name shown = the ad with the most spend
+    ...(admin ? [{ key: 'submitted_by', label: 'Submitted by', kind: 'select', options: submitterOptions }] : []),
+    ...METRIC_COLS,
+  ] });
+}
 ReportPanel.toggle($('controlsBtn'), $('reportLayout'), 'vidthao_controls');
 
-// Init
-window.addEventListener('DOMContentLoaded', async () => {
+// ── Login (server.js: one password per submitter, admin sees all) ────────────
+// Results saved in this browser belong to the user who loaded them: another user logging in here
+// clears them, so a submitter never sees rows saved by admin.
+function clearSavedResults() {
+  try { Object.keys(localStorage).filter(k => k.startsWith('meta_cache_')).forEach(k => localStorage.removeItem(k)); } catch {}
+}
+function showLogin(msg) {
+  $('loginView').hidden = false;
+  $('userChip').hidden = true;
+  $('loginError').hidden = !msg;
+  $('loginError').textContent = msg || '';
+  $('loginName').focus();
+}
+async function login(e) {
+  e.preventDefault();
+  const btn = $('loginBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: $('loginName').value, password: $('loginPassword').value }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return showLogin(body.error || `HTTP ${res.status}`);
+    $('loginPassword').value = '';
+    $('loginView').hidden = true;
+    startSession(body);
+  } catch (err) {
+    showLogin(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+  clearSavedResults();
+  onPeriodChange();
+  showLogin();
+}
+// a logged-in user (or everyone, when no passwords are set): read the config, show their saved result
+async function startSession(me) {
   try {
     const res = await fetch('/api/config');
     if (!res.ok) {
@@ -130,9 +172,29 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     logApiError('GET /api/config', err, { url: '/api/config' });
   }
+  let prev = null;
+  try { prev = localStorage.getItem('vidthao_user'); } catch {}
+  const who = me.user || '*';
+  if (prev !== who) { clearSavedResults(); try { localStorage.setItem('vidthao_user', who); } catch {} }
+  $('userChip').hidden = !me.user;
+  $('userName').textContent = me.user || '';
+  mountFilters(me.admin);
   // Opening the page never calls Meta: show the result saved in this browser, else an empty
   // table with the "Load Data" hint (user choice 2026-10-14)
-  if (state.ready) showSaved(rangeKey());
+  onPeriodChange();
+}
+
+// Init
+window.addEventListener('DOMContentLoaded', async () => {
+  let me = null;
+  try {
+    const res = await fetch('/api/me');
+    if (res.ok) me = await res.json();
+  } catch (err) {
+    logApiError('GET /api/me', err, { url: '/api/me' });
+  }
+  if (me?.authEnabled && !me.user) return showLogin();
+  startSession(me || { admin: true });
 });
 
 // Swap to the saved result of the chosen range, or clear the table when there is none.
@@ -201,6 +263,11 @@ async function fetchAll() {
   const url = `/api/dashboard?since=${range.since}&until=${range.until}&refresh=1`;
   try {
     const res = await fetch(url);
+    if (res.status === 401) { // the login expired or a password changed
+      stopLoadTimer();
+      $$('.load-overlay').forEach(el => el.style.display = 'none');
+      return showLogin('Please log in again');
+    }
     if (!res.ok) throw await httpError(res);
 
     let data = null;

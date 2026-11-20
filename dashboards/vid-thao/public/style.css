@@ -91,3 +91,20 @@ thead th .th-content{display:flex;align-items:center;white-space:nowrap}
 
 #toast{position:fixed;bottom:18px;right:18px;padding:8px 14px;z-index:9999;opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
+
+/* Login (one password per submitter, server.js): full page over the dashboard, card like the Controls panel */
+.user-chip{display:inline-flex;align-items:center;gap:8px;color:#616161}
+.login-view{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:#f1f1f1}
+.login-view[hidden]{display:none}
+.login-card{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 20px rgba(0,0,0,.03),0 5px 20px rgba(0,0,0,.03)}
+.login-card h2{margin:0;font-size:15px;line-height:20px;font-weight:650}
+.login-hint{margin:0;color:#616161}
+.login-card label{display:flex;flex-direction:column;gap:4px;font-weight:450}
+.login-card input{height:32px;padding:0 10px;border:none;border-radius:8px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.13);font-family:inherit;font-size:13px;color:#101010;outline:none}
+.login-card input:focus{box-shadow:0 0 0 2px #303030}
+.login-error{margin:0;color:#8e0b21}
+.login-error[hidden]{display:none}
+.login-btn{height:32px;border:none;border-radius:8px;background:#303030;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.login-btn:hover{background:#1a1a1a}
+.login-btn:disabled{opacity:.6;cursor:default}
+@media (max-width:640px){.login-card input{font-size:16px}}

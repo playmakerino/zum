@@ -1,12 +1,107 @@
 // Local runs read keys from D:\keys (one file per key); on Render they are env vars and these files do not exist.
-require('dotenv').config({ path: ['meta-ad-account', 'port', 'triplewhale'].map(k => 'D:/keys/.env.' + k) });
+require('dotenv').config({ path: ['meta-ad-account', 'port', 'triplewhale', 'vid-thao-auth'].map(k => 'D:/keys/.env.' + k) });
 const express   = require('express');
 const axios     = require('axios');
 const path      = require('path');
+const crypto    = require('crypto');
 const { getCredentials, findPurchaseAction, fetchAdRows, fetchAdMedia, sseLoad } = require('./meta');
 
 const app = express();
+app.set('trust proxy', 1); // Render sits behind a proxy: req.secure + req.ip come from X-Forwarded-*
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Login (one password per submitter) ───────────────────────────────────────
+// SUBMITTER_PASSWORDS = JSON {"<submitted_by>": "<password>"} (submitted_by = the email before @,
+// lower case); ADMIN_PASSWORD = the password of the name "admin", who sees every row. Both are env
+// vars on Render (local: D:/keys/.env.vid-thao-auth). Neither set → no login, everyone sees all (as before).
+// A login is a signed cookie (30 days); the signing key comes from the passwords, so changing any
+// password logs everyone out.
+const AUTH_COOKIE = 'vt_auth';
+const AUTH_TTL = 30 * 24 * 3600 * 1000;
+function authUsers() {
+  const users = {};
+  try {
+    const raw = JSON.parse(process.env.SUBMITTER_PASSWORDS || '{}');
+    for (const [name, pw] of Object.entries(raw)) if (name && pw) users[String(name).trim().toLowerCase()] = String(pw);
+  } catch (err) { console.error('SUBMITTER_PASSWORDS is not valid JSON:', err.message); }
+  if (process.env.ADMIN_PASSWORD) users.admin = process.env.ADMIN_PASSWORD;
+  return users;
+}
+const authEnabled = () => Object.keys(authUsers()).length > 0;
+const authKey = () => crypto.createHash('sha256').update('vid-thao|' + JSON.stringify(authUsers())).digest();
+const b64url = s => Buffer.from(s).toString('base64url');
+function signSession(user, now = Date.now()) {
+  const body = b64url(JSON.stringify({ u: user, e: now + AUTH_TTL }));
+  return body + '.' + crypto.createHmac('sha256', authKey()).update(body).digest('base64url');
+}
+// cookie value → user name, or null when missing, forged, expired or the user was removed
+function verifySession(token, now = Date.now()) {
+  const [body, sig] = String(token || '').split('.');
+  if (!body || !sig) return null;
+  const want = crypto.createHmac('sha256', authKey()).update(body).digest();
+  const got = Buffer.from(sig, 'base64url');
+  if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) return null;
+  try {
+    const { u, e } = JSON.parse(Buffer.from(body, 'base64url').toString());
+    return e > now && authUsers()[u] ? u : null;
+  } catch { return null; }
+}
+function checkPassword(name, password) {
+  const user = String(name || '').trim().toLowerCase();
+  const pw = authUsers()[user];
+  if (!pw) return null;
+  const h = s => crypto.createHash('sha256').update(String(s)).digest();
+  return crypto.timingSafeEqual(h(pw), h(password || '')) ? user : null;
+}
+function readCookie(req, name) {
+  for (const part of String(req.headers.cookie || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
+}
+// who is asking: { user, admin }, null when not logged in; with no passwords set everyone is admin
+function viewer(req) {
+  if (!authEnabled()) return { user: null, admin: true };
+  const user = verifySession(readCookie(req, AUTH_COOKIE));
+  return user ? { user, admin: user === 'admin' } : null;
+}
+// rows a viewer may see: admin all, a submitter only the videos they sent
+const visibleTo = (v, rows) => v.admin ? rows : rows.filter(r => r.submitted_by === v.user);
+
+// 10 wrong passwords from one address → that address waits 15 minutes
+const loginFails = new Map();
+const LOGIN_MAX_FAILS = 10, LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+app.post('/api/login', express.json({ limit: '2kb' }), (req, res) => {
+  const ip = req.ip || '';
+  const f = loginFails.get(ip);
+  const recent = f && Date.now() - f.at < LOGIN_LOCK_MS;
+  if (recent && f.n >= LOGIN_MAX_FAILS) return res.status(429).json({ error: 'Too many attempts, try again in 15 minutes' });
+  const user = checkPassword(req.body?.name, req.body?.password);
+  if (!user) {
+    loginFails.set(ip, { n: recent ? f.n + 1 : 1, at: Date.now() });
+    return res.status(401).json({ error: 'Wrong name or password' });
+  }
+  loginFails.delete(ip);
+  res.cookie(AUTH_COOKIE, signSession(user), { httpOnly: true, sameSite: 'lax', secure: req.secure, maxAge: AUTH_TTL, path: '/' });
+  res.json({ user, admin: user === 'admin' });
+});
+app.post('/api/logout', (req, res) => {
+  res.clearCookie(AUTH_COOKIE, { path: '/' });
+  res.json({ ok: true });
+});
+app.get('/api/me', (req, res) => {
+  const v = viewer(req);
+  res.json({ authEnabled: authEnabled(), user: v?.user || null, admin: !!v?.admin });
+});
+// every other /api route needs a login
+app.use('/api', (req, res, next) => {
+  const v = viewer(req);
+  if (!v) return res.status(401).json({ error: 'Not logged in' });
+  req.viewer = v;
+  next();
+});
 
 // ── In-memory caches ─────────────────────────────────────────────────────────
 // Render free has no persistent disk (restart/spin-down wipes files), so caches
@@ -200,6 +295,33 @@ function bigQuery() {
   _bq = new BigQuery({ projectId: key.project_id, credentials: { client_email: key.client_email, private_key: key.private_key } });
   return _bq;
 }
+// The last video table, for the reel / Drive routes: a submitter may only open their own files.
+// Read again when older than 10 minutes (a load refreshes it too).
+let lastVideoTable = null, lastVideoTableAt = 0;
+async function recentVideoTable() {
+  if (!lastVideoTable || Date.now() - lastVideoTableAt > 10 * 60 * 1000) {
+    const t = await loadVideoTable();
+    if (t.status === 'ok' || !lastVideoTable) { lastVideoTable = t; lastVideoTableAt = Date.now(); }
+  }
+  return lastVideoTable;
+}
+// kind 'drive' (drive_file_id) or 'reel' (reel id of an ad): does the user own a video with it?
+function ownsFile(table, user, kind, id) {
+  if (kind === 'drive') {
+    return [...Object.values(table.byVideo || {}), ...Object.values(table.byAd || {})]
+      .some(r => r.submitted_by === user && r.drive_file_id === id);
+  }
+  return Object.entries(table.adReel || {}).some(([ad, reel]) => {
+    if (reel !== id) return false;
+    const up = table.adVideo?.[ad];
+    return table.byAd?.[ad]?.submitted_by === user || (!!up && table.byVideo?.[up]?.submitted_by === user);
+  });
+}
+async function mayOpen(v, kind, id) {
+  if (!v || v.admin) return !!v;
+  return ownsFile(await recentVideoTable(), v.user, kind, id);
+}
+
 async function loadVideoTable() {
   try {
     const bq = bigQuery();
@@ -270,6 +392,7 @@ function reelPosterFromPluginHtml(html) {
 app.get('/api/reel-thumb/:id', async (req, res) => {
   const id = String(req.params.id || '');
   if (!/^\d+$/.test(id)) return res.status(400).end();
+  if (!(await mayOpen(req.viewer, 'reel', id))) return res.status(404).end();
   let hit = reelThumbCache[id];
   if (!hit || Date.now() - hit._cachedAt > REEL_THUMB_TTL) {
     try {
@@ -295,6 +418,7 @@ app.get('/api/reel-thumb/:id', async (req, res) => {
 app.get('/api/drive-video/:id', async (req, res) => {
   const id = String(req.params.id || '');
   if (!/^[\w-]{20,}$/.test(id)) return res.status(400).end();
+  if (!(await mayOpen(req.viewer, 'drive', id))) return res.status(404).end();
   const url = `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t`;
   try {
     const up = await axios({
@@ -322,7 +446,9 @@ app.get('/api/dashboard', (req, res) => {
   const current = periodFromQuery(req.query);
   if (!current) return res.status(400).json({ error: 'Bad date range' });
   const forceRefresh = req.query.refresh === '1';
-  sseLoad(res, `${current.since}_${current.until} refresh=${forceRefresh}`, ctx => loadDashboard({ accountId, current, forceRefresh, ...ctx }));
+  const v = req.viewer;
+  // one load per viewer: the result is cut to the viewer's own rows, so two viewers never share one
+  sseLoad(res, `${current.since}_${current.until} refresh=${forceRefresh} user=${v.admin ? '*' : v.user}`, ctx => loadDashboard({ accountId, current, forceRefresh, viewer: v, ...ctx }));
 });
 
 // since/until from the date picker, else the last `days` days (old clients). null when the dates are bad.
@@ -333,13 +459,14 @@ function periodFromQuery(q) {
   return { since: dateStr(days), until: dateStr(0) };
 }
 
-async function loadDashboard({ accountId, current, forceRefresh, progress, send, elapsed, startTime }) {
+async function loadDashboard({ accountId, current, forceRefresh, viewer: v = { admin: true }, progress, send, elapsed, startTime }) {
   // The BigQuery video table loads while Triple Whale answers (neither needs the other).
   // loadVideoTable never rejects: errors come back as status 'error'.
   const videoTablePending = loadVideoTable();
   const { rows: rawRows, source: insightsSource } = await loadOrFetchInsights({ forceRefresh, current, progress, elapsed });
   progress(`Loading videos from BigQuery... [${elapsed()}]`);
   const videoTable = await videoTablePending;
+  if (videoTable.status === 'ok') { lastVideoTable = videoTable; lastVideoTableAt = Date.now(); }
   // Form videos (BigQuery): every ad that delivered, plus ads created in the period with no
   // delivery yet. Other video ads: spend > 1 with video plays, as before.
   const formRows  = rawRows.filter(r => videoTable.byAd[r.ad_id]);
@@ -370,7 +497,7 @@ async function loadDashboard({ accountId, current, forceRefresh, progress, send,
   const videoRows = currRows.filter(isVideoAd);
 
   progress(`Processing data... [${elapsed()}]`);
-  const grouped = groupByVideo(videoRows, creativeCache, hdThumbMap, videoTable);
+  const grouped = visibleTo(v, groupByVideo(videoRows, creativeCache, hdThumbMap, videoTable));
   const videoCount    = grouped.filter(c => c.format === 'Video').length;
   const imageCount    = grouped.filter(c => c.format === 'Image').length;
   const carouselCount = grouped.filter(c => c.format === 'Carousel').length;
@@ -406,6 +533,11 @@ if (require.main === module) {
 // Export for testing
 module.exports = {
   reelPosterFromPluginHtml,
+  signSession,
+  verifySession,
+  checkPassword,
+  visibleTo,
+  ownsFile,
   dateStr,
   periodFromQuery,
   findPurchaseAction,

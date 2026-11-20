@@ -345,3 +345,53 @@ describe('hasVideoPlays', () => {
   });
 });
 
+
+// ── Login (one password per submitter) ───────────────────────────────────────
+
+describe('login', () => {
+  const { signSession, verifySession, checkPassword, visibleTo, ownsFile } = require('./server');
+  const env = { ...process.env };
+  beforeEach(() => {
+    process.env.SUBMITTER_PASSWORDS = JSON.stringify({ Thao: 'pw-thao', trang: 'pw-trang' });
+    process.env.ADMIN_PASSWORD = 'pw-admin';
+  });
+  afterAll(() => { process.env = env; });
+
+  test('checkPassword: name is case-insensitive, password exact', () => {
+    expect(checkPassword(' THAO ', 'pw-thao')).toBe('thao');
+    expect(checkPassword('thao', 'pw-trang')).toBeNull();
+    expect(checkPassword('admin', 'pw-admin')).toBe('admin');
+    expect(checkPassword('nobody', '')).toBeNull();
+  });
+
+  test('session: valid, forged, expired, password changed', () => {
+    const t = signSession('thao');
+    expect(verifySession(t)).toBe('thao');
+    const [body] = t.split('.');
+    const forged = Buffer.from(JSON.stringify({ u: 'admin', e: Date.now() + 1e9 })).toString('base64url') + '.' + t.split('.')[1];
+    expect(verifySession(forged)).toBeNull();
+    expect(verifySession(body)).toBeNull();
+    expect(verifySession(t, Date.now() + 31 * 24 * 3600 * 1000)).toBeNull();
+    process.env.SUBMITTER_PASSWORDS = JSON.stringify({ thao: 'new', trang: 'pw-trang' });
+    expect(verifySession(t)).toBeNull();
+  });
+
+  test('visibleTo: admin sees all, a submitter only their rows', () => {
+    const rows = [{ submitted_by: 'thao' }, { submitted_by: 'trang' }, { submitted_by: '' }];
+    expect(visibleTo({ admin: true }, rows)).toHaveLength(3);
+    expect(visibleTo({ user: 'thao', admin: false }, rows)).toEqual([{ submitted_by: 'thao' }]);
+  });
+
+  test('ownsFile: Drive file and reel belong to the submitter', () => {
+    const table = {
+      byVideo: { v1: { submitted_by: 'thao', drive_file_id: 'd1' } },
+      byAd: { a2: { submitted_by: 'trang', drive_file_id: 'd2' } },
+      adVideo: { a1: 'v1' }, adReel: { a1: 'r1', a2: 'r2' },
+    };
+    expect(ownsFile(table, 'thao', 'drive', 'd1')).toBe(true);
+    expect(ownsFile(table, 'thao', 'drive', 'd2')).toBe(false);
+    expect(ownsFile(table, 'thao', 'reel', 'r1')).toBe(true);
+    expect(ownsFile(table, 'thao', 'reel', 'r2')).toBe(false);
+    expect(ownsFile(table, 'trang', 'reel', 'r2')).toBe(true);
+  });
+});

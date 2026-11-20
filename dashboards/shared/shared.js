@@ -780,7 +780,8 @@ function equalizeMetricCols() {
   for (const table of document.querySelectorAll('table')) {
     if (!table.offsetParent) continue;
     const ths = [...table.querySelectorAll('thead tr:first-child th[data-sort]')]
-      .filter(th => getComputedStyle(th.querySelector('.th-content') || th).justifyContent === 'flex-end');
+      // Chrome reports a right-aligned header as "flow-end", not the "flex-end" written in the CSS
+      .filter(th => /end|right/.test(getComputedStyle(th.querySelector('.th-content') || th).justifyContent));
     ths.forEach(th => { th.style.width = ''; });
     const w = Math.max(0, ...ths.map(th => th.offsetWidth)); // hidden columns measure 0
     if (w) ths.forEach(th => { th.style.width = w + 'px'; });

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<title>Media demo</title>
+<!-- Demo: same look as vid-thao (its style.css + shared.css), data = 10 ads read from
+     BigQuery zum-media-log ad.info + media.image + media.video (+ media.video_submitter), embedded below. -->
+<link rel="stylesheet" href="../vid-thao/public/style.css">
+<link rel="stylesheet" href="../shared/shared.css">
+<style>
+.type-chip{display:inline-block;padding:2px 8px;border-radius:8px;background:#f1f1f1;font-size:12px;line-height:16px;color:#303030}
+.type-chip.video{background:#eae4ff}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#616161}
+.viewer-media img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer-media img[hidden]{display:none}
+.play-mark{position:relative}
+.play-mark::after{content:"";position:absolute;inset:0;margin:auto;width:0;height:0;border-left:7px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent;filter:drop-shadow(0 0 2px rgba(0,0,0,.6))}
+td.cell-thumb{position:relative}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="topbar">
+    <div class="topbar-title">
+      <span class="logo">Media demo</span>
+      <span class="cache-time">10 ad mẫu · ad.info + media.image + media.video</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="card">
+      <div class="card-head"><span style="font-weight:600">Ảnh và video của ad</span></div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table><thead><tr>
+            <th class="th-thumb" aria-label="Thumbnail"></th>
+            <th><div class="th-content">Ad</div></th>
+            <th><div class="th-content">Type</div></th>
+            <th><div class="th-content">image_hash / video_id</div></th>
+            <th><div class="th-content">Size</div></th>
+            <th><div class="th-content">Submitted by</div></th>
+            <th><div class="th-content">Created</div></th>
+          </tr></thead><tbody id="rows"></tbody></table>
+        </div>
+      </div>
+      <div class="card-foot"><div class="debug-line">Ảnh: media.image.image_url (file gốc, link cố định) · Video: reel_id → facebook.com/reel/&lt;reel_id&gt; (plugin) · Thumb video: Drive backup (media.video_submitter)</div></div>
+    </div>
+  </main>
+</div>
+
+<div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle">
+  <div class="viewer-bar">
+    <button class="viewer-btn" type="button" onclick="closeViewer()" aria-label="Exit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4H14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 14 16h-2.5"/><path d="M8 6.5 4.5 10 8 13.5M4.5 10H12"/></svg></button>
+    <h3 class="viewer-title" id="viewerTitle"></h3>
+    <a class="viewer-btn" id="viewerOpen" href="#" target="_blank" rel="noopener" aria-label="Open"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11.5v3A1.5 1.5 0 0 1 12.5 16h-7A1.5 1.5 0 0 1 4 14.5v-7A1.5 1.5 0 0 1 5.5 6h3"/></svg></a>
+  </div>
+  <div class="viewer-stage">
+    <div class="viewer-media"><img id="viImage" alt="" hidden><iframe id="viReel" hidden allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    <aside class="viewer-side">
+      <div class="viewer-card">
+        <div class="viewer-card-head"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 9.25v4"/><circle cx="10" cy="6.75" r=".9" fill="currentColor" stroke="none"/></svg>Information</div>
+        <div class="viewer-card-body">
+          <div class="viewer-sec viewer-sec-name"><h4>Name</h4><p id="viName"></p></div>
+          <div class="viewer-sec"><h4>Details</h4><p id="viFormat"></p><p id="viAdded"></p></div>
+          <div class="viewer-sec" id="viSubmitterSec"><h4>Submitted by</h4><p id="viSubmitter"></p></div>
+          <div class="viewer-sec"><h4 id="viIdLabel"></h4><p id="viId" class="viewer-used"></p></div>
+          <div class="viewer-sec"><h4>Ad</h4><p id="viAd"></p></div>
+          <div class="viewer-sec" id="viBackupSec"><h4>Backup</h4><p><a class="viewer-link" id="viBackup" href="#" target="_blank" rel="noopener">Google Drive</a></p></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const ROWS = [
+ {
+  "type": "image",
+  "ad_id": "120254280684600274",
+  "ad_name": "[Tha21652-BHD]",
+  "created_at": "2026-10-15T11:03:41Z",
+  "media_id": "dd7f5a40c1f7c7103f9dc736b818a534",
+  "url": "https://www.facebook.com/ads/image/?d=AQIKC0ynYo-nJqjot28zQAXGg5abyNDnPNZqbkUZ-Q1ny9Rt0xxiQm81jO5TrZGLi9DmlX6mYQWPzob9w4hNY6pnA0sk5KDDbA_QFskUmB5WlL-9O-zX7oewdkfyhbp6bIlm7QuutgreTMKZKmBHpWY7",
+  "width": 1122,
+  "height": 1402,
+  "file_name": "Blue-GraySherpaHoodieBlanketMockup.png_105",
+  "reel_id": null,
+  "submitter_email": null,
+  "drive_file_id": null
+ },
+ {
+  "type": "image",
+  "ad_id": "120254280683240274",
+  "ad_name": "[Tha21652-BHD]",
+  "created_at": "2026-10-15T11:03:37Z",
+  "media_id": "697d0b0aad8f523be6887c8a7760347b",
+  "url": "https://www.facebook.com/ads/image/?d=AQLadoDtSXNuGKpEg08DBdY8RipQhzxFsJLSJEDV1jMfFmUvOp2HOEp5fxMw76CSYXBdT1P1uetjQWfui6Ow-ArLnI5G6g73AuP_WfXjFZYRVCZpmsbcPROal6m0xxE4sfMF3vj7OIrSyDtaJDrYqSfa",
+  "width": 1122,
+  "height": 1402,
+  "file_name": "TealFamilyEmbroideredWearableBlanketHoodie.png_105",
+  "reel_id": null,
+  "submitter_email": null,
+  "drive_file_id": null
+ },
+ {
+  "type": "image",
+  "ad_id": "120254280680100274",
+  "ad_name": "[Tha21652-BHD]",
+  "created_at": "2026-10-15T11:03:34Z",
+  "media_id": "790ebdd90eccedb09c463a60276f91ee",
+  "url": "https://www.facebook.com/ads/image/?d=AQKAs_ymv44SeaNZWPNqxlfi88lJpTGsfOn7UXW5Tda60K9ykxwYrZd6BCo3Nb6IWoxUNbRGjKaQH_P2yWGcqzvxNYl5QiocXfPeold5RKKhVd6fzUJPJoge_uR83p2hmTM4Gryk1dnF4QM_XDA7B7ik",
+  "width": 1122,
+  "height": 1402,
+  "file_name": "B_nsaoCozyChristmasHoodiePortrait_1.png_105",
+  "reel_id": null,
+  "submitter_email": null,
+  "drive_file_id": null
+ },
+ {
+  "type": "image",
+  "ad_id": "120254280678160274",
+  "ad_name": "[Tha21652-BHD]",
+  "created_at": "2026-10-15T11:03:29Z",
+  "media_id": "5ba1f22d688a12f633c2107e2b30b7cd",
+  "url": "https://www.facebook.com/ads/image/?d=AQJxNRCok9i5R12TRTrFCcug6Vtfv-ox_gPGzA2CtrSa5GEYlyHNb6I3gByrZOzWGLK1a06BNEgElNDzjYOg-TrX_nL9juJTc2oXFnE33VloQa_u-Tm-xrHRE5TS9dK-LTsduZT3sr6g25B_n-ujsmve",
+  "width": 1122,
+  "height": 1402,
+  "file_name": "B_nsaoCozyChristmasHoodiePortrait.png_105",
+  "reel_id": null,
+  "submitter_email": null,
+  "drive_file_id": null
+ },
+ {
+  "type": "image",
+  "ad_id": "120254280675350274",
+  "ad_name": "[Tha21629-BHD]",
+  "created_at": "2026-10-15T11:03:25Z",
+  "media_id": "e5f55b7727f197d5a3b51a4ecc9db03f",
+  "url": "https://www.facebook.com/ads/image/?d=AQI2AJGZUSsPMKHSjQX-1vNBwSVOBkT24cCtQwgx7GyC62RpiAJB1pFt2HTr3PQ6Dc1BbfHfStaO4g5hhr9DkQzw44OCcOU7fvPCiL29_ifNyzHA44gvkfNSmvCzozYRONnTkFdriox-W9b5BEjquVb2",
+  "width": 1122,
+  "height": 1402,
+  "file_name": "CozyChristmasDadHoodiePortrait.png_105",
+  "reel_id": null,
+  "submitter_email": null,
+  "drive_file_id": null
+ },
+ {
+  "type": "video",
+  "ad_id": "120254262785400274",
+  "ad_name": "[ngt20047 - TPJ] Video 5",
+  "created_at": "2026-10-14T11:03:10Z",
+  "media_id": "2431870300950075",
+  "url": "https://www.facebook.com/reel/2186721388607022",
+  "width": null,
+  "height": null,
+  "file_name": null,
+  "reel_id": "2186721388607022",
+  "submitter_email": "thaodp",
+  "drive_file_id": "1QOl3GtO0rAe3jgqZ2Tpp4x15uQ165iHq"
+ },
+ {
+  "type": "video",
+  "ad_id": "120254262783790274",
+  "ad_name": "[ngt20736 - TPJ] Video 6",
+  "created_at": "2026-10-14T11:03:07Z",
+  "media_id": "2263871427490658",
+  "url": "https://www.facebook.com/reel/1172529865276380",
+  "width": null,
+  "height": null,
+  "file_name": null,
+  "reel_id": "1172529865276380",
+  "submitter_email": "thaodp",
+  "drive_file_id": "1uKidkzhSxFYJgFp2fMvQY4f_HCp_FyvN"
+ },
+ {
+  "type": "video",
+  "ad_id": "120254262781640274",
+  "ad_name": "[Phu7614 - FML] Video 1",
+  "created_at": "2026-10-14T11:03:03Z",
+  "media_id": "2625719524547242",
+  "url": "https://www.facebook.com/reel/1108683801565084",
+  "width": null,
+  "height": null,
+  "file_name": null,
+  "reel_id": "1108683801565084",
+  "submitter_email": "thaodp",
+  "drive_file_id": "19yGbll3yza07YloMgxHpVEmFvI64cuBa"
+ },
+ {
+  "type": "video",
+  "ad_id": "120254262772750274",
+  "ad_name": "[Phu7614 - TPJ] Video 3",
+  "created_at": "2026-10-14T11:02:37Z",
+  "media_id": "1043986605361194",
+  "url": "https://www.facebook.com/reel/1593470882252061",
+  "width": null,
+  "height": null,
+  "file_name": null,
+  "reel_id": "1593470882252061",
+  "submitter_email": "thaodp",
+  "drive_file_id": "1U8AJ06t8n2QogahsiyN1RKkafKt2v732"
+ },
+ {
+  "type": "video",
+  "ad_id": "120254262771660274",
+  "ad_name": "[Phu7614 - TPJ] Video 4",
+  "created_at": "2026-10-14T11:02:30Z",
+  "media_id": "1824000761857983",
+  "url": "https://www.facebook.com/reel/1449039804080517",
+  "width": null,
+  "height": null,
+  "file_name": null,
+  "reel_id": "1449039804080517",
+  "submitter_email": "thaodp",
+  "drive_file_id": "1XtBN0q7ZjfHDW_gsjG5zflqqYEDuhlEA"
+ }
+];
+
+const REEL = id => 'https://www.facebook.com/reel/' + id;
+const REEL_EMBED = (id, w, h) => 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(REEL(id)) + '&show_text=false&width=' + w + '&height=' + h;
+const DRIVE_THUMB = id => 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w480';
+const DRIVE_VIEW = id => 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = iso => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const who = email => String(email || '').split('@')[0];
+
+function render() {
+  $('rows').innerHTML = ROWS.map((r, i) => {
+    const thumb = r.type === 'image' ? r.url : (r.drive_file_id ? DRIVE_THUMB(r.drive_file_id) : '');
+    return `<tr class="row-play" onclick="openViewer(${i})">
+      <td class="cell-thumb ${r.type === 'video' ? 'play-mark' : ''}">${thumb ? `<img class="thumb" src="${esc(thumb)}" width="24" height="30" alt="">` : '<div class="thumb-placeholder">▶</div>'}</td>
+      <td>${esc(r.ad_name)}<div class="mono">${esc(r.ad_id)}</div></td>
+      <td><span class="type-chip ${r.type}">${r.type === 'image' ? 'Image' : 'Video'}</span></td>
+      <td class="mono">${esc(r.media_id)}</td>
+      <td>${r.width ? r.width + ' × ' + r.height : ''}</td>
+      <td>${esc(who(r.submitter_email))}</td>
+      <td>${esc(fmtDate(r.created_at))}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openViewer(i) {
+  const r = ROWS[i];
+  const img = $('viImage'), reel = $('viReel');
+  $('viewerTitle').textContent = r.ad_name;
+  $('viName').textContent = r.type === 'image' ? (r.file_name || r.ad_name) : r.ad_name;
+  $('viFormat').textContent = r.type === 'image' ? ['Image', r.width && r.width + ' × ' + r.height].filter(Boolean).join(' • ') : 'Facebook reel';
+  $('viAdded').textContent = 'Added ' + fmtDate(r.created_at);
+  $('viSubmitter').textContent = who(r.submitter_email);
+  $('viSubmitterSec').hidden = !r.submitter_email;
+  $('viIdLabel').textContent = r.type === 'image' ? 'image_hash' : 'video_id';
+  $('viId').textContent = r.type === 'image' ? r.media_id : r.media_id + ' (reel ' + r.reel_id + ')';
+  $('viAd').textContent = r.ad_id;
+  $('viBackupSec').hidden = !r.drive_file_id;
+  if (r.drive_file_id) $('viBackup').href = DRIVE_VIEW(r.drive_file_id);
+  $('viewerOpen').href = r.type === 'image' ? r.url : REEL(r.reel_id);
+  $('viewer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  img.hidden = r.type !== 'image';
+  reel.hidden = r.type !== 'video';
+  if (r.type === 'image') { img.src = r.url; return; }
+  // the plugin draws at the size in its URL: fit a 9:16 frame into the stage
+  const box = reel.parentElement;
+  const h = Math.max(200, Math.min(box.clientHeight - 24, Math.round((box.clientWidth - 24) * 16 / 9)));
+  const w = Math.round(h * 9 / 16);
+  reel.width = w; reel.height = h;
+  reel.src = REEL_EMBED(r.reel_id, w, h);
+}
+
+function closeViewer() {
+  $('viewer').classList.remove('open');
+  document.body.style.overflow = '';
+  $('viReel').removeAttribute('src');
+  $('viImage').removeAttribute('src');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+render();
+</script>
+</body>
+</html>

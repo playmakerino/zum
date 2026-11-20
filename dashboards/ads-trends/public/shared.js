@@ -608,7 +608,8 @@ const ReportPanel = (() => {
   function toggle(btn, layout, storageKey) {
     let on = true;
     try { on = localStorage.getItem(storageKey) !== '0'; } catch {}
-    const apply = () => { layout.classList.toggle('panel-off', !on); btn.setAttribute('aria-pressed', String(on)); };
+    // the table's box changes width: resize its sideways scrollbar + edge shadows now (HScroll)
+    const apply = () => { layout.classList.toggle('panel-off', !on); btn.setAttribute('aria-pressed', String(on)); HScroll.update(); };
     btn.addEventListener('click', () => { on = !on; apply(); try { localStorage.setItem(storageKey, on ? '1' : '0'); } catch {} });
     apply();
   }
@@ -798,9 +799,11 @@ function hideColumns(tableId, positions) {
 // scrollbar of its own under the table, stuck to the bottom of the screen; scrolling it (or the wheel /
 // trackpad sideways, or shift + wheel, over the table) sets --sx, which shared.css turns into a
 // translateX of the table and back for the image + first dimension column. Screens up to 1100px keep
-// the plain scroller (shared.css). update() runs from fitTable, i.e. after every render.
+// the plain scroller (shared.css). update() runs from fitTable (after every render) and whenever the
+// table's box changes size (Controls panel shown / hidden, window resized).
 const HScroll = (() => {
   const wide = matchMedia('(min-width:1101px)');
+  const resized = new ResizeObserver(() => update());
   function barOf(box) {
     let bar = box.nextElementSibling;
     if (bar?.classList.contains('hscroll')) return bar;
@@ -815,6 +818,7 @@ const HScroll = (() => {
       box.parentElement.appendChild(sh);
     }
     bar.addEventListener('scroll', () => { box.style.setProperty('--sx', bar.scrollLeft + 'px'); shade(box, bar); });
+    resized.observe(box);
     box.addEventListener('wheel', e => {
       if (!wide.matches || bar.hidden) return;
       const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;

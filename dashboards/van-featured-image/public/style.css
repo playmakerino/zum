@@ -14,13 +14,13 @@ body{-webkit-font-smoothing:antialiased}
 .page{display:none}
 .page.active{display:block}
 table{border-collapse:collapse}
-/* column widths (user, 2026-11-20; Polaris report, see shared.css): the dimensions are fixed, longer
-   text ends in …: Print ID 96px, Ad name 280px (most names 63-127px, the longest of 1,004 ads 322px),
-   Link 320px (half the links under 280px, 90% under 384px); Spend + ROAS 92px (shared.css) */
-#adsTable thead tr:first-child th:nth-child(2){width:96px;min-width:96px;max-width:96px}
-#adsTable tbody td:nth-child(2):not([colspan]){width:96px;min-width:96px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-tbody td.td-name{width:280px;min-width:280px;max-width:280px}
-tbody td.td-link{width:320px;min-width:320px;max-width:320px}
+/* column widths (user, 2026-11-20; Polaris report, see shared.css), measured 2026-11-20 on 1,004 ads;
+   longer text ends in …: Print ID 72px (IDs up to 28px; the header needs the room), Ad name 200px (99%
+   of names fit), Link 440px (95% of links fit); Spend + ROAS 92px (shared.css) */
+#adsTable thead tr:first-child th:nth-child(2){width:72px;min-width:72px;max-width:72px}
+#adsTable tbody td:nth-child(2):not([colspan]){width:72px;min-width:72px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody td.td-name{width:200px;min-width:200px;max-width:200px}
+tbody td.td-link{width:440px;min-width:440px;max-width:440px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 /* Print ID is sortable but holds text: header left like its cells (shared.css right-aligns every th[data-sort]) */
 thead tr th[data-sort="print_id"] .th-content{justify-content:flex-start}

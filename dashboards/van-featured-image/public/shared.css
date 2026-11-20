@@ -323,6 +323,7 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
 .report-layout>.card thead tr:first-child th[data-sort]{width:92px;min-width:92px;max-width:92px}
 .report-layout>.card thead tr:first-child th[data-sort="created_on"]{width:120px;min-width:120px;max-width:120px}
 .report-layout>.card thead th[data-sort] .th-content{max-width:100%}
+.report-layout>.card thead tr:first-child th:nth-child(2) .th-content{max-width:calc(100% + 30px)} /* starts 30px left, over the image */
 .th-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hscroll{position:sticky;bottom:0;z-index:5;height:11px;overflow-x:auto;overflow-y:hidden;background:#fff}
 .hscroll>div{height:1px}
@@ -337,4 +338,15 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
   .report-layout>.card tr.total-row>:first-child{transform:translateX(var(--sx,0px))}
   :where(.report-layout>.card) tbody td:nth-child(2):not([colspan]){position:relative;z-index:1;background:#fff}
 }
-@media(max-width:1100px){.hscroll{display:none}}
+/* edge shadows (Polaris _StartShadow / _EndShadow, measured 2026-11-20): 6px, rgba(26,26,26,.1) fading
+   out, the whole table high; the start one sits after the image + first dimension column (with that
+   column's 1px #f2f2f2 line) and shows once scrolled, the end one at the right edge while more columns
+   are hidden there; opacity .3s. Placed by HScroll, only while the table scrolls sideways. */
+.hs-start,.hs-end{position:absolute;z-index:6;pointer-events:none}
+.hs-start{width:7px;border-left:1px solid #f2f2f2}
+.hs-end{width:6px}
+.hs-start::after,.hs-end::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s cubic-bezier(.25,.1,.25,1)}
+.hs-start::after{background:linear-gradient(to right,rgba(26,26,26,.1),rgba(0,0,0,0))}
+.hs-end::after{background:linear-gradient(to left,rgba(26,26,26,.1),rgba(0,0,0,0))}
+.hs-start.on::after,.hs-end.on::after{opacity:1}
+@media(max-width:1100px){.hscroll,.hs-start,.hs-end{display:none}}

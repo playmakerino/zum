@@ -808,7 +808,13 @@ const HScroll = (() => {
     bar.className = 'hscroll';
     bar.innerHTML = '<div></div>';
     box.after(bar);
-    bar.addEventListener('scroll', () => box.style.setProperty('--sx', bar.scrollLeft + 'px'));
+    // edge shadows (shared.css), in the wrapper so they do not move with the table
+    for (const side of ['start', 'end']) {
+      const sh = document.createElement('div');
+      sh.className = 'hs-' + side;
+      box.parentElement.appendChild(sh);
+    }
+    bar.addEventListener('scroll', () => { box.style.setProperty('--sx', bar.scrollLeft + 'px'); shade(box, bar); });
     box.addEventListener('wheel', e => {
       if (!wide.matches || bar.hidden) return;
       const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
@@ -819,6 +825,20 @@ const HScroll = (() => {
     }, { passive: false });
     return bar;
   }
+  function shade(box, bar) {
+    const wrap = box.parentElement, x = bar.scrollLeft;
+    wrap.querySelector(':scope>.hs-start').classList.toggle('on', x > 0);
+    wrap.querySelector(':scope>.hs-end').classList.toggle('on', x < bar.scrollWidth - bar.clientWidth - 1);
+  }
+  function place(box, over) {
+    const wrap = box.parentElement, start = wrap.querySelector(':scope>.hs-start'), end = wrap.querySelector(':scope>.hs-end');
+    start.hidden = end.hidden = !over;
+    if (!over) return;
+    const name = box.querySelector('thead tr:first-child th:nth-child(2)');
+    for (const sh of [start, end]) { sh.style.top = box.offsetTop + 'px'; sh.style.height = box.offsetHeight + 'px'; }
+    start.style.left = box.offsetLeft + (name ? name.offsetLeft + name.offsetWidth : 0) + 'px';
+    end.style.left = box.offsetLeft + box.clientWidth - end.offsetWidth + 'px';
+  }
   function update() {
     for (const box of document.querySelectorAll('.report-layout>.card .table-scroll')) {
       const table = box.querySelector('table');
@@ -828,6 +848,8 @@ const HScroll = (() => {
       bar.hidden = !over;
       bar.firstElementChild.style.width = table.offsetWidth + 'px';
       box.style.setProperty('--sx', (over ? bar.scrollLeft : 0) + 'px');
+      place(box, over);
+      shade(box, bar);
     }
   }
   wide.addEventListener('change', update);

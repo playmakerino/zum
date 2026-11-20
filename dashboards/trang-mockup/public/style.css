@@ -19,9 +19,9 @@ body{-webkit-font-smoothing:antialiased}
 table{border-collapse:collapse}
 /* column widths (user, 2026-11-20; Polaris report, see shared.css), measured 2026-11-20 on the image
    ad names of zum-image-van (same [Print-Type_Mockup] names): Image 200px (99% of names fit, the rest
-   end in …), Mockup ID 96px (the longest ID 66px); metric columns 92px and Created 120px in shared.css */
+   end in …), Mockup ID 120px (the longest ID 66px in plain digits; cells use tabular-nums, which made 96px cut IDs); metric columns 92px and Created 120px in shared.css */
 tbody td.td-name{width:200px;min-width:200px;max-width:200px}
-#mockupsTable tbody td.td-name{width:96px;min-width:96px;max-width:96px}
+#mockupsTable tbody td.td-name{width:120px;min-width:120px;max-width:120px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 thead th:first-child{position:sticky;left:0;z-index:3}
 tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--s)}

@@ -362,6 +362,9 @@ describe('login', () => {
     expect(checkPassword('thao', 'pw-trang')).toBeNull();
     expect(checkPassword('admin', 'pw-admin')).toBe('admin');
     expect(checkPassword('nobody', '')).toBeNull();
+    process.env.SUBMITTER_PASSWORDS = JSON.stringify({ 'Minhn@ecomies.com': 'pw-m' });
+    expect(checkPassword('minhn@ecomies.com', 'pw-m')).toBe('minhn');
+    expect(checkPassword('minhn', 'pw-m')).toBe('minhn');
   });
 
   test('session: valid, forged, expired, password changed', () => {

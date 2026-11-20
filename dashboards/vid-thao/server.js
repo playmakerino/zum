@@ -11,18 +11,20 @@ app.set('trust proxy', 1); // Render sits behind a proxy: req.secure + req.ip co
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Login (one password per submitter) ───────────────────────────────────────
-// SUBMITTER_PASSWORDS = JSON {"<submitted_by>": "<password>"} (submitted_by = the email before @,
+// SUBMITTER_PASSWORDS = JSON {"<email or submitted_by>": "<password>"} (only the part before @ counts,
 // lower case); ADMIN_PASSWORD = the password of the name "admin", who sees every row. Both are env
 // vars on Render (local: D:/keys/.env.vid-thao-auth). Neither set → no login, everyone sees all (as before).
 // A login is a signed cookie (30 days); the signing key comes from the passwords, so changing any
 // password logs everyone out.
 const AUTH_COOKIE = 'vt_auth';
 const AUTH_TTL = 30 * 24 * 3600 * 1000;
+// a login name = submitted_by: the email before @, lower case ("Minhn@ecomies.com" and "minhn" are the same user)
+const loginName = name => String(name || '').trim().toLowerCase().split('@')[0];
 function authUsers() {
   const users = {};
   try {
     const raw = JSON.parse(process.env.SUBMITTER_PASSWORDS || '{}');
-    for (const [name, pw] of Object.entries(raw)) if (name && pw) users[String(name).trim().toLowerCase()] = String(pw);
+    for (const [name, pw] of Object.entries(raw)) if (loginName(name) && pw) users[loginName(name)] = String(pw);
   } catch (err) { console.error('SUBMITTER_PASSWORDS is not valid JSON:', err.message); }
   if (process.env.ADMIN_PASSWORD) users.admin = process.env.ADMIN_PASSWORD;
   return users;
@@ -47,7 +49,7 @@ function verifySession(token, now = Date.now()) {
   } catch { return null; }
 }
 function checkPassword(name, password) {
-  const user = String(name || '').trim().toLowerCase();
+  const user = loginName(name);
   const pw = authUsers()[user];
   if (!pw) return null;
   const h = s => crypto.createHash('sha256').update(String(s)).digest();

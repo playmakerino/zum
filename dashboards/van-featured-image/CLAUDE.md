@@ -6,9 +6,9 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 ## Tech Stack
 - **Backend:** Node.js + Express (server.js)
 - **Frontend:** Vanilla HTML/CSS/JS, tách file:
-  - `public/index.html` — HTML structure
-  - `public/style.css` — CSS styles
-  - `public/app.js` — JavaScript logic
+  - `public/index.html`: HTML structure
+  - `public/style.css`: CSS styles
+  - `public/app.js`: JavaScript logic
 - **API:** chi tiêu + doanh thu lấy từ **Triple Whale SQL** (`fetchImageAdsOver100` trong server.js, từ 2026-11-03: lọc ad ảnh + chi tiêu trên 100 USD ngay trong SQL, 12 tháng 1 câu, cả lượt tải khoảng 2s); ảnh, link cũng từ Triple Whale (`fetchAdMedia`). Không gọi Meta. Hàm Triple Whale dùng chung ở `meta.js`, bản gốc `dashboards/shared/meta.js`
 - **Testing:** Jest (server.test.js)
 - **Deploy:** Render.com (render.yaml)
@@ -20,7 +20,7 @@ Dashboard hiển thị top image ads theo spend, lọc từ Meta Ads API. Single
 - Express server port 3000, serve static `public/`
 - **Credentials:** chỉ đọc từ env (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`, `TRIPLE_WHALE_API_KEY`; local nạp từ `D:/keys`); form nhập token cũ đã bỏ, key localStorage `meta_cache___SERVER___ads_alltime` giữ tên cũ để kết quả đã lưu không mất
 - **GET /api/config**: `{ hasTripleWhaleKey }`; thiếu key thì nút Load báo lỗi ngay, không gọi server
-- **GET /api/dashboard** — SSE stream pipeline
+- **GET /api/dashboard**: SSE stream pipeline
 - **Error handling:** lỗi Triple Whale hiện "Triple Whale request failed" + lý do; lỗi Meta: token hết hạn (code 190), rate limit (code 4/17)
 - **Một lượt tải:** luôn đọc cả ad đang chạy lẫn tạm dừng (bỏ `mode` từ 2026-11-19); request thứ hai nhập vào lượt đang chạy; không còn trình duyệt nào chờ thì dừng (`sseLoad`). Nút Load Data bị khoá trong lúc tải
 - **Render free:** không có persistent disk, cache server (creative + ảnh) chỉ nằm trong RAM, mất khi restart/spin-down (~15 phút idle).
@@ -87,15 +87,15 @@ Triple Whale: fetchAdMedia(ad_ids) (ads_table, 500 ad/câu, giá trị mới nh�
 | Layer | File | TTL | Key | Var |
 |-------|------|-----|-----|-----|
 | Creative + ảnh + link | RAM | Đến restart | `ad_id` | `mediaCache` |
-| Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | — |
+| Browser | `localStorage` | No expire, overwrite | `meta_cache_{accountId}_ads_alltime` | (không) |
 
 ## Environment Variables (Render; local nạp từ D:/keys)
-- `META_ACCESS_TOKEN` — Meta API token
-- `META_AD_ACCOUNT_ID` — Ad account ID
+- `META_ACCESS_TOKEN`: Meta API token
+- `META_AD_ACCOUNT_ID`: Ad account ID
 - `TRIPLE_WHALE_API_KEY`: Triple Whale API key (số liệu + ảnh)
-- `PORT` — Server port (default 3000)
+- `PORT`: Server port (default 3000)
 
 ## Commands
-- `npm start` — production
-- `npm run dev` — nodemon auto-reload
-- `npm test` — Jest tests
+- `npm start`: production
+- `npm run dev`: nodemon auto-reload
+- `npm test`: Jest tests

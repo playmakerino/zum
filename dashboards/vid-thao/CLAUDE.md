@@ -66,7 +66,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
   - Thumb Drive dùng `drive.google.com/thumbnail?id=…&sz=w480`; `lh3.googleusercontent.com` trả 429 khi trang gửi Referer. Trang có `<meta name="referrer" content="no-referrer">`.
 - Mobile responsive: breakpoint riêng ở `public/responsive.css`
 - Global error boundary (window.onerror + unhandledrejection → toast)
-- Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay%; chữ trên giao diện không dùng em dash
+- Tooltip kiểu Shopify (`data-tip-title` + `data-tip`, vẽ bởi shared.js) cho Load Data, ô người gửi, header 3s/Impr, ThruPlay (tên cũ ThruPlay%, đổi 2026-11-20 cho cột số hẹp lại); chữ trên giao diện không dùng em dash
 - **Mở trang không tự tải** (user chốt 2026-10-14, tránh tự gọi Meta): có kết quả lưu localStorage của kỳ đang chọn thì hiện, không có thì bảng trống + câu nhắc, chỉ nút Load Data mới gọi `/api/dashboard`.
 - **Debug line:** hàng cuối card (trước khi có thì hiện câu nhắc Load Data), hiển thị telemetry pipeline (insights cache hit / API, ads cached/fetched, format breakdown, thumbnail Triple Whale / Meta). Persisted localStorage để survive F5.
 
@@ -74,7 +74,7 @@ Deploy trên **Render free** (không có persistent disk, restart/spin-down là 
 - Raw (fetched): impressions, clicks, spend
 - Derived (server-computed): CTR, CPC, CPM, ROAS (purchase_value/spend), CPR (spend/purchases), AOV (value/purchases)
 - Derived (client-computed, `enrichRow` + `totals` trong app.js, nên kết quả lưu localStorage cũng có ngay): CR (purchases/clicks, clicks là mọi lượt click của Triple Whale)
-- Video: 3s/Impr (3-sec plays / impressions), ThruPlay% (ThruPlays / video plays)
+- Video: 3s/Impr (3-sec plays / impressions), ThruPlay (ThruPlays / video plays, tên cũ ThruPlay%)
 
 ## Environment Variables (Render; local nạp từ D:/keys)
 - `META_AD_ACCOUNT_ID` - Ad account ID

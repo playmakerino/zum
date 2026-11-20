@@ -92,7 +92,7 @@ const COL_TIPS = {
 const METRIC_COLS = [
   ['created_on', 'Created', 'date'], ['spend', 'Spend', 'money'], ['roas', 'ROAS', 'ratio'], ['cpr', 'CPR', 'money'],
   ['aov', 'AOV', 'money'], ['cr', 'CR', 'pct'], ['cpm', 'CPM', 'money'], ['ctr', 'CTR', 'pct'], ['cpc', 'CPC', 'money'],
-  ['video_3sec_rate', '3s/Impr', 'pct'], ['thruplay_rate', 'ThruPlay%', 'pct'],
+  ['video_3sec_rate', '3s/Impr', 'pct'], ['thruplay_rate', 'ThruPlay', 'pct'],
 ].map(([key, label, fmt], i) => ({ key, label, kind: fmt === 'date' ? 'date' : 'number', fmt, pos: i + 3, tip: COL_TIPS[key] }));
 let hiddenCols = (() => { try { return JSON.parse(localStorage.getItem('vidthao_hidden_cols')) || []; } catch { return []; } })();
 function renderMetricPanel() {

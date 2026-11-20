@@ -271,19 +271,40 @@ function applyFilters(type, rows) {
     cur = el;
     const th = el.closest('th'), type = th.closest('table').id.replace(/Table$/, '');
     const desc = !(th.classList.contains('sorted') && state.sort[type]?.dir === 1);
-    tip.className = 'tip tip-sm';
-    tip.textContent = desc ? 'Highest to lowest' : 'Lowest to highest';
+    const order = desc ? 'highest to lowest' : 'lowest to highest';
+    const label = el.querySelector('.th-label');
+    const cut = label && label.scrollWidth > label.clientWidth;
+    tip.className = cut ? 'tip tip-sm tip-wrap' : 'tip tip-sm';
+    tip.textContent = cut ? `${label.textContent}, ${order}` : order[0].toUpperCase() + order.slice(1);
     tip.hidden = false;
     const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
     tip.style.top = Math.max(8, r.top - h - 6) + 'px';
     tip.style.left = Math.max(8, r.left + r.width / 2 - w / 2) + 'px';
   };
+  // Table cell whose text ends in … (fixed column, shared.css): the full text above it (Shopify product
+  // title cell, 2026-11-20); a link gives its whole address
+  const cutOf = t => {
+    const cell = t.closest && t.closest('tbody td, .link-cell');
+    const x = cell && (cell.querySelector('.link-cell') || cell);
+    return x && x.scrollWidth > x.clientWidth ? x : null;
+  };
+  const showCut = x => {
+    cur = x;
+    tip.className = 'tip tip-sm tip-wrap';
+    tip.textContent = x.matches('a[href]') ? x.href : x.textContent.trim();
+    tip.hidden = false;
+    const r = x.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+    tip.style.top = Math.max(8, r.top - h - 6) + 'px';
+    tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8)) + 'px';
+  };
   document.addEventListener('mouseover', e => {
     const el = e.target.closest && e.target.closest('[data-tip]');
     const sortEl = !el && e.target.closest && e.target.closest('thead th[data-sort] .th-content');
+    const cutEl = !el && !sortEl && cutOf(e.target);
     if (el && el !== cur) { tip.className = 'tip'; show(el); }
     else if (sortEl && sortEl !== cur) showSort(sortEl);
-    else if (!el && !sortEl && cur) hide();
+    else if (cutEl && cutEl !== cur) showCut(cutEl);
+    else if (!el && !sortEl && !cutEl && cur) hide();
   });
   document.addEventListener('scroll', hide, true);
   document.addEventListener('mousedown', hide);
@@ -770,24 +791,63 @@ function hideColumns(tableId, positions) {
   let st = document.getElementById(id);
   if (!st) { st = document.createElement('style'); st.id = id; document.head.appendChild(st); }
   st.textContent = positions.map(p => `#${tableId} thead tr:first-child>:nth-child(${p}),#${tableId} tbody tr>td:not([colspan]):nth-child(${p}),#${tableId} tr.total-row>:nth-child(${p - 1}){display:none}`).join('\n');
-  equalizeMetricCols();
+  fitTable();
 }
 
-// Metric columns (sortable, right-aligned header) all get the width of the widest one; every column
-// otherwise takes its content and the name column the rest. Created (date) is a metric but keeps its own
-// width (user, 2026-11-20): its date would make every number column as wide and squeeze the name.
-// Runs after each table render, page switch and column hide; a table on a hidden page is skipped and
-// measured when it is shown.
-function equalizeMetricCols() {
-  for (const table of document.querySelectorAll('table')) {
-    if (!table.offsetParent) continue;
-    const ths = [...table.querySelectorAll('thead tr:first-child th[data-sort]:not([data-sort="created_on"])')]
-      // Chrome reports a right-aligned header as "flow-end", not the "flex-end" written in the CSS
-      .filter(th => /end|right/.test(getComputedStyle(th.querySelector('.th-content') || th).justifyContent));
-    ths.forEach(th => { th.style.minWidth = ''; });
-    const w = Math.max(0, ...ths.map(th => th.offsetWidth)); // hidden columns measure 0
-    // min-width, not width: the name cell's width:100% makes the table ignore a set width on other cells
-    if (w) ths.forEach(th => { th.style.minWidth = w + 'px'; });
+// Sideways scroll of a report table wider than its card (Polaris report, measured 2026-11-20): a
+// scrollbar of its own under the table, stuck to the bottom of the screen; scrolling it (or the wheel /
+// trackpad sideways, or shift + wheel, over the table) sets --sx, which shared.css turns into a
+// translateX of the table and back for the image + first dimension column. Screens up to 1100px keep
+// the plain scroller (shared.css). update() runs from fitTable, i.e. after every render.
+const HScroll = (() => {
+  const wide = matchMedia('(min-width:1101px)');
+  function barOf(box) {
+    let bar = box.nextElementSibling;
+    if (bar?.classList.contains('hscroll')) return bar;
+    bar = document.createElement('div');
+    bar.className = 'hscroll';
+    bar.innerHTML = '<div></div>';
+    box.after(bar);
+    bar.addEventListener('scroll', () => box.style.setProperty('--sx', bar.scrollLeft + 'px'));
+    box.addEventListener('wheel', e => {
+      if (!wide.matches || bar.hidden) return;
+      const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+      if (!dx || (!e.shiftKey && Math.abs(e.deltaX) <= Math.abs(e.deltaY))) return;
+      const before = bar.scrollLeft;
+      bar.scrollLeft += dx;
+      if (bar.scrollLeft !== before) e.preventDefault();
+    }, { passive: false });
+    return bar;
   }
+  function update() {
+    for (const box of document.querySelectorAll('.report-layout>.card .table-scroll')) {
+      const table = box.querySelector('table');
+      if (!table || !box.offsetParent) continue;
+      const bar = barOf(box);
+      const over = wide.matches && table.offsetWidth > box.clientWidth + 1;
+      bar.hidden = !over;
+      bar.firstElementChild.style.width = table.offsetWidth + 'px';
+      box.style.setProperty('--sx', (over ? bar.scrollLeft : 0) + 'px');
+    }
+  }
+  wide.addEventListener('change', update);
+  addEventListener('resize', update);
+  return { update };
+})();
+
+// After each table render, page switch and column hide: column names of sortable headers get a
+// .th-label (ends in … when longer than the fixed column, shared.css) and the sideways scrollbar is
+// sized. Column widths themselves are fixed in CSS (user, 2026-11-20). A hidden table is skipped.
+function fitTable() {
+  for (const c of document.querySelectorAll('thead th[data-sort] .th-content')) {
+    if (c.querySelector('.th-label')) continue;
+    const t = c.firstChild;
+    if (t?.nodeType !== 3 || !t.textContent.trim()) continue;
+    const label = document.createElement('span');
+    label.className = 'th-label';
+    label.textContent = t.textContent.trim();
+    c.replaceChild(label, t);
+  }
+  HScroll.update();
 }
-document.fonts?.ready.then(equalizeMetricCols);
+document.fonts?.ready.then(fitTable);

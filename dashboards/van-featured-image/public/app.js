@@ -51,7 +51,7 @@ function topPerDesign(rows) {
 
 const TABLES = {
   ads: {
-    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td><td class="td-link">${linkCell(r.link)}</td><td class="td-metric">${fmtMoneyInt(r.spend)}</td><td class="td-metric">${fmtF(r.roas)}x</td></tr>`
+    row: r => `<tr><td>${thumb(r.image_url)}</td><td>${esc(r.print_id)}</td><td class="td-name">${esc(r.ad_name)}</td><td class="td-link">${linkCell(r.link)}</td><td class="td-metric">${fmtMoneyInt(r.spend)}</td><td class="td-metric">${fmtF(r.roas)}x</td></tr>`
   },
 };
 
@@ -203,7 +203,7 @@ function renderTable(type) {
     // Print ID sorts A to Z with dir 1, numbers sort highest first with dir 1
     th.classList.toggle('asc', th.dataset.sort === key && dir === (key === 'print_id' ? 1 : -1));
   });
-  equalizeMetricCols();
+  fitTable();
 }
 
 // Helpers
@@ -212,7 +212,7 @@ const fmtMoneyInt = n => '$' + Math.round(parseFloat(n || 0)).toLocaleString('en
 function linkCell(url) {
   if (!url) return '';
   const display = url.replace(/^https?:\/\//, '').replace(/^(www\.)?zumbamboo\.com/, '').replace(/\/$/, '');
-  return `<a href="${esc(url)}" target="_blank" rel="noopener" class="link-cell" title="${esc(url)}">${esc(display)}</a>`;
+  return `<a href="${esc(url)}" target="_blank" rel="noopener" class="link-cell">${esc(display)}</a>`;
 }
 
 function thumb(url) {

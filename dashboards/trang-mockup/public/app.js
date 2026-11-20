@@ -28,7 +28,7 @@ const CREATED_COL = { key: 'created_on', type: 'date', label: 'Created', tip: 'C
 const createdCell = r => `<td class="td-metric">${r.created_on ? fmtDay(r.created_on) : '–'}</td>`;
 
 const creativeRow = r =>
-  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`;
+  `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`;
 
 const CREATIVE_TABLE = {
   cols: 11,
@@ -46,7 +46,7 @@ const TABLES = {
       { key: 'print_count', type: 'metric', label: 'Prints', tip: 'Number of different print IDs (from the ad names) that use this mockup' },
       ...METRIC_COLS,
     ],
-    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name" title="${esc(r.mockup_id)}">${esc(r.mockup_id)}</td>${createdCell(r)}<td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
+    row: r => `<tr><td>${thumb(r.thumbnail_url, r.is_catalog)}</td><td class="td-name">${esc(r.mockup_id)}</td>${createdCell(r)}<td class="td-prints">${r.print_count}</td>${metrics(r)}</tr>`,
   },
   creativesValid: CREATIVE_TABLE,
   creativesSpend: CREATIVE_TABLE,
@@ -235,14 +235,14 @@ function showPage(name) {
   $$('.page').forEach(p => p.classList.remove('active'));
   $('page-' + name).classList.add('active');
   hideThumbPreview();
-  equalizeMetricCols();
+  fitTable();
 }
 
 function showCreativeSub(name) {
   $$('#page-creatives .sub-page').forEach(p => p.classList.remove('active'));
   $('sub-' + name).classList.add('active');
   hideThumbPreview();
-  equalizeMetricCols();
+  fitTable();
 }
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ function renderTable(type) {
     th.classList.toggle('sorted', th.dataset.sort === key);
     th.classList.toggle('asc', th.dataset.sort === key && dir === -1);
   });
-  equalizeMetricCols();
+  fitTable();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

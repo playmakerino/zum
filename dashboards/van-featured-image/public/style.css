@@ -14,13 +14,13 @@ body{-webkit-font-smoothing:antialiased}
 .page{display:none}
 .page.active{display:block}
 table{border-collapse:collapse}
-/* column widths: every column takes its content (Ad name too: the longest of 1,004 ads was 322px,
-   measured 2026-11-20), the metric columns are then made equal (shared.js equalizeMetricCols) and Link
-   takes the rest (max-width:0 = its text does not count, a long link ends in …) */
-tbody td.td-link{max-width:0;width:100%}
-/* Print ID is a dimension that can be sorted: header left like its cells (shared.css right-aligns every
-   sortable header), which also keeps it out of equalizeMetricCols */
-#adsTable thead th.th-pid .th-content{justify-content:flex-start}
+/* column widths (user, 2026-11-20; Polaris report, see shared.css): the dimensions are fixed, longer
+   text ends in …: Print ID 96px, Ad name 280px (most names 63-127px, the longest of 1,004 ads 322px),
+   Link 320px (half the links under 280px, 90% under 384px); Spend + ROAS 120px (shared.css) */
+#adsTable thead tr:first-child th:nth-child(2){width:96px;min-width:96px;max-width:96px}
+#adsTable tbody td:nth-child(2):not([colspan]){width:96px;min-width:96px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody td.td-name{width:280px;min-width:280px;max-width:280px}
+tbody td.td-link{width:320px;min-width:320px;max-width:320px}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2}
 /* Print ID is sortable but holds text: header left like its cells (shared.css right-aligns every th[data-sort]) */
 thead tr th[data-sort="print_id"] .th-content{justify-content:flex-start}

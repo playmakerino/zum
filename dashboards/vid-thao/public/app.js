@@ -41,7 +41,7 @@ const TABLES = {
   creatives: {
     cols: 13,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
-    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name" title="${esc(r.ad_name)}">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`
+    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`
   }
 };
 
@@ -367,7 +367,7 @@ function renderTable(type) {
     th.classList.toggle('asc', th.dataset.sort === key && dir === -1);
   });
   buildTotalRow(type, filtered);
-  equalizeMetricCols(); // after the Summary row: its totals can be wider than the headers
+  fitTable();
 }
 
 // Submitted by = a list filter in the Controls panel (who sent the video through the form, from BigQuery)

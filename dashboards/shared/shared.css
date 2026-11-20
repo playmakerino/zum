@@ -339,12 +339,10 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
   :where(.report-layout>.card) tbody td:nth-child(2):not([colspan]){position:relative;z-index:1;background:#fff}
 }
 /* edge shadows (Polaris _StartShadow / _EndShadow, measured 2026-11-20): 6px, rgba(26,26,26,.1) fading
-   out, the whole table high; the start one sits after the image + first dimension column (with that
-   column's 1px #f2f2f2 line) and shows once scrolled, the end one at the right edge while more columns
+   out, the whole table high; the start one sits after the image + first dimension column (whose cells
+   already draw its 1px #f2f2f2 line) and shows once scrolled, the end one at the right edge while more columns
    are hidden there; opacity .3s. Placed by HScroll, only while the table scrolls sideways. */
-.hs-start,.hs-end{position:absolute;z-index:6;pointer-events:none}
-.hs-start{width:7px;border-left:1px solid #f2f2f2}
-.hs-end{width:6px}
+.hs-start,.hs-end{position:absolute;z-index:6;width:6px;pointer-events:none}
 .hs-start::after,.hs-end::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s cubic-bezier(.25,.1,.25,1)}
 .hs-start::after{background:linear-gradient(to right,rgba(26,26,26,.1),rgba(0,0,0,0))}
 .hs-end::after{background:linear-gradient(to left,rgba(26,26,26,.1),rgba(0,0,0,0))}

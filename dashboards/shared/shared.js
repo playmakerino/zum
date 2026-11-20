@@ -847,6 +847,14 @@ const HScroll = (() => {
     for (const box of document.querySelectorAll('.report-layout>.card .table-scroll')) {
       const table = box.querySelector('table');
       if (!table || !box.offsetParent) continue;
+      // a column whose cells carry .col-fill takes the width left in the card (never under the table's
+      // --fill-min), so the table neither scrolls nor leaves a gap on the right when it can fit
+      const fill = table.querySelector('tbody td.col-fill');
+      if (fill) {
+        const min = parseFloat(getComputedStyle(table).getPropertyValue('--fill-min')) || 0;
+        const rest = table.offsetWidth - fill.offsetWidth;
+        table.style.setProperty('--fill-w', Math.max(min, box.clientWidth - rest) + 'px');
+      }
       const bar = barOf(box);
       const over = wide.matches && table.offsetWidth > box.clientWidth + 1;
       bar.hidden = !over;

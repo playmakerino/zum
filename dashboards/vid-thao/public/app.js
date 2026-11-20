@@ -41,7 +41,7 @@ const TABLES = {
   creatives: {
     cols: 13,
     // a click anywhere on a row with a video opens the viewer (i = index in state.rendered)
-    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`
+    row: (r, i) => `<tr${canPlay(r) ? ` class="row-play" onclick="openVideo(${i})"` : ''}><td>${thumb(r)}</td><td class="td-name col-fill">${esc(r.ad_name)}</td>${createdCell(r)}${metrics(r)}</tr>`
   }
 };
 

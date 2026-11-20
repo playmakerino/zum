@@ -135,9 +135,13 @@ thead tr:first-child th:not([data-sort]){box-shadow:inset 0 -1px 0 #f2f2f2,inset
 .td-name{font-weight:400;color:#101010}
 /* Total row: in <thead> under the column names (Shopify Summary row).
    Borders as inset shadows: with border-collapse, real borders stay behind when the sticky thead moves and leave a see-through gap */
-thead tr.total-row td{height:34px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
+thead tr.total-row td{height:37px;background:#f2f2f2;font-weight:600;color:#101010;font-size:12px;line-height:18px;padding:8px 12px;box-shadow:inset 0 -1px 0 #f2f2f2;font-variant-numeric:tabular-nums;white-space:nowrap}
 thead tr.total-row td.td-metric{text-align:right;padding-right:28px}
-.thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px;background:#f2f2f2}
+.thumb,.thumb-placeholder{width:24px;height:24px;border-radius:6px}
+/* Shopify thumbnail (measured 2026-11-20): no background behind the image, a 1px rgba(0,0,0,.08) edge
+   drawn over it; the image stays cropped square (cover, user 2026-10-15 and 2026-11-20) */
+img.thumb{outline:1px solid rgba(0,0,0,.08);outline-offset:-1px}
+.thumb-placeholder{background:#f2f2f2}
 .thumb-placeholder{color:#8a8a8a}
 
 /* one-month calendar of a date filter (Shopify report filter on a date dimension, s-date-picker measured 2026-11-16) */
@@ -307,6 +311,10 @@ input:focus-visible+.rp-box{outline:2px solid #5083f0;outline-offset:1px}
 .report-layout>.card img.thumb,.report-layout>.card div.thumb-placeholder{margin:0}
 /* the name column's title starts over the image, 12px from the edge (Shopify "Product title") */
 .report-layout>.card thead tr:first-child th:nth-child(2){z-index:4} /* above the sticky image header, which would hide the title start */
+/* header lines like Shopify (2026-11-20): only the first dimension column (the one that stays put when
+   scrolling sideways) has a line on its right, the other headers only the bottom line */
+.report-layout>.card thead tr:first-child th:not(:nth-child(2)){box-shadow:inset 0 -1px 0 #f2f2f2}
+.report-layout>.card thead tr:first-child th:nth-child(2){box-shadow:inset 0 -1px 0 #f2f2f2,inset -1px 0 0 #f2f2f2}
 .report-layout>.card thead tr:first-child th:nth-child(2) .th-content{margin-left:-30px}
 
 /* Column widths + sideways scroll like a Polaris report table (measured 2026-11-20 on Reports → Total

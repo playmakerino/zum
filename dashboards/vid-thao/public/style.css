@@ -15,9 +15,10 @@ body{-webkit-font-smoothing:antialiased}
 .debug-line:empty{display:none}
 table{border-collapse:collapse}
 /* column widths (user, 2026-11-20; Polaris report, see shared.css): the Video dimension is fixed at
-   260px = the longest of 543 video names (241px, measured 2026-11-20) + the cell padding; metric columns
-   92px and Created 120px in shared.css */
-#creativesTable tbody td.td-name{width:260px;min-width:260px;max-width:260px}
+   281px so that, with Controls off, the table (1376px with Video 260) exactly fills the 1397px card at
+   1440px (no sideways scroll, no gap on the right); the longest of 543 video names is 241px; metric
+   columns 92px and Created 120px in shared.css */
+#creativesTable tbody td.td-name{width:281px;min-width:281px;max-width:281px}
 #creativesTable .td-metric{white-space:nowrap}
 thead th{text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;z-index:2;transition:color .08s}
 thead th:first-child{position:sticky;left:0;z-index:3}

@@ -183,7 +183,94 @@ function renderTable(id, groups) {
     <tbody>${rows.map(r => `<tr><td><span class="swatch" style="background:${r.color}"></span>${esc(r.name)}</td>${cols.map(c => cell(r.t, r.p, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
+// ── Revenue by product created month: last 12 months of the range + one "Older" column.
+// Bars = selected range, dashed marks = comparison range.
+let products = null; // { cur, prev, curRange, prevRange } or { error }
+function renderProducts() {
+  const el = $('c-products');
+  const title = 'Revenue by product created month';
+  const tip = 'Product revenue after discounts (no shipping, no tax) of orders Triple Whale attributes to Meta, by the month the product was created. Older also holds products no longer on Shopify.';
+  const draw = (head, legend) => {
+    el.innerHTML = `<div class="metric-head"><span class="metric-title" data-tip-title="${title}" data-tip="${tip}">${title}</span>${head}</div><div class="chart"></div><div class="legend">${legend}</div>`;
+    return el.querySelector('.chart');
+  };
+  if (!products || products.error) {
+    draw('', '').innerHTML = `<div class="chart-empty">${products ? esc(products.error) : 'Loading…'}</div>`;
+    return;
+  }
+  const { cur, prev, curRange, prevRange } = products;
+  const [ey, em] = curRange.end.split('-').map(Number);
+  const keys = Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(ey, em - 12 + i, 1)).toISOString().slice(0, 7));
+  const fold = data => {
+    const out = [0, ...keys.map(k => data.months[k] || 0)];
+    for (const [m, v] of Object.entries(data.months)) if (m < keys[0]) out[0] += v;
+    return out;
+  };
+  const vals = fold(cur), prevVals = prev ? fold(prev) : null;
+  const total = a => a.reduce((x, y) => x + y, 0);
+  const short = ['Older', ...keys.map(k => MONTHS[Number(k.slice(5)) - 1])];
+  const full = [`Created before ${short[1]} ${keys[0].slice(0, 4)}`, ...keys.map((k, i) => `Created ${short[i + 1]} ${k.slice(0, 4)}`)];
+  const box = draw(
+    `<div class="metric-value-row"><span class="metric-value">${money(total(vals))}</span>${prev ? deltaHtml(total(vals), total(prevVals), 'up') : ''}</div>`,
+    `<span><i style="background:${COLORS[0]}"></i>${rangeLabel(curRange)}</span>` + (prev ? `<span><i class="dash" style="color:${COLORS[1]}"></i>${rangeLabel(prevRange)}</span>` : ''));
+  const max = Math.max(...vals, ...(prevVals || []));
+  if (max <= 0) { box.innerHTML = '<div class="chart-empty">No data for this date range</div>'; return; }
+  const W = box.clientWidth, H = box.clientHeight, n = vals.length;
+  const step = niceStep(max, 4), yMax = step * Math.ceil(max / step);
+  const ticks = []; for (let v = 0; v <= yMax + step / 2; v += step) ticks.push(v);
+  const padL = Math.max(...ticks.map(t => moneyAxis(t).length)) * 6.5 + 10, padR = 8, padT = 8, padB = 22;
+  const bw = (W - padL - padR) / n;
+  const y = v => padT + (H - padT - padB) * (1 - Math.max(0, v) / yMax);
+  let s = '';
+  for (const t of ticks) s += `<line class="grid-line" x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="0" y="${y(t) + 4}">${moneyAxis(t)}</text>`;
+  const every = bw < 34 ? 3 : 1;
+  vals.forEach((v, i) => {
+    const x = padL + i * bw, x1 = x + bw * .2, w = bw * .6;
+    s += `<rect x="${x1}" y="${y(v)}" width="${w}" height="${H - padB - y(v)}" rx="2" fill="${COLORS[0]}"/>`;
+    if (prevVals) s += `<line x1="${x1}" x2="${x1 + w}" y1="${y(prevVals[i])}" y2="${y(prevVals[i])}" stroke="${COLORS[1]}" stroke-width="2" stroke-dasharray="4 4"/>`;
+    if (i % every === 0) s += `<text class="axis" x="${x + bw / 2}" y="${H - 4}" text-anchor="middle">${short[i]}</text>`;
+    s += `<rect class="bar-hit" data-i="${i}" x="${x}" y="${padT}" width="${bw}" height="${H - padT - padB}" fill="transparent"/>`;
+  });
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}">${s}</svg>`;
+  const card = $('chartTip');
+  const row = (color, r, v, sum) => `<div class="tip-row"><span><i style="background:${color}"></i>${rangeLabel(r)}</span><b>${money(v)} (${sum ? (v / sum * 100).toFixed(1) : 0}%)</b></div>`;
+  box.querySelectorAll('.bar-hit').forEach(hit => {
+    const i = Number(hit.dataset.i);
+    hit.addEventListener('mousemove', e => {
+      card.innerHTML = `<b>${full[i]}</b>` + row(COLORS[0], curRange, vals[i], total(vals)) + (prevVals ? row(COLORS[1], prevRange, prevVals[i], total(prevVals)) : '');
+      card.hidden = false;
+      const tw = card.offsetWidth, th = card.offsetHeight, vw = document.documentElement.clientWidth;
+      let left = e.clientX + 16; if (left + tw > vw - 8) left = e.clientX - tw - 16;
+      card.style.left = Math.max(8, left) + 'px';
+      card.style.top = Math.max(8, Math.min(e.clientY - th / 2, window.innerHeight - th - 8)) + 'px';
+    });
+    hit.addEventListener('mouseleave', () => { card.hidden = true; });
+  });
+}
+
+// own request: a failure here shows in this card only
+async function loadProducts(seq, curRange, prevRange, refresh) {
+  products = null;
+  renderProducts();
+  const get = async r => {
+    const res = await fetch(`/api/products?start=${r.start}&end=${r.end}${refresh ? '&refresh=1' : ''}`);
+    if (!res.ok) throw await httpError(res);
+    return res.json();
+  };
+  let next;
+  try {
+    const [cur, prev] = await Promise.all([get(curRange), prevRange ? get(prevRange) : null]);
+    next = { cur, prev, curRange, prevRange };
+  } catch (err) {
+    next = { error: `${err.message}${err.detail ? ': ' + formatErrorDetail(err.detail) : ''}` };
+  }
+  if (seq !== loadSeq) return;
+  products = next;
+  renderProducts();
+}
+
 function renderAll() {
+  renderProducts();
   if (!current) return;
   CARDS.forEach(renderCard);
   renderTable('t-tc', [['tc', 'TC campaigns'], ['nontc', 'Other campaigns']]);
@@ -203,6 +290,7 @@ async function getRange(r, refresh) {
 async function load(refresh = false) {
   const seq = ++loadSeq;
   const curRange = currentRange(), prevRange = compareRange(curRange);
+  loadProducts(seq, curRange, prevRange, refresh);
   document.body.classList.add('loading');
   lockLoadButtons(true);
   try {

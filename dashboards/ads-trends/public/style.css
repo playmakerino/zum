@@ -36,6 +36,7 @@ button{line-height:20px}
 .chart .axis{font-size:11px;fill:#70707b;font-family:inherit}
 .chart .grid-line{stroke:#eeeeef}
 .chart .hover-line{stroke:#c0c0c0;stroke-width:1}
+.chart .bar-hit:hover{fill:rgba(0,0,0,.03)}
 .chart-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#616161}
 
 .legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;margin-top:8px;font-size:12px;line-height:16px;color:#616161}

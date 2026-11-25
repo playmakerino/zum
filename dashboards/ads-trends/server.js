@@ -3,6 +3,7 @@ require('dotenv').config({ path: ['triplewhale', 'meta-token'].map(k => 'D:/keys
 const express = require('express');
 const path    = require('path');
 const { getCredentials, fetchByIds, twSql } = require('./meta');
+const { revenueByCreatedMonth } = require('./products');
 
 // Meta Ads trends from Triple Whale (ads_table, hourly rows, one SQL call grouped by day).
 // Catalog ads: Triple Whale has no catalog flag, so the creatives Triple Whale types as
@@ -15,6 +16,7 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
 const rangeCache = {};       // "start|end" → { at, body }
+const productCache = {};     // "start|end" → { at, body }
 const catalogCache = new Map(); // creative_id → true / false
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -81,6 +83,24 @@ app.get('/api/data', async (req, res) => {
     res.json(body);
   } catch (err) {
     res.status(502).json({ error: 'Triple Whale request failed', detail: err.message });
+  }
+});
+
+// Meta revenue by product created month; its own call, so a Shopify failure leaves the other cards alone
+app.get('/api/products', async (req, res) => {
+  const { start, end } = req.query;
+  if (!DATE_RE.test(start || '') || !DATE_RE.test(end || '') || start > end)
+    return res.status(400).json({ error: 'Bad date range' });
+  const key = `${start}|${end}`;
+  const hit = productCache[key];
+  const fresh = hit && (end < todayInShop() || Date.now() - hit.at < CACHE_MS);
+  if (fresh && req.query.refresh !== '1') return res.json(hit.body);
+  try {
+    const body = { start, end, months: await revenueByCreatedMonth(twSql, start, end) };
+    productCache[key] = { at: Date.now(), body };
+    res.json(body);
+  } catch (err) {
+    res.status(502).json({ error: 'Product revenue failed', detail: err.message });
   }
 });
 
